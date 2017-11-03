@@ -1,0 +1,28 @@
+{
+  "name": "karen",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "dependencies": {
+    "bcrypt": "^1.0.3",
+    "express": "^4.16.2",
+    "mysql2": "^1.4.2",
+    "request": "^2.83.0",
+    "request-promise-native": "^1.0.5",
+    "sequelize": "^4.20.1",
+    "umzug": "^2.1.0",
+    "uuid": "^3.1.0",
+    "yargs": "^10.0.3"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "babel-preset-stage-2": "^6.24.1"
+  },
+  "scripts": {
+    "start": "babel-node server.js --presets env,stage-2",
+    "migrate": "babel-node scripts/migrate.js --presets env,stage-2"
+  },
+  "author": "",
+  "license": "ISC"
+}
