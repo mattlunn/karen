@@ -6,6 +6,7 @@
   "dependencies": {
     "bcrypt": "^1.0.3",
     "body-parser": "^1.18.2",
+    "eventsource": "^1.0.5",
     "express": "^4.16.2",
     "iso8601-duration": "^1.1.1",
     "moment": "^2.19.1",

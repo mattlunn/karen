@@ -24,6 +24,18 @@ export default function (sequelize) {
     });
   };
 
+
+  stay.findCurrentStay = function () {
+    return this.findOne({
+      where: {
+        departure: null,
+        arrival: {
+          $not: null
+        }
+      }
+    });
+  };
+
 	stay.getUnsentEtasBefore = function (date) {
 	  return this.findAll({
       where: {

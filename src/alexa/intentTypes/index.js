@@ -1,7 +1,7 @@
 import moment from 'moment';
 import { parse, end } from 'iso8601-duration';
 import { Stay } from '../../models';
-import { setAway, setEta } from '../../nest';
+import { setAway } from '../../nest';
 
 function figureOutEta(slots) {
   if (slots.duration.value) {
