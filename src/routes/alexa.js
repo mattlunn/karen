@@ -1,10 +1,11 @@
 import express from 'express';
 import config from '../config';
 import * as requestTypes from '../alexa/requestTypes';
+import asyncWrapper from '../helpers/express-async-wrapper';
 
 const router = express.Router();
 
-router.post('/endpoint', async (req, res) => {
+router.post('/endpoint', asyncWrapper(async (req, res) => {
   if (req.body.context.System.application.applicationId !== config.alexa.id) {
     return res.status(401).end();
   }
@@ -18,6 +19,6 @@ router.post('/endpoint', async (req, res) => {
       .send('No handler setup to handle ' + req.body.request.type)
       .end();
   }
-});
+}));
 
 export default router;

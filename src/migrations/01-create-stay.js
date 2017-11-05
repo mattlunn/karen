@@ -1,7 +1,7 @@
 'use strict';
 module.exports = {
 	up: function(queryInterface, Sequelize) {
-		return queryInterface.createTable('stay', {
+		return queryInterface.createTable('stays', {
 			id: {
 				allowNull: false,
 				autoIncrement: true,
@@ -11,6 +11,9 @@ module.exports = {
 			eta: {
 				type: Sequelize.DATE
 			},
+      etaSentToNestAt: {
+			  type: Sequelize.DATE
+      },
       arrival: {
 			  type: Sequelize.DATE
       },
@@ -28,6 +31,6 @@ module.exports = {
 		});
 	},
 	down: function(queryInterface) {
-		return queryInterface.dropTable('stay');
+		return queryInterface.dropTable('stays');
 	}
 };

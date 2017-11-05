@@ -1,5 +1,6 @@
 import express from 'express';
 import request from 'request-promise-native';
+import asyncWrapper from "../helpers/express-async-wrapper";
 import uuid from 'uuid/v4';
 import config from '../config';
 
@@ -9,7 +10,7 @@ router.get('/auth', (req, res) => {
   res.redirect(`https://home.nest.com/login/oauth2?client_id=${config.nest.client_id}&state=${uuid()}`);
 });
 
-router.get('/auth/callback', async (req, res) => {
+router.get('/auth/callback', asyncWrapper(async (req, res) => {
   let response;
 
   try {
@@ -33,6 +34,6 @@ router.get('/auth/callback', async (req, res) => {
   res.status(200)
     .json(response)
     .end();
-});
+}));
 
 export default router;

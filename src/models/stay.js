@@ -5,6 +5,9 @@ export default function (sequelize) {
     eta: {
       type: Sequelize.DATE
     },
+    etaSentToNestAt: {
+      type: Sequelize.DATE
+    },
     arrival: {
       type: Sequelize.DATE
     },
@@ -12,6 +15,26 @@ export default function (sequelize) {
       type: Sequelize.DATE
     },
 	});
+
+	stay.findUpcomingStay = function () {
+	  return this.findOne({
+      where: {
+        arrival: null
+      }
+    });
+  };
+
+	stay.getUnsentEtasBefore = function (date) {
+	  return this.findAll({
+      where: {
+        etaSentToNestAt: null,
+        eta: {
+          lt: date
+        },
+        arrival: null
+      }
+    });
+  };
 
 	return stay;
 };
