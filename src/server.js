@@ -13,6 +13,7 @@ const app = express();
 app.use(bodyParser.json());
 app.use('/nest', nestRoutes);
 app.use('/alexa', alexaRoutes);
+app.use('/', express.static(__dirname + '/static'));
 
 nowAndSetInterval(async () => {
   const [stay, ...rest] = await Stay.getUnsentEtasBefore(
@@ -39,7 +40,7 @@ watchPresence().on('home', async () => {
   const now = new Date();
   let [current, upcoming] = await Promise.all([
     Stay.findCurrentStay(),
-    Stay.findUpcomingStay() 
+    Stay.findUpcomingStay()
   ]);
 
   if (current) {
