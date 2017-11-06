@@ -48,8 +48,7 @@ export function watchPresence() {
   const instance = new EventSource(constructApiUrl(`structures/${config.nest.structure_id}/away`), {
     headers: {
       Authorization: `Bearer ${config.nest.auth_token}`
-    },
-    proxy: 'http://localhost:8888'
+    }
   });
 
   instance.addEventListener('put', (e) => {

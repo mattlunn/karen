@@ -28,7 +28,7 @@ nowAndSetInterval(async () => {
       moment(stay.eta).add(config.nest.eta_window_in_minutes, 'minutes')
     );
 
-    stay.etaSentToNestAt = moment();
+    stay.etaSentToNestAt = new Date();
     await stay.save();
   } else {
     console.info('No unsent ETAs...');
@@ -36,16 +36,24 @@ nowAndSetInterval(async () => {
 }, moment.duration(Math.max(config.nest.eta_delivery_interval_in_minutes, 15), 'minutes').as('milliseconds'));
 
 watchPresence().on('home', async () => {
-  let stay = await Stay.findUpcomingStay();
+  const now = new Date();
+  let [current, upcoming] = await Promise.all([
+    Stay.findCurrentStay(),
+    Stay.findUpcomingStay() 
+  ]);
 
-  if (stay === null) {
-    stay = new Stay();
+  if (current) {
+    return console.log('Ignoring stay beginning at ' + now.toString() + ' as there is already a current stay');
   }
 
-  stay.arrival = new Date();
-  await stay.save();
+  if (upcoming === null) {
+    upcoming = new Stay();
+  }
 
-  console.log('Detected stay beginning at ' + stay.arrival.toString());
+  upcoming.arrival = new Date();
+  await upcoming.save();
+
+  console.log('Detected stay beginning at ' + upcoming.arrival.toString());
 }).on('away', async () => {
   let stay = await Stay.findCurrentStay();
 
