@@ -22,8 +22,8 @@ function figureOutEta(slots) {
       throw new Error('Time input not valid');
     }
 
-    if (date.isBefore(now)) {
-      date.add(1, 'day');
+    while (date.isBefore(now)) {
+      date.add(12, 'hours');
     }
 
     return date.toDate();
