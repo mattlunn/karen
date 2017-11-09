@@ -1,7 +1,7 @@
 import Sequelize from 'sequelize';
 
 export default function (sequelize) {
-	const stay = sequelize.define('stay', {
+  const stay = sequelize.define('stay', {
     eta: {
       type: Sequelize.DATE
     },
@@ -14,16 +14,29 @@ export default function (sequelize) {
     departure: {
       type: Sequelize.DATE
     },
-	});
+  });
 
-	stay.findUpcomingStay = function () {
-	  return this.findOne({
+  stay.findUpcomingStay = function () {
+    return this.findOne({
       where: {
         arrival: null
       }
     });
   };
 
+  stay.findCurrentOrLastStay = function () {
+    return this.findOne({
+      where: {
+        arrival: {
+          $not: null
+        }
+      },
+
+      order: [
+        ['arrival', 'DESC']
+      ]
+    });
+  };
 
   stay.findCurrentStay = function () {
     return this.findOne({
@@ -36,8 +49,8 @@ export default function (sequelize) {
     });
   };
 
-	stay.getUnsentEtasBefore = function (date) {
-	  return this.findAll({
+  stay.getUnsentEtasBefore = function (date) {
+    return this.findAll({
       where: {
         etaSentToNestAt: null,
         eta: {
@@ -48,5 +61,5 @@ export default function (sequelize) {
     });
   };
 
-	return stay;
+  return stay;
 };

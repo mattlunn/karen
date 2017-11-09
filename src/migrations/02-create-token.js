@@ -1,23 +1,27 @@
 'use strict';
 module.exports = {
   up: function(queryInterface, Sequelize) {
-    return queryInterface.createTable('stays', {
+    return queryInterface.createTable('tokens', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      eta: {
-        type: Sequelize.DATE
+      token: {
+        type: Sequelize.STRING,
+        unique: true,
+        allowNull: false
       },
-      etaSentToNestAt: {
-        type: Sequelize.DATE
+      userId: {
+        type: Sequelize.INTEGER,
+        references: {
+          model: 'users',
+          key: 'id'
+        },
+        allowNull: false,
       },
-      arrival: {
-        type: Sequelize.DATE
-      },
-      departure: {
+      expiresAt: {
         type: Sequelize.DATE
       },
       createdAt: {
@@ -31,6 +35,6 @@ module.exports = {
     });
   },
   down: function(queryInterface) {
-    return queryInterface.dropTable('stays');
+    return queryInterface.dropTable('tokens');
   }
 };

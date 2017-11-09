@@ -1,10 +1,10 @@
 const webpack = require('webpack');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ExtractTextPlugin = require("extract-text-webpack-plugin");
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 const extractLessPlugin = new ExtractTextPlugin({
-  filename: "app.[contenthash].css"
+  filename: 'app.[contenthash].css'
 });
 
 module.exports = {
@@ -18,19 +18,19 @@ module.exports = {
         test: /\.js$/,
         exclude: /node_modules/,
         use: [{
-            loader: 'babel-loader',
-            options:{
-              presets: ['react', 'env'],
-            }
+          loader: 'babel-loader',
+          options: {
+            plugins: ['transform-decorators-legacy'],
+            presets: ['react', 'env', 'stage-2'],
           }
-        ]
+        }]
       }, {
       test: /\.less$/,
       use: extractLessPlugin.extract({
         use: [{
-          loader: "css-loader"
+          loader: 'css-loader'
         }, {
-          loader: "less-loader"
+          loader: 'less-loader'
         }]
       })
     }]
@@ -39,7 +39,7 @@ module.exports = {
     new webpack.optimize.UglifyJsPlugin({
       compress: { warnings: false },
       mangle: true,
-      sourcemap: false,
+      sourceMap: true,
       beautify: false,
       dead_code: true
     }),
@@ -47,5 +47,8 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: __dirname + '/views/layout.html'
     })
-  ]
+  ],
+
+  cache: true,
+  devtool: 'source-map'
 };

@@ -1,6 +1,7 @@
 import express from 'express';
 import nestRoutes from './routes/nest';
 import alexaRoutes from './routes/alexa';
+import apiRoutes from './routes/api';
 import { Stay } from './models';
 import { setEta, watchPresence } from './nest';
 import bodyParser from 'body-parser';
@@ -13,7 +14,11 @@ const app = express();
 app.use(bodyParser.json());
 app.use('/nest', nestRoutes);
 app.use('/alexa', alexaRoutes);
+app.use('/api', apiRoutes);
 app.use('/', express.static(__dirname + '/static'));
+app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
+  maxAge: moment.duration(1, 'year').asMilliseconds()
+}));
 
 nowAndSetInterval(async () => {
   const [stay, ...rest] = await Stay.getUnsentEtasBefore(
