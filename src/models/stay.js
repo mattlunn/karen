@@ -11,9 +11,15 @@ export default function (sequelize) {
     arrival: {
       type: Sequelize.DATE
     },
+    arrivalSentToNestAt: {
+      type: Sequelize.DATE
+    },
     departure: {
       type: Sequelize.DATE
     },
+    departureSentToNestAt: {
+      type: Sequelize.DATE
+    }
   });
 
   stay.findUpcomingStay = function () {

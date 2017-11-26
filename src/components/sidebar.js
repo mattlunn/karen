@@ -7,6 +7,7 @@ import { connect } from 'react-redux';
 import { getStatus, getStatusSince, getStatusUntil } from '../reducers/stay';
 import { HOME, AWAY } from '../constants/status';
 import { humanDate } from '../helpers/date';
+import { changeStayStatus } from '../actions/stay';
 
 function mapStateToProps(state) {
   return {
@@ -16,7 +17,9 @@ function mapStateToProps(state) {
   };
 }
 
-@connect(mapStateToProps)
+@connect(mapStateToProps, {
+  changeStayStatus
+})
 export default class SideBar extends Component {
   openTimePickerDialog = () => {
     this.timePickerDialog.show();
@@ -60,13 +63,17 @@ export default class SideBar extends Component {
     }
   }
 
+  toggleStatus = () => {
+    this.props.changeStayStatus(this.props.status === AWAY ? HOME : AWAY);
+  };
+
   render() {
     return (
       <div className="sidebar">
         <div className="sidebar__house">
           <div className={classnames('sidebar__house-border', {
             'sidebar__house-border--away': this.props.status === AWAY
-          })}>
+          })} onClick={this.toggleStatus}>
             <div className={classnames('house', {
               'house--away': this.props.status === AWAY
             })} />
