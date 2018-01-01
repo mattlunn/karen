@@ -28,5 +28,13 @@ export default function (sequelize) {
     });
   };
 
+  user.findByHandle = function (handle) {
+    return this.findOne({
+      where: {
+        handle: handle
+      }
+    });
+  };
+
   return user;
 };

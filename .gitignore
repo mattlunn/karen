@@ -3,5 +3,6 @@ config.json
 .idea
 .DS_Store
 *.pem
+*.iml
 static
 sessions

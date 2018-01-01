@@ -21,6 +21,22 @@ function mapStateToProps(state) {
   changeStayStatus
 })
 export default class SideBar extends Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      date: props.until || moment().startOf('hour').add(1, 'hour').toDate()
+    };
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.until) {
+      this.setState({
+        date: nextProps.until
+      });
+    }
+  }
+
   openTimePickerDialog = () => {
     this.timePickerDialog.show();
   };
@@ -29,8 +45,43 @@ export default class SideBar extends Component {
     this.datePickerDialog.show();
   };
 
-  openTimeThenDatePickerDialog = () => {
-    this.timePickerDialog.show();
+  handleTimePickerOk = (date) => {
+    this.setState({
+      showingTimePicker: false,
+      date
+    });
+
+    if (this.state.showingDatePicker) {
+      this.openDatePickerDialog();
+    } else {
+      this.props.changeStayStatus(AWAY, date);
+    }
+  };
+
+  handleTimePickerCancel = () => {
+    this.props.changeStayStatus(AWAY);
+
+    this.setState({
+      showingDatePicker: false,
+      showingTimePicker: false
+    });
+  };
+
+  handleDatePickerOk = (date) => {
+    this.setState({
+      showingDatePicker: false,
+      date
+    });
+
+    this.props.changeStayStatus(AWAY, date);
+  };
+
+  handleDatePickerCancel = () => {
+    this.props.changeStayStatus(AWAY);
+
+    this.setState({
+      showingDatePicker: false
+    });
   };
 
   renderStatusMessage() {
@@ -64,7 +115,16 @@ export default class SideBar extends Component {
   }
 
   toggleStatus = () => {
-    this.props.changeStayStatus(this.props.status === AWAY ? HOME : AWAY);
+    if (this.props.status === AWAY) {
+      this.props.changeStayStatus(HOME);
+    } else {
+      this.setState({
+        showingDatePicker: true,
+        showingTimePicker: true
+      });
+
+      this.timePickerDialog.show();
+    }
   };
 
   render() {
@@ -89,7 +149,9 @@ export default class SideBar extends Component {
         <TimePickerDialog 
           ref={(dialog) => this.timePickerDialog = dialog}
           format="ampm" 
-          initialTime={this.props.until || new Date()}
+          initialTime={this.state.date}
+          onAccept={this.handleTimePickerOk}
+          onDismiss={this.handleTimePickerCancel}
           autoOk={false}
           disabled={false}
           pedantic={false}
@@ -102,7 +164,9 @@ export default class SideBar extends Component {
           container='dialog'
           disableYearSelection={true}
           firstDayOfWeek={1}
-          initialDate={this.props.until || new Date()}
+          initialDate={this.state.date}
+          onAccept={this.handleDatePickerOk}
+          onDismiss={this.handleDatePickerCancel}
           hideCalendarDate={false}
           openToYearSelection={false}
         />

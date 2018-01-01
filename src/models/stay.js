@@ -19,23 +19,33 @@ export default function (sequelize) {
     },
     departureSentToNestAt: {
       type: Sequelize.DATE
+    },
+    userId: {
+      type: Sequelize.INTEGER,
+      references: {
+        model: 'user',
+        key: 'id'
+      },
+      allowNull: false
     }
   });
 
-  stay.findUpcomingStay = function () {
+  stay.findUpcomingStay = function (userId) {
     return this.findOne({
       where: {
-        arrival: null
+        arrival: null,
+        userId
       }
     });
   };
 
-  stay.findCurrentOrLastStay = function () {
+  stay.findCurrentOrLastStay = function (userId) {
     return this.findOne({
       where: {
         arrival: {
           $not: null
-        }
+        },
+        userId
       },
 
       order: [
@@ -44,8 +54,20 @@ export default function (sequelize) {
     });
   };
 
-  stay.findCurrentStay = function () {
+  stay.findCurrentStay = function (userId) {
     return this.findOne({
+      where: {
+        departure: null,
+        arrival: {
+          $not: null
+        },
+        userId
+      }
+    });
+  };
+
+  stay.findCurrentStays = function () {
+    return this.findAll({
       where: {
         departure: null,
         arrival: {
