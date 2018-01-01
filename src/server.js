@@ -25,23 +25,24 @@ app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
 }));
 
 nowAndSetInterval(async () => {
-  const [stay, ...rest] = await Stay.getUnsentEtasBefore(
-    moment().add(config.nest.eta_earliest_delivery_in_minutes, 'minutes')
-  );
+  const [ stays, nextEta ] = await Promise.all([
+    Stay.findCurrentStays(),
+    Stay.findNextEta(moment().add(config.nest.eta_earliest_delivery_in_minutes, 'minutes'))
+  ]);
 
-  if (rest.length) {
-    console.error('How did we end up with 2 unsent ETAs?');
-  } else if (stay) {
+  if (stays.length) {
+    console.log('Not processing any ETAs, as someone is still at home...');
+  } else if (!nextEta) {
+    console.log('No ETAs to process...');
+  } else {
     await setEta(
-      stay.id,
-      moment(stay.eta).subtract(config.nest.eta_window_in_minutes, 'minutes'),
-      moment(stay.eta).add(config.nest.eta_window_in_minutes, 'minutes')
+      nextEta.id,
+      moment(nextEta.eta).subtract(config.nest.eta_window_in_minutes, 'minutes'),
+      moment(nextEta.eta).add(config.nest.eta_window_in_minutes, 'minutes')
     );
 
-    stay.etaSentToNestAt = new Date();
-    await stay.save();
-  } else {
-    console.info('No unsent ETAs...');
+    nextEta.etaSentToNestAt = new Date();
+    await nextEta.save();
   }
 }, moment.duration(Math.max(config.nest.eta_delivery_interval_in_minutes, 15), 'minutes').as('milliseconds'));
 

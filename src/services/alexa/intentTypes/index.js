@@ -1,7 +1,6 @@
 import moment from 'moment';
 import { parse, end } from 'iso8601-duration';
 import { Stay } from '../../../models/index';
-import { setAway } from '../../nest/index';
 
 function figureOutEta(slots) {
   if (slots.duration.value) {
@@ -34,17 +33,12 @@ function figureOutEta(slots) {
 
 export const GoingOut = async (intent) => {
   const eta = figureOutEta(intent.slots);
-  let stay = await Stay.findUpcomingStay();
-
-  if (stay === null) {
-    stay = new Stay();
-  }
+  const stay = new Stay();
 
   stay.eta = eta;
   stay.etaSentToNestAt = null;
 
   await stay.save();
-  await setAway(true);
 
   return {
     outputSpeech: {

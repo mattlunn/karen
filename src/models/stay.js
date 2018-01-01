@@ -26,7 +26,7 @@ export default function (sequelize) {
         model: 'user',
         key: 'id'
       },
-      allowNull: false
+      allowNull: true
     }
   });
 
@@ -77,15 +77,37 @@ export default function (sequelize) {
     });
   };
 
-  stay.getUnsentEtasBefore = function (date) {
+  stay.findNextEta = function (date) {
     return this.findAll({
       where: {
         etaSentToNestAt: null,
         eta: {
-          lt: date
+          lt: date,
+          gt: new Date()
+        },
+        userId: {
+          $not: null
         },
         arrival: null
       }
+    });
+  };
+
+  stay.findUnclaimedEta = function (since) {
+    return this.findOne({
+      where: {
+        createdAt: {
+          gt: since
+        },
+        eta: {
+          gt: new Date()
+        },
+        userId: null
+      },
+
+      order: [
+        ['createdAt', 'ASC']
+      ]
     });
   };
 

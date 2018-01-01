@@ -3,6 +3,7 @@ import asyncWrapper from '../helpers/express-async-wrapper';
 import config from '../config';
 import { Stay, User } from '../models';
 import bus, { FIRST_USER_HOME, LAST_USER_LEAVES } from '../bus';
+import moment from 'moment';
 
 const router = express.Router();
 
@@ -51,7 +52,11 @@ router.post('/enter', asyncWrapper(async (req, res) => {
 
 router.post('/exit', asyncWrapper(async (req, res) => {
   const userId = res.locals.user.id;
-  const currents = await Stay.findCurrentStays();
+  const [ currents, unclaimedEta ] = await Promise.all([
+    Stay.findCurrentStays(),
+    Stay.findUnclaimedEta(moment().subtract(config.location.unclaimed_eta_search_window_in_minutes, 'minutes'))
+  ]);
+
   const current = currents.find(x => x.userId === userId);
 
   if (!current) {
@@ -62,6 +67,13 @@ router.post('/exit', asyncWrapper(async (req, res) => {
 
     await current.save();
     res.sendStatus(200);
+
+    if (unclaimedEta) {
+      console.log(`${res.locals.user.handle} claims ETA ${unclaimedEta.id}`);
+
+      unclaimedEta.userId = userId;
+      await unclaimedEta.save();
+    }
 
     if (currents.length === 1) {
       bus.emit(LAST_USER_LEAVES, current);
