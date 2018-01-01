@@ -78,7 +78,7 @@ export default function (sequelize) {
   };
 
   stay.findNextEta = function (date) {
-    return this.findAll({
+    return this.findOne({
       where: {
         etaSentToNestAt: null,
         eta: {
