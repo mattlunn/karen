@@ -4,13 +4,13 @@ import alexaRoutes from './routes/alexa';
 import apiRoutes from './routes/api';
 import locationRoutes from './routes/location';
 import { Stay } from './models';
-import { setEta } from './nest';
+import { setEta } from './services/nest';
 import bodyParser from 'body-parser';
 import config from './config';
 import moment from 'moment';
 import nowAndSetInterval from './helpers/now-and-set-interval';
 
-require('./ifttt');
+require('./services/ifttt');
 
 const app = express();
 

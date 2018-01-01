@@ -1,6 +1,6 @@
 import request from 'request-promise-native';
-import config from '../config';
-import bus, { LAST_USER_LEAVES } from '../bus';
+import config from '../../config';
+import bus, { LAST_USER_LEAVES } from '../../bus';
 
 function constructApiUrl(endpoint) {
   return `https://developer-api.nest.com/${endpoint}`;

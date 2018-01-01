@@ -1,4 +1,4 @@
-import * as intentTypes from '../intentTypes';
+import * as intentTypes from '../intentTypes/index';
 
 export const IntentRequest = async (request) => {
   if (intentTypes.hasOwnProperty(request.intent.name)) {

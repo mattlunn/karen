@@ -1,6 +1,6 @@
 import express from 'express';
 import config from '../config';
-import * as requestTypes from '../alexa/requestTypes';
+import * as requestTypes from '../services/alexa/requestTypes';
 import asyncWrapper from '../helpers/express-async-wrapper';
 
 const router = express.Router();
