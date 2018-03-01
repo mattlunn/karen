@@ -56,12 +56,25 @@ function createResponseForStatus(upcoming, currentOrLast) {
 }
 
 router.get('/status', asyncWrapper(async (req, res) => {
-  const [upcoming, currentOrLast] = await Promise.all([
-    Stay.findUpcomingStay(),
-    Stay.findCurrentOrLastStay()
-  ]);
+  const users = await User.findAll();
+  const userStatus = await Promise.all(users.map(async (user) => {
+    const [upcoming, currentOrLast] = await Promise.all([
+      Stay.findUpcomingStay(user.id),
+      Stay.findCurrentOrLastStay(user.id)
+    ]);
 
-  res.json(createResponseForStatus(upcoming, currentOrLast)).end();
+    return {
+      ...createResponseForStatus(upcoming, currentOrLast),
+
+      handle: user.handle,
+      id: user.id,
+      avatar: user.avatar
+    };
+  }));
+
+  res.json({
+    stays: userStatus
+  }).end();
 }));
 
 /*

@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import TopBar from '../topbar';
 import { connect } from 'react-redux';
 import { attemptLogin } from '../../actions/user';
 import { getIsLoggingIn, getLoginError } from '../../reducers/user';
@@ -36,7 +35,6 @@ export default class Home extends Component {
   render() {
     return (
       <div>
-        <TopBar/>
         <div className="login__panel">
           <form>
             <p>

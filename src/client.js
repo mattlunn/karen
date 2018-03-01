@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Home from './components/pages/home';
 import Login from './components/pages/login';
-import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import thunk from 'redux-thunk';
 import { Route } from 'react-router';
 import { Switch } from 'react-router-dom';
@@ -39,16 +38,14 @@ store.subscribe(() => {
 
 window.onload = () => {
   ReactDOM.render(
-    <MuiThemeProvider>
-      <Provider store={store}>
-        <ConnectedRouter history={history}>
-          <Switch>
-            <Route exact path="/" component={Home}/>
-            <Route exact path="/login" component={Login}/>
-          </Switch>
-        </ConnectedRouter>
-      </Provider>
-    </MuiThemeProvider>,
+    <Provider store={store}>
+      <ConnectedRouter history={history}>
+        <Switch>
+          <Route exact path="/" component={Home}/>
+          <Route exact path="/login" component={Login}/>
+        </Switch>
+      </ConnectedRouter>
+    </Provider>,
 
     document.getElementById('main')
   );

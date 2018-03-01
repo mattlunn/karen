@@ -1,175 +1,34 @@
 import React, { Component } from 'react';
-import TimePickerDialog from 'material-ui/TimePicker/TimePickerDialog';
-import DatePickerDialog from 'material-ui/DatePicker/DatePickerDialog';
+import UserStatus from './user-status';
 import classnames from 'classnames';
-import moment from 'moment';
 import { connect } from 'react-redux';
-import { getStatus, getStatusSince, getStatusUntil } from '../reducers/stay';
-import { HOME, AWAY } from '../constants/status';
-import { humanDate } from '../helpers/date';
-import { changeStayStatus } from '../actions/stay';
+import { getStays } from '../reducers/stay';
+import { AWAY } from '../constants/status';
 
 function mapStateToProps(state) {
   return {
-    status: getStatus(state.stay),
-    since: getStatusSince(state.stay),
-    until: getStatusUntil(state.stay)
+    stays: getStays(state.stay)
   };
 }
 
-@connect(mapStateToProps, {
-  changeStayStatus
-})
+@connect(mapStateToProps)
 export default class SideBar extends Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      date: props.until || moment().startOf('hour').add(1, 'hour').toDate()
-    };
-  }
-
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.until) {
-      this.setState({
-        date: nextProps.until
-      });
-    }
-  }
-
-  openTimePickerDialog = () => {
-    this.timePickerDialog.show();
-  };
-
-  openDatePickerDialog = () => {
-    this.datePickerDialog.show();
-  };
-
-  handleTimePickerOk = (date) => {
-    this.setState({
-      showingTimePicker: false,
-      date
-    });
-
-    if (this.state.showingDatePicker) {
-      this.openDatePickerDialog();
-    } else {
-      this.props.changeStayStatus(AWAY, date);
-    }
-  };
-
-  handleTimePickerCancel = () => {
-    this.props.changeStayStatus(AWAY);
-
-    this.setState({
-      showingDatePicker: false,
-      showingTimePicker: false
-    });
-  };
-
-  handleDatePickerOk = (date) => {
-    this.setState({
-      showingDatePicker: false,
-      date
-    });
-
-    this.props.changeStayStatus(AWAY, date);
-  };
-
-  handleDatePickerCancel = () => {
-    this.props.changeStayStatus(AWAY);
-
-    this.setState({
-      showingDatePicker: false
-    });
-  };
-
-  renderStatusMessage() {
-    if (this.props.status === HOME) {
-      const since = moment(this.props.since);
-
-      return `Home since ${since.format('HH:mm')} ${humanDate(since)}`;
-    } else {
-      const since = moment(this.props.since);
-      const until = this.props.until ? moment(this.props.until) : null;
-
-      const renderUntilMessage = () => {
-        if (until) {
-          return [
-            <a href="#" onClick={this.openTimePickerDialog}>{until.format('HH:mm')}</a>,
-            ' ',
-            <a href="#" onClick={this.openDatePickerDialog}>{humanDate(until)}</a>
-          ];
-        } else {
-          return [
-            <a href="#" onClick={this.openTimeThenDatePickerDialog}>unknown</a>,
-          ]
-        }
-      };
-
-      return [
-        `Away from ${since.format('HH:mm')} ${humanDate(since)} until `,
-        ...renderUntilMessage()
-      ];
-    }
-  }
-
-  toggleStatus = () => {
-    if (this.props.status === AWAY) {
-      this.props.changeStayStatus(HOME);
-    } else {
-      this.setState({
-        showingDatePicker: true,
-        showingTimePicker: true
-      });
-
-      this.timePickerDialog.show();
-    }
-  };
-
   render() {
     return (
       <div className="sidebar">
         <div className="sidebar__house">
           <div className={classnames('sidebar__house-border', {
-            'sidebar__house-border--away': this.props.status === AWAY
-          })} onClick={this.toggleStatus}>
+            'sidebar__house-border--away': this.props.stays.every(x => x.status === AWAY)
+          })}>
             <div className={classnames('house', {
-              'house--away': this.props.status === AWAY
+              'house--away': this.props.stays.every(x => x.status === AWAY)
             })} />
           </div>
         </div>
 
         <h2>Effra Road</h2>
 
-        <p className="sidebar__status">
-          {this.renderStatusMessage()}
-        </p>
-
-        <TimePickerDialog 
-          ref={(dialog) => this.timePickerDialog = dialog}
-          format="ampm" 
-          initialTime={this.state.date}
-          onAccept={this.handleTimePickerOk}
-          onDismiss={this.handleTimePickerCancel}
-          autoOk={false}
-          disabled={false}
-          pedantic={false}
-          minutesStep={5}
-        />
-
-        <DatePickerDialog
-          ref={(dialog) => this.datePickerDialog = dialog}
-          autoOk={false}
-          container='dialog'
-          disableYearSelection={true}
-          firstDayOfWeek={1}
-          initialDate={this.state.date}
-          onAccept={this.handleDatePickerOk}
-          onDismiss={this.handleDatePickerCancel}
-          hideCalendarDate={false}
-          openToYearSelection={false}
-        />
+        {this.props.stays.map((stay) => <UserStatus {...stay} />)}
       </div>
     );
   }

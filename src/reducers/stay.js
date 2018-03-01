@@ -24,9 +24,6 @@ export default function (state = {}, action) {
   }
 };
 
-export function getStatus({ status }) {
-  return status;
+export function getStays({ stays }) {
+  return stays;
 }
-
-export const getStatusSince = createSelector(({ since }) => since, x => x && new Date(x));
-export const getStatusUntil = createSelector(({ until }) => until, x => x && new Date(x));

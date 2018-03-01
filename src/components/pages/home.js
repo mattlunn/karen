@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import TopBar from '../topbar';
 import SideBar from '../sidebar';
 import resources from '../resources';
 import { STATUS } from '../../constants/resources';
@@ -9,7 +8,6 @@ export default class Home extends Component {
   render() {
     return (
       <div>
-        <TopBar/>
         <div>
           <SideBar/>
           <div className='body'>

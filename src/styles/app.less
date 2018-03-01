@@ -4,6 +4,8 @@
 */
 
 @sidebar-width: 250px;
+@home-color: #5eef00;
+@away-color: red;
 
 html, body, div, span, applet, object, iframe,
 h1, h2, h3, h4, h5, h6, p, blockquote, pre,
@@ -65,7 +67,7 @@ table {
   float: left;
   width: @sidebar-width;
   position: fixed;
-  height: calc(100vh ~"-" 64px);
+  height: 100vh;
   color: #eee;
   font-family: sans-serif;
 
@@ -74,7 +76,7 @@ table {
   }
 
   &__house-border {
-    border: 3px solid #5eef00;
+    border: 3px solid @home-color;
     border-radius: 100%;
     width: 130px;
     margin: 0 auto;
@@ -87,7 +89,7 @@ table {
     }
 
     &--away {
-      border-color: red;
+      border-color: @away-color;
     }
   }
 
@@ -103,15 +105,35 @@ table {
     text-align: center;
     margin-bottom: 30px;
   }
+}
 
-  p {
-    text-align: center;
-    line-height: 1.4em;
+.user-status {
+  width: 200px;
+  margin: 0 auto;
+  display: flex;
+  margin-bottom: 10px;
 
-    a {
-      color: #eee;
-      text-decoration: none;
-      border-bottom: 1px #eee dashed;
+  &__avatar {
+    border-radius: 100%;
+    padding: 2px;
+    border: 1px solid @home-color;
+    margin-right: 10px;
+
+    &--away {
+      border-color: @away-color;
+    }
+  }
+
+  &__user-name {
+    font-size: 1.3em;
+    margin-bottom: 2px;
+  }
+
+  &__about {
+    font-size: 0.85em;
+
+    &, & a {
+      color: #bbb;
     }
   }
 }

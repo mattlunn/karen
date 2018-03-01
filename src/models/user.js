@@ -1,5 +1,6 @@
 import Sequelize from 'sequelize';
 import bcrypt from 'bcrypt';
+import { createHash } from 'crypto';
 
 export default function (sequelize) {
   const user = sequelize.define('user', {
@@ -11,6 +12,19 @@ export default function (sequelize) {
     password: {
       type: Sequelize.STRING,
       allowNull: false
+    },
+    email: {
+      type: Sequelize.STRING,
+      allowNull: false,
+      defaultValue: ''
+    },
+    avatar: {
+      type: Sequelize.VIRTUAL,
+      get: function () {
+        const md5Hash = createHash('md5').update(this.get('email')).digest('hex');
+
+        return `https://www.gravatar.com/avatar/${md5Hash}?s=32&d=identicon`;
+      }
     }
   });
 
