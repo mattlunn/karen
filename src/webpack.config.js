@@ -21,7 +21,7 @@ module.exports = {
           loader: 'babel-loader',
           options: {
             plugins: ['transform-decorators-legacy'],
-            presets: ['react', 'env', 'stage-2'],
+            presets: ['react', ['env', { targets: { browsers: ['last 2 Chrome versions'] }}], 'stage-2'],
           }
         }]
       }, {
@@ -33,16 +33,12 @@ module.exports = {
           loader: 'less-loader'
         }]
       })
+    }, {
+      test: /(\.css|\.scss)$/,
+      loaders: ['style-loader', 'css-loader?sourceMap']
     }]
   },
   plugins: [
-    new webpack.optimize.UglifyJsPlugin({
-      compress: { warnings: false },
-      mangle: true,
-      sourceMap: true,
-      beautify: false,
-      dead_code: true
-    }),
     extractLessPlugin,
     new HtmlWebpackPlugin({
       template: __dirname + '/views/layout.html'
@@ -52,3 +48,13 @@ module.exports = {
   cache: true,
   devtool: 'source-map'
 };
+
+if (process.env.NODE_ENV === 'production') {
+  module.exports.plugins.unshift(new webpack.optimize.UglifyJsPlugin({
+    compress: { warnings: false },
+    mangle: true,
+    sourceMap: true,
+    beautify: false,
+    dead_code: true
+  }));
+}

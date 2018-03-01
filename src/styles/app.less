@@ -196,3 +196,52 @@ table {
     }
   }
 }
+
+.modal {
+  &__backdrop {
+    background: rgba(78, 78, 78, 0.6);
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    z-index: 100;
+  }
+
+  &__container {
+    border: 10px solid #757575;
+    border-radius: 10px;
+    width: 800px;
+    background: #fff;
+    padding: 20px;
+    left: ~"calc(50% - 400px)";
+    position: absolute;
+    top: 200px;
+  }
+}
+
+.eta-picker {
+  font-family: sans-serif;
+
+  h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+  }
+
+  & > div {
+    display: inline-block;
+    width: 50%;
+  }
+
+  &__selected-date {
+    font-size: 1.4em;
+    margin-bottom: 10px;
+  }
+
+  &__selected-date-and-time {
+    text-align: center;
+    padding-top: 20px;
+  }
+}
