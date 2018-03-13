@@ -1,8 +1,7 @@
 import { LOADED_RESOURCE } from './resources';
 import { STATUS } from '../constants/resources';
-import { createSelector } from 'reselect';
 
-export const CHANGED_STAY_STATUS = 'CHANGED_STAY_STATUS';
+export const UPDATE_ETA = 'UPDATE_ETA';
 
 export default function (state = {}, action) {
   switch (action.type) {
@@ -14,10 +13,17 @@ export default function (state = {}, action) {
       } else {
         return state;
       }
-    case CHANGED_STAY_STATUS:
+    case UPDATE_ETA:
       return {
         ...state,
-        ...action.data
+
+        stays: state.stays.map((curr) => {
+          if (curr.handle === action.data.handle) {
+            return action.data;
+          } else {
+            return curr;
+          }
+        })
       };
     default:
       return state;

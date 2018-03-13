@@ -1,4 +1,4 @@
-import { SHOW_MODAL, HIDE_MODAL } from '../reducers/modal';
+import { SHOW_MODAL, CLOSE_MODAL } from '../reducers/modal';
 
 export function showModal(name, props) {
   return {
@@ -8,9 +8,9 @@ export function showModal(name, props) {
   };
 }
 
-export function hideModal(name) {
+export function closeModal(name) {
   return {
-    type: HIDE_MODAL,
+    type: CLOSE_MODAL,
     name
   };
 }

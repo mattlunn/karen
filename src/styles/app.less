@@ -52,6 +52,22 @@ table {
   border-spacing: 0;
 }
 
+button.primary {
+  color: #fff;
+  border: 1px solid #00539f;
+  background-color: #006edc;
+  border-radius: 5px;
+  padding: 5px 10px;
+}
+
+button.secondary {
+  color: #00539f;
+  border: 1px solid #00539f;
+  background-color: #fff;
+  border-radius: 5px;
+  padding: 5px 10px;
+}
+
 .house {
   background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20baseProfile%3D%22tiny%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2258%22%20viewBox%3D%2228%20-22%2064%2058%22%3E%3Cpath%20fill%3D%22%23FFF%22%20d%3D%22M86.3%2010.2L81%205.9V36h-9V18.5c0-6.6-5.4-12-12-12s-12%205.4-12%2012V36h-9V5.8l-5.4%204.4L28%203.9%2060-22l14%2011.3v-3.8h7V-5l11%208.9-5.7%206.3zM60%2011.5c3.7%200%206.7%202.9%207%206.5v18H53V18c.3-3.6%203.3-6.5%207-6.5z%22%2F%3E%3C%2Fsvg%3E");
   background-repeat: no-repeat;
@@ -213,7 +229,6 @@ table {
     border-radius: 10px;
     width: 800px;
     background: #fff;
-    padding: 20px;
     left: ~"calc(50% - 400px)";
     position: absolute;
     top: 200px;
@@ -223,16 +238,20 @@ table {
 .eta-picker {
   font-family: sans-serif;
 
-  h2 {
-    font-size: 18px;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 5px;
-  }
+  &__body {
+    padding: 20px;
 
-  & > div {
-    display: inline-block;
-    width: 50%;
+    h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+    }
+
+    & > div {
+      display: inline-block;
+      width: 50%;
+    }
   }
 
   &__selected-date {
@@ -243,5 +262,16 @@ table {
   &__selected-date-and-time {
     text-align: center;
     padding-top: 20px;
+  }
+
+  &__footer {
+    background: #eeeeee;
+    border-top: 1px solid #757575;
+    padding: 10px 20px;
+    text-align: right;
+
+    & button.primary {
+      margin-left: 10px;
+    }
   }
 }

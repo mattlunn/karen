@@ -40,15 +40,21 @@ router.use(asyncWrapper(async (req, res, next) => {
     .end();
 }));
 
-function createResponseForStatus(upcoming, currentOrLast) {
+function createResponseForStatus(user, upcoming, currentOrLast) {
+  const withUser = () => ({ handle: user.handle, id: user.id, avatar: user.avatar });
+
   if (upcoming || currentOrLast.departure) {
     return {
+      ...withUser(),
+
       status: AWAY,
       since: currentOrLast.departure,
       until: upcoming ? upcoming.eta : null
     };
   } else {
     return {
+      ...withUser(),
+
       status: HOME,
       since: currentOrLast.arrival
     };
@@ -63,13 +69,7 @@ router.get('/status', asyncWrapper(async (req, res) => {
       Stay.findCurrentOrLastStay(user.id)
     ]);
 
-    return {
-      ...createResponseForStatus(upcoming, currentOrLast),
-
-      handle: user.handle,
-      id: user.id,
-      avatar: user.avatar
-    };
+    return createResponseForStatus(user, upcoming, currentOrLast);
   }));
 
   res.json({
@@ -77,63 +77,41 @@ router.get('/status', asyncWrapper(async (req, res) => {
   }).end();
 }));
 
-/*
- * { status: HOME } // I'm now home
- * { status: AWAY } // I'm now away
- * { status: AWAY, eta: XYZ }, I'm away until XYZ
- */
-router.post('/status', asyncWrapper(async (req, res, next) => {
-  let [upcoming, currentOrLast] = await Promise.all([
-    Stay.findUpcomingStay(),
-    Stay.findCurrentOrLastStay()
+router.post('/eta', asyncWrapper(async (req, res, next) => {
+  const user = await User.findByHandle(req.body.handle);
+
+  if (user) {
+    res.locals.user = user;
+    next();
+  } else {
+    next(new Error(`${req.body.handle} is not a known user`));
+  }
+}), asyncWrapper(async (req, res, next) => {
+  const user = res.locals.user;
+  const eta = moment(req.body.eta);
+
+  let [current, upcoming] = await Promise.all([
+    Stay.findCurrentOrLastStay(user.id),
+    Stay.findUpcomingStay(user.id)
   ]);
 
-  if (!req.body.status) {
-    return next(new Error('You must specify a desired status'));
+  if (current.departure === null) {
+    return next(new Error(`${req.body.handle} is currently at home. User must be away to set an ETA`));
   }
 
-  switch (req.body.status) {
-    case HOME: {
-      if (currentOrLast.departure) {
-        currentOrLast = upcoming;
-        upcoming = null;
-
-        if (!currentOrLast) {
-          currentOrLast = new Stay();
-        }
-
-        currentOrLast.arrival = new Date();
-      }
-
-      break;
-    }
-    case AWAY: {
-      if (!currentOrLast.departure) {
-        currentOrLast.departure = new Date();
-      }
-
-      if (req.body.eta) {
-        const eta = moment(req.body.eta);
-
-        if (!eta.isValid()) {
-          return next(new Error(`${req.body.eta} is not in a recognised format`));
-        }
-
-        if (!upcoming) {
-          upcoming = new Stay();
-        }
-
-        upcoming.eta = eta;
-      }
-
-      break;
-    }
-    default:
-      return next(new Error(`'${req.body.status} is not a recognised status`));
+  if (eta.isBefore(moment())) {
+    return next(new Error(`ETA (${req.body.eta}) cannot be before the current time`));
   }
 
-  await Promise.all([ upcoming, currentOrLast ].filter(x => x).map(x => x.save()));
-  res.json(createResponseForStatus(upcoming, currentOrLast)).end();
+  if (!upcoming) {
+    upcoming = new Stay();
+    upcoming.userId = user.id;
+  }
+
+  upcoming.eta = eta;
+  await upcoming.save();
+
+  res.json(createResponseForStatus(user, upcoming, current)).end();
 }));
 
 export default router;

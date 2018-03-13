@@ -1,12 +1,14 @@
 import { applicationFetch } from '../helpers/fetch';
 import { getAuthToken } from '../reducers/user';
-import { CHANGED_STAY_STATUS } from '../reducers/stay';
+import { closeModal } from './modal';
+import { UPDATE_ETA } from '../reducers/stay';
+import { ETA_PICKER } from '../constants/modals';
 
-export function changeStayStatus(status, until) {
+export function setEtaForUser(handle, eta) {
   return (dispatch, getState) => {
-    applicationFetch('/api/status', getAuthToken(getState().user), {
-      status,
-      until
+    applicationFetch('/api/eta', getAuthToken(getState().user), {
+      handle,
+      eta
     }).then((res) => {
       if (!res.ok) {
         return Promise.reject(new Error('HTTP status ' + res.status));
@@ -14,7 +16,8 @@ export function changeStayStatus(status, until) {
 
       return res.json();
     }).then((data) => {
-      dispatch({ type: CHANGED_STAY_STATUS, data });
+      dispatch({ type: UPDATE_ETA, data });
+      dispatch(closeModal(ETA_PICKER))
     });
   };
 }
