@@ -1,4 +1,5 @@
 import Sequelize from 'sequelize';
+import bus, { FIRST_USER_HOME, LAST_USER_LEAVES } from '../bus';
 
 export default function (sequelize) {
   const stay = sequelize.define('stay', {
@@ -110,6 +111,22 @@ export default function (sequelize) {
       ]
     });
   };
+
+  stay.addHook('afterSave', async function (stay) {
+    if (stay.changed('departure')) {
+      const currentlyAtHome = await this.findCurrentStays();
+
+      if (!currentlyAtHome.length) {
+        bus.emit(LAST_USER_LEAVES, stay);
+      }
+    } else if (stay.changed('arrival')) {
+      const currentlyAtHome = await this.findCurrentStays();
+
+      if (currentlyAtHome.length === 1) {
+        bus.emit(FIRST_USER_HOME, stay);
+      }
+    }
+  });
 
   return stay;
 };

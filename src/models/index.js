@@ -5,7 +5,8 @@ import stayFactory from './stay';
 import tokenFactory from './token';
 
 const instance = new Sequelize(config.database.name, config.database.user, config.database.password, {
-  dialect: 'mysql'
+  dialect: 'mysql',
+  logging: false
 });
 
 export const User = userFactory(instance);

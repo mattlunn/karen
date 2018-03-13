@@ -2,7 +2,6 @@ import express from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import config from '../config';
 import { Stay, User } from '../models';
-import bus, { FIRST_USER_HOME, LAST_USER_LEAVES } from '../bus';
 import moment from 'moment';
 
 const router = express.Router();
@@ -43,10 +42,6 @@ router.post('/enter', asyncWrapper(async (req, res) => {
     await upcoming.save();
 
     res.sendStatus(200);
-
-    if (currents.length === 0) {
-      bus.emit(FIRST_USER_HOME, upcoming);
-    }
   }
 }));
 
@@ -73,10 +68,6 @@ router.post('/exit', asyncWrapper(async (req, res) => {
 
       unclaimedEta.userId = userId;
       await unclaimedEta.save();
-    }
-
-    if (currents.length === 1) {
-      bus.emit(LAST_USER_LEAVES, current);
     }
   }
 }));

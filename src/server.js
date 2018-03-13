@@ -1,3 +1,5 @@
+require('console-stamp')(console);
+
 import express from 'express';
 import nestRoutes from './routes/nest';
 import alexaRoutes from './routes/alexa';
@@ -10,6 +12,7 @@ import bodyParser from 'body-parser';
 import config from './config';
 import moment from 'moment';
 import nowAndSetInterval from './helpers/now-and-set-interval';
+import bus, * as events from './bus';
 
 require('./services/ifttt');
 require('./services/synology');
@@ -51,4 +54,12 @@ nowAndSetInterval(async () => {
 
 app.listen(config.port, () => {
   console.log(`Listening on ${config.port}`);
+});
+
+Object.keys(events).forEach((event) => {
+  if (event !== 'default') {
+    bus.on(event, () => {
+      console.log(`Received ${event} event`);
+    });
+  }
 });
