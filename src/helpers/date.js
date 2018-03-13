@@ -3,18 +3,17 @@ import moment from 'moment';
 export function humanDate(date) {
   const now = moment();
 
-  switch (date.diff(now, 'days')) {
-    case 0:
-      return 'today';
-    case -1:
-      return 'yesterday';
-    case 1:
-      return 'tomorrow';
-    default:
-      return 'on ' + (
-        date.diff(now, 'months')
-          ? date.format('ddd Do MMM')
-          : date.format('ddd Do')
-      );
+  if (date.isSame(now, 'day')) {
+    return 'today';
+  } else if (date.isSame(moment(now).subtract(1, 'day'), 'day')) {
+    return 'yesterday';
+  } else if (date.isSame(moment(now).add(1, 'day'), 'day')) {
+    return 'tomorrow';
+  } else {
+    return 'on ' + (
+      date.diff(now, 'months')
+        ? date.format('ddd Do MMM')
+        : date.format('ddd Do')
+    );
   }
 }

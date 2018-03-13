@@ -1,6 +1,7 @@
 import React, { Component }  from 'react';
 import moment from 'moment';
 import classNames from 'classnames';
+import { setUserStatus } from '../actions/stay'
 import { AWAY, HOME } from '../constants/status';
 import { humanDate } from '../helpers/date';
 import { connect } from 'react-redux';
@@ -12,7 +13,9 @@ function mapDispatchToProps(dispatch, ownProps) {
     showModal: () => dispatch(showModal(ETA_PICKER, {
       handle: ownProps.handle,
       eta: ownProps.until ? moment(ownProps.until) : null
-    }))
+    })),
+
+    toggleStatus: () => dispatch(setUserStatus(ownProps.handle, ownProps.status === HOME ? AWAY : HOME))
   };
 }
 
@@ -48,10 +51,11 @@ export default class UserStatus extends Component {
   render() {
     return (
       <div className="user-status">
-        <img className={classNames('user-status__avatar', {
-          'user-status__avatar--away': this.props.status === AWAY
-        })} src={this.props.avatar} />
-
+        <a href="#" onClick={this.props.toggleStatus}>
+          <img className={classNames('user-status__avatar', {
+            'user-status__avatar--away': this.props.status === AWAY
+          })} src={this.props.avatar} />
+        </a>
         <div>
           <h3 className="user-status__user-name">
             {this.props.handle}

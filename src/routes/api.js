@@ -84,7 +84,7 @@ router.post('/eta', asyncWrapper(async (req, res, next) => {
     res.locals.user = user;
     next();
   } else {
-    next(new Error(`${req.body.handle} is not a known user`));
+    throw new Error(`${req.body.handle} is not a known user`);
   }
 }), asyncWrapper(async (req, res, next) => {
   const user = res.locals.user;
@@ -96,11 +96,11 @@ router.post('/eta', asyncWrapper(async (req, res, next) => {
   ]);
 
   if (current.departure === null) {
-    return next(new Error(`${req.body.handle} is currently at home. User must be away to set an ETA`));
+    throw new Error(`${req.body.handle} is currently at home. User must be away to set an ETA`);
   }
 
   if (eta.isBefore(moment())) {
-    return next(new Error(`ETA (${req.body.eta}) cannot be before the current time`));
+    throw new Error(`ETA (${req.body.eta}) cannot be before the current time`);
   }
 
   if (!upcoming) {
@@ -110,6 +110,53 @@ router.post('/eta', asyncWrapper(async (req, res, next) => {
 
   upcoming.eta = eta;
   await upcoming.save();
+
+  res.json(createResponseForStatus(user, upcoming, current)).end();
+}));
+
+router.post('/status', asyncWrapper(async (req, res, next) => {
+  const user = await User.findByHandle(req.body.handle);
+
+  if (user) {
+    res.locals.user = user;
+    next();
+  } else {
+    throw new Error(`${req.body.handle} is not a known user`);
+  }
+}), asyncWrapper(async (req, res) => {
+  const user = res.locals.user;
+  const status = req.body.status;
+
+  let [current, upcoming] = await Promise.all([
+    Stay.findCurrentOrLastStay(user.id),
+    Stay.findUpcomingStay(user.id)
+  ]);
+
+  switch (status) {
+    case HOME:
+      if (current.departure !== null) {
+        if (!upcoming) {
+          upcoming = new Stay();
+          upcoming.userId = user.id;
+        }
+
+        upcoming.arrival = new Date();
+
+        current = upcoming;
+        upcoming = null;
+
+        await current.save();
+      }
+
+      break;
+    case AWAY:
+      if (current.departure === null) {
+        current.departure = new Date();
+        await current.save();
+      }
+
+      break;
+  }
 
   res.json(createResponseForStatus(user, upcoming, current)).end();
 }));

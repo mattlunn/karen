@@ -3,6 +3,7 @@
    License: none (public domain)
 */
 
+@modal-width: 800px;
 @sidebar-width: 250px;
 @home-color: #5eef00;
 @away-color: red;
@@ -50,6 +51,10 @@ q:before, q:after {
 table {
   border-collapse: collapse;
   border-spacing: 0;
+}
+
+.react-calendar {
+  width: 100% !important;
 }
 
 button.primary {
@@ -227,11 +232,21 @@ button.secondary {
   &__container {
     border: 10px solid #757575;
     border-radius: 10px;
-    width: 800px;
+    width: @modal-width;
     background: #fff;
     left: ~"calc(50% - 400px)";
     position: absolute;
     top: 200px;
+  }
+}
+
+@media (max-width: (@modal-width + 50px)) {
+  .modal {
+    &__container {
+      width: ~"calc(100% - 20px)";
+      left: 10px;
+      top: 30px;
+    }
   }
 }
 
@@ -272,6 +287,17 @@ button.secondary {
 
     & button.primary {
       margin-left: 10px;
+    }
+  }
+}
+
+@media (max-width: (630px)) {
+  .eta-picker {
+    &__body {
+      & > div {
+        display: inline-block;
+        width: 100%;
+      }
     }
   }
 }

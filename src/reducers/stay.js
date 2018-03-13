@@ -2,6 +2,7 @@ import { LOADED_RESOURCE } from './resources';
 import { STATUS } from '../constants/resources';
 
 export const UPDATE_ETA = 'UPDATE_ETA';
+export const UPDATE_STATUS = 'UPDATE_STATUS';
 
 export default function (state = {}, action) {
   switch (action.type) {
@@ -14,6 +15,7 @@ export default function (state = {}, action) {
         return state;
       }
     case UPDATE_ETA:
+    case UPDATE_STATUS:
       return {
         ...state,
 
