@@ -86,7 +86,7 @@ router.post('/eta', asyncWrapper(async (req, res, next) => {
   } else {
     throw new Error(`${req.body.handle} is not a known user`);
   }
-}), asyncWrapper(async (req, res, next) => {
+}), asyncWrapper(async (req, res) => {
   const user = res.locals.user;
   const eta = moment(req.body.eta);
 
@@ -109,6 +109,8 @@ router.post('/eta', asyncWrapper(async (req, res, next) => {
   }
 
   upcoming.eta = eta;
+  upcoming.etaSentToNestAt = null;
+
   await upcoming.save();
 
   res.json(createResponseForStatus(user, upcoming, current)).end();
