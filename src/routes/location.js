@@ -65,7 +65,7 @@ router.post('/exit', asyncWrapper(async (req, res) => {
       unclaimedEta.userId = userId;
 
       await unclaimedEta.save();
-    } else if (current.eta !== null) {
+    } else if (current.eta !== null && moment(current.eta).isAfter(current.departure)) {
       console.log(`Exit for ${res.locals.user.handle} in stay ${current.id}`
        + ` is before the ETA, and there is no upcoming unclaimed ETA. Assuming `
        + ` user went near to home, without actually going in...`);
