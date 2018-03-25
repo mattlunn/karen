@@ -14,6 +14,7 @@ import { getAuthToken } from './reducers/user';
 import stay from './reducers/stay';
 import resources from './reducers/resources';
 import user from './reducers/user';
+import security from './reducers/security';
 import modal from './reducers/modal';
 
 require('./styles/app.less');
@@ -24,7 +25,8 @@ const store = createStore(combineReducers({
   resources,
   stay,
   user,
-  modal
+  modal,
+  security
 }), {
   user: {
     token: localStorage.getItem('token')

@@ -24,7 +24,7 @@ Synology.prototype.init = async function () {
   this._sid = auth.data.sid;
 };
 
-Synology.prototype.request = function (api, method, params, json, version) {
+Synology.prototype.request = function (api, method, params = {}, json = true, version = undefined) {
   if (!this._apis.hasOwnProperty(api)) {
     throw new Error('Synology does not have an API for ' + api);
   }

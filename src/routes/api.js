@@ -3,6 +3,7 @@ import asyncWrapper from '../helpers/express-async-wrapper';
 import { Stay } from '../models';
 import { HOME, AWAY } from '../constants/status';
 import { User, Token } from '../models';
+import { withSynology } from '../services/synology';
 import moment from 'moment';
 
 const router = express.Router();
@@ -161,6 +162,35 @@ router.post('/status', asyncWrapper(async (req, res, next) => {
   }
 
   res.json(createResponseForStatus(user, upcoming, current)).end();
+}));
+
+router.get('/security', asyncWrapper(async (req, res) => {
+  const synology = await withSynology;
+  const [
+    cameras,
+    homeMode
+  ] = await Promise.all([
+    synology.request('SYNO.SurveillanceStation.Camera', 'List').then((cameras) => {
+      return Promise.all(cameras.data.cameras.map(async (camera) => {
+        const snapshot = await synology.request('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
+          cameraId: camera.id
+        }, false, 8);
+
+        return {
+          snapshot: `data:image/jpeg;base64,${snapshot.toString('base64')}`,
+          id: camera.id,
+          name: camera.newName
+        };
+      }));
+    }),
+
+    synology.request('SYNO.SurveillanceStation.HomeMode', 'GetInfo')
+  ]);
+
+  res.json({
+    cameras,
+    isInHomeMode: homeMode.data.on
+  });
 }));
 
 export default router;

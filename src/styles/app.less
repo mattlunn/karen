@@ -53,6 +53,11 @@ table {
   border-spacing: 0;
 }
 
+html,
+body {
+  font-family: sans-serif;
+}
+
 .react-calendar {
   width: 100% !important;
 }
@@ -90,7 +95,6 @@ button.secondary {
   position: fixed;
   height: 100vh;
   color: #eee;
-  font-family: sans-serif;
 
   &__house {
     margin: 20px;
@@ -162,7 +166,6 @@ button.secondary {
 .body {
   width: calc(100vw ~"-" @sidebar-width);
   margin-left: @sidebar-width;
-  padding: 20px;
 }
 
 @media (max-width: 667px) {
@@ -301,3 +304,57 @@ button.secondary {
     }
   }
 }
+
+.security {
+  background: rgb(107, 166, 198);
+  padding: 20px;
+
+  &__camera-list {
+    display: flex;
+  }
+
+  &__camera {
+    margin-right: 20px;
+
+    & img {
+      width: 100%;
+      border-top: 1px solid #fff;
+    }
+
+    & h3 {
+      font-size: 0.8em;
+      margin-bottom: 5px;
+      color: white;
+    }
+
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+
+  &__home-mode-indicator {
+    color: @away-color;
+
+    &--is-home {
+      color: @home-color;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .security {
+    &__camera-list {
+      display: block;
+    }
+
+    &__camera {
+      margin-right: 0;
+      margin-bottom: 20px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
