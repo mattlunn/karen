@@ -26,7 +26,11 @@ export default function(requestedResources) {
       if (this.props.resources.length === requestedResources.length) {
         return <h1>{this.props.children}</h1>
       } else {
-        return <div className='loading-spinner' />
+        return (
+          <div className="resource-loader__loading-spinner">
+            <div className='loading-spinner' />
+          </div>
+        );
       }
     }
   }

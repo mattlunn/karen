@@ -170,27 +170,27 @@ router.get('/security', asyncWrapper(async (req, res) => {
     cameras,
     homeMode
   ] = await Promise.all([
-    synology.request('SYNO.SurveillanceStation.Camera', 'List').then((cameras) => {
-      return Promise.all(cameras.data.cameras.map(async (camera) => {
-        const snapshot = await synology.request('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
-          cameraId: camera.id
-        }, false, 8);
-
-        return {
-          snapshot: `data:image/jpeg;base64,${snapshot.toString('base64')}`,
-          id: camera.id,
-          name: camera.newName
-        };
-      }));
-    }),
-
+    synology.request('SYNO.SurveillanceStation.Camera', 'List'),
     synology.request('SYNO.SurveillanceStation.HomeMode', 'GetInfo')
   ]);
 
   res.json({
-    cameras,
+    cameras: cameras.data.cameras.map((camera) => ({
+      snapshot: `${req.protocol}://${req.headers.host}${req.baseUrl}/snapshot/${camera.id}`,
+      id: camera.id,
+      name: camera.newName
+    })),
+
     isInHomeMode: homeMode.data.on
   });
+}));
+
+router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
+  const synology = await withSynology;
+
+  res.type('jpeg').end(await synology.request('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
+    cameraId: req.params.id
+  }, false, 8));
 }));
 
 export default router;
