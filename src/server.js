@@ -19,6 +19,7 @@ require('./services/synology');
 
 const app = express();
 
+app.set('trust proxy', config.trust_proxy);
 app.use(bodyParser.json());
 app.use('/nest', nestRoutes);
 app.use('/alexa', alexaRoutes);
