@@ -41,7 +41,7 @@ export default class Security extends Component {
 
       try {
         const snapshot = await this.props.loadSnapshot(camera.snapshot);
-        
+
         this.setState({
           snapshots: {
             ...this.state.snapshots,
