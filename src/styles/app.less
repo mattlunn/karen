@@ -385,7 +385,7 @@ button.secondary {
   }
 
   &__side {
-    width: 50%;
+    width: 100%;
     padding: 20px;
   }
 
@@ -407,6 +407,16 @@ button.secondary {
     dd {
       display: inline;
       font-size: 1.6em;
+    }
+  }
+}
+
+@media (max-width: 1100px) {
+  .heating {
+    display: block;
+
+    &__side {
+      width: 100%;
     }
   }
 }
