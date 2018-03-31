@@ -369,14 +369,26 @@ button.secondary {
   }
 }
 
+@heating-color: #eb6d00;
+@heating-text-color: #000;
+@heating-off-text-color: #ddd;
+
 .heating {
   background: #373f48;
   display: flex;
-  color: #ddd;
+  color: @heating-off-text-color;
+
+  & .rc-slider-mark-text {
+    color: @heating-off-text-color;
+  }
 
   &--is-heating {
-    background: #eb6d00;
-    color: #000;
+    background: @heating-color;
+    color: @heating-text-color;
+
+    & .rc-slider-mark-text {
+      color: @heating-text-color;
+    }
   }
 
   &__slider {
@@ -422,15 +434,19 @@ button.secondary {
 }
 
 .heating-heat-map {
-  background: #fff;
-  border: 1px solid #333;
-  border-radius: 7px;
   margin: 3px 0 31px 0;
-  height: 10px;
-  overflow: hidden;
+
+  &__map {
+    background: #fff;
+    border: 1px solid #555;
+    border-radius: 7px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 5px;
+  }
 
   &__heat-segment {
-    background: #eb6d00;
+    background: @heating-color;
     height: 10px;
     float: left;
   }
@@ -440,5 +456,17 @@ button.secondary {
     height: 10px;
     float: left;
     border-left: 1px solid #6cb5b5ee;
+  }
+
+  &__markers {
+    position: relative;
+  }
+
+  &__marker {
+    position: absolute;
+    font-size: 0.6em;
+    width: 20px;
+    margin-left: -10px;
+    text-align: center;
   }
 }

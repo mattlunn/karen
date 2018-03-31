@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import moment from 'moment';
+import classnames from 'classnames';
 
 export default class HeatingHeatMap extends Component {
   render() {
@@ -16,27 +17,47 @@ export default class HeatingHeatMap extends Component {
       };
     })();
 
+    const hours = [];
+
+    for (let hour=1;hour<24;hour++) {
+      hours.push(
+        <div
+          className={classnames('heating-heat-map__marker', {
+            'heating-heat-map__marker--quarter': hour % 3 === 0
+          })}
+          style={{
+            left: `${(hour * 100) / 24}%`
+          }}
+        >
+          {hour.toString().length === 2 ? hour : `0${hour}`}
+        </div>
+      );
+    }
+
     return (
       <div className="heating-heat-map">
-        {this.props.activity.map((activity) => {
-          return (
-            <div
-              className="heating-heat-map__heat-segment"
-              style={{
-                marginLeft: dateAsIncrementingPercentage(activity.start),
-                width: dateAsIncrementingPercentage(activity.end)
-              }}
-            />
-          );
-        })}
+        <div className="heating-heat-map__map">
+          {this.props.activity.map((activity) => {
+            return (
+              <div
+                className="heating-heat-map__heat-segment"
+                style={{
+                  marginLeft: dateAsIncrementingPercentage(activity.start),
+                  width: dateAsIncrementingPercentage(activity.end)
+                }}
+              />
+            );
+          })}
 
-        <div
-          className="heating-heat-map__rest-of-day"
-          style={{
-            marginLeft: dateAsIncrementingPercentage(new Date()),
-            width: dateAsIncrementingPercentage(moment().endOf('day'))
-          }}
-        />
+          <div
+            className="heating-heat-map__rest-of-day"
+            style={{
+              marginLeft: dateAsIncrementingPercentage(new Date()),
+              width: dateAsIncrementingPercentage(moment().endOf('day'))
+            }}
+          />
+        </div>
+        <div className="heating-heat-map__markers">{hours}</div>
       </div>
     );
   }
