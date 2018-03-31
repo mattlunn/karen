@@ -1,4 +1,5 @@
 import Sequelize from 'sequelize';
+import moment from 'moment';
 
 export default function (sequelize) {
   const heating = sequelize.define('heating', {
@@ -25,6 +26,55 @@ export default function (sequelize) {
   }, {
     tableName: 'heating'
   });
+
+  heating.getDailyHeatMap = async function () {
+    const [
+      data,
+      lastStatus
+    ] = await Promise.all([
+      this.findAll({
+        where: {
+          createdAt: {
+            $gt: moment().startOf('day')
+          }
+        }
+      }),
+
+      this.findOne({
+        where: {
+          createdAt: {
+            $lt: moment().startOf('day')
+          }
+        },
+
+        order: [['createdAt', 'desc']]
+      })
+    ]);
+
+    const dataForHeatChange = [];
+
+    if (lastStatus.heating) {
+      dataForHeatChange.push({
+        start: moment().startOf('day')
+      });
+    }
+
+    for (const datum of data) {
+      if (datum.heating && (!dataForHeatChange.length || dataForHeatChange[0].end)) {
+        dataForHeatChange.unshift({
+          start: datum.createdAt
+        });
+      } else if (!datum.heating && dataForHeatChange.length && !dataForHeatChange[0].end) {
+        dataForHeatChange[0].end = datum.createdAt;
+      }
+    }
+
+    if (!dataForHeatChange[0].end) {
+      dataForHeatChange[0].end = moment();
+    }
+
+    return dataForHeatChange.reverse();
+  };
 
   return heating;
 };

@@ -7,7 +7,12 @@ export default function (state = {}, action) {
     case LOADED_RESOURCE:
       if (action.name === HEATING) {
         return {
-          ...action.data
+          ...action.data,
+
+          history: action.data.history.map((data) => ({
+            start: new Date(data.start),
+            end: new Date(data.end)
+          }))
         };
       } else {
         return state;
@@ -16,7 +21,7 @@ export default function (state = {}, action) {
       return {
         ...state,
         target: action.data
-      }
+      };
     default:
       return state;
   }
@@ -44,4 +49,8 @@ export function getIsHome({ home }) {
 
 export function getEta({ eta }) {
   return eta;
+}
+
+export function getHistory({ history }) {
+  return history || [];
 }

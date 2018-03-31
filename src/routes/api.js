@@ -2,7 +2,7 @@ import express from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import { Stay } from '../models';
 import { HOME, AWAY } from '../constants/status';
-import { User, Token } from '../models';
+import { User, Token, Heating } from '../models';
 import { withSynology } from '../services/synology';
 import { getHeatingStatus, getOccupancyStatus, setTargetTemperature } from '../services/nest';
 import moment from 'moment';
@@ -197,7 +197,9 @@ router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
 router.get('/heating', asyncWrapper(async (req, res) => {
   res.json({
     ...getHeatingStatus(),
-    ...getOccupancyStatus()
+    ...getOccupancyStatus(),
+
+    history: await Heating.getDailyHeatMap()
   });
 }));
 

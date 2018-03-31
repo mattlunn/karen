@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import Slider, { createSliderWithTooltip } from 'rc-slider';
 import classnames from 'classnames';
+import HeatingHeatMap from './heating-heat-map';
 import { connect } from 'react-redux';
 import { setTargetTemperature } from '../actions/heating';
 import {
@@ -9,7 +10,8 @@ import {
   getHumidity,
   getIsHeating,
   getIsHome,
-  getTargetTemperature
+  getTargetTemperature,
+  getHistory
 } from '../reducers/heating';
 
 import 'rc-slider/assets/index.css';
@@ -25,6 +27,7 @@ function mapStateToProps(state) {
     humidity: getHumidity(state.heating),
     isHeating: getIsHeating(state.heating),
     isHome: getIsHome(state.heating),
+    history: getHistory(state.heating)
   };
 }
 
@@ -60,6 +63,10 @@ export default class Heating extends Component {
   };
 
   render() {
+    const hoursHeatingActive = +((this.props.history.reduce((total, curr) => {
+      return total + (curr.end - curr.start)
+    }, 0) / 1000 / 60 / 60).toFixed(1));
+
     const marks = {
       [this.props.currentTemperature]: {
         label: ' ',
@@ -108,11 +115,13 @@ export default class Heating extends Component {
           </div>
         </div>
         <div className="heating__side">
-
+          <HeatingHeatMap activity={this.props.history} />
           <div className="heating__details">
             <dl>
               <dt>Today</dt>
-              <dd>6hrs</dd>
+              <dd>
+                {hoursHeatingActive}hrs
+              </dd>
             </dl>
             <dl>
               <dt>ETA</dt>
