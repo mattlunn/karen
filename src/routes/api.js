@@ -4,7 +4,7 @@ import { Stay } from '../models';
 import { HOME, AWAY } from '../constants/status';
 import { User, Token } from '../models';
 import { withSynology } from '../services/synology';
-import { getHeatingStatus, getOccupancyStatus } from '../services/nest';
+import { getHeatingStatus, getOccupancyStatus, setTargetTemperature } from '../services/nest';
 import moment from 'moment';
 
 const router = express.Router();
@@ -199,6 +199,12 @@ router.get('/heating', asyncWrapper(async (req, res) => {
     ...getHeatingStatus(),
     ...getOccupancyStatus()
   });
+}));
+
+router.post('/temperature', asyncWrapper(async (req, res) => {
+  await setTargetTemperature(req.body.target_temperature);
+
+  res.sendStatus(200);
 }));
 
 export default router;

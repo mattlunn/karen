@@ -1,5 +1,6 @@
 import { LOADED_RESOURCE } from './resources';
 import { HEATING } from '../constants/resources';
+import { UPDATE_TARGET_TEMPERATURE } from '../actions/heating';
 
 export default function (state = {}, action) {
   switch (action.type) {
@@ -10,6 +11,11 @@ export default function (state = {}, action) {
         };
       } else {
         return state;
+      }
+    case UPDATE_TARGET_TEMPERATURE:
+      return {
+        ...state,
+        target: action.data
       }
     default:
       return state;

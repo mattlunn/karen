@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import Slider, { createSliderWithTooltip } from 'rc-slider';
-import 'rc-slider/assets/index.css';
+import classnames from 'classnames';
 import { connect } from 'react-redux';
+import { setTargetTemperature } from '../actions/heating';
 import {
   getCurrentTemperature,
   getEta,
@@ -11,30 +12,42 @@ import {
   getTargetTemperature
 } from '../reducers/heating';
 
+import 'rc-slider/assets/index.css';
+
 const SliderWithTooltip = createSliderWithTooltip(Slider);
+const formatTemperature = (temp) => temp.toFixed(1);
 
 function mapStateToProps(state) {
   return {
     targetTemperature: getTargetTemperature(state.heating),
     currentTemperature: getCurrentTemperature(state.heating),
-    eta: getEta(state.heating)
+    eta: getEta(state.heating),
+    humidity: getHumidity(state.heating),
+    isHeating: getIsHeating(state.heating),
+    isHome: getIsHome(state.heating),
   };
 }
 
-@connect(mapStateToProps)
+@connect(mapStateToProps, {
+  setTargetTemperature
+})
 export default class Heating extends Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
 
     this.state = {
-      value: 0
+      targetTemperature: props.targetTemperature
     };
   }
 
-  handleOnChange = (value) => {
+  onSliderChange = (value) => {
     this.setState({
-      value
+      targetTemperature: value === 10 ? null : value
     });
+  };
+
+  onAfterSliderChange = (value) => {
+    this.props.setTargetTemperature(value === 10 ? null : value);
   };
 
   formatTip = (value) => {
@@ -56,7 +69,6 @@ export default class Heating extends Component {
           top: '-24px',
           width: '2px',
           height: '28px',
-          zIndex: -10
         }
       },
       10: 'Off',
@@ -64,19 +76,53 @@ export default class Heating extends Component {
     };
 
     return (
-      <div className="heating">
-        <div className="heating__slider">
-          <SliderWithTooltip
-            min={10}
-            max={25}
-            marks={marks}
-            step={0.5}
-            tipFormatter={this.formatTip}
-            value={this.props.currentTemperature}
-          />
+      <div className={classnames('heating', {
+        'heating--is-heating': this.props.isHeating
+      })}>
+        <div className="heating__side">
+          <div className="heating__slider">
+            <SliderWithTooltip
+              min={10}
+              max={25}
+              marks={marks}
+              step={0.5}
+              tipFormatter={this.formatTip}
+              defaultValue={this.props.targetTemperature}
+              onChange={this.onSliderChange}
+              onAfterChange={this.onAfterSliderChange}
+            />
+          </div>
+          <div className="heating__details">
+            <dl>
+              <dt>Current</dt>
+              <dd>{formatTemperature(this.props.currentTemperature)}°C</dd>
+            </dl>
+            <dl>
+              <dt>Target</dt>
+              <dd>{this.state.targetTemperature ? `${formatTemperature(this.state.targetTemperature)}°C` : 'Off'}</dd>
+            </dl>
+            <dl>
+              <dt>Humidity</dt>
+              <dd>{this.props.humidity}%</dd>
+            </dl>
+          </div>
         </div>
-        <div className="heating__eta">
-          <strong>ETA:</strong> {this.props.eta}
+        <div className="heating__side">
+
+          <div className="heating__details">
+            <dl>
+              <dt>Today</dt>
+              <dd>6hrs</dd>
+            </dl>
+            <dl>
+              <dt>ETA</dt>
+              <dd>{this.props.eta || 'N/A'}</dd>
+            </dl>
+            <dl>
+              <dt>State</dt>
+              <dd>{this.props.isHome ? 'Home' : 'Away'}</dd>
+            </dl>
+          </div>
         </div>
       </div>
     );

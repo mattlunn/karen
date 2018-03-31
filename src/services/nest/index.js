@@ -107,6 +107,32 @@ export async function setAway(away) {
   return true;
 }
 
+export async function setTargetTemperature(temperature) {
+  const thermostatId = current.structures[config.nest.structure_id].thermostats[0];
+
+  await request.put(
+    constructApiUrl(`devices/thermostats/${thermostatId}`),
+    addCommonRequestParameters({
+      body: {
+        hvac_mode: temperature === null ? 'off' : 'heat'
+      },
+      json: true
+    })
+  );
+
+  if (temperature !== null) {
+    await request.put(
+      constructApiUrl(`devices/thermostats/${thermostatId}`),
+      addCommonRequestParameters({
+        body: {
+          target_temperature_c: temperature
+        },
+        json: true
+      })
+    );
+  }
+}
+
 export async function setEta(id, etaStart, etaEnd) {
   await request.put(constructApiUrl(`structures/${config.nest.structure_id}/eta.json`), addCommonRequestParameters({
     body: {
