@@ -4,6 +4,7 @@ import { Stay } from '../models';
 import { HOME, AWAY } from '../constants/status';
 import { User, Token } from '../models';
 import { withSynology } from '../services/synology';
+import { getHeatingStatus, getOccupancyStatus } from '../services/nest';
 import moment from 'moment';
 
 const router = express.Router();
@@ -191,6 +192,13 @@ router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
   res.type('jpeg').end(await synology.request('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
     cameraId: req.params.id
   }, false, 8));
+}));
+
+router.get('/heating', asyncWrapper(async (req, res) => {
+  res.json({
+    ...getHeatingStatus(),
+    ...getOccupancyStatus()
+  });
 }));
 
 export default router;

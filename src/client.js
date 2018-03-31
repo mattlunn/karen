@@ -12,6 +12,7 @@ import { Provider } from 'react-redux';
 import { getAuthToken } from './reducers/user';
 
 import stay from './reducers/stay';
+import heating from './reducers/heating';
 import resources from './reducers/resources';
 import user from './reducers/user';
 import security from './reducers/security';
@@ -26,7 +27,8 @@ const store = createStore(combineReducers({
   stay,
   user,
   modal,
-  security
+  security,
+  heating
 }), {
   user: {
     token: localStorage.getItem('token')
