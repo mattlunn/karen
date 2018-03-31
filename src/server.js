@@ -6,8 +6,8 @@ import alexaRoutes from './routes/alexa';
 import apiRoutes from './routes/api';
 import locationRoutes from './routes/location';
 import synologyRoutes from './routes/synology';
-import { Stay } from './models';
-import { setEta } from './services/nest';
+import { Stay, Heating } from './models';
+import { setEta, getOccupancyStatus, getHeatingStatus } from './services/nest';
 import bodyParser from 'body-parser';
 import config from './config';
 import moment from 'moment';
@@ -63,4 +63,27 @@ Object.keys(events).forEach((event) => {
       console.log(`Received ${event} event`);
     });
   }
+});
+
+[events.NEST_OCCUPANCY_STATUS_CHANGE, events.NEST_HEATING_STATUS_CHANGE].forEach((event) => {
+  bus.on(event, () => {
+    const {
+      humidity,
+      target,
+      current,
+      heating
+    } = getHeatingStatus();
+
+    const {
+      home
+    } = getOccupancyStatus();
+
+    Heating.create({
+      humidity,
+      target,
+      current,
+      heating,
+      home
+    });
+  });
 });

@@ -19,12 +19,27 @@ const source = new EventSource('https://developer-api.nest.com', {
 
 function _getHeatingStatus(data) {
   const thermostat = data.devices.thermostats[data.structures[config.nest.structure_id].thermostats[0]];
+  let target;
+
+  switch (thermostat.hvac_mode) {
+    case 'heat':
+      target = thermostat.target_temperature_c;
+      break;
+    case 'eco':
+      target = thermostat.eco_temperature_low_c;
+      break;
+    case 'off':
+      target = null;
+      break;
+    default:
+      throw new Error(`"${thermostat.hvac_mode}" is not a recognised thermostat mode`);
+  }
 
   return {
     humidity: thermostat.humidity,
     id: thermostat.device_id,
     name: thermostat.name,
-    target: thermostat.target_temperature_c,
+    target: target,
     current: thermostat.ambient_temperature_c,
     heating: thermostat.hvac_state === 'heating'
   };
