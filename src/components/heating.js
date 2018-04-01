@@ -62,22 +62,20 @@ export default class Heating extends Component {
     }
   };
 
+  setHeatingSlider = (el) => {
+    if (el === null) {
+      return;
+    }
+
+    el.addEventListener('touchmove', (e) => e.preventDefault(), false);
+  };
+
   render() {
     const hoursHeatingActive = +((this.props.history.reduce((total, curr) => {
       return total + (curr.end - curr.start)
     }, 0) / 1000 / 60 / 60).toFixed(1));
 
     const marks = {
-      [this.props.currentTemperature]: {
-        label: ' ',
-        style: {
-          background: 'red',
-          marginLeft: '0',
-          top: '-24px',
-          width: '2px',
-          height: '28px',
-        }
-      },
       10: 'Off',
       25: '25°C'
     };
@@ -87,7 +85,7 @@ export default class Heating extends Component {
         'heating--is-heating': this.props.isHeating
       })}>
         <div className="heating__side">
-          <div className="heating__slider">
+          <div className="heating__slider" ref={this.setHeatingSlider}>
             <SliderWithTooltip
               min={10}
               max={25}
@@ -125,7 +123,7 @@ export default class Heating extends Component {
             </dl>
             <dl>
               <dt>ETA</dt>
-              <dd>{this.props.eta || 'N/A'}</dd>
+              <dd>{(this.props.eta || 'N/A').split('T').join(' ')}</dd>
             </dl>
             <dl>
               <dt>State</dt>
