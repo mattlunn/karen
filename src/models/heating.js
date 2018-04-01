@@ -69,7 +69,7 @@ export default function (sequelize) {
       }
     }
 
-    if (!dataForHeatChange[0].end) {
+    if (dataForHeatChange.length && !dataForHeatChange[0].end) {
       dataForHeatChange[0].end = moment();
     }
 
