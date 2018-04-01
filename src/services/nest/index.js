@@ -160,7 +160,7 @@ source.addEventListener('error', (event) => {
   console.error('Nest connection closed', event);
 });
 
-source.addEventListener('ope', () => {
+source.addEventListener('open', () => {
   console.log('Nest connection opened...');
 });
 
