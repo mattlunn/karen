@@ -51,11 +51,17 @@ module.exports = {
 };
 
 if (process.env.NODE_ENV === 'production') {
-  module.exports.plugins.unshift(new webpack.optimize.UglifyJsPlugin({
-    compress: { warnings: false },
-    mangle: true,
-    sourceMap: true,
-    beautify: false,
-    dead_code: true
-  }));
+  module.exports.plugins.unshift(
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': '"production"'
+    }),
+
+    new webpack.optimize.UglifyJsPlugin({
+      compress: { warnings: false },
+      mangle: true,
+      sourceMap: true,
+      beautify: false,
+      dead_code: true
+    })
+  );
 }
