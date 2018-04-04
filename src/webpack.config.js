@@ -2,6 +2,7 @@ const webpack = require('webpack');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
 
 const extractLessPlugin = new ExtractTextPlugin({
   filename: 'app.[contenthash].css'
@@ -52,16 +53,19 @@ module.exports = {
 
 if (process.env.NODE_ENV === 'production') {
   module.exports.plugins.unshift(
+    new UglifyJsPlugin({
+      uglifyOptions: {
+        ecma: 8,
+        compress: { warnings: false },
+        mangle: true,
+        sourceMap: true,
+        beautify: false,
+        dead_code: true
+      }
+    }),
+
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': '"production"'
     }),
-
-    new webpack.optimize.UglifyJsPlugin({
-      compress: { warnings: false },
-      mangle: true,
-      sourceMap: true,
-      beautify: false,
-      dead_code: true
-    })
   );
 }
