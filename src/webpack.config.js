@@ -40,6 +40,7 @@ module.exports = {
   },
   plugins: [
     extractLessPlugin,
+    new webpack.ContextReplacementPlugin(/moment[\/\\]locale$/, /uk/),
     new HtmlWebpackPlugin({
       template: __dirname + '/views/layout.html'
     })

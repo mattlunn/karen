@@ -1,4 +1,5 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
+import config from '../../../config.json';
 import { parse, end } from 'iso8601-duration';
 import { Stay } from '../../../models/index';
 
@@ -6,7 +7,7 @@ function figureOutEta(slots) {
   if (slots.duration.value) {
     return end(parse(slots.duration.value));
   } else if (slots.dateBack.value) {
-    const date = moment(`${slots.dateBack.value} ${slots.timeBack.value}`, 'YYYY-MM-DD HH:mm');
+    const date = moment.tz(`${slots.dateBack.value} ${slots.timeBack.value}`, 'YYYY-MM-DD HH:mm', config.timezone);
 
     if (date.isValid()) {
       return date.toDate();
