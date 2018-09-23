@@ -2,13 +2,11 @@ import React, { Component } from 'react';
 import SideBar from '../sidebar';
 import Modals from '../modals';
 import Header from '../header';
-import Security from '../security';
-import Heating from '../heating';
 import resources from '../resources';
-import { STATUS, SECURITY, HEATING } from '../../constants/resources';
+import { STATUS } from '../../constants/resources';
 
-@resources([ STATUS, SECURITY, HEATING ])
-export default class Home extends Component {
+@resources([ STATUS, TIMELINE ])
+export default class Timeline extends Component {
   render() {
     return (
       <div>
@@ -16,8 +14,7 @@ export default class Home extends Component {
         <div>
           <SideBar/>
           <div className='body'>
-            <Security />
-            <Heating />
+
           </div>
         </div>
 

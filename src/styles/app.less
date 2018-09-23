@@ -470,3 +470,35 @@ button.secondary {
     text-align: center;
   }
 }
+
+.header {
+  background-color: rgb(22, 22, 22);
+  padding: 16px;
+
+  &__brand {
+    color: #fff;
+    font-size: 1.25rem;
+    text-decoration: none;
+    margin-right: 50px;
+  }
+
+  &__nav-items {
+    display: inline;
+  }
+
+  &__nav-item {
+    display: inline;
+  }
+
+  &__nav-item-link {
+    color: rgba(255,255,255,.5);
+    padding-right: .5rem;
+    padding-left: .5rem;
+    display: inline;
+    text-decoration: none;
+
+    &--active, &:hover {
+      color: rgba(255,255,255,.75);
+    }
+  }
+}
