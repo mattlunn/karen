@@ -112,6 +112,24 @@ export default function (sequelize) {
     });
   };
 
+  stay.checkIfSomeoneHomeAt = async function (timestamp) {
+    return await this.findOne({
+      where: {
+        arrival: {
+          $lt: timestamp
+        },
+
+        $or: [{
+          departure: {
+            $gt: timestamp
+          }
+        }, {
+          departure: null
+        }]
+      }
+    }) !== null;
+  };
+
   stay.addHook('afterSave', async function (stay) {
     if (stay.changed('departure')) {
       const currentlyAtHome = await this.findCurrentStays();
