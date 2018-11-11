@@ -25,6 +25,10 @@ export default function (sequelize) {
 
         return `https://www.gravatar.com/avatar/${md5Hash}?s=32&d=identicon`;
       }
+    },
+    device: {
+      type: Sequelize.STRING,
+      allowNull: true
     }
   });
 
