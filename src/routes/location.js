@@ -1,9 +1,8 @@
 import express from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import config from '../config';
-import { Stay, User } from '../models';
+import { User } from '../models';
 import { markUserAsHome, markUserAsAway } from '../helpers/presence';
-import moment from 'moment';
 
 const router = express.Router();
 
