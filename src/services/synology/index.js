@@ -1,24 +1,14 @@
 import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, MOTION_DETECTED } from '../../bus';
-import createSynologyInstance from './lib/';
-import config from '../../config.json';
 import moment from 'moment';
 import { writeFileSync } from 'fs';
 
-export const withSynology = createSynologyInstance(
-  config.synology.host,
-  config.synology.port,
-  config.synology.account,
-  config.synology.password,
-  config.synology.session
-);
-
-async function setHomeMode(on) {
-  const synology = await withSynology;
-
-  await synology.request('SYNO.SurveillanceStation.HomeMode', 'Switch', {
+function setHomeMode(on) {
+  return makeSynologyRequest('SYNO.SurveillanceStation.HomeMode', 'Switch', {
     on
   }, true);
 }
+
+export { default as makeSynologyRequest } from './instance';
 
 bus.on(LAST_USER_LEAVES, async () => {
   try {
@@ -37,9 +27,7 @@ bus.on(FIRST_USER_HOME, async () => {
 });
 
 bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
-  const synology = await withSynology;
-
-  const recordings = await synology.request('SYNO.SurveillanceStation.Recording', 'List', {
+  const recordings = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'List', {
     fromTime: moment(now).startOf('day').format('X'),
     toTime: now.format('X')
   }, true, 5);
@@ -57,7 +45,7 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
     return res.status(400).end('No matching recording could be found');
   }
 
-  const video = await synology.request('SYNO.SurveillanceStation.Recording', 'Download', {
+  const video = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'Download', {
     id: recording.id,
     offsetTimeMs: (recordingStart.format('X') - recording.startTime) * 1000,
     playTimeMs: recordingDurationMs
