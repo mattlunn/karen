@@ -2,6 +2,7 @@ import express from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import config from '../config';
 import { Stay, User } from '../models';
+import { markUserAsHome, markUserAsAway } from '../helpers/presence';
 import moment from 'moment';
 
 const router = express.Router();
@@ -22,61 +23,15 @@ router.use(asyncWrapper(async (req, res, next) => {
 }));
 
 router.post('/enter', asyncWrapper(async (req, res) => {
-  const userId = res.locals.user.id;
-  let [current, upcoming] = await Promise.all([
-    Stay.findCurrentStay(userId),
-    Stay.findUpcomingStay(userId)
-  ]);
+  await markUserAsHome(res.locals.user);
 
-  if (current) {
-    throw new Error(`/enter called for ${res.locals.user.handle}, but user is already at home`);
-  } else {
-    if (!upcoming) {
-      upcoming = new Stay({
-        userId
-      });
-    }
-
-    upcoming.arrival = new Date();
-    await upcoming.save();
-
-    res.sendStatus(200);
-  }
+  res.sendStatus(200);
 }));
 
 router.post('/exit', asyncWrapper(async (req, res) => {
-  const userId = res.locals.user.id;
-  let [ current, unclaimedEta ] = await Promise.all([
-    Stay.findCurrentStay(userId),
-    Stay.findUnclaimedEta(moment().subtract(config.location.unclaimed_eta_search_window_in_minutes, 'minutes'))
-  ]);
+  await markUserAsAway(res.locals.user);
 
-  if (!current) {
-    throw new Error(`/exit called for ${res.locals.user.handle}, but user isn't at home`);
-  } else {
-    current.departure = new Date();
-
-    await current.save();
-    res.sendStatus(200);
-
-    if (unclaimedEta) {
-      console.log(`${res.locals.user.handle} claims ETA ${unclaimedEta.id}`);
-
-      unclaimedEta.userId = userId;
-
-      await unclaimedEta.save();
-    } else if (current.eta !== null && moment(current.eta).isAfter(current.departure)) {
-      console.log(`Exit for ${res.locals.user.handle} in stay ${current.id}`
-       + ` is before the ETA, and there is no upcoming unclaimed ETA. Assuming `
-       + ` user went near to home, without actually going in...`);
-
-      unclaimedEta = new Stay();
-      unclaimedEta.userId = userId;
-      unclaimedEta.eta = current.eta;
-
-      await unclaimedEta.save();
-    }
-  }
+  res.sendStatus(200);
 }));
 
 export default router;

@@ -16,6 +16,7 @@ import bus, * as events from './bus';
 
 require('./services/ifttt');
 require('./services/synology');
+require('./services/unifi');
 
 const app = express();
 

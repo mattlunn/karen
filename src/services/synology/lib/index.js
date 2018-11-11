@@ -60,7 +60,10 @@ Synology.prototype._request = async function (endpoint, api, method, version, pa
   const parsed = JSON.parse(response);
 
   if (!parsed.success) {
-    throw new Error(parsed.error);
+    const error = new Error(parsed.error.code);
+
+    error.code = parsed.error.code;
+    throw error;
   }
 
   return parsed;

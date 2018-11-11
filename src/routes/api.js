@@ -3,7 +3,7 @@ import asyncWrapper from '../helpers/express-async-wrapper';
 import { Stay } from '../models';
 import { HOME, AWAY } from '../constants/status';
 import { User, Token, Heating } from '../models';
-import { withSynology } from '../services/synology';
+import { makeSynologyRequest } from '../services/synology';
 import { getHeatingStatus, getOccupancyStatus, setTargetTemperature } from '../services/nest';
 import moment from 'moment';
 
@@ -166,13 +166,12 @@ router.post('/status', asyncWrapper(async (req, res, next) => {
 }));
 
 router.get('/security', asyncWrapper(async (req, res) => {
-  const synology = await withSynology;
   const [
     cameras,
     homeMode
   ] = await Promise.all([
-    synology.request('SYNO.SurveillanceStation.Camera', 'List'),
-    synology.request('SYNO.SurveillanceStation.HomeMode', 'GetInfo')
+    makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List'),
+    makeSynologyRequest('SYNO.SurveillanceStation.HomeMode', 'GetInfo')
   ]);
 
   res.json({
@@ -187,9 +186,7 @@ router.get('/security', asyncWrapper(async (req, res) => {
 }));
 
 router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
-  const synology = await withSynology;
-
-  res.type('jpeg').end(await synology.request('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
+  res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
     cameraId: req.params.id
   }, false, 8));
 }));
