@@ -1,14 +1,15 @@
 import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, MOTION_DETECTED } from '../../bus';
 import moment from 'moment';
 import { writeFileSync } from 'fs';
+import makeSynologyRequest from './instance';
+
+export { makeSynologyRequest };
 
 function setHomeMode(on) {
   return makeSynologyRequest('SYNO.SurveillanceStation.HomeMode', 'Switch', {
     on
   }, true);
 }
-
-export { default as makeSynologyRequest } from './instance';
 
 bus.on(LAST_USER_LEAVES, async () => {
   try {
