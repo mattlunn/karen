@@ -56,6 +56,7 @@ table {
 html,
 body {
   font-family: sans-serif;
+  padding-top: 25px;
 }
 
 .react-calendar {
@@ -474,6 +475,10 @@ button.secondary {
 .header {
   background-color: rgb(22, 22, 22);
   padding: 16px;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 50;
 
   &__brand {
     color: #fff;
@@ -499,6 +504,53 @@ button.secondary {
 
     &--active, &:hover {
       color: rgba(255,255,255,.75);
+    }
+  }
+}
+
+.timeline {
+  padding: 20px;
+}
+
+.day {
+  &__header {
+    font-weight: bold;
+    margin: 20px 0 10px 7px;
+  }
+}
+
+.events {
+  &__event {
+    border: 1px solid #ececec;
+    border-bottom-width: 0;
+    padding: 10px;
+
+    &:first-child {
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+    }
+
+    &:last-child {
+      border-bottom-left-radius: 10px;
+      border-bottom-right-radius: 10px;
+      border-bottom-width: 1px;
+    }
+  }
+
+  &__event-buttons {
+    float: right;
+
+    & a {
+      color: #1e90ff;
+    }
+  }
+
+  &__video {
+    display: none;
+
+    &--visible {
+      display: block;
+      margin-top: 15px;
     }
   }
 }

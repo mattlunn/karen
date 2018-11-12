@@ -1,10 +1,9 @@
 import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, MOTION_DETECTED } from '../../bus';
 import moment from 'moment';
+import config from '../../config';
 import { Event, Recording, Stay } from '../../models';
-import s3Factory from '../../helpers/s3';
+import s3 from '../s3';
 import makeSynologyRequest from './instance';
-
-const s3 = s3Factory(config.s3);
 
 export { makeSynologyRequest };
 
@@ -64,7 +63,7 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
     eventId: event.id,
     recording: await s3.store(video),
     size: video.length,
-    start: moment(now.subtract(10, 's')).toDate(),
+    start: moment(now).subtract(10, 's').toDate(),
     end: now.toDate()
   });
 });

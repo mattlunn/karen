@@ -22,13 +22,14 @@ export default function (sequelize) {
     }
   });
 
-  token.createForUser = async function (user) {
+  token.createForUser = async function (user, expiresAt = null) {
     // https://stackoverflow.com/a/13378842/444991
     const value = (await (promisify(randomBytes)(188))).toString('base64');
 
     await this.create({
       token: value,
-      userId: user.id
+      userId: user.id,
+      expiresAt
     });
 
     return value;

@@ -18,6 +18,7 @@ import resources from './reducers/resources';
 import user from './reducers/user';
 import security from './reducers/security';
 import modal from './reducers/modal';
+import timeline from './reducers/timeline';
 
 require('./styles/app.less');
 
@@ -29,7 +30,8 @@ const store = createStore(combineReducers({
   user,
   modal,
   security,
-  heating
+  heating,
+  timeline
 }), {
   user: {
     token: localStorage.getItem('token')
