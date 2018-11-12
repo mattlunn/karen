@@ -2,10 +2,12 @@ import express from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import { Stay } from '../models';
 import { HOME, AWAY } from '../constants/status';
-import { User, Token, Heating } from '../models';
+import { User, Token, Heating, Event, Recording } from '../models';
 import { makeSynologyRequest } from '../services/synology';
 import { getHeatingStatus, getOccupancyStatus, setTargetTemperature } from '../services/nest';
 import moment from 'moment';
+import s3 from '../services/s3';
+import auth from '../middleware/auth';
 
 const router = express.Router();
 
@@ -13,10 +15,18 @@ router.post('/authenticate', asyncWrapper(async (req, res) => {
   const user = await User.findByCredentials(req.body.username, req.body.password);
 
   if (user) {
+    const expiry = moment().add(30, 'd').toDate();
+    const token = await Token.createForUser(user);
+
     res
+      .cookie('OAuth.AccessToken', token, {
+        expires: expiry,
+        httpOnly: true,
+        sameSite: true
+      })
       .send({
         username: user.handle,
-        token: await Token.createForUser(user)
+        token
       })
       .end();
   } else {
@@ -26,21 +36,7 @@ router.post('/authenticate', asyncWrapper(async (req, res) => {
   }
 }));
 
-router.use(asyncWrapper(async (req, res, next) => {
-  const token = (
-    req.header('Authorization') || ''
-  ).match(/^Bearer ([a-zA-Z0-9_=\/+]{1,255})$/);
-
-  try {
-    if (token !== null && await Token.isValid(token[1])) {
-      return next();
-    }
-  } catch (e) {}
-
-  res
-    .status(401)
-    .end();
-}));
+router.use(auth);
 
 function createResponseForStatus(user, upcoming, currentOrLast) {
   const withUser = () => ({ handle: user.handle, id: user.id, avatar: user.avatar });
@@ -204,6 +200,68 @@ router.post('/temperature', asyncWrapper(async (req, res) => {
   await setTargetTemperature(req.body.target_temperature);
 
   res.sendStatus(200);
+}));
+
+router.get('/timeline', asyncWrapper(async (req, res) => {
+  const events = await Event.findAll({
+    include: [
+      Recording
+    ]
+  });
+
+  res.json({
+    events: events.map((event) => {
+      return {
+        id: event.id,
+        timestamp: event.timestamp,
+        recordingId: event.recording && event.recording.id
+      };
+    })
+  });
+}));
+
+router.get('/recording/:id', asyncWrapper(async function (req, res) {
+  const recording = await Recording.findOne({
+    where: {
+      id: req.params.id
+    },
+    include: [Event]
+  });
+
+  if (recording == null)
+    throw new Error('route');
+
+  const ranges = req.range(recording.size);
+  let status;
+  let range;
+
+  if (ranges && ranges.length === 1) {
+    range = ranges[0];
+    status = 206;
+  } else {
+    status = 200;
+    range = {
+      start: 0,
+      end: recording.size - 1
+    };
+  }
+
+  const chunk = range.end - range.start;
+
+  if (req.query.download === 'true') {
+    res.set('Content-disposition', 'attachment; filename=' + moment(recording.event.timestamp).format('YYYY-MM-DD HH:mm:ss') + '.mp4');
+  }
+
+  res.writeHead(status, {
+    'Accept-Ranges': 'bytes',
+    'Content-Type': 'video/mp4',
+    'Content-Range': 'bytes ' + range.start + '-' + range.end + '/' + recording.size,
+    'Content-Length': chunk + 1
+  })
+
+  return s3.serve(recording.recording, range.start, range.end).then((file) => {
+    res.end(file);
+  });
 }));
 
 export default router;

@@ -1,6 +1,8 @@
 import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, MOTION_DETECTED } from '../../bus';
 import moment from 'moment';
-import { writeFileSync } from 'fs';
+import config from '../../config';
+import { Event, Recording, Stay } from '../../models';
+import s3 from '../s3';
 import makeSynologyRequest from './instance';
 
 export { makeSynologyRequest };
@@ -35,7 +37,6 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
 
   const recordingDurationMs  = 10000;
   const recordingStart = moment(now).subtract(recordingDurationMs, 'milliseconds');
-
   const recording = recordings.data.events.find((recording) => {
     return recording.camera_name === camera
       && moment.unix(recording.startTime).isBefore(recordingStart)
@@ -43,7 +44,7 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
   });
 
   if (recording === undefined) {
-    return res.status(400).end('No matching recording could be found');
+    throw new Error('No matching recording could be found');
   }
 
   const video = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'Download', {
@@ -52,7 +53,56 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
     playTimeMs: recordingDurationMs
   }, false);
 
-  writeFileSync(__dirname + '/' + Date.now() + '.mp4', video);
+  const event = await Event.create({
+    timestamp: now,
+    type: 'motion',
+    cameraId: recording.cameraId
+  });
 
-  console.log('Done!');
+  await Recording.create({
+    eventId: event.id,
+    recording: await s3.store(video),
+    size: video.length,
+    start: moment(now).subtract(10, 's').toDate(),
+    end: now.toDate()
+  });
 });
+
+(function removeOldUnarmedRecordings() {
+  if (typeof config.days_to_keep_recordings_while_home === 'number') {
+    debugger;
+
+    var cutoffForUnarmedRecordings = moment().subtract(config.days_to_keep_recordings_while_home, 'days');
+
+    Recording.findAll({
+      where: {
+        start: {
+          $lt: cutoffForUnarmedRecordings.toDate()
+        }
+      },
+      include: [Event]
+    }).then((recordings) => {
+      var promiseChain = Promise.resolve();
+
+      recordings.forEach((recording) => {
+        promiseChain = promiseChain.then(() => {
+          return Stay.checkIfSomeoneHomeAt(recording.event.timestamp).then((isHome) => {
+            if (isHome) {
+              return s3.remove(recording.recording).then(() => {
+                return recording.destroy();
+              });
+            }
+          });
+        });
+      });
+
+      return promiseChain;
+    }).catch((err) => {
+      console.log('An error occurred whilst removing old unarmed recordings');
+      console.log(err);
+    }).then(() => {
+      console.log('Old recordings removed. See you again tomorrow...');
+      setTimeout(removeOldUnarmedRecordings, moment.duration(1, 'day').as('milliseconds'));
+    });
+  }
+}());

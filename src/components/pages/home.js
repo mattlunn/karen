@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import SideBar from '../sidebar';
 import Modals from '../modals';
+import Header from '../header';
 import Security from '../security';
 import Heating from '../heating';
 import resources from '../resources';
@@ -11,6 +12,7 @@ export default class Home extends Component {
   render() {
     return (
       <div>
+        <Header />
         <div>
           <SideBar/>
           <div className='body'>

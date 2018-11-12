@@ -6,6 +6,8 @@ import alexaRoutes from './routes/alexa';
 import apiRoutes from './routes/api';
 import locationRoutes from './routes/location';
 import synologyRoutes from './routes/synology';
+import recordingRoutes from './routes/recording';
+import auth from './middleware/auth';
 import { Stay, Heating } from './models';
 import { setEta, getOccupancyStatus, getHeatingStatus } from './services/nest';
 import bodyParser from 'body-parser';
@@ -13,6 +15,7 @@ import config from './config';
 import moment from 'moment';
 import nowAndSetInterval from './helpers/now-and-set-interval';
 import bus, * as events from './bus';
+import cookieParser from 'cookie-parser';
 
 require('./services/ifttt');
 require('./services/synology');
@@ -22,11 +25,13 @@ const app = express();
 
 app.set('trust proxy', config.trust_proxy);
 app.use(bodyParser.json());
+app.use(cookieParser());
 app.use('/nest', nestRoutes);
 app.use('/alexa', alexaRoutes);
 app.use('/api', apiRoutes);
 app.use('/location', locationRoutes);
 app.use('/synology', synologyRoutes);
+app.use('/recording', auth, recordingRoutes);
 app.use('/', express.static(__dirname + '/static'));
 app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
   maxAge: moment.duration(1, 'year').asMilliseconds()

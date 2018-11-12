@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import Timeline from './components/pages/timeline';
 import Home from './components/pages/home';
 import Login from './components/pages/login';
 import thunk from 'redux-thunk';
@@ -17,6 +18,7 @@ import resources from './reducers/resources';
 import user from './reducers/user';
 import security from './reducers/security';
 import modal from './reducers/modal';
+import timeline from './reducers/timeline';
 
 require('./styles/app.less');
 
@@ -28,7 +30,8 @@ const store = createStore(combineReducers({
   user,
   modal,
   security,
-  heating
+  heating,
+  timeline
 }), {
   user: {
     token: localStorage.getItem('token')
@@ -49,6 +52,7 @@ window.onload = () => {
         <Switch>
           <Route exact path="/" component={Home}/>
           <Route exact path="/login" component={Login}/>
+          <Route exact path="/timeline" component={Timeline}/>
         </Switch>
       </ConnectedRouter>
     </Provider>,
