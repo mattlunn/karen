@@ -40,7 +40,7 @@ export default class Security extends Component {
   render() {
     return (
       <React.Fragment>
-        <span class='events__event-timestamp'>{moment(event.timestamp).format('DD:mm:ss')}</span>
+        <span class='events__event-timestamp'>{moment(this.props.timestamp).format('DD:mm:ss')}</span>
 
         <span className="events__event-buttons">
           <a onClick={this.toggleVideo} href="#" className="card-link">view</a>

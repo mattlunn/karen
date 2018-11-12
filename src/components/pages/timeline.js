@@ -46,9 +46,9 @@ export default class Timeline extends Component {
           <SideBar/>
           <div className='body'>
             <ol className='timeline'>
-              {days.map(({ date, events }) => {
+              {days.map(({ date, events }, idx) => {
                 return (
-                  <li key={event.id} className='day'>
+                  <li key={idx} className='day'>
                     <h3 className='day__header'>{date.format('dddd, MMMM Do YYYY')}</h3>
 
                      <ol className='events'>
