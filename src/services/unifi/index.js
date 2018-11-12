@@ -4,6 +4,8 @@ import { User, Stay } from '../../models';
 import { markUserAsAway, markUserAsHome } from '../../helpers/presence';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 
+const FIVE_MINUTES_IN_MS = 1000 * 60 * 5;
+
 nowAndSetInterval(async () => {
   const [
     users,
@@ -106,8 +108,10 @@ nowAndSetInterval(async () => {
       const unifiDevice = unifiDevices.find((unifiDevice) => unifiDevice.name === user.device);
       const unifiUser = unifiUsers.find((unifiUser) => unifiUser.name === user.device);
       const stay = await Stay.findCurrentOrLastStay(user.id);
+      const userHasRecentlyLeft = !!stay.departure && Date.now() - stay.departure < FIVE_MINUTES_IN_MS;
+      const userHasRecentlyArrived = !userHasRecentlyLeft && Date.now() - stay.arrival < FIVE_MINUTES_IN_MS;
 
-      if (unifiUser) {
+      if (!userHasRecentlyLeft && !userHasRecentlyArrived && unifiUser) {
         const deviceIsHome = unifiDevice || Date.now() - (config.unifi.device_considered_gone_after_in_seconds * 1000) < (unifiUser.last_seen * 1000);
         const userIsHome = stay && stay.departure === null;
 
