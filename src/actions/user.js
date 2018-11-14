@@ -6,7 +6,7 @@ export function attemptLogin(username, password) {
   return (dispatch) => {
     dispatch({ type: LOGGING_IN });
 
-    applicationFetch('/api/authenticate', null, {
+    applicationFetch('/authentication/login', null, {
       username,
       password
     }).then((res) => {

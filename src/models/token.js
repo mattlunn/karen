@@ -1,4 +1,4 @@
-import Sequelize from 'sequelize';
+import Sequelize, { Op } from 'sequelize';
 import { randomBytes } from 'crypto';
 import { promisify } from 'util';
 
@@ -39,15 +39,35 @@ export default function (sequelize) {
     return !!await this.findOne({
       where: {
         expiresAt: {
-          $or: {
-            $eq: null,
-            $lt: new Date()
+          [Op.or]: {
+            [Op.eq]: null,
+            [Op.gt]: new Date()
           }
         },
 
         token
       }
     });
+  };
+
+  token.expire = async function (token) {
+    try {
+      const [affected] = await this.update({
+        expiresAt: new Date(),
+      }, {
+        where: {
+          token: {
+            [Op.eq]: token
+          }
+        }
+      });
+
+      return affected === 1;
+    } catch (e) {
+      console.error(e);
+    }
+
+    return false;
   };
 
   return token;

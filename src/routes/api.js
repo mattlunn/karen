@@ -2,7 +2,7 @@ import express from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import { Stay } from '../models';
 import { HOME, AWAY } from '../constants/status';
-import { User, Token, Heating, Event, Recording } from '../models';
+import { User, Heating, Event, Recording } from '../models';
 import { makeSynologyRequest } from '../services/synology';
 import { getHeatingStatus, getOccupancyStatus, setTargetTemperature } from '../services/nest';
 import moment from 'moment';
@@ -10,31 +10,6 @@ import s3 from '../services/s3';
 import auth from '../middleware/auth';
 
 const router = express.Router();
-
-router.post('/authenticate', asyncWrapper(async (req, res) => {
-  const user = await User.findByCredentials(req.body.username, req.body.password);
-
-  if (user) {
-    const expiry = moment().add(30, 'd').toDate();
-    const token = await Token.createForUser(user);
-
-    res
-      .cookie('OAuth.AccessToken', token, {
-        expires: expiry,
-        httpOnly: true,
-        sameSite: true
-      })
-      .send({
-        username: user.handle,
-        token
-      })
-      .end();
-  } else {
-    res
-      .status(404)
-      .end();
-  }
-}));
 
 router.use(auth);
 
