@@ -56,7 +56,7 @@ export default class Timeline extends Component {
                         return (
                           <li className='events__event' key={event.id}>
                             <Event
-                              timeline={event.timeline}
+                              timestamp={event.timestamp}
                               recordingId={event.recordingId}
                             />
                           </li>
