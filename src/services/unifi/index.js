@@ -111,18 +111,20 @@ nowAndSetInterval(async () => {
       const userHasRecentlyLeft = !!stay.departure && Date.now() - stay.departure < TEN_MINUTES_IN_MS;
       const userHasRecentlyArrived = !userHasRecentlyLeft && Date.now() - stay.arrival < TEN_MINUTES_IN_MS;
 
-      if (!userHasRecentlyLeft && !userHasRecentlyArrived && unifiUser) {
-        const deviceIsHome = unifiDevice || Date.now() - (config.unifi.device_considered_gone_after_in_seconds * 1000) < (unifiUser.last_seen * 1000);
-        const userIsHome = stay && stay.departure === null;
+      if (unifiUser) {
+        if (!userHasRecentlyLeft && !userHasRecentlyArrived) {
+          const deviceIsHome = unifiDevice || Date.now() - (config.unifi.device_considered_gone_after_in_seconds * 1000) < (unifiUser.last_seen * 1000);
+          const userIsHome = stay && stay.departure === null;
 
-        if (deviceIsHome && !userIsHome) {
-          console.log(`Forcing ${user.handle} to home, as their device is at home`);
+          if (deviceIsHome && !userIsHome) {
+            console.log(`Forcing ${user.handle} to home, as their device is at home`);
 
-          await markUserAsHome(user);
-        } else if (!deviceIsHome && userIsHome) {
-          console.log(`Forcing ${user.handle} to away, as their device has not been seen recently`);
+            await markUserAsHome(user);
+          } else if (!deviceIsHome && userIsHome) {
+            console.log(`Forcing ${user.handle} to away, as their device has not been seen recently`);
 
-          await markUserAsAway(user);
+            await markUserAsAway(user);
+          }
         }
       } else {
         throw new Error(user.device + ' not found');
