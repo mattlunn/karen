@@ -2,31 +2,32 @@ import { Controller } from 'node-unifi';
 import config from '../../../config.json';
 
 const controller = new Controller(config.unifi.host, config.unifi.port);
-const session = new Promise((res, rej) => {
-  controller.login(config.unifi.username, config.unifi.password, function (err) {
-    if (err) rej(err);
-    else res();
-  });
-});
 
-export async function getAllUsers() {
-  await session;
-
+function ensureSession(name, factory) {
   return new Promise((res, rej) => {
-    controller.getAllUsers(config.unifi.site, function(err, users) {
-      if (err) rej(err);
-      else res(users[0]);
-    });
+    (function tryRunFactory(retryCount) {
+      factory(function (err, [data]) {
+        if (!err) {
+          res(data);
+        } else if (retryCount === 0) {
+          console.error(`UniFi ${name} call failed after multiple retries. Giving up`);
+          rej(err);
+        } else if (err === 'api.err.LoginRequired') {
+          console.error(`UniFi ${name} call failed because authentication required. Logging in and retrying...`);
+          controller.login(config.unifi.username, config.unifi.password, () => tryRunFactory(retryCount - 1));
+        } else {
+          console.error(`UniFi ${name} call failed because of an error. Retrying`, err);
+          tryRunFactory(retryCount - 1);
+        }
+      });
+    }(1));
   });
 }
 
-export async function getClientDevices() {
-  await session;
+export function getAllUsers() {
+  return ensureSession('getAllUsers', controller.getAllUsers.bind(controller, config.unifi.site));
+}
 
-  return new Promise((res, rej) => {
-    controller.getClientDevices(config.unifi.site, function(err, devices) {
-      if (err) rej(err);
-      else res(devices[0]);
-    });
-  });
+export function getClientDevices() {
+  return ensureSession('getClientDevices', controller.getClientDevices.bind(controller, config.unifi.site));
 }
