@@ -21,6 +21,7 @@ import cookieParser from 'cookie-parser';
 require('./services/ifttt');
 require('./services/synology');
 require('./services/unifi');
+require('./services/lightwaverf');
 
 const app = express();
 

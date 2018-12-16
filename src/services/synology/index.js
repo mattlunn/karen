@@ -70,8 +70,6 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
 
 (function removeOldUnarmedRecordings() {
   if (typeof config.days_to_keep_recordings_while_home === 'number') {
-    debugger;
-
     var cutoffForUnarmedRecordings = moment().subtract(config.days_to_keep_recordings_while_home, 'days');
 
     Recording.findAll({
