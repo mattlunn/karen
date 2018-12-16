@@ -13,6 +13,22 @@ const authenticatedClient = (async function() {
   return client;
 }());
 
+export async function setLightFeatureValue(featureId, value) {
+  const client = await authenticatedClient;
+  const feature = await client.request('feature', 'read', {
+    featureId
+  });
+
+  if (!['switch', 'dimLevel'].includes(feature._feature.featureType)) {
+    throw new Error('Not allowed to edit ' + feature.attributes.type);
+  } else {
+    await client.request('feature', 'write', {
+      featureId,
+      value
+    });
+  }
+}
+
 export async function getLightsAndStatus() {
   const client = await authenticatedClient;
   const rgId = config.lightwaverf.root_group_id;

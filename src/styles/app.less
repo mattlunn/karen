@@ -427,10 +427,6 @@ button.secondary {
 @media (max-width: 1100px) {
   .heating {
     display: block;
-
-    &__side {
-      width: 100%;
-    }
   }
 }
 
@@ -568,5 +564,43 @@ button.secondary {
       display: block;
       margin-top: 15px;
     }
+  }
+}
+
+.lighting {
+  display: inline-block;
+  width: 50%;
+
+  &--is-on {
+    color: orange;
+  }
+
+  &__container {
+    border: 1px solid #ccc;
+    margin: 10px 5px;
+    padding: 30px 15px;
+    cursor: pointer;
+
+    &--is-on {
+      border-color: orange;
+    }
+  }
+
+  &__name {
+    display: inline-block;
+    width: 75%;
+  }
+
+  &__light {
+    display: inline-block;
+    width: 25%;
+    font-size: 24px;
+    text-align: right;
+  }
+}
+
+@media (max-width: 1100px) {
+  .lighting {
+    width: 100%;
   }
 }

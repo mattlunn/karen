@@ -4,10 +4,11 @@ import Modals from '../modals';
 import Header from '../header';
 import Security from '../security';
 import Heating from '../heating';
+import Lighting from '../lighting';
 import resources from '../resources';
-import { STATUS, SECURITY, HEATING } from '../../constants/resources';
+import { STATUS, SECURITY, HEATING, LIGHTING } from '../../constants/resources';
 
-@resources([ STATUS, SECURITY, HEATING ])
+@resources([ STATUS, SECURITY, HEATING, LIGHTING ])
 export default class Home extends Component {
   render() {
     return (
@@ -18,6 +19,7 @@ export default class Home extends Component {
           <div className='body'>
             <Security />
             <Heating />
+            <Lighting />
           </div>
         </div>
 

@@ -15,10 +15,16 @@ import { getAuthToken } from './reducers/user';
 import stay from './reducers/stay';
 import heating from './reducers/heating';
 import resources from './reducers/resources';
+import lighting from './reducers/lighting';
 import user from './reducers/user';
 import security from './reducers/security';
 import modal from './reducers/modal';
 import timeline from './reducers/timeline';
+
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faLightbulb } from '@fortawesome/free-regular-svg-icons';
+
+library.add(faLightbulb);
 
 require('./styles/app.less');
 
@@ -29,6 +35,7 @@ const store = createStore(combineReducers({
   stay,
   user,
   modal,
+  lighting,
   security,
   heating,
   timeline

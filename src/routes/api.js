@@ -4,10 +4,12 @@ import { Stay } from '../models';
 import { HOME, AWAY } from '../constants/status';
 import { User, Heating, Event, Recording } from '../models';
 import { makeSynologyRequest } from '../services/synology';
+import { getLightsAndStatus } from '../services/lightwaverf';
 import { getHeatingStatus, getOccupancyStatus, setTargetTemperature } from '../services/nest';
 import moment from 'moment';
 import s3 from '../services/s3';
 import auth from '../middleware/auth';
+import { setLightFeatureValue } from '../services/lightwaverf';
 
 const router = express.Router();
 
@@ -175,6 +177,20 @@ router.post('/temperature', asyncWrapper(async (req, res) => {
   await setTargetTemperature(req.body.target_temperature);
 
   res.sendStatus(200);
+}));
+
+router.get('/lighting', asyncWrapper(async (req, res) => {
+  res.json({
+    lights: await getLightsAndStatus()
+  });
+}));
+
+router.post('/light', asyncWrapper(async (req, res) => {
+  await setLightFeatureValue(req.body.featureId, req.body.value);
+
+  res.json({
+    lights: await getLightsAndStatus()
+  });
 }));
 
 router.get('/timeline', asyncWrapper(async (req, res) => {
