@@ -4,7 +4,8 @@ import { Stay } from '../models';
 import { HOME, AWAY } from '../constants/status';
 import { User, Heating, Event, Recording } from '../models';
 import { makeSynologyRequest } from '../services/synology';
-import { getLightsAndStatus } from '../services/lightwaverf';
+import { getLightsAndStatus as getLightsAndStatusFromLightwave } from '../services/lightwaverf';
+import { getLightsAndStatus as getLightsAndStatusFromTpLink, turnLightOnOrOff } from '../services/tplink';
 import { getHeatingStatus, getOccupancyStatus, setTargetTemperature } from '../services/nest';
 import moment from 'moment';
 import s3 from '../services/s3';
@@ -180,16 +181,32 @@ router.post('/temperature', asyncWrapper(async (req, res) => {
 }));
 
 router.get('/lighting', asyncWrapper(async (req, res) => {
+  const lights = await Promise.all([
+    getLightsAndStatusFromLightwave(),
+    getLightsAndStatusFromTpLink()
+  ]);
+
   res.json({
-    lights: await getLightsAndStatus()
+    lights: [].concat(...lights)
   });
 }));
 
 router.post('/light', asyncWrapper(async (req, res) => {
-  await setLightFeatureValue(req.body.featureId, req.body.value);
+  switch (req.body.type) {
+    case 'lightwaverf':
+      await setLightFeatureValue(req.body.featureId, req.body.value);
+      break;
+    case 'tplink':
+      await turnLightOnOrOff(req.body.featureId, req.body.value);
+  }
+
+  const lights = await Promise.all([
+    getLightsAndStatusFromLightwave(),
+    getLightsAndStatusFromTpLink()
+  ]);
 
   res.json({
-    lights: await getLightsAndStatus()
+    lights: [].concat(...lights)
   });
 }));
 

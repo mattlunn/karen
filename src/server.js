@@ -22,6 +22,7 @@ require('./services/ifttt');
 require('./services/synology');
 require('./services/unifi');
 require('./services/lightwaverf');
+require('./services/tplink').getLightsAndStatus();
 
 const app = express();
 

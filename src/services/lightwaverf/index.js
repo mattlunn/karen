@@ -83,7 +83,8 @@ export async function getLightsAndStatus() {
           switchFeatureId: switchFeature.featureId,
           switchIsOn: switchStatus.value === 1,
           dimLevelFeatureId: dimLevelFeature.featureId,
-          dimLevel: dimLevelStatus.value
+          dimLevel: dimLevelStatus.value,
+          type: 'lightwaverf'
         };
       }()));
     }

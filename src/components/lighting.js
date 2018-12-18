@@ -26,7 +26,7 @@ export default class Lighting extends Component {
         {this.props.lights.map((light, idx) => {
           return (
             <li key={idx} className={classnames('lighting', { 'lighting--is-on': light.switchIsOn })}>
-              <div className={classnames('lighting__container', { 'lighting__container--is-on': light.switchIsOn })} onClick={() => this.props.setLightSwitchStatus(light.switchFeatureId, !light.switchIsOn)}>
+              <div className={classnames('lighting__container', { 'lighting__container--is-on': light.switchIsOn })} onClick={() => this.props.setLightSwitchStatus(light.switchFeatureId, light.type, !light.switchIsOn)}>
                 <span className="lighting__name">{light.name}</span>
                 <span className="lighting__light">
                   <FontAwesomeIcon icon={faLightbulb} />
