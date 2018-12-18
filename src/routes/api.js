@@ -215,7 +215,13 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
     include: [
       Recording
     ],
-    order: [['createdAt', 'DESC']]
+    order: [['createdAt', 'DESC']],
+    where: {
+      createdAt: {
+        $lt: req.query.after || new Date()
+      }
+    },
+    limit: 100
   });
 
   res.json({

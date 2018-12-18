@@ -4,19 +4,24 @@ import Modals from '../modals';
 import Header from '../header';
 import resources from '../resources';
 import { STATUS, TIMELINE} from '../../constants/resources';
-import { getEvents } from '../../reducers/timeline';
+import { getEvents, getIsLoadingMoreEvents, getHasMoreEvents } from '../../reducers/timeline';
+import { loadMoreTimelineEvents } from '../../actions/timeline';
 import moment from 'moment';
 import { connect } from 'react-redux';
 import Event from '../event';
 
 function mapStateToProps(state) {
   return {
-    events: getEvents(state)
+    events: getEvents(state),
+    isLoadingMoreEvents: getIsLoadingMoreEvents(state),
+    hasMoreEvents: getHasMoreEvents(state)
   };
 }
 
 @resources([ STATUS, TIMELINE ])
-@connect(mapStateToProps)
+@connect(mapStateToProps, {
+  loadMoreTimelineEvents
+})
 export default class Timeline extends Component {
   *groupEventsByDays() {
     let i = 0;
@@ -34,6 +39,24 @@ export default class Timeline extends Component {
 
       yield date;
     }
+  }
+
+  handleScroll = () => {
+    if (!this.props.isLoadingMoreEvents && this.props.hasMoreEvents && window.pageYOffset + window.innerHeight > Math.max(
+      document.body.scrollHeight, document.documentElement.scrollHeight,
+      document.body.offsetHeight, document.documentElement.offsetHeight,
+      document.body.clientHeight, document.documentElement.clientHeight
+    ) - 200) {
+      this.props.loadMoreTimelineEvents();
+    }
+  }
+
+  componentWillMount() {
+    window.addEventListener('scroll', this.handleScroll);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('scroll', this.handleScroll);
   }
 
   render() {
@@ -67,6 +90,8 @@ export default class Timeline extends Component {
                 );
               })}
             </ol>
+
+            {this.props.isLoadingMoreEvents && <div className='loading-spinner timeline__loader' />}
           </div>
         </div>
 
