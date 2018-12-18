@@ -1,14 +1,11 @@
-export function applicationFetch(url, token, body) {
+export function applicationFetch(url, body) {
   const headers = {
     'Content-Type': 'application/json'
   };
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
   return fetch(url, {
     headers,
+    credentials: 'same-origin',
     method: body ? 'POST' : 'GET',
     body: body ? JSON.stringify(body) : undefined
   });

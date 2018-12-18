@@ -10,7 +10,6 @@ import { createStore, combineReducers, applyMiddleware } from 'redux';
 import { ConnectedRouter, routerReducer, routerMiddleware, push } from 'react-router-redux';
 import createHistory from 'history/createBrowserHistory';
 import { Provider } from 'react-redux';
-import { getAuthToken } from './reducers/user';
 
 import stay from './reducers/stay';
 import heating from './reducers/heating';
@@ -39,18 +38,10 @@ const store = createStore(combineReducers({
   security,
   heating,
   timeline
-}), {
-  user: {
-    token: localStorage.getItem('token')
-  }
-}, applyMiddleware(
+}), applyMiddleware(
   thunk,
   routerMiddleware(history)
 ));
-
-store.subscribe(() => {
-  localStorage.setItem('token', getAuthToken(store.getState().user));
-});
 
 window.onload = () => {
   ReactDOM.render(

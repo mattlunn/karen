@@ -1,11 +1,10 @@
 import { applicationFetch } from '../helpers/fetch';
-import { getAuthToken } from '../reducers/user';
 
 export const UPDATE_TARGET_TEMPERATURE = 'UPDATE_TARGET_TEMPERATURE';
 
 export function setTargetTemperature(temperature) {
-  return (dispatch, getState) => {
-    applicationFetch('/api/temperature', getAuthToken(getState().user), {
+  return (dispatch) => {
+    applicationFetch('/api/temperature', {
       target_temperature: temperature
     }).then((res) => {
       if (!res.ok) {

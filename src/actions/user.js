@@ -6,7 +6,7 @@ export function attemptLogin(username, password) {
   return (dispatch) => {
     dispatch({ type: LOGGING_IN });
 
-    applicationFetch('/authentication/login', null, {
+    applicationFetch('/authentication/login', {
       username,
       password
     }).then((res) => {
@@ -15,8 +15,8 @@ export function attemptLogin(username, password) {
       }
 
       return res.json();
-    }).then(({ username, token }) => {
-      dispatch({ type: LOGGED_IN, username, token });
+    }).then(({ username }) => {
+      dispatch({ type: LOGGED_IN, username });
       dispatch(push('/'));
     }).catch((err) => {
       dispatch({ type: ERROR_LOGGING_IN, error: err });

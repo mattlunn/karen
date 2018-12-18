@@ -15,7 +15,6 @@ export default function (state = { loggingIn: false }, action) {
         ...state,
         loggingIn: false,
         username: action.username,
-        token: action.token
       };
     case LOGGED_OUT:
       return {
@@ -41,8 +40,4 @@ export function getLoginError({ error = null }) {
 
 export function getUsername({ username }) {
   return username;
-}
-
-export function getAuthToken({ token }) {
-  return token;
 }

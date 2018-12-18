@@ -2,7 +2,6 @@ import classNames from 'classnames';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { getCameras, getIsInHomeMode } from '../reducers/security';
-import { getAuthToken} from '../reducers/user';
 
 function mapStateToProps(state) {
   return {
@@ -10,9 +9,7 @@ function mapStateToProps(state) {
     isInHomeMode: getIsInHomeMode(state.security),
     loadSnapshot: async (snapshot) => {
       const response = await fetch(snapshot, {
-        headers: {
-          Authorization: `Bearer ${getAuthToken(state.user)}`
-        }
+        credentials: 'same-origin'
       });
 
       return URL.createObjectURL(await response.blob());

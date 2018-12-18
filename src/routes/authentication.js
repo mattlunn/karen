@@ -7,16 +7,18 @@ import moment from 'moment';
 const router = Router();
 
 router.post('/login', asyncWrapper(async (req, res) => {
+  debugger;
+
   const user = await User.findByCredentials(req.body.username, req.body.password);
 
   if (user) {
-    const expiry = moment().add(30, 'd').toDate();
+    const expiry = moment().add(1, 'y').toDate();
     const token = await Token.createForUser(user);
 
     res
       .cookie('OAuth.AccessToken', token, {
         expires: expiry,
-        httpOnly: true,
+        httpOnly: false,
         sameSite: true
       })
       .send({

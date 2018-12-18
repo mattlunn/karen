@@ -1,12 +1,11 @@
 import { applicationFetch } from '../helpers/fetch';
-import { getAuthToken } from '../reducers/user';
 import { closeModal } from './modal';
 import { UPDATE_ETA, UPDATE_STATUS } from '../reducers/stay';
 import { ETA_PICKER } from '../constants/modals';
 
 export function setEtaForUser(handle, eta) {
-  return (dispatch, getState) => {
-    applicationFetch('/api/eta', getAuthToken(getState().user), {
+  return (dispatch) => {
+    applicationFetch('/api/eta', {
       handle,
       eta
     }).then((res) => {
@@ -23,8 +22,8 @@ export function setEtaForUser(handle, eta) {
 }
 
 export function setUserStatus(handle, status) {
-  return (dispatch, getState) => {
-    applicationFetch('/api/status', getAuthToken(getState().user), {
+  return (dispatch) => {
+    applicationFetch('/api/status', {
       handle,
       status
     }).then((res) => {

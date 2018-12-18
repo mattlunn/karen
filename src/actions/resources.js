@@ -2,7 +2,6 @@ import { LOADING_RESOURCE, LOADED_RESOURCE, ERROR_LOADING_RESOURCE } from '../re
 import { push } from 'react-router-redux';
 import { getIsResourceLoading } from '../reducers/resources';
 import { applicationFetch } from '../helpers/fetch';
-import { getAuthToken } from '../reducers/user';
 
 export function fetchResource(name) {
   return (dispatch, getState) => {
@@ -15,7 +14,7 @@ export function fetchResource(name) {
       name
     });
 
-    applicationFetch('/api/' + name, getAuthToken(getState().user))
+    applicationFetch('/api/' + name)
       .then((res) => {
         if (!res.ok) {
           if (res.status === 401) {
