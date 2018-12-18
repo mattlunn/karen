@@ -214,7 +214,8 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
   const events = await Event.findAll({
     include: [
       Recording
-    ]
+    ],
+    order: [['createdAt', 'DESC']]
   });
 
   res.json({
