@@ -5,6 +5,7 @@ import { Event, Recording, Stay } from '../../models';
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
 import { sendNotification } from '../../helpers/notification';
+import uuidv4 from 'uuid/v4';
 
 export { makeSynologyRequest };
 
@@ -40,39 +41,68 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
   const recordings = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'List', {
     fromTime: moment(now).startOf('day').format('X'),
     toTime: now.format('X')
-  }, true, 5)
+  }, true, 5);
+  const cameraRecordings = recordings.data.events.filter((recording) => recording.camera_name === camera);
 
-  const recordingDurationMs  = 10000;
-  const recordingStart = moment(now).subtract(recordingDurationMs, 'milliseconds');
-  const recording = recordings.data.events.find((recording) => {
-    return recording.camera_name === camera
-      && moment.unix(recording.startTime).isBefore(recordingStart)
-      && moment.unix(recording.stopTime).isAfter(recordingStart)
-  });
-
-  if (recording === undefined) {
-    throw new Error('No matching recording could be found');
+  if (cameraRecordings.length === 0) {
+    throw new Error('Camera does not exist');
   }
 
-  const video = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'Download', {
-    id: recording.id,
-    offsetTimeMs: (recordingStart.format('X') - recording.startTime) * 1000,
-    playTimeMs: recordingDurationMs
-  }, false);
+  const cameraId = cameraRecordings[0].cameraId;
+  const latestCameraEvent = await Event.findOne({
+    include: [Recording],
 
-  const event = await Event.create({
-    timestamp: now,
-    type: 'motion',
-    cameraId: recording.cameraId
+    where: {
+      cameraId
+    },
+
+    order: [['timestamp', 'DESC']]
   });
 
-  await Recording.create({
-    eventId: event.id,
-    recording: await s3.store(video),
-    size: video.length,
-    start: moment(now).subtract(10, 's').toDate(),
-    end: now.toDate()
+  let recordingDurationMs = 10000;
+  let expectedStartOfRecording = moment(now).subtract(recordingDurationMs, 'milliseconds');
+  let recording;
+  let event;
+
+  if (latestCameraEvent && latestCameraEvent.recording.end > expectedStartOfRecording) {
+    recording = latestCameraEvent.recording;
+    event = latestCameraEvent;
+    recordingDurationMs = moment(now).diff(recording.start, 'milliseconds');
+  } else {
+    event = await Event.create({
+      timestamp: now,
+      type: 'motion',
+      cameraId
+    });
+
+    recording = Recording.build({
+      eventId: event.id,
+      start: expectedStartOfRecording.toDate(),
+      recording: uuidv4()
+    });
+  }
+
+  const cameraRecording = cameraRecordings.find((cameraRecording) => {
+    return moment.unix(cameraRecording.startTime).isBefore(recording.start)
+      && moment.unix(cameraRecording.stopTime).isAfter(recording.start);
   });
+
+  if (cameraRecording === undefined) {
+    console.error('No recording could be found covering ' + now);
+  } else {
+    const video = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'Download', {
+      id: cameraRecording.id,
+      offsetTimeMs: (moment(recording.start).format('X') - cameraRecording.startTime) * 1000,
+      playTimeMs: recordingDurationMs
+    }, false);
+
+    await s3.store(recording.recording, video);
+
+    recording.size = video.length;
+    recording.end = now.toDate();
+
+    await recording.save();
+  }
 });
 
 (function removeOldUnarmedRecordings() {

@@ -1,4 +1,3 @@
-import uuid from 'uuid/v4';
 import AwsS3Client from 'aws-sdk/clients/s3';
 
 function S3(options) {
@@ -28,9 +27,7 @@ S3.prototype.remove = function (handle) {
   });
 };
 
-S3.prototype.store = function (buffer) {
-  var id = uuid();
-
+S3.prototype.store = function (id, buffer) {
   return new Promise((resolve, reject) => {
     this.client.upload({
       Body: buffer,

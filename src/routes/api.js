@@ -211,8 +211,6 @@ router.post('/light', asyncWrapper(async (req, res) => {
 }));
 
 router.get('/timeline', asyncWrapper(async (req, res) => {
-  debugger;
-
   const since = req.query.after || new Date();
   const limit = 100;
   const events = await Promise.all([
