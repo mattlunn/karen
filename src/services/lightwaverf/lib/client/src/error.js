@@ -5,10 +5,11 @@ export const UNSUCCESSFUL_REQUEST = 'ERR_LWRF_UNSUCCESSFUL_REQUEST';
 export const TIMED_OUT_WAITING_FOR_RESPONSE = 'ERR_LWRF_TIMED_OUT_WAITING_FOR_RESPONSE';
 export const CANNOT_RECONNECT_IN_CURRENT_STATE = 'ERR_LWRF_CANNOT_RECONNECT_IN_CURRENT_STATE';
 export const CANNOT_SEND_REQUEST_IN_CURRENT_STATE = 'ERR_LWRF_CANNOT_SEND_REQUEST_IN_CURRENT_STATE';
+export const CANNOT_CONNECT_TO_WEBSOCKET = 'ERR_LWRF_CANNOT_CONNECT_TO_WEBSOCKET';
 
 export default class LightwaveRfError extends Error {
   constructor(code, description, error) {
-    super(description);
+    super(description || code);
 
     this.code = code;
     this.error = error;

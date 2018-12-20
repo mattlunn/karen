@@ -7,19 +7,19 @@ const authenticatedClient = (async function() {
     timeout: 1000
   });
 
-  client.on('close', () => {
+  client.on('close', (reason) => {
     (function tryReconnect(counter) {
-      console.error(`LWRF connection has closed... trying to reconnect for the ${counter} time`);
+      setTimeout(() => {
+        console.error(`LWRF connection has closed... trying to reconnect for the ${counter} time`, reason);
 
-      client.reconnect().then(() => {
-        console.log('LWRF connection re-established');
-      }, () => {
-        console.error('LWRF connection could not be re-established... trying again in a bit...');
+        client.reconnect().then(() => {
+          console.log('LWRF connection re-established');
+        }, () => {
+          console.error('LWRF connection could not be re-established... trying again in a bit...');
 
-        setTimeout(() => {
           tryReconnect(counter + 1);
-        }, 60000);
-      });
+        });
+      }, 5000);
     }(1));
   });
 

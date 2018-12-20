@@ -10,6 +10,7 @@ import LightwaveRfError, {
   UNABLE_TO_SEND_REQUEST,
   CANNOT_RECONNECT_IN_CURRENT_STATE,
   CANNOT_SEND_REQUEST_IN_CURRENT_STATE,
+  CANNOT_CONNECT_TO_WEBSOCKET,
   TIMED_OUT_WAITING_FOR_RESPONSE,
 } from './error';
 
@@ -74,9 +75,14 @@ class LightwaveRfApi extends EventEmitter {
     });
 
     return new Promise((res, rej) => {
+      this.once('error', (err) => {
+        rej(new LightwaveRfError(CANNOT_CONNECT_TO_WEBSOCKET, null, err));
+      });
+
       this._socket.once('open', () => {
         this.request('user', 'authenticate', {
           token: this._authenticationToken,
+          clientDeviceId: this._sessionId,
         }).then(res, rej);
       });
     });
@@ -89,7 +95,7 @@ class LightwaveRfApi extends EventEmitter {
       if (this._socket.readyState !== WebSocket.OPEN) {
         throw new LightwaveRfError(CANNOT_SEND_REQUEST_IN_CURRENT_STATE, this._socket.readyState);
       } else {
-        this._socket.send(JSON.stringify({
+        const message = JSON.stringify({
           class: type,
           version: 1,
           senderId: this._sessionId,
@@ -100,7 +106,10 @@ class LightwaveRfApi extends EventEmitter {
             itemId: requestId,
             payload,
           }],
-        }), (err) => {
+        });
+
+        this.emit('message', message);
+        this._socket.send(message, (err) => {
           if (err) {
             rej(new LightwaveRfError(UNABLE_TO_SEND_REQUEST, null, err));
           } else {
@@ -110,7 +119,7 @@ class LightwaveRfApi extends EventEmitter {
               timeout: setTimeout(() => {
                 this._requests.delete(requestId);
                 rej(new LightwaveRfError(TIMED_OUT_WAITING_FOR_RESPONSE));
-              }, this._options.timeout),
+              }, 5000000),
             });
           }
         });
