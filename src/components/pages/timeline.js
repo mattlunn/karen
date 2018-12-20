@@ -9,9 +9,9 @@ import { loadMoreTimelineEvents } from '../../actions/timeline';
 import moment from 'moment';
 import { connect } from 'react-redux';
 import Event from '../event';
-import faLightbulb from '@fortawesome/free-regular-svg-icons/faLightbulb';
-import faWalking from '@fortawesome/free-solid-svg-icons/faWalking';
-import faHome from '@fortawesome/free-solid-svg-icons/faHome';
+import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
+import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
+import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 
 function mapStateToProps(state) {
   return {

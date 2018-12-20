@@ -21,11 +21,12 @@ import modal from './reducers/modal';
 import timeline from './reducers/timeline';
 
 import { library } from '@fortawesome/fontawesome-svg-core';
-import faLightbulb from '@fortawesome/free-regular-svg-icons/faLightbulb';
-import faWalking from '@fortawesome/free-solid-svg-icons/faWalking';
-import faHome from '@fortawesome/free-solid-svg-icons/faHome';
+import { faLightbulb } from '@fortawesome/free-regular-svg-icons/faLightbulb';
+import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
+import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
+import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 
-library.add(faLightbulb, faVideo, faHome);
+library.add(faLightbulb, faVideo, faHome, faWalking);
 
 require('./styles/app.less');
 
