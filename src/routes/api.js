@@ -211,6 +211,8 @@ router.post('/light', asyncWrapper(async (req, res) => {
 }));
 
 router.get('/timeline', asyncWrapper(async (req, res) => {
+  debugger;
+
   const since = req.query.after || new Date();
   const limit = 100;
   const events = await Promise.all([
@@ -247,7 +249,8 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
         User
       ],
 
-      limit
+      limit,
+      order: [['arrival', 'DESC']],
     }).then((arrivals) => {
       return arrivals.map((stay) => {
         return {
@@ -269,7 +272,8 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
         User
       ],
 
-      limit
+      limit,
+      order: [['departure', 'DESC']],
     }).then((departures) => {
       return departures.map((stay) => {
         return {

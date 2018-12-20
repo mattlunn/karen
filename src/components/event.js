@@ -28,7 +28,7 @@ export default class Event extends Component {
               return (
                 <React.Fragment>
                   {idx !== 0 && <React.Fragment>&nbsp;&bull;&nbsp;</React.Fragment>}
-                  {React.cloneElement(control, { openPanel: this.openPanel, closePanel: this.closePanel, togglePanel: this.togglePanel })}
+                  {control}
                 </React.Fragment>
               );
             })}
