@@ -21,8 +21,9 @@ import modal from './reducers/modal';
 import timeline from './reducers/timeline';
 
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faLightbulb } from '@fortawesome/free-regular-svg-icons';
-import { faVideo, faHome, faWalking } from '@fortawesome/free-solid-svg-icons';
+import faLightbulb from '@fortawesome/free-regular-svg-icons/faLightbulb';
+import faWalking from '@fortawesome/free-solid-svg-icons/faWalking';
+import faHome from '@fortawesome/free-solid-svg-icons/faHome';
 
 library.add(faLightbulb, faVideo, faHome);
 
