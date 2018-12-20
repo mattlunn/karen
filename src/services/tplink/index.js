@@ -1,5 +1,6 @@
 import { login } from 'tplink-cloud-api';
 import config from '../../config';
+import bus, * as events from '../../bus';
 
 function getHandlerForDevice(client, device) {
   switch (device.deviceModel) {
@@ -57,3 +58,14 @@ export async function getLightsAndStatus() {
     return list;
   }, []));
 }
+
+bus.on(events.LAST_USER_LEAVES, async () => {
+  const devices = await getLightsAndStatus();
+  const onDevices = devices.filter(device => device.switchIsOn);
+
+  for (const device of onDevices) {
+    console.log(`Turning ${device.name} off, as no-one is at home, and it has been left on!`);
+
+    turnLightOnOrOff(device.switchFeatureId, false);
+  }
+});
