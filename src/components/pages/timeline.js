@@ -72,7 +72,10 @@ export default class Timeline extends Component {
             icon={faVideo}
             controls={({ togglePanel }) => {
               return event.recordingId ? [
-                <a onClick={() => togglePanel('view')} href="#" className="card-link">view</a>,
+                <a onClick={(e) => {
+                  e.preventDefault();
+                  togglePanel('view');
+                }} href="#" className="card-link">view</a>,
                 <a href={"/recording/" + event.recordingId + "?download=true"} className="card-link">download</a>
               ] : []
             }}

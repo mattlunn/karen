@@ -4,6 +4,7 @@ import config from '../../config';
 import { Event, Recording, Stay } from '../../models';
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
+import { sendNotification } from '../../helpers/notification';
 
 export { makeSynologyRequest };
 
@@ -30,10 +31,16 @@ bus.on(FIRST_USER_HOME, async () => {
 });
 
 bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
+  Stay.checkIfSomeoneHomeAt(now).then(isSomeoneAtHome => {
+    if (!isSomeoneAtHome) {
+      sendNotification('Motion detected at ' + moment(now).format('HH:mm:ss'), 'https://karen.mattlunn.me.uk/timeline');
+    }
+  });
+
   const recordings = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'List', {
     fromTime: moment(now).startOf('day').format('X'),
     toTime: now.format('X')
-  }, true, 5);
+  }, true, 5)
 
   const recordingDurationMs  = 10000;
   const recordingStart = moment(now).subtract(recordingDurationMs, 'milliseconds');

@@ -8,8 +8,15 @@ function constructApiUrl(event) {
 
 Object.keys(events).forEach((event) => {
   if (event !== 'default') {
-    bus.on(event, () => {
-      request.post(constructApiUrl(event.toLowerCase())).catch((error) => {
+    bus.on(event, (details = {}) => {
+      request.post(constructApiUrl(event.toLowerCase()), {
+        body: {
+          value1: details.value1,
+          value2: details.value2,
+          value3: details.value3
+        },
+        json: true
+      }).catch((error) => {
         console.log(`Error whilst notifying IFTTT of ${event}`);
         console.dir(error);
       });
