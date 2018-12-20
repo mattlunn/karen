@@ -22,8 +22,9 @@ import timeline from './reducers/timeline';
 
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faLightbulb } from '@fortawesome/free-regular-svg-icons';
+import { faVideo, faHome, faWalking } from '@fortawesome/free-solid-svg-icons';
 
-library.add(faLightbulb);
+library.add(faLightbulb, faVideo, faHome);
 
 require('./styles/app.less');
 

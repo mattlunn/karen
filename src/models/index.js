@@ -20,4 +20,5 @@ export const Event = eventFactory(instance);
 export const Recording = recordingFactory(instance);
 
 Recording.belongsTo(Event);
+Stay.belongsTo(User);
 Event.hasOne(Recording);

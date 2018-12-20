@@ -9,6 +9,7 @@ import { loadMoreTimelineEvents } from '../../actions/timeline';
 import moment from 'moment';
 import { connect } from 'react-redux';
 import Event from '../event';
+import { faVideo, faHome, faWalking } from '@fortawesome/free-solid-svg-icons';
 
 function mapStateToProps(state) {
   return {
@@ -59,6 +60,50 @@ export default class Timeline extends Component {
     window.removeEventListener('scroll', this.handleScroll);
   }
 
+  createEvent(event) {
+    switch (event.type) {
+      case 'motion':
+        return (
+          <Event
+            timestamp={event.timestamp}
+            title={"Motion detected"}
+            icon={faVideo}
+            controls={({ togglePanel }) => {
+              return event.recordingId ? [
+                <a onClick={() => togglePanel('view')} href="#" className="card-link">view</a>,
+                <a href={"/recording/" + event.recordingId + "?download=true"} className="card-link">download</a>
+              ] : []
+            }}
+            panels={{
+              view: (
+                <video
+                  width="100%"
+                  controls
+                  src={"/recording/" + event.recordingId}
+                />
+              )
+            }}
+          />
+        );
+      case 'departure':
+        return (
+          <Event
+            timestamp={event.timestamp}
+            icon={faWalking}
+            title={event.user + ' left the house'}
+          />
+        );
+      case 'arrival':
+        return (
+          <Event
+            timestamp={event.timestamp}
+            icon={faHome}
+            title={event.user + ' arrived home'}
+          />
+        );
+    }
+  }
+
   render() {
     const days = [...this.groupEventsByDays()];
 
@@ -75,13 +120,10 @@ export default class Timeline extends Component {
                     <h3 className='day__header'>{date.format('dddd, MMMM Do YYYY')}</h3>
 
                      <ol className='events'>
-                      {events.map((event) => {
+                      {events.map((event, idx) => {
                         return (
-                          <li className='events__event' key={event.id}>
-                            <Event
-                              timestamp={event.timestamp}
-                              recordingId={event.recordingId}
-                            />
+                          <li className='event' key={idx}>
+                            {this.createEvent(event)}
                           </li>
                         );
                       })}

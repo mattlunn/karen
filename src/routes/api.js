@@ -211,27 +211,84 @@ router.post('/light', asyncWrapper(async (req, res) => {
 }));
 
 router.get('/timeline', asyncWrapper(async (req, res) => {
-  const events = await Event.findAll({
-    include: [
-      Recording
-    ],
-    order: [['createdAt', 'DESC']],
-    where: {
-      createdAt: {
-        $lt: req.query.after || new Date()
-      }
-    },
-    limit: 100
+  const since = req.query.after || new Date();
+  const limit = 100;
+  const events = await Promise.all([
+    Event.findAll({
+      include: [
+        Recording
+      ],
+      order: [['createdAt', 'DESC']],
+      where: {
+        createdAt: {
+          $lt: since
+        }
+      },
+      limit
+    }).then((events) => {
+      return events.map((event) => {
+        return {
+          id: event.id,
+          timestamp: event.timestamp,
+          recordingId: event.recording && event.recording.id,
+          type: 'motion'
+        };
+      })
+    }),
+
+    Stay.findAll({
+      where: {
+        arrival: {
+          $lt: since
+        }
+      },
+
+      include: [
+        User
+      ],
+
+      limit
+    }).then((arrivals) => {
+      return arrivals.map((stay) => {
+        return {
+          timestamp: stay.arrival,
+          user: stay.user.handle,
+          type: 'arrival'
+        };
+      });
+    }),
+
+    Stay.findAll({
+      where: {
+        departure: {
+          $lt: since
+        }
+      },
+
+      include: [
+        User
+      ],
+
+      limit
+    }).then((departures) => {
+      return departures.map((stay) => {
+        return {
+          timestamp: stay.departure,
+          user: stay.user.handle,
+          type: 'departure'
+        };
+      });
+    })
+  ]);
+
+  const allEvents = [].concat(...events);
+
+  allEvents.sort((a, b) => {
+    return b.timestamp - a.timestamp;
   });
 
   res.json({
-    events: events.map((event) => {
-      return {
-        id: event.id,
-        timestamp: event.timestamp,
-        recordingId: event.recording && event.recording.id
-      };
-    })
+    events: allEvents.slice(0, 100)
   });
 }));
 
