@@ -12,7 +12,7 @@ export default class Event extends Component {
   render() {
     return (
       <React.Fragment>
-        <span class="event__timestamp">{moment(this.props.timestamp).format('DD:mm:ss')}</span>
+        <span class="event__timestamp">{moment(this.props.timestamp).format('HH:mm:ss')}</span>
 
         <span className="event__icon"><FontAwesomeIcon icon={this.props.icon} /></span>
 
