@@ -1,13 +1,30 @@
-import LightwaveRfClient from './lib/client/src';
+import lightwaveRfClientFactory from './lib/client/src';
 import config from '../../config';
 import bus, * as events from '../../bus';
 
 const authenticatedClient = (async function() {
-  const client = new LightwaveRfClient();
+  const client = await lightwaveRfClientFactory(config.lightwaverf.username, config.lightwaverf.password, {
+    timeout: 1000
+  });
 
-  await client.authenticate(config.lightwaverf.username, config.lightwaverf.password);
-  await client.request('user', 'authenticate', {
-    token: client._accessToken
+  client.on('close', () => {
+    (function tryReconnect(counter) {
+      console.error(`LWRF connection has closed... trying to reconnect for the ${counter} time`);
+
+      client.reconnect().then(() => {
+        console.log('LWRF connection re-established');
+      }, () => {
+        console.error('LWRF connection could not be re-established... trying again in a bit...');
+
+        setTimeout(() => {
+          tryReconnect(counter + 1);
+        }, 60000);
+      });
+    }(1));
+  });
+
+  client.on('error', (err) => {
+    console.error('LWRF connection error', err);
   });
 
   return client;

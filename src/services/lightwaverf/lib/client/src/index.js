@@ -8,24 +8,41 @@ import LightwaveRfError, {
   UNSUCCESSFUL_HTTP_RESPONSE,
   UNSUCCESSFUL_REQUEST,
   UNABLE_TO_SEND_REQUEST,
+  CANNOT_RECONNECT_IN_CURRENT_STATE,
+  CANNOT_SEND_REQUEST_IN_CURRENT_STATE,
+  TIMED_OUT_WAITING_FOR_RESPONSE,
 } from './error';
 
-export default class LightwaveRfApi extends EventEmitter {
-  constructor(options = {}) {
+class LightwaveRfApi extends EventEmitter {
+  constructor(authenticationToken, options = {}) {
     super();
 
+    this._requests = new Map();
+    this._sessionId = uuidv4();
+    this._transactionId = 1000;
+    this._authenticationToken = authenticationToken;
     this._options = Object.assign({
-      timeout: 1000,
+      timeout: 60000,
       websocketEndpoint: 'wss://v1-linkplus-app.lightwaverf.com/',
-      authenticationEndpoint: 'https://auth.lightwaverf.com/v2/lightwaverf/autouserlogin/lwapps',
-      applicationId: 'ios-01',
     }, options);
+  }
+
+  async reconnect() {
+    const events = ['open', 'error', 'close', 'message'];
+
+    if (typeof this._socket === 'object' && this._socket !== null) {
+      if ([WebSocket.CONNECTING, WebSocket.OPEN].includes(this._socket.readyState)) {
+        throw new LightwaveRfError(CANNOT_RECONNECT_IN_CURRENT_STATE, this._socket.readyState);
+      }
+
+      events.forEach((event) => {
+        this._socket.removeAllListeners(event);
+      });
+    }
 
     this._socket = new WebSocket(this._options.websocketEndpoint);
-    this._transactionId = 1000;
-    this._requests = new Map();
 
-    ['open', 'error', 'close', 'message'].forEach((event) => {
+    events.forEach((event) => {
       this._socket.on(event, this.emit.bind(this, event));
     });
 
@@ -43,6 +60,8 @@ export default class LightwaveRfApi extends EventEmitter {
         const handlers = this._requests.get(data.itemId);
 
         if (handlers) {
+          clearTimeout(handlers.timeout);
+
           this._requests.delete(data.itemId);
 
           if (data.success === true) {
@@ -53,45 +72,27 @@ export default class LightwaveRfApi extends EventEmitter {
         }
       }
     });
-  }
 
-  async authenticate(email, password) {
-    const response = await fetch(this._options.authenticationEndpoint, {
-      method: 'POST',
-      body: JSON.stringify({
-        email,
-        password,
-      }),
-      headers: {
-        'x-lwrf-appid': this._options.applicationId,
-        'content-type': 'application/json',
-      },
+    return new Promise((res, rej) => {
+      this._socket.once('open', () => {
+        this.request('user', 'authenticate', {
+          token: this._authenticationToken,
+        }).then(res, rej);
+      });
     });
-
-    if (!response.ok) {
-      throw new LightwaveRfError(UNSUCCESSFUL_HTTP_RESPONSE, `Received a ${response.status} response`);
-    }
-
-    let json;
-
-    try {
-      json = await response.json();
-    } catch (e) {
-      throw new LightwaveRfError(INVALID_JSON, 'Invalid JSON', e);
-    }
-
-    this._user = json.user;
-    this._accessToken = json.tokens.access_token;
   }
 
   request(type, operation, payload = {}) {
     return new Promise((res, rej) => {
       const requestId = uuidv4();
-      const sendWork = () => {
+
+      if (this._socket.readyState !== WebSocket.OPEN) {
+        throw new LightwaveRfError(CANNOT_SEND_REQUEST_IN_CURRENT_STATE, this._socket.readyState);
+      } else {
         this._socket.send(JSON.stringify({
           class: type,
           version: 1,
-          senderId: this._user._id,
+          senderId: this._sessionId,
           direction: 'request',
           operation,
           transactionId: this._transactionId += 1,
@@ -103,16 +104,59 @@ export default class LightwaveRfApi extends EventEmitter {
           if (err) {
             rej(new LightwaveRfError(UNABLE_TO_SEND_REQUEST, null, err));
           } else {
-            this._requests.set(requestId, { res, rej });
+            this._requests.set(requestId, {
+              res,
+              rej,
+              timeout: setTimeout(() => {
+                this._requests.delete(requestId);
+                rej(new LightwaveRfError(TIMED_OUT_WAITING_FOR_RESPONSE));
+              }, this._options.timeout),
+            });
           }
         });
-      };
-
-      if (this._socket.readyState === WebSocket.OPEN) {
-        sendWork();
-      } else {
-        this._socket.once('open', sendWork);
       }
     });
   }
+}
+
+export async function getAuthenticationToken(email, password, options = {}) {
+  const settings = Object.assign({
+    authenticationEndpoint: 'https://auth.lightwaverf.com/v2/lightwaverf/autouserlogin/lwapps',
+    applicationId: 'ios-01',
+  }, options);
+
+  const response = await fetch(settings.authenticationEndpoint, {
+    method: 'POST',
+    body: JSON.stringify({
+      email,
+      password,
+    }),
+    headers: {
+      'x-lwrf-appid': settings.applicationId,
+      'content-type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new LightwaveRfError(UNSUCCESSFUL_HTTP_RESPONSE, `Received a ${response.status} response`);
+  }
+
+  let json;
+
+  try {
+    json = await response.json();
+  } catch (e) {
+    throw new LightwaveRfError(INVALID_JSON, 'Invalid JSON', e);
+  }
+
+  return json.tokens.access_token;
+}
+
+export default async function (email, password, options = {}) {
+  const authenticationToken = await getAuthenticationToken(email, password, options);
+  const client = new LightwaveRfApi(authenticationToken, options);
+
+  await client.reconnect();
+
+  return client;
 }
