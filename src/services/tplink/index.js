@@ -41,7 +41,7 @@ export async function getLightsAndStatus() {
   const client = await authenticatedClient;
   const devices = await client.getDeviceList();
 
-  return await Promise.all(devices.reduce((list, device) => {
+  return (await Promise.all(devices.reduce((list, device) => {
     const handler = getHandlerForDevice(client, device);
 
     if (handler !== null) {
@@ -59,8 +59,8 @@ export async function getLightsAndStatus() {
       }));
     }
 
-    return list.filter(x => x);
-  }, []));
+    return list;
+  }, []))).filter(x => x);
 }
 
 bus.on(events.LAST_USER_LEAVES, async () => {
