@@ -52,10 +52,14 @@ export async function getLightsAndStatus() {
           switchFeatureId: device.alias,
           type: 'tplink'
         };
-      }()));
+      }()).catch((err) => {
+        console.error(err);
+
+        return null;
+      }));
     }
 
-    return list;
+    return list.filter(x => x);
   }, []));
 }
 

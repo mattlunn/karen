@@ -1,8 +1,7 @@
 import express from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
-import { Stay } from '../models';
 import { HOME, AWAY } from '../constants/status';
-import { User, Heating, Event, Recording } from '../models';
+import { User, Heating, Event, Recording, Stay } from '../models';
 import { makeSynologyRequest } from '../services/synology';
 import { getLightsAndStatus as getLightsAndStatusFromLightwave } from '../services/lightwaverf';
 import { getLightsAndStatus as getLightsAndStatusFromTpLink, turnLightOnOrOff } from '../services/tplink';
