@@ -64,7 +64,7 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
   let recording;
   let event;
 
-  if (latestCameraEvent && latestCameraEvent.recording.end > expectedStartOfRecording) {
+  if (latestCameraEvent && latestCameraEvent.recording && latestCameraEvent.recording.end > expectedStartOfRecording) {
     recording = latestCameraEvent.recording;
     event = latestCameraEvent;
     recordingDurationMs = moment(now).diff(recording.start, 'milliseconds');
