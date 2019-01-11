@@ -12,6 +12,7 @@ import LightwaveRfError, {
   CANNOT_SEND_REQUEST_IN_CURRENT_STATE,
   CANNOT_CONNECT_TO_WEBSOCKET,
   TIMED_OUT_WAITING_FOR_RESPONSE,
+  WEBSOCKET_CLOSED_WHILE_WAITING_FOR_RESPONSE,
 } from './error';
 
 class LightwaveRfApi extends EventEmitter {
@@ -29,7 +30,7 @@ class LightwaveRfApi extends EventEmitter {
   }
 
   async reconnect() {
-    const events = ['open', 'error', 'close', 'message'];
+    const events = ['error', 'close', 'message'];
 
     if (typeof this._socket === 'object' && this._socket !== null) {
       if ([WebSocket.CONNECTING, WebSocket.OPEN].includes(this._socket.readyState)) {
@@ -42,11 +43,6 @@ class LightwaveRfApi extends EventEmitter {
     }
 
     this._socket = new WebSocket(this._options.websocketEndpoint);
-
-    events.forEach((event) => {
-      this._socket.on(event, this.emit.bind(this, event));
-    });
-
     this._socket.on('message', (msg) => {
       let json;
 
@@ -75,15 +71,30 @@ class LightwaveRfApi extends EventEmitter {
     });
 
     return new Promise((res, rej) => {
-      this.once('error', (err) => {
+      this._socket.once('error', (err) => {
         rej(new LightwaveRfError(CANNOT_CONNECT_TO_WEBSOCKET, null, err));
       });
 
-      this._socket.once('open', () => {
+      this._socket.on('close', () => {
+        for (const { rej: rejectCurrentRequest, timeout } of this._requests.values()) {
+          clearTimeout(timeout);
+          rejectCurrentRequest(new LightwaveRfError(WEBSOCKET_CLOSED_WHILE_WAITING_FOR_RESPONSE));
+        }
+
+        this._requests.clear();
+      });
+
+      this._socket.on('open', () => {
         this.request('user', 'authenticate', {
           token: this._authenticationToken,
           clientDeviceId: this._sessionId,
-        }).then(res, rej);
+        }).then(() => {
+          events.forEach((event) => {
+            this._socket.on(event, this.emit.bind(this, event));
+          });
+
+          res();
+        }, rej);
       });
     });
   }
@@ -119,7 +130,7 @@ class LightwaveRfApi extends EventEmitter {
               timeout: setTimeout(() => {
                 this._requests.delete(requestId);
                 rej(new LightwaveRfError(TIMED_OUT_WAITING_FOR_RESPONSE));
-              }, 5000000),
+              }, this._options.timeout),
             });
           }
         });
