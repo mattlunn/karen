@@ -4,7 +4,7 @@ import bus, * as events from '../../bus';
 
 const authenticatedClient = (async function() {
   const client = await lightwaveRfClientFactory(config.lightwaverf.username, config.lightwaverf.password, {
-    timeout: 1000
+    timeout: config.lightwaverf.timeout
   });
 
   client.on('close', (reason) => {

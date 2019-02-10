@@ -13,10 +13,12 @@ import { Stay, Heating } from './models';
 import { setEta, getOccupancyStatus, getHeatingStatus } from './services/nest';
 import bodyParser from 'body-parser';
 import config from './config';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import nowAndSetInterval from './helpers/now-and-set-interval';
 import bus, * as events from './bus';
 import cookieParser from 'cookie-parser';
+
+moment.tz.setDefault('Europe/London');
 
 require('./services/ifttt');
 require('./services/synology');

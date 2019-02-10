@@ -10,6 +10,9 @@ import { createStore, combineReducers, applyMiddleware } from 'redux';
 import { ConnectedRouter, routerReducer, routerMiddleware, push } from 'react-router-redux';
 import createHistory from 'history/createBrowserHistory';
 import { Provider } from 'react-redux';
+import moment from 'moment-timezone';
+
+moment.tz.setDefault('Europe/London');
 
 import stay from './reducers/stay';
 import heating from './reducers/heating';
