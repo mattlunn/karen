@@ -1,2 +1,2 @@
-export const AWAY = 'away';
-export const HOME = 'home';
+export const AWAY = 'AWAY';
+export const HOME = 'HOME';

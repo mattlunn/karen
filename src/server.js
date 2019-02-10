@@ -17,6 +17,7 @@ import moment from 'moment-timezone';
 import nowAndSetInterval from './helpers/now-and-set-interval';
 import bus, * as events from './bus';
 import cookieParser from 'cookie-parser';
+import api from './api';
 
 moment.tz.setDefault('Europe/London');
 
@@ -27,6 +28,11 @@ require('./services/lightwaverf');
 require('./services/tplink');
 
 const app = express();
+
+api.applyMiddleware({
+  app,
+  path: '/graphql'
+});
 
 app.set('trust proxy', config.trust_proxy);
 app.use(bodyParser.json());

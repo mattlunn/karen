@@ -54,5 +54,13 @@ export default function (sequelize) {
     });
   };
 
+  user.findAllById = function (ids) {
+    return this.findAll({
+      where: {
+        id: ids
+      }
+    });
+  };
+
   return user;
 };

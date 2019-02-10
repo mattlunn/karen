@@ -39,9 +39,9 @@ function createResponseForStatus(user, upcoming, currentOrLast) {
 router.get('/status', asyncWrapper(async (req, res) => {
   const users = await User.findAll();
   const userStatus = await Promise.all(users.map(async (user) => {
-    const [upcoming, currentOrLast] = await Promise.all([
-      Stay.findUpcomingStay(user.id),
-      Stay.findCurrentOrLastStay(user.id)
+    const [[upcoming], [currentOrLast]] = await Promise.all([
+      Stay.findUpcomingStays([user.id]),
+      Stay.findCurrentOrLastStays([user.id])
     ]);
 
     return createResponseForStatus(user, upcoming, currentOrLast);
@@ -65,9 +65,9 @@ router.post('/eta', asyncWrapper(async (req, res, next) => {
   const user = res.locals.user;
   const eta = moment(req.body.eta);
 
-  let [current, upcoming] = await Promise.all([
-    Stay.findCurrentOrLastStay(user.id),
-    Stay.findUpcomingStay(user.id)
+  let [[current], [upcoming]] = await Promise.all([
+    Stay.findCurrentOrLastStays([user.id]),
+    Stay.findUpcomingStays([user.id])
   ]);
 
   if (current.departure === null) {
@@ -104,9 +104,9 @@ router.post('/status', asyncWrapper(async (req, res, next) => {
   const user = res.locals.user;
   const status = req.body.status;
 
-  let [current, upcoming] = await Promise.all([
-    Stay.findCurrentOrLastStay(user.id),
-    Stay.findUpcomingStay(user.id)
+  let [[current], [upcoming]] = await Promise.all([
+    Stay.findCurrentOrLastStays([user.id]),
+    Stay.findUpcomingStays([user.id])
   ]);
 
   switch (status) {

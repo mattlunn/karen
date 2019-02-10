@@ -31,17 +31,17 @@ export default function (sequelize) {
     }
   });
 
-  stay.findUpcomingStay = function (userId) {
-    return this.findOne({
+  stay.findUpcomingStays = function (userIds) {
+    return Promise.all(userIds.map(userId => this.findOne({
       where: {
         arrival: null,
         userId
       }
-    });
+    })));
   };
 
-  stay.findCurrentOrLastStay = function (userId) {
-    return this.findOne({
+  stay.findCurrentOrLastStays = function (userIds) {
+    return Promise.all(userIds.map((userId) => this.findOne({
       where: {
         arrival: {
           $not: null
@@ -52,7 +52,7 @@ export default function (sequelize) {
       order: [
         ['arrival', 'DESC']
       ]
-    });
+    })));
   };
 
   stay.findCurrentStay = function (userId) {
