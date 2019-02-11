@@ -7,7 +7,6 @@ import { graphql } from 'react-apollo';
 
 @graphql(gql`{
   stays: getUsers {
-    handle
     id
     avatar
     status

@@ -8,7 +8,7 @@ import Lighting from '../lighting';
 import resources from '../resources';
 import { SECURITY, HEATING, LIGHTING } from '../../constants/resources';
 
-@resources([ HEATING, LIGHTING ])
+@resources([ HEATING, SECURITY, LIGHTING ])
 export default class Home extends Component {
   render() {
     return (

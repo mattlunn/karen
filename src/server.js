@@ -29,14 +29,16 @@ require('./services/tplink');
 
 const app = express();
 
+app.set('trust proxy', config.trust_proxy);
+app.use(bodyParser.json());
+app.use(cookieParser());
+app.use('/graphql', auth);
+
 api.applyMiddleware({
   app,
   path: '/graphql'
 });
 
-app.set('trust proxy', config.trust_proxy);
-app.use(bodyParser.json());
-app.use(cookieParser());
 app.use('/nest', nestRoutes);
 app.use('/alexa', alexaRoutes);
 app.use('/api', apiRoutes);

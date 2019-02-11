@@ -69,10 +69,10 @@
     "webpack-cli": "^2.0.9"
   },
   "scripts": {
-    "start": "babel-node server.js --presets env,stage-2,react",
-    "debug": "babel-node --inspect-brk server.js --presets env,stage-2,react",
-    "create-user": "babel-node scripts/create-user.js --presets env,stage-2,react",
-    "migrate": "babel-node scripts/migrate.js --presets env,stage-2",
+    "start": "babel-node server.js",
+    "debug": "babel-node --inspect-brk server.js",
+    "create-user": "babel-node scripts/create-user.js",
+    "migrate": "babel-node scripts/migrate.js",
     "build": "node node_modules/webpack/bin/webpack"
   },
   "author": "",

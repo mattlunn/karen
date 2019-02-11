@@ -14,7 +14,6 @@ import moment from 'moment-timezone';
 
 moment.tz.setDefault('Europe/London');
 
-import stay from './reducers/stay';
 import heating from './reducers/heating';
 import resources from './reducers/resources';
 import lighting from './reducers/lighting';
@@ -41,7 +40,6 @@ const history = createHistory();
 const store = createStore(combineReducers({
   router: routerReducer,
   resources,
-  stay,
   user,
   modal,
   lighting,

@@ -3,15 +3,16 @@ export default class User {
     this.context = context;
     this.user = user;
 
-    ['handle', 'id', 'avatar'].forEach((key) => {
-      this[key] = this.user[key];
-    });
+    this.avatar = this.user.avatar;
+    this.id = this.user.handle;
+
+    this.context.userByHandle.prime(this.user.handle, this);
   }
 
   async status() {
     const [upcoming, currentOrLast] = await Promise.all([
-      this.context.upcomingStayByUserId.load(this.id, this.context),
-      this.context.currentOrLastStayByUserId.load(this.id, this.context)
+      this.context.upcomingStayByUserId.load(this.user.id, this.context),
+      this.context.currentOrLastStayByUserId.load(this.user.id, this.context)
     ]);
 
     if (upcoming || currentOrLast.departure) {
@@ -23,8 +24,8 @@ export default class User {
 
   async since() {
     const [upcoming, currentOrLast] = await Promise.all([
-      this.context.upcomingStayByUserId.load(this.id, this.context),
-      this.context.currentOrLastStayByUserId.load(this.id, this.context)
+      this.context.upcomingStayByUserId.load(this.user.id, this.context),
+      this.context.currentOrLastStayByUserId.load(this.user.id, this.context)
     ]);
 
     if (upcoming || currentOrLast.departure) {
@@ -36,8 +37,8 @@ export default class User {
 
   async until() {
     const [upcoming, currentOrLast] = await Promise.all([
-      this.context.upcomingStayByUserId.load(this.id, this.context),
-      this.context.currentOrLastStayByUserId.load(this.id, this.context)
+      this.context.upcomingStayByUserId.load(this.user.id, this.context),
+      this.context.currentOrLastStayByUserId.load(this.user.id, this.context)
     ]);
 
     if (upcoming || currentOrLast.departure) {
