@@ -14,9 +14,7 @@ import { graphql } from 'react-apollo';
     until
   }
 }`, {
-  props: ({ data: { stays }}) => ({
-    stays
-  })
+  props: ({ data }) => data
 })
 export default class SideBar extends Component {
   render() {

@@ -6,9 +6,9 @@ import Security from '../security';
 import Heating from '../heating';
 import Lighting from '../lighting';
 import resources from '../resources';
-import { SECURITY, HEATING, LIGHTING } from '../../constants/resources';
+import { HEATING, LIGHTING } from '../../constants/resources';
 
-@resources([ HEATING, SECURITY, LIGHTING ])
+@resources([ HEATING, LIGHTING ])
 export default class Home extends Component {
   render() {
     return (

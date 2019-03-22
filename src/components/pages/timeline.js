@@ -3,7 +3,7 @@ import SideBar from '../sidebar';
 import Modals from '../modals';
 import Header from '../header';
 import resources from '../resources';
-import { STATUS, TIMELINE} from '../../constants/resources';
+import { TIMELINE} from '../../constants/resources';
 import { getEvents, getIsLoadingMoreEvents, getHasMoreEvents } from '../../reducers/timeline';
 import { loadMoreTimelineEvents } from '../../actions/timeline';
 import moment from 'moment';
@@ -21,7 +21,7 @@ function mapStateToProps(state) {
   };
 }
 
-@resources([ STATUS, TIMELINE ])
+@resources([ TIMELINE ])
 @connect(mapStateToProps, {
   loadMoreTimelineEvents
 })

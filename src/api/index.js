@@ -1,55 +1,16 @@
-import { gql, ApolloServer } from 'apollo-server-express';
+import { ApolloServer } from 'apollo-server-express';
 import * as db from '../models';
-import { User, Stay } from './models';
+import { User, Stay, Security, Camera } from './models';
 import { HOME, AWAY } from '../constants/status';
-import DataLoader from 'dataloader';
 import moment from 'moment-timezone';
+import makeSynologyRequest from '../services/synology/instance'
+import DataLoaderWithContextAndNoIdParam from './lib/dataloader-with-context-and-no-id-param';
+import DataLoaderWithContext from './lib/dataloader-with-context';
+import schema from './schema';
 
-class DataLoaderWithContext {
-  constructor(Constructor, loader) {
-    this.Constructor = Constructor;
-    this.loader = new DataLoader(loader);
-  }
-
-  async load(id, context) {
-    const result = await this.loader.load(id);
-
-    return result === null ? result : new this.Constructor(result, context);
-  }
-
-  async loadMany(ids, context) {
-    const results = await this.loader.loadMany(ids);
-
-    return results.map(result => new this.Constructor(result, context));
-  }
-
-  prime(id, value) {
-    this.loader.prime(id, value);
-  }
+function factoryFromConstructor(Constructor) {
+  return (data, context) => new Constructor(data, context);
 }
-
-const schema = gql`
-  enum Status {
-    HOME,
-    AWAY
-  }
-
-  type User {
-    id: ID!,
-    avatar: String!,
-    status: Status!,
-    since: Float!,
-    until: Float
-  }
-
-  type Query {
-    getUsers: [User]
-  }
-
-  type Mutation {
-    updateUser(id: ID!, eta: Float, status: Status): User
-  }
-`;
 
 const resolvers = {
   Query: {
@@ -57,6 +18,10 @@ const resolvers = {
       const users = await db.User.findAll();
 
       return users.map(user => new User(user, context));
+    },
+
+    async getSecurityStatus(parent, args, context, info) {
+      return new Security(context);
     }
   },
 
@@ -137,8 +102,19 @@ export default new ApolloServer({
   typeDefs: schema,
   resolvers,
   context: ({ req }) => ({
-    userByHandle: new DataLoaderWithContext(User, (handles) => db.User.findByHandlers(handles)),
-    upcomingStayByUserId: new DataLoaderWithContext(Stay, (id) => db.Stay.findUpcomingStays(id)),
-    currentOrLastStayByUserId: new DataLoaderWithContext(Stay, (id) => db.Stay.findCurrentOrLastStays(id))
+    req: req,
+    userByHandle: new DataLoaderWithContext(factoryFromConstructor(User), (handles) => db.User.findByHandlers(handles)),
+    upcomingStayByUserId: new DataLoaderWithContext(factoryFromConstructor(Stay), (id) => db.Stay.findUpcomingStays(id)),
+    currentOrLastStayByUserId: new DataLoaderWithContext(factoryFromConstructor(Stay), (id) => db.Stay.findCurrentOrLastStays(id)),
+    isHome: new DataLoaderWithContextAndNoIdParam((value) => value, async () => {
+      const response = await makeSynologyRequest('SYNO.SurveillanceStation.HomeMode', 'GetInfo');
+
+      return response.data.on;
+    }),
+    cameras: new DataLoaderWithContextAndNoIdParam((cameras, context) => cameras.map(data => new Camera(data, context)), async () => {
+      const response = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
+
+      return response.data.cameras;
+    })
   })
 });

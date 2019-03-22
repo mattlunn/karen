@@ -18,7 +18,6 @@ import heating from './reducers/heating';
 import resources from './reducers/resources';
 import lighting from './reducers/lighting';
 import user from './reducers/user';
-import security from './reducers/security';
 import modal from './reducers/modal';
 import timeline from './reducers/timeline';
 
@@ -43,7 +42,6 @@ const store = createStore(combineReducers({
   user,
   modal,
   lighting,
-  security,
   heating,
   timeline
 }), applyMiddleware(

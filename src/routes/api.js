@@ -14,26 +14,6 @@ const router = express.Router();
 
 router.use(auth);
 
-router.get('/security', asyncWrapper(async (req, res) => {
-  const [
-    cameras,
-    homeMode
-  ] = await Promise.all([
-    makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List'),
-    makeSynologyRequest('SYNO.SurveillanceStation.HomeMode', 'GetInfo')
-  ]);
-
-  res.json({
-    cameras: cameras.data.cameras.map((camera) => ({
-      snapshot: `${req.protocol}://${req.headers.host}${req.baseUrl}/snapshot/${camera.id}`,
-      id: camera.id,
-      name: camera.newName
-    })),
-
-    isInHomeMode: homeMode.data.on
-  });
-}));
-
 router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
   res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
     cameraId: req.params.id
