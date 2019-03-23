@@ -35,14 +35,38 @@ export default gql`
     name: String
   }
 
+  type TimePeriod {
+    start: Float!
+    end: Float!
+  }
+
+  type Thermostat {
+    id: ID!,
+    name: String,
+    targetTemperature: Float,
+    currentTemperature: Float!,
+    isHeating: Boolean!,
+    humidity: Float!,
+    eta: Float,
+    isHome: Boolean!,
+
+    heatingHistory(start: Float!, end: Float!): [TimePeriod]
+  }
+
+  type Heating {
+    thermostats: [Thermostat]
+  }
+
   type Query {
     getUsers: [User]
     getSecurityStatus: Security
-    getLighting: Lighting
+    getLighting: Lighting,
+    getHeating: Heating
   }
 
   type Mutation {
     updateUser(id: ID!, eta: Float, status: Status): User
     updateLight(id: ID!, isOn: Boolean): Lighting
+    updateThermostat(id: ID!, targetTemperature: Float): Thermostat
   }
 `

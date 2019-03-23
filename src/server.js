@@ -85,25 +85,33 @@ Object.keys(events).forEach((event) => {
   }
 });
 
-[events.NEST_OCCUPANCY_STATUS_CHANGE, events.NEST_HEATING_STATUS_CHANGE].forEach((event) => {
-  bus.on(event, () => {
-    const {
-      humidity,
-      target,
-      current,
-      heating
-    } = getHeatingStatus();
+bus.on(events.NEST_OCCUPANCY_STATUS_CHANGE, (current) => {
+  const thermostats = getHeatingStatus();
 
-    const {
-      home
-    } = getOccupancyStatus();
+  for (const thermostat of thermostats) {
+    const obj = {
+      thermostatId: thermostat.id,
+      home: current.home
+    };
 
-    Heating.create({
-      humidity,
-      target,
-      current,
-      heating,
-      home
+    ['humidity', 'target', 'current', 'heating'].forEach((key) => {
+      obj[key] = thermostat[key];
     });
+
+    Heating.create(obj);
+  }
+});
+
+bus.on(events.NEST_HEATING_STATUS_CHANGE, (thermostat) => {
+  const { home } = getOccupancyStatus();
+  const obj = {
+    thermostatId: thermostat.id,
+    home
+  };
+
+  ['humidity', 'target', 'current', 'heating'].forEach((key) => {
+    obj[key] = thermostat[key];
   });
+
+  Heating.create(obj);
 });

@@ -14,7 +14,6 @@ import moment from 'moment-timezone';
 
 moment.tz.setDefault('Europe/London');
 
-import heating from './reducers/heating';
 import resources from './reducers/resources';
 import user from './reducers/user';
 import modal from './reducers/modal';
@@ -40,7 +39,6 @@ const store = createStore(combineReducers({
   resources,
   user,
   modal,
-  heating,
   timeline
 }), applyMiddleware(
   thunk,

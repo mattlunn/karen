@@ -1,6 +1,6 @@
 import { ApolloServer } from 'apollo-server-express';
 import * as db from '../models';
-import { User, Stay, Security, Camera, Lighting, lightFactory } from './models';
+import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, TimePeriod, lightFactory } from './models';
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
 import makeSynologyRequest from '../services/synology/instance'
@@ -9,6 +9,7 @@ import DataLoaderWithContext from './lib/dataloader-with-context';
 import schema from './schema';
 import { getLightsAndStatus as getLightsAndStatusFromLightwave, setLightFeatureValue as setLightwaveLightFeatureValue } from '../services/lightwaverf';
 import { getLightsAndStatus as getLightsAndStatusFromTpLink, turnLightOnOrOff as turnTpLinkLightOnOrOff } from '../services/tplink';
+import { getHeatingStatus, getOccupancyStatus, setTargetTemperature } from '../services/nest';
 
 function factoryFromConstructor(Constructor) {
   return (data, context) => new Constructor(data, context);
@@ -28,6 +29,10 @@ const resolvers = {
 
     async getLighting(parent, args, context, info) {
       return new Lighting(context);
+    },
+
+    async getHeating(parent, args, context, info) {
+      return new Heating(context);
     }
   },
 
@@ -56,6 +61,14 @@ const resolvers = {
       }
 
       return new Lighting(context);
+    },
+
+    async updateThermostat(parent, args, context, info) {
+      await setTargetTemperature(args.id, args.targetTemperature);
+
+      const thermostats = await context.thermostats.load();
+
+      return thermostats.find(x => x.id() === args.id);
     },
 
     async updateUser(parent, args, context, info) {
@@ -156,5 +169,14 @@ export default new ApolloServer({
 
       return lights.flat();
     }),
+    thermostats: new DataLoaderWithContextAndNoIdParam((thermostats) => thermostats.map(data => new Thermostat(data)), () => {
+      const thermostats = getHeatingStatus();
+      const homeDetails = getOccupancyStatus();
+
+      return Promise.resolve(thermostats.map(thermostat => ({
+        thermostat,
+        homeDetails
+      })));
+    })
   })
 });

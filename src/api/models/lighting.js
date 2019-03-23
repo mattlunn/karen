@@ -1,4 +1,4 @@
-export default class Security {
+export default class Lighting {
   constructor(context) {
     this.context = context;
   }

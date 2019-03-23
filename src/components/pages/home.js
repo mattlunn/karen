@@ -5,10 +5,7 @@ import Header from '../header';
 import Security from '../security';
 import Heating from '../heating';
 import Lighting from '../lighting';
-import resources from '../resources';
-import { HEATING, LIGHTING } from '../../constants/resources';
 
-@resources([ HEATING, LIGHTING ])
 export default class Home extends Component {
   render() {
     return (

@@ -18,31 +18,33 @@ const source = new EventSource('https://developer-api.nest.com', {
 });
 
 function _getHeatingStatus(data) {
-  const thermostat = data.devices.thermostats[data.structures[config.nest.structure_id].thermostats[0]];
-  let target;
+  return data.structures[config.nest.structure_id].thermostats.map((id) => {
+    const thermostat = data.devices.thermostats[id];
+    let target;
 
-  switch (thermostat.hvac_mode) {
-    case 'heat':
-      target = thermostat.target_temperature_c;
-      break;
-    case 'eco':
-      target = thermostat.eco_temperature_low_c;
-      break;
-    case 'off':
-      target = null;
-      break;
-    default:
-      throw new Error(`"${thermostat.hvac_mode}" is not a recognised thermostat mode`);
-  }
+    switch (thermostat.hvac_mode) {
+      case 'heat':
+        target = thermostat.target_temperature_c;
+        break;
+      case 'eco':
+        target = thermostat.eco_temperature_low_c;
+        break;
+      case 'off':
+        target = null;
+        break;
+      default:
+        throw new Error(`"${thermostat.hvac_mode}" is not a recognised thermostat mode`);
+    }
 
-  return {
-    humidity: thermostat.humidity,
-    id: thermostat.device_id,
-    name: thermostat.name,
-    target: target,
-    current: thermostat.ambient_temperature_c,
-    heating: thermostat.hvac_state === 'heating'
-  };
+    return {
+      humidity: thermostat.humidity,
+      id: thermostat.device_id,
+      name: thermostat.name,
+      target: target,
+      current: thermostat.ambient_temperature_c,
+      heating: thermostat.hvac_state === 'heating'
+    };
+  });
 }
 
 function _getOccupancyStatus(data) {
@@ -54,27 +56,31 @@ function _getOccupancyStatus(data) {
   };
 }
 
-function emitIfChanged(factory, event) {
+function emitIfAnyChanged(factory, event, last, current, matcher) {
+  const lastState = last ? factory(last) : [];
   const currentState = factory(current);
-  const lastState = last
-    ? factory(last)
-    : null;
 
-  const keys = Object.keys(currentState);
+  for (const item of currentState) {
+    emitIfChanged(event, lastState.find(matcher), item);
+  }
+}
+
+function emitIfChanged(event, last, current) {
+  const keys = Object.keys(current);
   const getRawValue = (value) => value === null || value === undefined
     ? value
     : value.valueOf();
 
   for (const key of keys) {
-    const currentStateValue = getRawValue(currentState[key]);
-    const lastStateValue = getRawValue(lastState
-      ? lastState[key]
+    const currentStateValue = getRawValue(current[key]);
+    const lastStateValue = getRawValue(last
+      ? last[key]
       : null);
 
     if (currentStateValue !== lastStateValue) {
       console.log(`Nest - ${key} has changed from ${lastStateValue} to ${currentStateValue}`);
 
-      bus.emit(event, currentState);
+      bus.emit(event, current);
       break;
     }
   }
@@ -107,11 +113,9 @@ export async function setAway(away) {
   return true;
 }
 
-export async function setTargetTemperature(temperature) {
-  const thermostatId = current.structures[config.nest.structure_id].thermostats[0];
-
+export async function setTargetTemperature(thermostat, temperature) {
   await request.put(
-    constructApiUrl(`devices/thermostats/${thermostatId}`),
+    constructApiUrl(`devices/thermostats/${thermostat}`),
     addCommonRequestParameters({
       body: {
         hvac_mode: temperature === null ? 'off' : 'heat'
@@ -122,7 +126,7 @@ export async function setTargetTemperature(temperature) {
 
   if (temperature !== null) {
     await request.put(
-      constructApiUrl(`devices/thermostats/${thermostatId}`),
+      constructApiUrl(`devices/thermostats/${thermostat}`),
       addCommonRequestParameters({
         body: {
           target_temperature_c: temperature
@@ -170,6 +174,6 @@ source.addEventListener('put', (data) => {
 
   console.log('Received update fom Nest');
 
-  emitIfChanged(_getHeatingStatus, NEST_HEATING_STATUS_CHANGE);
-  emitIfChanged(_getOccupancyStatus, NEST_OCCUPANCY_STATUS_CHANGE);
+  emitIfAnyChanged(_getHeatingStatus, NEST_HEATING_STATUS_CHANGE, last, current, x => x.id);
+  emitIfChanged(NEST_OCCUPANCY_STATUS_CHANGE, last && _getOccupancyStatus(last), _getOccupancyStatus(current));
 });

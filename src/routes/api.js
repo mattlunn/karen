@@ -1,8 +1,7 @@
 import express from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
-import { User, Heating, Event, Recording, Stay } from '../models';
+import { User, Event, Recording, Stay } from '../models';
 import { makeSynologyRequest } from '../services/synology';
-import { getHeatingStatus, getOccupancyStatus, setTargetTemperature } from '../services/nest';
 import moment from 'moment';
 import s3 from '../services/s3';
 import auth from '../middleware/auth';
@@ -15,21 +14,6 @@ router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
   res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
     cameraId: req.params.id
   }, false, 8));
-}));
-
-router.get('/heating', asyncWrapper(async (req, res) => {
-  res.json({
-    ...getHeatingStatus(),
-    ...getOccupancyStatus(),
-
-    history: await Heating.getDailyHeatMap()
-  });
-}));
-
-router.post('/temperature', asyncWrapper(async (req, res) => {
-  await setTargetTemperature(req.body.target_temperature);
-
-  res.sendStatus(200);
 }));
 
 router.get('/timeline', asyncWrapper(async (req, res) => {
