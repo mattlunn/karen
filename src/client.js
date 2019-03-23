@@ -16,7 +16,6 @@ moment.tz.setDefault('Europe/London');
 
 import heating from './reducers/heating';
 import resources from './reducers/resources';
-import lighting from './reducers/lighting';
 import user from './reducers/user';
 import modal from './reducers/modal';
 import timeline from './reducers/timeline';
@@ -41,7 +40,6 @@ const store = createStore(combineReducers({
   resources,
   user,
   modal,
-  lighting,
   heating,
   timeline
 }), applyMiddleware(

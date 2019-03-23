@@ -19,6 +19,16 @@ export default gql`
     isHome: Boolean
   }
 
+  type Lighting {
+    lights: [Light]
+  }
+
+  type Light {
+    id: ID!
+    name: String!
+    isOn: Boolean!
+  }
+
   type Camera {
     id: ID!,
     snapshot: String,
@@ -28,9 +38,11 @@ export default gql`
   type Query {
     getUsers: [User]
     getSecurityStatus: Security
+    getLighting: Lighting
   }
 
   type Mutation {
     updateUser(id: ID!, eta: Float, status: Status): User
+    updateLight(id: ID!, isOn: Boolean): Lighting
   }
 `

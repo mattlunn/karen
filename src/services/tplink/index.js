@@ -48,9 +48,9 @@ export async function getLightsAndStatus() {
       list.push((async function () {
         return {
           name: device.alias,
-          switchIsOn: await handler.isOn(),
-          switchFeatureId: device.alias,
-          type: 'tplink'
+          isOn: await handler.isOn(),
+          id: device.alias,
+          provider: 'tplink'
         };
       }()).catch((err) => {
         console.error(err);
