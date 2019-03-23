@@ -22,12 +22,16 @@ export default function (sequelize) {
     home: {
       type: Sequelize.BOOLEAN,
       allowNull: false
+    },
+    thermostatId: {
+      type: Sequelize.STRING,
+      allowNull: false
     }
   }, {
     tableName: 'heating'
   });
 
-  heating.getDailyHeatMap = async function () {
+  heating.getHeatingHistoryForThermostat = async function (id, start, end) {
     const [
       data,
       lastStatus
@@ -35,16 +39,19 @@ export default function (sequelize) {
       this.findAll({
         where: {
           createdAt: {
-            $gt: moment().startOf('day')
-          }
+            $gte: start,
+            $lt: end
+          },
+          thermostatId: id
         }
       }),
 
       this.findOne({
         where: {
           createdAt: {
-            $lt: moment().startOf('day')
-          }
+            $lte: start
+          },
+          thermostatId: id
         },
 
         order: [['createdAt', 'desc']]
@@ -53,9 +60,9 @@ export default function (sequelize) {
 
     const dataForHeatChange = [];
 
-    if (lastStatus.heating) {
+    if (lastStatus && lastStatus.heating) {
       dataForHeatChange.push({
-        start: moment().startOf('day')
+        start: start
       });
     }
 
@@ -70,7 +77,7 @@ export default function (sequelize) {
     }
 
     if (dataForHeatChange.length && !dataForHeatChange[0].end) {
-      dataForHeatChange[0].end = moment();
+      dataForHeatChange[0].end = end;
     }
 
     return dataForHeatChange.reverse();

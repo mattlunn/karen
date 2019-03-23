@@ -46,10 +46,18 @@ export default function (sequelize) {
     });
   };
 
-  user.findByHandle = function (handle) {
-    return this.findOne({
+  user.findByHandles = function (handles) {
+    return this.findAll({
       where: {
-        handle: handle
+        handle: handles
+      }
+    });
+  };
+
+  user.findAllById = function (ids) {
+    return this.findAll({
+      where: {
+        id: ids
       }
     });
   };

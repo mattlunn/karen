@@ -1,24 +1,42 @@
 import React, { Component }  from 'react';
 import moment from 'moment';
 import classNames from 'classnames';
-import { setUserStatus } from '../actions/stay'
 import { AWAY, HOME } from '../constants/status';
 import { humanDate } from '../helpers/date';
 import { connect } from 'react-redux';
 import { showModal } from '../actions/modal';
 import { ETA_PICKER } from '../constants/modals';
+import { graphql } from 'react-apollo';
+import gql from 'graphql-tag';
 
 function mapDispatchToProps(dispatch, ownProps) {
   return {
     showModal: () => dispatch(showModal(ETA_PICKER, {
-      handle: ownProps.handle,
+      id: ownProps.id,
       eta: ownProps.until ? moment(ownProps.until) : null
-    })),
-
-    toggleStatus: () => dispatch(setUserStatus(ownProps.handle, ownProps.status === HOME ? AWAY : HOME))
+    }))
   };
 }
 
+@graphql(gql`mutation($id: ID!, $status: Status) {
+  updateUser(id:$id, status:$status) {
+    id,
+    status
+  }
+}`, {
+  props({ mutate, ownProps }) {
+    return {
+      toggleStatus() {
+        mutate({
+          variables: {
+            id: ownProps.id,
+            status: ownProps.status === HOME ? AWAY : HOME
+          }
+        });
+      }
+    }
+  }
+})
 @connect(null, mapDispatchToProps)
 export default class UserStatus extends Component {
   renderStatusMessage() {
@@ -58,7 +76,7 @@ export default class UserStatus extends Component {
         </a>
         <div>
           <h3 className="user-status__user-name">
-            {this.props.handle}
+            {this.props.id}
           </h3>
           <p className="user-status__about">{this.renderStatusMessage()}</p>
         </div>

@@ -1,12 +1,11 @@
 import classNames from 'classnames';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { getCameras, getIsInHomeMode } from '../reducers/security';
+import gql from 'graphql-tag';
+import { graphql } from 'react-apollo';
 
-function mapStateToProps(state) {
+function mapStateToProps() {
   return {
-    cameras: getCameras(state.security),
-    isInHomeMode: getIsInHomeMode(state.security),
     loadSnapshot: async (snapshot) => {
       const response = await fetch(snapshot, {
         credentials: 'same-origin'
@@ -17,6 +16,19 @@ function mapStateToProps(state) {
   };
 }
 
+@graphql(gql`{
+  getSecurityStatus {
+    cameras {
+      id,
+      snapshot,
+      name
+    },
+
+    isHome
+  }
+}`, {
+  props: ({ data: { getSecurityStatus }}) => ({ ...getSecurityStatus })
+})
 @connect(mapStateToProps)
 export default class Security extends Component {
   constructor() {
@@ -29,29 +41,31 @@ export default class Security extends Component {
   }
 
   loadCameraImages = () => {
-    this.props.cameras.forEach(async (camera) => {
-      if (this.loading[camera.id]) {
-        return;
-      }
+    if (this.props.cameras) {
+      this.props.cameras.forEach(async (camera) => {
+        if (this.loading[camera.id]) {
+          return;
+        }
 
-      this.loading[camera.id] = true;
+        this.loading[camera.id] = true;
 
-      try {
-        const snapshot = await this.props.loadSnapshot(camera.snapshot);
+        try {
+          const snapshot = await this.props.loadSnapshot(camera.snapshot);
 
-        this.setState({
-          snapshots: {
-            ...this.state.snapshots,
+          this.setState({
+            snapshots: {
+              ...this.state.snapshots,
 
-            [camera.id]: snapshot
-          }
-        });
-      } catch (e) {
-        throw e;
-      } finally {
-        this.loading[camera.id] = false;
-      }
-    });
+              [camera.id]: snapshot
+            }
+          });
+        } catch (e) {
+          throw e;
+        } finally {
+          this.loading[camera.id] = false;
+        }
+      });
+    }
   };
 
   componentDidMount() {
@@ -67,7 +81,7 @@ export default class Security extends Component {
     return (
       <div className="security">
         <ul className="security__camera-list">
-          {this.props.cameras.map((camera) => {
+          {this.props.cameras && this.props.cameras.map((camera) => {
             return (
               <li className="security__camera">
                 <h3>
@@ -76,7 +90,7 @@ export default class Security extends Component {
                   &nbsp;
 
                   <span className={classNames('security__home-mode-indicator', {
-                    'security__home-mode-indicator--is-home': this.props.isInHomeMode
+                    'security__home-mode-indicator--is-home': this.props.isHome
                   })}>
                     &#x25cf;
                   </span>

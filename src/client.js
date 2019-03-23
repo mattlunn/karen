@@ -14,12 +14,8 @@ import moment from 'moment-timezone';
 
 moment.tz.setDefault('Europe/London');
 
-import stay from './reducers/stay';
-import heating from './reducers/heating';
 import resources from './reducers/resources';
-import lighting from './reducers/lighting';
 import user from './reducers/user';
-import security from './reducers/security';
 import modal from './reducers/modal';
 import timeline from './reducers/timeline';
 
@@ -29,20 +25,20 @@ import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 
+import ApolloClient from 'apollo-boost';
+import { ApolloProvider } from 'react-apollo';
+
 library.add(faLightbulb, faVideo, faHome, faWalking);
 
 require('./styles/app.less');
 
+const client = new ApolloClient({ uri: '/graphql' });
 const history = createHistory();
 const store = createStore(combineReducers({
   router: routerReducer,
   resources,
-  stay,
   user,
   modal,
-  lighting,
-  security,
-  heating,
   timeline
 }), applyMiddleware(
   thunk,
@@ -52,13 +48,15 @@ const store = createStore(combineReducers({
 window.onload = () => {
   ReactDOM.render(
     <Provider store={store}>
-      <ConnectedRouter history={history}>
-        <Switch>
-          <Route exact path="/" component={Home}/>
-          <Route exact path="/login" component={Login}/>
-          <Route exact path="/timeline" component={Timeline}/>
-        </Switch>
-      </ConnectedRouter>
+      <ApolloProvider client={client}>
+        <ConnectedRouter history={history}>
+          <Switch>
+            <Route exact path="/" component={Home}/>
+            <Route exact path="/login" component={Login}/>
+            <Route exact path="/timeline" component={Timeline}/>
+          </Switch>
+        </ConnectedRouter>
+      </ApolloProvider>
     </Provider>,
 
     document.getElementById('main')

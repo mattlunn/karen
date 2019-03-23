@@ -3,11 +3,12 @@ import { connect } from 'react-redux';
 import { getActiveModalProps } from '../../reducers/modal';
 import { closeModal } from '../../actions/modal';
 import { ETA_PICKER } from '../../constants/modals';
-import { setEtaForUser } from '../../actions/stay';
 import { range } from '../../helpers/iterable';
 import pad from 'left-pad';
 import Calendar from 'react-calendar'
 import moment from 'moment';
+import gql from 'graphql-tag';
+import { graphql } from 'react-apollo';
 
 function mapStateToProps(state) {
   return getActiveModalProps(state);
@@ -15,12 +16,32 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch, ownProps) {
   return {
-    closeModal: () => dispatch(closeModal(ETA_PICKER)),
-    setEta: (handle, eta) => dispatch(setEtaForUser(handle, eta))
+    closeModal: () => dispatch(closeModal(ETA_PICKER))
   };
 }
 
 @connect(mapStateToProps, mapDispatchToProps)
+@graphql(gql`mutation($id: ID!, $eta: Float) {
+  updateUser(id: $id, eta: $eta) {
+    id,
+    until
+  }
+}`, {
+  props({ mutate, ownProps }) {
+    return {
+      setEta(id, eta) {
+        mutate({
+          variables: {
+            id,
+            eta: +eta
+          }
+        }).then(() => {
+          ownProps.closeModal();
+        });
+      }
+    }
+  }
+})
 export default class EtaPicker extends Component {
   constructor(props) {
     super(props);
@@ -45,14 +66,14 @@ export default class EtaPicker extends Component {
   };
 
   setEta = () => {
-    this.props.setEta(this.props.handle, this.state.date);
+    this.props.setEta(this.props.id, this.state.date);
   };
 
   render() {
     return (
       <div className="eta-picker">
         <div className="eta-picker__body">
-          <h2>When will <strong>{this.props.handle}</strong> be home?</h2>
+          <h2>When will <strong>{this.props.id}</strong> be home?</h2>
 
           <div>
             <Calendar onChange={this.handleCalendarChange} minDate={new Date()} value={this.state.date.toDate()} />

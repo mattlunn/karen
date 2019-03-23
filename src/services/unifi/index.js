@@ -107,7 +107,7 @@ nowAndSetInterval(async () => {
     if (user.device) {
       const unifiDevice = unifiDevices.find((unifiDevice) => unifiDevice.name === user.device);
       const unifiUser = unifiUsers.find((unifiUser) => unifiUser.name === user.device);
-      const stay = await Stay.findCurrentOrLastStay(user.id);
+      const [ stay ] = await Stay.findCurrentOrLastStays([user.id]);
       const userHasRecentlyLeft = !!stay.departure && Date.now() - stay.departure < TEN_MINUTES_IN_MS;
       const userHasRecentlyArrived = !userHasRecentlyLeft && Date.now() - stay.arrival < TEN_MINUTES_IN_MS;
 

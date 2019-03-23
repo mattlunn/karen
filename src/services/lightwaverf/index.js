@@ -32,18 +32,13 @@ const authenticatedClient = (async function() {
 
 export async function setLightFeatureValue(featureId, value) {
   const client = await authenticatedClient;
-  const feature = await client.request('feature', 'read', {
-    featureId
-  });
 
-  if (!['switch', 'dimLevel'].includes(feature._feature.featureType)) {
-    throw new Error('Not allowed to edit ' + feature.attributes.type);
-  } else {
-    await client.request('feature', 'write', {
-      featureId,
-      value
-    });
-  }
+  console.dir({ featureId, value });
+
+  await client.request('feature', 'write', {
+    featureId,
+    value
+  });
 }
 
 export async function getLightsAndStatus() {
@@ -96,12 +91,13 @@ export async function getLightsAndStatus() {
         ]);
 
         return {
+          id: name,
           name,
           switchFeatureId: switchFeature.featureId,
           switchIsOn: switchStatus.value === 1,
           dimLevelFeatureId: dimLevelFeature.featureId,
           dimLevel: dimLevelStatus.value,
-          type: 'lightwaverf'
+          provider: 'lightwaverf'
         };
       }()));
     }

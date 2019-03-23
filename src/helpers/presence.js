@@ -3,9 +3,9 @@ import config from '../config';
 import moment from 'moment';
 
 export async function markUserAsHome(user) {
-  let [current, upcoming] = await Promise.all([
+  let [current, [upcoming]] = await Promise.all([
     Stay.findCurrentStay(user.id),
-    Stay.findUpcomingStay(user.id)
+    Stay.findUpcomingStays([user.id])
   ]);
 
   if (current) {
