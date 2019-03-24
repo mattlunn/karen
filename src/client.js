@@ -32,7 +32,14 @@ library.add(faLightbulb, faVideo, faHome, faWalking);
 
 require('./styles/app.less');
 
-const client = new ApolloClient({ uri: '/graphql' });
+const client = new ApolloClient({
+  uri: '/graphql',
+  onError({ networkError} ) {
+    if (networkError && networkError.statusCode === 401) {
+      store.dispatch(push('/login'));
+    }
+  }
+});
 const history = createHistory();
 const store = createStore(combineReducers({
   router: routerReducer,
