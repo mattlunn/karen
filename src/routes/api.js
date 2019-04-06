@@ -28,14 +28,16 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
       where: {
         createdAt: {
           $lt: since
-        }
+        },
+        deviceType: 'camera',
+        type: 'motion'
       },
       limit
     }).then((events) => {
       return events.map((event) => {
         return {
           id: event.id,
-          timestamp: event.timestamp,
+          timestamp: event.start,
           recordingId: event.recording && event.recording.id,
           type: 'motion'
         };

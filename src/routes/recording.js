@@ -35,7 +35,7 @@ router.get('/:id', asyncWrapper(async function (req, res) {
   const chunk = range.end - range.start;
 
   if (req.query.download === 'true') {
-    res.set('Content-disposition', 'attachment; filename=' + moment(recording.event.timestamp).format('YYYY-MM-DD HH:mm:ss') + '.mp4');
+    res.set('Content-disposition', 'attachment; filename=' + moment(recording.event.start).format('YYYY-MM-DD HH:mm:ss') + '.mp4');
   }
 
   res.writeHead(status, {
