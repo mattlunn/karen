@@ -11,9 +11,9 @@ router.use(asyncWrapper(async (req, res, next) => {
     return next(new Error('Invalid client_id'));
   }
 
-  const user = await User.findByHandle(req.query.user);
+  const [user] = await User.findByHandles([req.query.user]);
 
-  if (user === null) {
+  if (user === undefined) {
     return next(new Error('Invalid user'));
   }
 
