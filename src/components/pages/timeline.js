@@ -116,7 +116,7 @@ export default class Timeline extends Component {
       <div>
         <Header />
         <div>
-          <SideBar/>
+          <SideBar hideOnMobile />
           <div className='body'>
             <ol className='timeline'>
               {days.map(({ date, events }, idx) => {

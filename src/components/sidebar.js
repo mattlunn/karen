@@ -21,7 +21,9 @@ export default class SideBar extends Component {
     const { stays } = this.props;
 
     return (
-      <div className="sidebar">
+      <div className={classnames('sidebar', {
+        'sidebar--hidden-on-mobile': this.props.hideOnMobile
+      })}>
         <div className="sidebar__house">
           <div className={classnames('sidebar__house-border', {
             'sidebar__house-border--away': stays && stays.every(x => x.status === AWAY),
