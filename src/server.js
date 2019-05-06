@@ -85,13 +85,14 @@ Object.keys(events).forEach((event) => {
   }
 });
 
-bus.on(events.NEST_OCCUPANCY_STATUS_CHANGE, (current) => {
+bus.on(events.NEST_OCCUPANCY_STATUS_UPDATE, async (current) => {
   const thermostats = getHeatingStatus();
 
   for (const thermostat of thermostats) {
     const obj = {
-      thermostatId: thermostat.id,
-      home: current.home
+      deviceType: 'thermostat',
+      deviceId: thermostat.id,
+      type: 'is_in_home_mode',
     };
 
     ['humidity', 'target', 'current', 'heating'].forEach((key) => {
@@ -102,7 +103,7 @@ bus.on(events.NEST_OCCUPANCY_STATUS_CHANGE, (current) => {
   }
 });
 
-bus.on(events.NEST_HEATING_STATUS_CHANGE, (thermostat) => {
+bus.on(events.NEST_HEATING_STATUS_UPDATE, (thermostat) => {
   const { home } = getOccupancyStatus();
   const obj = {
     thermostatId: thermostat.id,

@@ -4,11 +4,10 @@ import EventSource from 'eventsource';
 
 import bus, {
   LAST_USER_LEAVES,
-  NEST_HEATING_STATUS_CHANGE,
-  NEST_OCCUPANCY_STATUS_CHANGE
+  NEST_HEATING_STATUS_UPDATE,
+  NEST_OCCUPANCY_STATUS_UPDATE
 } from '../../bus';
 
-let last = null;
 let current = null;
 
 const source = new EventSource('https://developer-api.nest.com', {
@@ -54,36 +53,6 @@ function _getOccupancyStatus(data) {
     home: structure.away === 'home',
     eta: new Date(structure.eta_begin)
   };
-}
-
-function emitIfAnyChanged(factory, event, last, current, matcher) {
-  const lastState = last ? factory(last) : [];
-  const currentState = factory(current);
-
-  for (const item of currentState) {
-    emitIfChanged(event, lastState.find(matcher), item);
-  }
-}
-
-function emitIfChanged(event, last, current) {
-  const keys = Object.keys(current);
-  const getRawValue = (value) => value === null || value === undefined
-    ? value
-    : value.valueOf();
-
-  for (const key of keys) {
-    const currentStateValue = getRawValue(current[key]);
-    const lastStateValue = getRawValue(last
-      ? last[key]
-      : null);
-
-    if (currentStateValue !== lastStateValue) {
-      console.log(`Nest - ${key} has changed from ${lastStateValue} to ${currentStateValue}`);
-
-      bus.emit(event, current);
-      break;
-    }
-  }
 }
 
 function constructApiUrl(endpoint) {
@@ -174,6 +143,9 @@ source.addEventListener('put', (data) => {
 
   console.log('Received update fom Nest');
 
-  emitIfAnyChanged(_getHeatingStatus, NEST_HEATING_STATUS_CHANGE, last, current, x => x.id);
-  emitIfChanged(NEST_OCCUPANCY_STATUS_CHANGE, last && _getOccupancyStatus(last), _getOccupancyStatus(current));
+  _getHeatingStatus(current).forEach((thermostat) => {
+    bus.emit(NEST_HEATING_STATUS_UPDATE, thermostat);
+  });
+
+  bus.emit(NEST_OCCUPANCY_STATUS_UPDATE, _getOccupancyStatus(current));
 });
