@@ -1,7 +1,7 @@
 import Sequelize from 'sequelize';
 
 export default function (sequelize) {
-  return sequelize.define('event', {
+  const event = sequelize.define('event', {
     deviceType: {
       type: Sequelize.STRING,
       allowNull: false
@@ -32,4 +32,29 @@ export default function (sequelize) {
       allowNull: true
     }
   });
+
+  event.getHeatingHistoryForThermostat = async function (id, start, end) {
+    const data = await this.findAll({
+      where: {
+        start: {
+          $gte: start,
+          $lt: end
+        },
+        end: {
+          $gte: start,
+          $lt: end
+        },
+        deviceId: id,
+        deviceType: 'thermostat',
+        type: 'heating'
+      }
+    });
+
+    return data.map((row) => ({
+      start: Math.max(row.start, start),
+      end: Math.min(row.end, end)
+    }));
+  };
+
+  return event;
 };

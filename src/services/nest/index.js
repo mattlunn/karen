@@ -138,14 +138,22 @@ source.addEventListener('open', () => {
 });
 
 source.addEventListener('put', (data) => {
-  last = current;
+  const last = current;
+  const lastHeatingStatus = last ? _getHeatingStatus(last) : [];
+
   current = JSON.parse(data.data).data;
 
   console.log('Received update fom Nest');
 
-  _getHeatingStatus(current).forEach((thermostat) => {
-    bus.emit(NEST_HEATING_STATUS_UPDATE, thermostat);
+  _getHeatingStatus(current).forEach((current) => {
+    bus.emit(NEST_HEATING_STATUS_UPDATE, {
+      last: lastHeatingStatus.find(last => last.id === current.id),
+      current
+    });
   });
 
-  bus.emit(NEST_OCCUPANCY_STATUS_UPDATE, _getOccupancyStatus(current));
+  bus.emit(NEST_OCCUPANCY_STATUS_UPDATE, {
+    last: last ? _getOccupancyStatus(last) : null,
+    current: _getOccupancyStatus(current)
+  });
 });

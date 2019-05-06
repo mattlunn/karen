@@ -24,9 +24,9 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
       include: [
         Recording
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['start', 'DESC']],
       where: {
-        createdAt: {
+        start: {
           $lt: since
         },
         deviceType: 'camera',

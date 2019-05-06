@@ -9,7 +9,7 @@ import authenticationRoutes from './routes/authentication';
 import synologyRoutes from './routes/synology';
 import recordingRoutes from './routes/recording';
 import auth from './middleware/auth';
-import { Stay, Heating } from './models';
+import { Stay, Event } from './models';
 import { setEta, getOccupancyStatus, getHeatingStatus } from './services/nest';
 import bodyParser from 'body-parser';
 import config from './config';
@@ -85,34 +85,28 @@ Object.keys(events).forEach((event) => {
   }
 });
 
-bus.on(events.NEST_OCCUPANCY_STATUS_UPDATE, async (current) => {
+bus.on(events.NEST_OCCUPANCY_STATUS_UPDATE, async ({ last, current }) => {
   const thermostats = getHeatingStatus();
 
-  for (const thermostat of thermostats) {
-    const obj = {
+  if (!last || last.home !== current.home) {
+    await Event.bulkCreate(thermostats.map(thermostat => ({
       deviceType: 'thermostat',
       deviceId: thermostat.id,
-      type: 'is_in_home_mode',
-    };
-
-    ['humidity', 'target', 'current', 'heating'].forEach((key) => {
-      obj[key] = thermostat[key];
-    });
-
-    Heating.create(obj);
+      start: new Date(),
+      type: 'home',
+      value: Number(current.home)
+    })));
   }
 });
 
-bus.on(events.NEST_HEATING_STATUS_UPDATE, (thermostat) => {
-  const { home } = getOccupancyStatus();
-  const obj = {
-    thermostatId: thermostat.id,
-    home
-  };
-
-  ['humidity', 'target', 'current', 'heating'].forEach((key) => {
-    obj[key] = thermostat[key];
-  });
-
-  Heating.create(obj);
+bus.on(events.NEST_HEATING_STATUS_UPDATE, async ({ last, current }) => {
+  await Event.bulkCreate(Object.keys(current).filter(key => !['name', 'id'].includes(key) && (!last || current[key] !== last[key])).map(key => {
+    return {
+      deviceType: 'thermostat',
+      deviceId: current.id,
+      start: new Date(),
+      type: key,
+      value: Number(current[key])
+    };
+  }));
 });
