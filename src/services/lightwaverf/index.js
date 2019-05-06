@@ -1,122 +1,70 @@
-import lightwaveRfClientFactory from './lib/client/src';
+import LightwaveRfClient from './lib/client';
 import config from '../../config';
 import bus, * as events from '../../bus';
+import { writeFileSync } from 'fs';
 
-const authenticatedClient = (async function() {
-  const client = await lightwaveRfClientFactory(config.lightwaverf.username, config.lightwaverf.password, {
-    timeout: config.lightwaverf.timeout
-  });
+const client = new LightwaveRfClient(config.lightwaverf.bearer, config.lightwaverf.refresh);
 
-  client.on('close', (reason) => {
-    (function tryReconnect(counter) {
-      setTimeout(() => {
-        console.error(`LWRF connection has closed... trying to reconnect for the ${counter} time`, reason);
+function findFeatureId(type, features) {
+  return features.find(x => x.type === type).featureId;
+}
 
-        client.reconnect().then(() => {
-          console.log('LWRF connection re-established');
-        }, () => {
-          console.error('LWRF connection could not be re-established... trying again in a bit...');
+function authenticate() {
+  client.authenticate().then(({ refreshToken, expiresIn }) => {
+    console.log(`Rotating refresh token from ${config.lightwaverf.refresh} to ${refreshToken}`);
 
-          tryReconnect(counter + 1);
-        });
-      }, 5000);
-    }(1));
-  });
+    config.lightwaverf.refresh = refreshToken;
+    writeFileSync(__dirname + '/../../config.json', JSON.stringify(config, null, 2));
 
-  client.on('error', (err) => {
-    console.error('LWRF connection error', err);
-  });
+    setTimeout(() => {
+      console.log('Time to re-authenticate against the LightwaveRF API...');
+      authenticate();
+    }, Math.max((expiresIn - 60) * 1000, 10000));
+  }).then(null, console.error);
+}
 
-  return client;
-}());
+authenticate();
 
 export async function setLightFeatureValue(featureId, value) {
-  const client = await authenticatedClient;
-
-  console.dir({ featureId, value });
-
-  await client.request('feature', 'write', {
-    featureId,
-    value
-  });
+  await client.write(featureId, value);
 }
 
 export async function getLightsAndStatus() {
-  const client = await authenticatedClient;
-  const rgId = config.lightwaverf.root_group_id;
-  const typesOfLight = config.lightwaverf.types_of_light;
-  const [
-    hierarchy,
-    group,
-  ] = await Promise.all([
-    client.request('group', 'hierarchy', {
-      groupId: rgId
-    }),
-
-    client.request('group', 'read', {
-      groupId: rgId,
-      features: 1,
-      devices: 1,
-      subgroups: true,
-      subgroupDepth: 10
-    })
-  ]);
-
-  function getFeatureForFeatureSet(featureSetId, type) {
-    return Object.values(group.features).find((feature) => {
-      return feature.groups.includes(featureSetId) && feature.attributes.type === type;
-    });
-  }
-
-  return await Promise.all(Object.values(group.devices).filter((device) => {
-    return typesOfLight.includes(device.productCode);
-  }).reduce((list, device) => {
-    for (const featureSetId of device.featureSetGroupIds) {
-      const name = hierarchy.featureSet.find(featureSet => featureSet.groupId === featureSetId).name;
-      const switchFeature = getFeatureForFeatureSet(featureSetId, 'switch');
-      const dimLevelFeature = getFeatureForFeatureSet(featureSetId, 'dimLevel');
-
-      list.push((async function () {
-        const [
-          switchStatus,
-          dimLevelStatus
-        ] = await Promise.all([
-          client.request('feature', 'read', {
-            featureId: switchFeature.featureId
-          }),
-
-          client.request('feature', 'read', {
-            featureId: dimLevelFeature.featureId
-          })
-        ]);
-
-        return {
-          id: name,
-          name,
-          switchFeatureId: switchFeature.featureId,
-          switchIsOn: switchStatus.value === 1,
-          dimLevelFeatureId: dimLevelFeature.featureId,
-          dimLevel: dimLevelStatus.value,
-          provider: 'lightwaverf'
-        };
-      }()));
+  const structure = await client.structure(config.lightwaverf.structure);
+  const lights = structure.devices.filter(device => device.cat === 'Lighting');
+  const featureValues = await client.read(lights.reduce((ar, { featureSets }) => {
+    for (const { features } of featureSets) {
+      ar.push(
+        findFeatureId('switch', features),
+        findFeatureId('dimLevel', features)
+      );
     }
 
-    return list;
+    return ar;
   }, []));
+
+  return lights.reduce((ar, { featureSets }) => {
+    for (const { name, features } of featureSets) {
+      ar.push({
+        id: name,
+        name,
+        switchFeatureId: findFeatureId('switch', features),
+        switchIsOn: featureValues[findFeatureId('switch', features)] === 1,
+        dimLevelFeatureId: findFeatureId('dimLevel', features),
+        dimLevel: featureValues[findFeatureId('dimLevel', features)],
+        provider: 'lightwaverf'
+      });
+    }
+
+    return ar;
+  }, []);
 }
 
 bus.on(events.LAST_USER_LEAVES, async () => {
   const devices = await getLightsAndStatus();
-  const client = await authenticatedClient;
   const onDevices = devices.filter(device => device.switchIsOn);
 
-  for (const device of onDevices) {
-    console.log(`Turning ${device.name} off, as no-one is at home, and it has been left on!`);
+  console.log(`Turning off ${onDevices.length} lights, as they have all been left on!`);
 
-    client.request('feature', 'write', {
-      featureId: device.switchFeatureId,
-      value: 0
-    });
-  }
+  await client.write(onDevices.map(({ switchFeatureId }) => ({ featureId: switchFeatureId, value: 0 })));
 });
