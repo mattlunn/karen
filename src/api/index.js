@@ -178,5 +178,10 @@ export default new ApolloServer({
         homeDetails
       })));
     })
-  })
+  }),
+  formatError(error) {
+    console.error(`${error.message}: ${error.extensions.exception.stacktrace.join('\n')}`);
+
+    return error;
+  }
 });
