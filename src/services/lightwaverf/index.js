@@ -1,7 +1,7 @@
 import LightwaveRfClient from './lib/client';
 import config from '../../config';
 import bus, * as events from '../../bus';
-import { writeFileSync } from 'fs';
+import { saveConfig } from '../../helpers/config';
 
 const client = new LightwaveRfClient(config.lightwaverf.bearer, config.lightwaverf.refresh);
 
@@ -11,10 +11,10 @@ function findFeatureId(type, features) {
 
 function authenticate() {
   client.authenticate().then(({ refreshToken, expiresIn }) => {
-    console.log(`Rotating refresh token from ${config.lightwaverf.refresh} to ${refreshToken}`);
+    console.log(`Rotating LightwaveRf refresh token from ${config.lightwaverf.refresh} to ${refreshToken}`);
 
     config.lightwaverf.refresh = refreshToken;
-    writeFileSync(__dirname + '/../../config.json', JSON.stringify(config, null, 2));
+    saveConfig();
 
     setTimeout(() => {
       console.log('Time to re-authenticate against the LightwaveRF API...');

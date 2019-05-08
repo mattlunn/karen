@@ -47,7 +47,9 @@ export default function (sequelize) {
         deviceId: id,
         deviceType: 'thermostat',
         type: 'heating'
-      }
+      },
+
+      order: ['start']
     });
 
     return data.map((row) => ({

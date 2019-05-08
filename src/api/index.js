@@ -1,6 +1,6 @@
 import { ApolloServer } from 'apollo-server-express';
 import * as db from '../models';
-import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, TimePeriod, lightFactory } from './models';
+import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, TimePeriod, lightFactory, History } from './models';
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
 import makeSynologyRequest from '../services/synology/instance'
@@ -33,6 +33,31 @@ const resolvers = {
 
     async getHeating(parent, args, context, info) {
       return new Heating(context);
+    },
+
+    async getHistory(parent, args, context, info) {
+      debugger;
+
+      const data = await db.Event.findAll({
+        where: {
+          deviceId: args.id,
+          type: args.type,
+          start: {
+            $gte: args.from,
+            lt: args.to
+          },
+          end: {
+            $gte: args.from,
+            lt: args.to
+          }
+        },
+
+        order: ['start']
+      });
+
+      console.log(data.length + ' rows to look at');
+
+      return new History(data, args);
     }
   },
 

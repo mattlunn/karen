@@ -7,6 +7,7 @@ import apiRoutes from './routes/api';
 import locationRoutes from './routes/location';
 import authenticationRoutes from './routes/authentication';
 import synologyRoutes from './routes/synology';
+import smartthingsRoutes from './routes/smartthings';
 import recordingRoutes from './routes/recording';
 import auth from './middleware/auth';
 import { Stay, Event } from './models';
@@ -27,6 +28,7 @@ require('./services/synology');
 require('./services/unifi');
 require('./services/lightwaverf');
 require('./services/tplink');
+require('./services/smartthings');
 
 const app = express();
 
@@ -46,6 +48,7 @@ app.use('/api', apiRoutes);
 app.use('/authentication', authenticationRoutes);
 app.use('/location', locationRoutes);
 app.use('/synology', synologyRoutes);
+app.use('/smartthings', smartthingsRoutes);
 app.use('/recording', auth, recordingRoutes);
 app.use('/', express.static(__dirname + '/static'));
 app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
