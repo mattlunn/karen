@@ -1,4 +1,4 @@
-import { Heating } from '../../models';
+import { Event } from '../../models';
 import { TimePeriod } from '.';
 
 export default class Thermostat {
@@ -36,7 +36,7 @@ export default class Thermostat {
   }
 
   async heatingHistory(args) {
-    const entries = await Heating.getHeatingHistoryForThermostat(this.thermostat.id, args.start, args.end);
+    const entries = await Event.getHeatingHistoryForThermostat(this.thermostat.id, args.start, args.end);
 
     return entries.map(entry => new TimePeriod(entry));
   }

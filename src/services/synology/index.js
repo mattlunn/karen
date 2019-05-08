@@ -53,10 +53,12 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
     include: [Recording],
 
     where: {
-      cameraId
+      deviceType: 'camera',
+      deviceId: cameraId,
+      type: 'motion'
     },
 
-    order: [['timestamp', 'DESC']]
+    order: [['start', 'DESC']]
   });
 
   let recordingDurationMs = 10000;
@@ -70,9 +72,10 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
     recordingDurationMs = moment(now).diff(recording.start, 'milliseconds');
   } else {
     event = await Event.create({
-      timestamp: now,
-      type: 'motion',
-      cameraId
+      start: now,
+      deviceType: 'camera',
+      deviceId: cameraId,
+      type: 'motion'
     });
 
     recording = Recording.build({
@@ -121,7 +124,7 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
 
       recordings.forEach((recording) => {
         promiseChain = promiseChain.then(() => {
-          return Stay.checkIfSomeoneHomeAt(recording.event.timestamp).then((isHome) => {
+          return Stay.checkIfSomeoneHomeAt(recording.event.start).then((isHome) => {
             if (isHome) {
               return s3.remove(recording.recording).then(() => {
                 return recording.destroy();

@@ -9,7 +9,7 @@ import authenticationRoutes from './routes/authentication';
 import synologyRoutes from './routes/synology';
 import recordingRoutes from './routes/recording';
 import auth from './middleware/auth';
-import { Stay, Heating } from './models';
+import { Stay, Event } from './models';
 import { setEta, getOccupancyStatus, getHeatingStatus } from './services/nest';
 import bodyParser from 'body-parser';
 import config from './config';
@@ -18,6 +18,7 @@ import nowAndSetInterval from './helpers/now-and-set-interval';
 import bus, * as events from './bus';
 import cookieParser from 'cookie-parser';
 import api from './api';
+import { enqueueWorkItem } from './queue';
 
 moment.tz.setDefault('Europe/London');
 
@@ -85,33 +86,48 @@ Object.keys(events).forEach((event) => {
   }
 });
 
-bus.on(events.NEST_OCCUPANCY_STATUS_CHANGE, (current) => {
-  const thermostats = getHeatingStatus();
+async function updateIfChanged(deviceId, type, value) {
+  const previousRecord = await Event.findOne({
+    where: {
+      deviceType: 'thermostat',
+      deviceId,
+      type,
+      end: null
+    },
 
-  for (const thermostat of thermostats) {
-    const obj = {
-      thermostatId: thermostat.id,
-      home: current.home
-    };
-
-    ['humidity', 'target', 'current', 'heating'].forEach((key) => {
-      obj[key] = thermostat[key];
-    });
-
-    Heating.create(obj);
-  }
-});
-
-bus.on(events.NEST_HEATING_STATUS_CHANGE, (thermostat) => {
-  const { home } = getOccupancyStatus();
-  const obj = {
-    thermostatId: thermostat.id,
-    home
-  };
-
-  ['humidity', 'target', 'current', 'heating'].forEach((key) => {
-    obj[key] = thermostat[key];
+    order: [['start', 'DESC']]
   });
 
-  Heating.create(obj);
+  if (previousRecord === null || previousRecord.value !== value) {
+    const now = Date.now();
+
+    await Event.create({
+      deviceType: 'thermostat',
+      start: now,
+      deviceId,
+      type,
+      value
+    });
+
+    if (previousRecord) {
+      previousRecord.end = now;
+      await previousRecord.save();
+    }
+  }
+}
+
+bus.on(events.NEST_OCCUPANCY_STATUS_UPDATE, async (current) => {
+  await enqueueWorkItem(async () => {
+    const thermostats = getHeatingStatus();
+
+    await Promise.all(thermostats.map(thermostat => updateIfChanged(thermostat.id, 'home', Number(current.home))));
+  });
+});
+
+bus.on(events.NEST_HEATING_STATUS_UPDATE, async (current) => {
+  await enqueueWorkItem(async () => {
+    const types = Object.keys(current).filter(key => !['name', 'id'].includes(key));
+
+    await Promise.all(types.map(type => updateIfChanged(current.id, type, Number(current[type]))));
+  });
 });

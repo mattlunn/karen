@@ -7,8 +7,6 @@ import moment from 'moment';
 const router = Router();
 
 router.post('/login', asyncWrapper(async (req, res) => {
-  debugger;
-
   const user = await User.findByCredentials(req.body.username, req.body.password);
 
   if (user) {
