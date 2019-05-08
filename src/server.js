@@ -18,6 +18,7 @@ import nowAndSetInterval from './helpers/now-and-set-interval';
 import bus, * as events from './bus';
 import cookieParser from 'cookie-parser';
 import api from './api';
+import { enqueueWorkItem } from './queue';
 
 moment.tz.setDefault('Europe/London');
 
@@ -85,28 +86,48 @@ Object.keys(events).forEach((event) => {
   }
 });
 
-bus.on(events.NEST_OCCUPANCY_STATUS_UPDATE, async ({ last, current }) => {
-  const thermostats = getHeatingStatus();
-
-  if (!last || last.home !== current.home) {
-    await Event.bulkCreate(thermostats.map(thermostat => ({
+async function updateIfChanged(deviceId, type, value) {
+  const previousRecord = await Event.findOne({
+    where: {
       deviceType: 'thermostat',
-      deviceId: thermostat.id,
-      start: new Date(),
-      type: 'home',
-      value: Number(current.home)
-    })));
+      deviceId,
+      type,
+      end: null
+    },
+
+    order: [['start', 'DESC']]
+  });
+
+  if (previousRecord === null || previousRecord.value !== value) {
+    const now = Date.now();
+
+    await Event.create({
+      deviceType: 'thermostat',
+      start: now,
+      deviceId,
+      type,
+      value
+    });
+
+    if (previousRecord) {
+      previousRecord.end = now;
+      await previousRecord.save();
+    }
   }
+}
+
+bus.on(events.NEST_OCCUPANCY_STATUS_UPDATE, async (current) => {
+  await enqueueWorkItem(async () => {
+    const thermostats = getHeatingStatus();
+
+    await Promise.all(thermostats.map(thermostat => updateIfChanged(thermostat.id, 'home', Number(current.home))));
+  });
 });
 
-bus.on(events.NEST_HEATING_STATUS_UPDATE, async ({ last, current }) => {
-  await Event.bulkCreate(Object.keys(current).filter(key => !['name', 'id'].includes(key) && (!last || current[key] !== last[key])).map(key => {
-    return {
-      deviceType: 'thermostat',
-      deviceId: current.id,
-      start: new Date(),
-      type: key,
-      value: Number(current[key])
-    };
-  }));
+bus.on(events.NEST_HEATING_STATUS_UPDATE, async (current) => {
+  await enqueueWorkItem(async () => {
+    const types = Object.keys(current).filter(key => !['name', 'id'].includes(key));
+
+    await Promise.all(types.map(type => updateIfChanged(current.id, type, Number(current[type]))));
+  });
 });

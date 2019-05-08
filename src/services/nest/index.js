@@ -16,45 +16,6 @@ const source = new EventSource('https://developer-api.nest.com', {
   }
 });
 
-function _getHeatingStatus(data) {
-  return data.structures[config.nest.structure_id].thermostats.map((id) => {
-    const thermostat = data.devices.thermostats[id];
-    let target;
-
-    switch (thermostat.hvac_mode) {
-      case 'heat':
-        target = thermostat.target_temperature_c;
-        break;
-      case 'eco':
-        target = thermostat.eco_temperature_low_c;
-        break;
-      case 'off':
-        target = null;
-        break;
-      default:
-        throw new Error(`"${thermostat.hvac_mode}" is not a recognised thermostat mode`);
-    }
-
-    return {
-      humidity: thermostat.humidity,
-      id: thermostat.device_id,
-      name: thermostat.name,
-      target: target,
-      current: thermostat.ambient_temperature_c,
-      heating: thermostat.hvac_state === 'heating'
-    };
-  });
-}
-
-function _getOccupancyStatus(data) {
-  const structure = data.structures[config.nest.structure_id];
-
-  return {
-    home: structure.away === 'home',
-    eta: new Date(structure.eta_begin)
-  };
-}
-
 function constructApiUrl(endpoint) {
   return `https://developer-api.nest.com/${endpoint}`;
 }
@@ -119,8 +80,44 @@ export async function setEta(id, etaStart, etaEnd) {
   return true;
 }
 
-export const getHeatingStatus = () => _getHeatingStatus(current);
-export const getOccupancyStatus = () => _getOccupancyStatus(current);
+export function getHeatingStatus() {
+  return current.structures[config.nest.structure_id].thermostats.map((id) => {
+    const thermostat = current.devices.thermostats[id];
+    let target;
+
+    switch (thermostat.hvac_mode) {
+      case 'heat':
+        target = thermostat.target_temperature_c;
+        break;
+      case 'eco':
+        target = thermostat.eco_temperature_low_c;
+        break;
+      case 'off':
+        target = null;
+        break;
+      default:
+        throw new Error(`"${thermostat.hvac_mode}" is not a recognised thermostat mode`);
+    }
+
+    return {
+      humidity: thermostat.humidity,
+      id: thermostat.device_id,
+      name: thermostat.name,
+      target: target,
+      current: thermostat.ambient_temperature_c,
+      heating: thermostat.hvac_state === 'heating'
+    };
+  });
+}
+
+export function getOccupancyStatus() {
+  const structure = current.structures[config.nest.structure_id];
+
+  return {
+    home: structure.away === 'home',
+    eta: new Date(structure.eta_begin)
+  };
+}
 
 bus.on(LAST_USER_LEAVES, () => {
   setAway(true).catch((error) => {
@@ -138,22 +135,13 @@ source.addEventListener('open', () => {
 });
 
 source.addEventListener('put', (data) => {
-  const last = current;
-  const lastHeatingStatus = last ? _getHeatingStatus(last) : [];
-
   current = JSON.parse(data.data).data;
 
   console.log('Received update fom Nest');
 
-  _getHeatingStatus(current).forEach((current) => {
-    bus.emit(NEST_HEATING_STATUS_UPDATE, {
-      last: lastHeatingStatus.find(last => last.id === current.id),
-      current
-    });
+  getHeatingStatus().forEach((current) => {
+    bus.emit(NEST_HEATING_STATUS_UPDATE, current);
   });
 
-  bus.emit(NEST_OCCUPANCY_STATUS_UPDATE, {
-    last: last ? _getOccupancyStatus(last) : null,
-    current: _getOccupancyStatus(current)
-  });
+  bus.emit(NEST_OCCUPANCY_STATUS_UPDATE, getOccupancyStatus());
 });
