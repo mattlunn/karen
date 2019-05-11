@@ -3,6 +3,7 @@ import { saveConfig } from '../../helpers/config';
 import fetch from 'node-fetch';
 import { stringify } from 'querystring';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import SmartThingsApiClient from './lib/client';
 
 // {"access_token":"583a45c7-d64c-45b1-a70b-b7de4de5c26d","token_type":"bearer","refresh_token":"f23a5350-16b4-4e1a-b39c-c05898856f3d","expires_in":86399,"scope":"r:locations:* x:devices:* i:deviceprofiles r:devices:* w:devices:*","installed_app_id":"14082a1f-8070-4796-be37-14939e34f938"}
 async function refreshTokens() {
@@ -37,5 +38,24 @@ nowAndSetInterval(async () => {
   config.smartthings.refresh_token = refresh_token;
   saveConfig();
 
+  const client = new SmartThingsApiClient(access_token);
+  const { items: installedApps } = await client.getInstalledApps();
+  const installedAppId = installedApps.find(app => app.appId === config.smartthings.app_id).installedAppId;
 
+  console.log(`SmartThings Installed App Id is ${installedAppId}`);
+
+  const [
+    { items: devices },
+    { items: subscriptions }
+  ] = await Promise.all([
+    client.getDevices(),
+    client.getSubscriptions(installedAppId)
+  ]);
+
+  await Promise.all(devices.filter(device => !subscriptions.some(subscription => subscription.sourceType === "DEVICE" && subscription.device.deviceId === device.deviceId)).map(device => client.createSubscription(installedAppId, {
+    sourceType: 'DEVICE',
+    device: {
+      deviceId: device.deviceId
+    }
+  })));
 }, Math.min(config.smartthings.sync_interval_ms, 86400000));
