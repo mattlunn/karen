@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import Timeline from './components/pages/timeline';
 import Home from './components/pages/home';
 import Login from './components/pages/login';
+import History from './components/pages/history';
 import thunk from 'redux-thunk';
 import { Route } from 'react-router';
 import { Switch } from 'react-router-dom';
@@ -61,6 +62,7 @@ window.onload = () => {
             <Route exact path="/" component={Home}/>
             <Route exact path="/login" component={Login}/>
             <Route exact path="/timeline" component={Timeline}/>
+            <Route exact path="/history" component={History}/>
           </Switch>
         </ConnectedRouter>
       </ApolloProvider>

@@ -15,6 +15,9 @@ export default class Header extends Component {
             <Link to="/timeline" className="header__nav-item-link">Timeline</Link>
           </li>
           <li className="header__nav-item">
+            <Link to="/history" className="header__nav-item-link">History</Link>
+          </li>
+          <li className="header__nav-item">
             <form action="/authentication/logout" method="post" className="header__nav-item-form">
               <input type="submit" value="Logout" className="header__nav-item-button" />
             </form>

@@ -40,6 +40,20 @@ export default gql`
     end: Float!
   }
 
+  type Aggregate {
+    start: Float
+    end: Float
+    min: Float
+    max: Float
+    average: Float,
+    duration: Float
+  }
+
+  type History {
+    month: [Aggregate],
+    day: [Aggregate]
+  }
+
   type Thermostat {
     id: ID!,
     name: String,
@@ -61,7 +75,8 @@ export default gql`
     getUsers: [User]
     getSecurityStatus: Security
     getLighting: Lighting,
-    getHeating: Heating
+    getHeating: Heating,
+    getHistory(id: ID!, type: String, from: Float!, to: Float!): History
   }
 
   type Mutation {
