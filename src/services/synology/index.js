@@ -1,4 +1,4 @@
-import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, MOTION_DETECTED } from '../../bus';
+import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, EVENT } from '../../bus';
 import moment from 'moment';
 import config from '../../config';
 import { Event, Recording, Stay } from '../../models';
@@ -31,7 +31,7 @@ bus.on(FIRST_USER_HOME, async () => {
   }
 });
 
-bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
+export async function onMotionDetected(camera, now) {
   Stay.checkIfSomeoneHomeAt(now).then(isSomeoneAtHome => {
     if (!isSomeoneAtHome) {
       sendNotification('Motion detected at ' + moment(now).format('HH:mm:ss'), 'https://karen.mattlunn.me.uk/timeline');
@@ -78,6 +78,8 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
       type: 'motion'
     });
 
+    bus.emit(EVENT, event);
+
     recording = Recording.build({
       eventId: event.id,
       start: expectedStartOfRecording.toDate(),
@@ -106,7 +108,7 @@ bus.on(MOTION_DETECTED, async ({ camera, time: now }) => {
 
     await recording.save();
   }
-});
+}
 
 (function removeOldUnarmedRecordings() {
   if (typeof config.days_to_keep_recordings_while_home === 'number') {

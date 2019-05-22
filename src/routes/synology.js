@@ -1,16 +1,12 @@
 import express from 'express';
 import asyncWrapper from "../helpers/express-async-wrapper";
 import moment from 'moment';
-import bus, { MOTION_DETECTED } from '../bus';
+import { onMotionDetected } from '../services/synology';
 
 const router = express.Router();
 
 router.get('/motion', asyncWrapper(async (req, res) => {
-  bus.emit(MOTION_DETECTED, {
-    camera: req.query.camera,
-    time: moment()
-  });
-
+  onMotionDetected(req.query.camera, moment());
   res.sendStatus(200);
 }));
 
