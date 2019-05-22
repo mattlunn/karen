@@ -10,7 +10,7 @@ import synologyRoutes from './routes/synology';
 import smartthingsRoutes from './routes/smartthings';
 import recordingRoutes from './routes/recording';
 import auth from './middleware/auth';
-import { Stay, Event } from './models';
+import { Stay } from './models';
 import { setEta } from './services/nest';
 import bodyParser from 'body-parser';
 import config from './config';
@@ -28,6 +28,8 @@ require('./services/unifi');
 require('./services/lightwaverf');
 require('./services/tplink');
 require('./services/smartthings');
+
+require('./ifttt');
 
 const app = express();
 
