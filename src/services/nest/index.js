@@ -1,11 +1,11 @@
 import request from 'request-promise-native';
 import config from '../../config';
 import EventSource from 'eventsource';
+import { Event } from '../../models';
+import { enqueueWorkItem } from '../../queue';
 
 import bus, {
-  LAST_USER_LEAVES,
-  NEST_HEATING_STATUS_UPDATE,
-  NEST_OCCUPANCY_STATUS_UPDATE
+  LAST_USER_LEAVES
 } from '../../bus';
 
 let current = null;
@@ -138,10 +138,48 @@ source.addEventListener('put', (data) => {
   current = JSON.parse(data.data).data;
 
   console.log('Received update fom Nest');
-
-  getHeatingStatus().forEach((current) => {
-    bus.emit(NEST_HEATING_STATUS_UPDATE, current);
-  });
-
-  bus.emit(NEST_OCCUPANCY_STATUS_UPDATE, getOccupancyStatus());
+  processNestUpdate();
 });
+
+function processNestUpdate() {
+  async function updateIfChanged(deviceId, type, value) {
+    const previousRecord = await Event.findOne({
+      where: {
+        deviceType: 'thermostat',
+        deviceId,
+        type,
+        end: null
+      },
+
+      order: [['start', 'DESC']]
+    });
+
+    if (previousRecord === null || previousRecord.value !== value) {
+      const now = Date.now();
+
+      await Event.create({
+        deviceType: 'thermostat',
+        start: now,
+        deviceId,
+        type,
+        value
+      });
+
+      if (previousRecord) {
+        previousRecord.end = now;
+        await previousRecord.save();
+      }
+    }
+  }
+
+  enqueueWorkItem(async () => {
+    const { home } = getOccupancyStatus();
+
+    for (const thermostat of getHeatingStatus()) {
+      const types = Object.keys(thermostat).filter(key => !['name', 'id'].includes(key));
+
+      await updateIfChanged(thermostat.id, 'home', Number(home));
+      await Promise.all(types.map(type => updateIfChanged(thermostat.id, type, Number(thermostat[type]))));
+    }
+  });
+}
