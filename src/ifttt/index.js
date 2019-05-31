@@ -1,9 +1,9 @@
-import bus, { EVENT } from '../bus';
+import bus, { EVENT_START } from '../bus';
 import config from '../config';
 import * as handlers from './tt';
 import { camelCase } from 'change-case';
 
-bus.on(EVENT, async (event) => {
+bus.on(EVENT_START, async (event) => {
   for (const { ift, tt } of config.ifttt.events) {
     if (Object.keys(ift).every((t) => event[camelCase(t)] === ift[t])) {
       for (const { action, params } of tt) {

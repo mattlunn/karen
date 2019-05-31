@@ -8,8 +8,6 @@ import moment from 'moment';
 // - "sunrise + 1h30m 27s"
 // - "00:00"
 
-const turnOffs = new Map();
-
 function normalizeDuration(offset) {
   const duration = moment.duration();
 
@@ -54,45 +52,24 @@ async function switchLight(light, value) {
   }
 }
 
-export default async function (event, { from, to, duration, lightId }) {
-  // Motion has subsided. We only process turning on lights when motion starts.
-  if (event.end) {
-    return;
-  }
+function isWithinTime(betweens) {
+  return betweens.some(({ from, until }) => normalizeTime(from).isBefore(Date.now()) && normalizeTime(until).isAfter(Date.now()));
+}
 
+export default async function (event, { between, lightId }) {
   const lights = await Promise.all([
     getLightsAndStatusFromLightwave(),
     getLightsAndStatusFromTpLink()
   ]);
 
-  console.dir(lights, { depth: null });
-
   const light = lights.flat().find(x => x.id === lightId);
 
-  if ((!from || normalizeTime(from).isBefore(Date.now())) && (!to || normalizeTime(to).isAfter(Date.now()))) {
-    if (!light.isOn && !light.switchIsOn) {
-      console.log(`Switching light on, as it isn't currently on`);
-      await switchLight(light, 1);
-    } else {
-      console.log(`Not switching light on, as it is currently on`);
+  if (isWithinTime(between)) {
+    const isOn = light.isOn || light.switchIsOn;
+    const shouldBeOn = !event.end;
+
+    if (shouldBeOn !== isOn) {
+      await switchLight(light, +shouldBeOn);
     }
-
-    if (duration) {
-      const existingTimeout = turnOffs.get(lightId);
-
-      if (existingTimeout) {
-        console.log(`Clearing existing timeout to switch the light off`);
-        clearTimeout(existingTimeout);
-      }
-
-      console.log(`Setting a timeout to switch the light off`);
-
-      turnOffs.set(lightId, setTimeout(async () => {
-        console.log(`Switching the light off`);
-        await switchLight(light, 0);
-      }, normalizeDuration(duration).asMilliseconds()));
-    }
-  } else {
-    console.log(`Not executing IFTTT event, as we're outside the window`);
   }
 }

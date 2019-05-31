@@ -6,8 +6,12 @@ import s3 from '../s3';
 import makeSynologyRequest from './instance';
 import { sendNotification } from '../../helpers/notification';
 import uuidv4 from 'uuid/v4';
+import sleep from '../../helpers/sleep';
 
 export { makeSynologyRequest };
+
+const INACTIVITY_WINDOW_MS = 10000;
+const activeCameraEvents = new Map();
 
 function setHomeMode(on) {
   return makeSynologyRequest('SYNO.SurveillanceStation.HomeMode', 'Switch', {
@@ -31,83 +35,122 @@ bus.on(FIRST_USER_HOME, async () => {
   }
 });
 
-export async function onMotionDetected(camera, now) {
-  Stay.checkIfSomeoneHomeAt(now).then(isSomeoneAtHome => {
-    if (!isSomeoneAtHome) {
-      sendNotification('Motion detected at ' + moment(now).format('HH:mm:ss'), 'https://karen.mattlunn.me.uk/timeline');
-    }
-  });
+// Have a map of camera ids -> timeouts which make the last motion as ended.
+// when receiving new motion, clear that timeout, and set a new one.
 
-  const recordings = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'List', {
-    fromTime: moment(now).startOf('day').format('X'),
-    toTime: now.format('X')
-  }, true, 5);
-  const cameraRecordings = recordings.data.events.filter((recording) => recording.camera_name === camera);
+// On receiving motion, try find active camera event via DB query. If one exists,
+// then restart timeout. If one doesn't exist, create one.
 
-  if (cameraRecordings.length === 0) {
-    throw new Error('Camera does not exist');
-  }
+// Add an IFTTT hook which downloads footage from start -> end, +- 5 seconds.
+// Add an IFTTT hook which notifies on motion
 
-  const cameraId = cameraRecordings[0].cameraId;
-  const latestCameraEvent = await Event.findOne({
-    include: [Recording],
-
+function createEvent(cameraId, now) {
+  let activeCameraEvent = await Event.findOne({
     where: {
       deviceType: 'camera',
       deviceId: cameraId,
-      type: 'motion'
+      type: 'motion',
+      end: null
     },
 
     order: [['start', 'DESC']]
   });
 
-  let recordingDurationMs = 10000;
-  let expectedStartOfRecording = moment(now).subtract(recordingDurationMs, 'milliseconds');
-  let recording;
-  let event;
+  clearTimeout(activeCameraEvents.get(cameraId));
 
-  if (latestCameraEvent && latestCameraEvent.recording && latestCameraEvent.recording.end > expectedStartOfRecording) {
-    recording = latestCameraEvent.recording;
-    event = latestCameraEvent;
-    recordingDurationMs = moment(now).diff(recording.start, 'milliseconds');
-  } else {
-    event = await Event.create({
+  if (activeCameraEvent) {
+    const cutoffForExtension = moment(now).subtract(INACTIVITY_WINDOW_MS, 'ms');
+    const canExtendActiveCameraEvent = cutoffForExtension.isBefore(activeCameraEvent.start);
+
+    if (!canExtendActiveCameraEvent) {
+      activeCameraEvent.end = now;
+      await activeCameraEvent.save();
+
+      activeCameraEvent = null;
+    }
+  }
+
+  if (!activeCameraEvent) {
+    activeCameraEvent = await Event.create({
       start: now,
       deviceType: 'camera',
       deviceId: cameraId,
       type: 'motion'
     });
+  }
 
-    bus.emit(EVENT, event);
+  activeCameraEvents.set(cameraId, setTimeout(async () => {
+    activeCameraEvent.end = Date.now();
 
-    recording = Recording.build({
+    await activeCameraEvent.save();
+  }, INACTIVITY_WINDOW_MS));
+
+  return activeCameraEvent;
+}
+
+async function captureRecording(event) {
+  const existingRecording = await event.getRecording();
+  const expectedStartOfRecording = moment(event.start).subtract(2, 's');
+  const expectedEndOfRecording = moment(event.end || event.start).add(7, 's');
+  let attempts = 10;
+  let cameraRecording;
+
+  do {
+    await sleep(2000);
+
+    console.log(`Trying to load recording showing ${expectedStartOfRecording} - ${expectedEndOfRecording}, with ${attempts} remaining`);
+
+    const synologyRecordings = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'List', {
+      fromTime: moment(now).startOf('day').format('X'),
+      toTime: now.format('X')
+    }, true, 5);
+
+    cameraRecording = synologyRecordings.data.events.find((recording) => {
+      return String(recording.cameraId) === event.deviceId
+        && moment.unix(cameraRecording.startTime).isBefore(recording.start)
+        && moment.unix(cameraRecording.stopTime).isAfter(recording.start);
+    });
+  } while (!cameraRecording && --attempts);
+
+  if (!cameraRecording) {
+    console.error(`No recording could be found covering ${now} after multiple attempts`);
+  } else {
+    const recordingToSave = existingRecording || Recording.build({
       eventId: event.id,
       start: expectedStartOfRecording.toDate(),
       recording: uuidv4()
     });
-  }
 
-  const cameraRecording = cameraRecordings.find((cameraRecording) => {
-    return moment.unix(cameraRecording.startTime).isBefore(recording.start)
-      && moment.unix(cameraRecording.stopTime).isAfter(recording.start);
-  });
-
-  if (cameraRecording === undefined) {
-    console.error('No recording could be found covering ' + now);
-  } else {
     const video = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'Download', {
       id: cameraRecording.id,
-      offsetTimeMs: (moment(recording.start).format('X') - cameraRecording.startTime) * 1000,
-      playTimeMs: recordingDurationMs
+      offsetTimeMs: (moment(recordingToSave.start).format('X') - cameraRecording.startTime) * 1000,
+      playTimeMs: expectedEndOfRecording.diff(expectedEndOfRecording)
     }, false);
 
-    await s3.store(recording.recording, video);
+    await s3.store(recordingToSave.recording, video);
 
-    recording.size = video.length;
-    recording.end = now.toDate();
+    recordingToSave.size = video.length;
+    recordingToSave.end = now.toDate();
 
-    await recording.save();
+    await recordingToSave.save();
   }
+}
+
+export async function maybeDispatchNotification(event, now) {
+  if (now.isSame(event.start)) {
+    const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(now)
+
+    if (!isSomeoneAtHome) {
+      sendNotification('Motion detected at ' + moment(now).format('HH:mm:ss'), 'https://karen.mattlunn.me.uk/timeline');
+    }
+  }
+}
+
+export async function onMotionDetected(cameraId, now) {
+  const event = await createEvent(cameraId, now);
+
+  await maybeDispatchNotification(event, now);
+  await captureRecording(event);
 }
 
 (function removeOldUnarmedRecordings() {

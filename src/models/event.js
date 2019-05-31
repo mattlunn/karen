@@ -1,4 +1,5 @@
 import Sequelize from 'sequelize';
+import bus, { EVENT_START, EVENT_END } from '../bus';
 
 export default function (sequelize) {
   const event = sequelize.define('event', {
@@ -57,6 +58,18 @@ export default function (sequelize) {
       end: Math.min(row.end, end)
     }));
   };
+
+  event.addHook('afterCreate',  (event) => {
+    console.log('afterCreate called on Event');
+
+    bus.emit(EVENT_START, event);
+  });
+
+  event.addHook('afterSave',  (event) => {
+    console.log('afterSave called on Event');
+
+    bus.emit(EVENT_END, event);
+  });
 
   return event;
 };
