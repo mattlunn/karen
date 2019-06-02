@@ -40,8 +40,11 @@ authenticate().then(() => Device.registerProvider('lightwaverf', {
 
   async getProperty(device, key) {
     switch (key) {
-      case 'on':
-        return !(await device.getLatestEvent('on')).end;
+      case 'on': {
+        const latestEvent = await device.getLatestEvent('on');
+
+        return latestEvent && !latestEvent.end;
+      }
       default:
         throw new Error(`"${key}" is not a recognised property for LightwaveRf`);
     }
@@ -105,12 +108,3 @@ export async function getLightsAndStatus() {
     return ar;
   }, []);
 }
-
-bus.on(events.LAST_USER_LEAVES, async () => {
-  const devices = await getLightsAndStatus();
-  const onDevices = devices.filter(device => device.switchIsOn);
-
-  console.log(`Turning off ${onDevices.length} lights, as they have all been left on!`);
-
-  await client.write(onDevices.map(({ switchFeatureId }) => ({ featureId: switchFeatureId, value: 0 })));
-});

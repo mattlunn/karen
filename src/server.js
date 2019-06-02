@@ -93,3 +93,15 @@ Object.keys(events).forEach((event) => {
     });
   }
 });
+
+bus.on(events.LAST_USER_LEAVES, async () => {
+  const lights = await Device.findByType('light');
+
+  for (const light of lights) {
+    if (await light.getProperty('on')) {
+      console.log(`Turning ${light.name} off, as no-one is at home, and it has been left on!`);
+
+      await light.setProperty('on', false);
+    }
+  }
+});

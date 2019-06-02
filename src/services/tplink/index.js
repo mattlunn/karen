@@ -60,17 +60,6 @@ export async function getLightsAndStatus() {
   }, []))).filter(x => x);
 }
 
-bus.on(events.LAST_USER_LEAVES, async () => {
-  const devices = await getLightsAndStatus();
-  const onDevices = devices.filter(device => device.switchIsOn);
-
-  for (const device of onDevices) {
-    console.log(`Turning ${device.name} off, as no-one is at home, and it has been left on!`);
-
-    turnLightOnOrOff(device.switchFeatureId, false);
-  }
-});
-
 Device.registerProvider('tplink', {
   async setProperty(device, key, value) {
     switch (key) {

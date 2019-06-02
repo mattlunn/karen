@@ -42,34 +42,48 @@ export default function (sequelize) {
         return this._metaParsed;
       }
     }
-  }, {
-    classMethods: {
-      setProperty(key, value) {
-        return device._providers.get(this.provider).setProperty(this, key, value);
-      },
-
-      getProperty(key) {
-        return device._providers.get(this.provider).getProperty(this, key);
-      },
-
-      async getLatestEvent(type) {
-        return (await this.getEvents({
-          where: {
-            type
-          },
-
-          limit: 1,
-          order: [['start', 'DESC']]
-        }))[0] || null;
-      }
-    }
   });
+
+  device.prototype.setProperty = function (key, value) {
+    return device._providers.get(this.provider).setProperty(this, key, value);
+  };
+
+  device.prototype.getProperty = function (key) {
+    return device._providers.get(this.provider).getProperty(this, key);
+  };
+
+  device.prototype.getLatestEvent = async function (type) {
+    return (await this.getEvents({
+      where: {
+        type
+      },
+
+      limit: 1,
+      order: [['start', 'DESC']]
+    }))[0] || null;
+  };
 
   device.findByProviderId = function (provider, id) {
     return this.findOne({
       where: {
         provider,
         providerId: id
+      }
+    });
+  };
+
+  device.findByProvider = function (provider) {
+    return this.findAll({
+      where: {
+        provider
+      }
+    });
+  };
+
+  device.findByType = function (type) {
+    return this.findAll({
+      where: {
+        type
       }
     });
   };
