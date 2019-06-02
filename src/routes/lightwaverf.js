@@ -33,11 +33,11 @@ router.post('/event', asyncWrapper(async (req, res) => {
 
   const lights = await Device.findByProvider('lightwaverf');
   const light = lights.find(x => x.meta.switchFeatureId === req.body.triggerEvent.id);
-  const activeEvent = await light.getLatestEvent('on');
+  const lastEvent = await light.getLatestEvent('on');
   const isOn = req.body.payload.value === 1;
 
   if (isOn) {
-    if (activeEvent) {
+    if (lastEvent && !lastEvent.end) {
       console.error(`"${light.id}" has been turned on, but is already turned on...`);
     } else {
       await Event.create({
@@ -49,11 +49,11 @@ router.post('/event', asyncWrapper(async (req, res) => {
       });
     }
   } else {
-    if (!activeEvent) {
+    if (!lastEvent || lastEvent.end) {
       console.error(`"${light.id}" has been turned off, but has no active event...`);
     } else {
-      activeEvent.end = new Date(req.body.payload.time);
-      await activeEvent.save();
+      lastEvent.end = new Date(req.body.payload.time);
+      await lastEvent.save();
     }
   }
 

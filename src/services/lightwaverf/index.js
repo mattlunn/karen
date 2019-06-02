@@ -1,6 +1,5 @@
 import LightwaveRfClient from './lib/client';
 import config from '../../config';
-import bus, * as events from '../../bus';
 import { saveConfig } from '../../helpers/config';
 import { Device } from '../../models';
 
@@ -43,7 +42,7 @@ authenticate().then(() => Device.registerProvider('lightwaverf', {
       case 'on': {
         const latestEvent = await device.getLatestEvent('on');
 
-        return latestEvent && !latestEvent.end;
+        return !!(latestEvent && !latestEvent.end);
       }
       default:
         throw new Error(`"${key}" is not a recognised property for LightwaveRf`);
@@ -72,39 +71,3 @@ authenticate().then(() => Device.registerProvider('lightwaverf', {
     }
   }
 }));
-
-export async function setLightFeatureValue(featureId, value) {
-  await client.write(featureId, value);
-}
-
-// TODO: Delete
-export async function getLightsAndStatus() {
-  const structure = await client.structure(config.lightwaverf.structure);
-  const lights = structure.devices.filter(device => device.cat === 'Lighting');
-  const featureValues = await client.read(lights.reduce((ar, { featureSets }) => {
-    for (const { features } of featureSets) {
-      ar.push(
-        findFeatureId('switch', features),
-        findFeatureId('dimLevel', features)
-      );
-    }
-
-    return ar;
-  }, []));
-
-  return lights.reduce((ar, { featureSets }) => {
-    for (const { name, features } of featureSets) {
-      ar.push({
-        id: name,
-        name,
-        switchFeatureId: findFeatureId('switch', features),
-        switchIsOn: featureValues[findFeatureId('switch', features)] === 1,
-        dimLevelFeatureId: findFeatureId('dimLevel', features),
-        dimLevel: featureValues[findFeatureId('dimLevel', features)],
-        provider: 'lightwaverf'
-      });
-    }
-
-    return ar;
-  }, []);
-}

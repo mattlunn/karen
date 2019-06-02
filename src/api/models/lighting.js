@@ -3,7 +3,7 @@ export default class Lighting {
     this.context = context;
   }
 
-  lights() {
+  async lights() {
     return this.context.lights.load(this.context);
   }
 }
