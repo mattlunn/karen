@@ -52,11 +52,7 @@ export async function getLightsAndStatus() {
           id: device.alias,
           provider: 'tplink'
         };
-      }()).catch((err) => {
-        console.error(err);
-
-        return null;
-      }));
+      }()).catch((err) => null));
     }
 
     return list;

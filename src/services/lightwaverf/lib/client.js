@@ -37,9 +37,9 @@ export default class LightwaveRfClient {
     }
   }
 
-  async _request(url, body) {
+  async request(url, body, method) {
     const response = await fetch(`https://publicapi.lightwaverf.com/v1/${url.startsWith('/') ? url.slice(1) : url}`, {
-      method: body ? 'POST' : 'GET',
+      method: method || (body ? 'POST' : 'GET'),
       body: body && JSON.stringify(body),
       headers: {
         'Content-Type': 'application/json',
@@ -55,17 +55,17 @@ export default class LightwaveRfClient {
   }
 
   structures() {
-    return this._request('/structures');
+    return this.request('/structures');
   }
 
   structure(id) {
-    return this._request(`/structure/${id}`);
+    return this.request(`/structure/${id}`);
   }
 
   read(features) {
     const featuresArray = Array.isArray(features) ? features : [features];
 
-    return this._request(`/features/read`, {
+    return this.request(`/features/read`, {
       features: featuresArray.map(featureId => ({ featureId }))
     });
   }
@@ -76,7 +76,7 @@ export default class LightwaveRfClient {
       value
     }];
 
-    return this._request(`/features/write`, {
+    return this.request(`/features/write`, {
       features: featuresArray
     });
   }

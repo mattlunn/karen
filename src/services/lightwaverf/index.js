@@ -3,7 +3,7 @@ import config from '../../config';
 import bus, * as events from '../../bus';
 import { saveConfig } from '../../helpers/config';
 
-const client = new LightwaveRfClient(config.lightwaverf.bearer, config.lightwaverf.refresh);
+export const client = new LightwaveRfClient(config.lightwaverf.bearer, config.lightwaverf.refresh);
 
 function findFeatureId(type, features) {
   return features.find(x => x.type === type).featureId;
