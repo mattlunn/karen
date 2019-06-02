@@ -1,6 +1,6 @@
 import express from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
-import { User, Event, Recording, Stay } from '../models';
+import { User, Event, Recording, Stay, Device } from '../models';
 import { makeSynologyRequest } from '../services/synology';
 import moment from 'moment';
 import s3 from '../services/s3';
@@ -19,6 +19,12 @@ router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
 router.get('/timeline', asyncWrapper(async (req, res) => {
   const since = req.query.after || new Date();
   const limit = 100;
+  const devices = (await Device.findAll()).reduce((map, curr) => {
+    map.set(curr.id, curr);
+
+    return map;
+  }, new Map());
+
   const events = await Promise.all([
     Event.findAll({
       include: [
@@ -105,7 +111,7 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
         const ret = [{
           id: `${event.id}-on`,
           timestamp: event.start,
-          device: event.deviceId,
+          device: devices.get(+event.deviceId).name,
           type: 'light_on'
         }];
 
@@ -113,7 +119,7 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
           ret.push({
             id: `${event.id}-off`,
             timestamp: event.end,
-            device: event.deviceId,
+            device: devices.get(+event.deviceId).name,
             duration: event.end - event.start,
             type: 'light_off'
           });
