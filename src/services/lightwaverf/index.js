@@ -10,8 +10,12 @@ function findFeatureId(type, features) {
 }
 
 function authenticate() {
-  client.authenticate().then(({ refreshToken, expiresIn }) => {
+  client.authenticate().then(({ accessToken, refreshToken, expiresIn }) => {
     console.log(`Rotating LightwaveRf refresh token from ${config.lightwaverf.refresh} to ${refreshToken}`);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`LightwaveRf access token is ${accessToken}`);
+    }
 
     config.lightwaverf.refresh = refreshToken;
     saveConfig();

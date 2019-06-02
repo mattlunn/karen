@@ -59,16 +59,9 @@ export default function (sequelize) {
     }));
   };
 
-  event.addHook('afterCreate',  (event) => {
-    console.log('afterCreate called on Event');
-
-    bus.emit(EVENT_START, event);
-  });
-
   event.addHook('afterSave',  (event) => {
-    console.log('afterSave called on Event');
-
-    bus.emit(EVENT_END, event);
+    bus.emit(event.end ? EVENT_END : EVENT_START, event);
+    console.log(`${event.end ? EVENT_END : EVENT_START} called on Event ${event.id}`);
   });
 
   return event;
