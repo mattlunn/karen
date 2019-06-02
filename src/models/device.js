@@ -63,6 +63,14 @@ export default function (sequelize) {
     }))[0] || null;
   };
 
+  device.findByName = function (name) {
+    return this.findOne({
+      where: {
+        name
+      }
+    });
+  };
+
   device.findByProviderId = function (provider, id) {
     return this.findOne({
       where: {
