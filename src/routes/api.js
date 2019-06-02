@@ -88,7 +88,40 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
           type: 'departure'
         };
       });
-    })
+    }),
+
+    Event.findAll({
+      order: [['start', 'DESC']],
+      where: {
+        start: {
+          $lt: since
+        },
+        deviceType: 'light',
+        type: 'on'
+      },
+      limit
+    }).then((events) => {
+      return events.map((event) => {
+        const ret = [{
+          id: `${event.id}-on`,
+          timestamp: event.start,
+          device: event.deviceId,
+          type: 'light_on'
+        }];
+
+        if (event.end) {
+          ret.push({
+            id: `${event.id}-off`,
+            timestamp: event.end,
+            device: event.deviceId,
+            duration: event.end - event.start,
+            type: 'light_off'
+          });
+        }
+
+        return ret;
+      }).flat();
+    }),
   ]);
 
   const allEvents = [].concat(...events);

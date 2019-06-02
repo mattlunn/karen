@@ -12,6 +12,7 @@ import Event from '../event';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
+import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
 
 function mapStateToProps(state) {
   return {
@@ -106,6 +107,22 @@ export default class Timeline extends Component {
             title={event.user + ' arrived home'}
           />
         );
+        case 'light_on':
+          return (
+            <Event
+              timestamp={event.timestamp}
+              icon={faLightbulb}
+              title={`The "${event.device}" light was switched on`}
+            />
+          );
+        case 'light_off':
+          return (
+            <Event
+              timestamp={event.timestamp}
+              icon={faLightbulb}
+              title={`The "${event.device}" light was switched off after being on for ${Math.ceil(event.duration / 1000 / 60)} minutes`}
+            />
+          );
     }
   }
 
