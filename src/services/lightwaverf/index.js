@@ -2,6 +2,7 @@ import LightwaveRfClient from './lib/client';
 import config from '../../config';
 import bus, * as events from '../../bus';
 import { saveConfig } from '../../helpers/config';
+import { Device } from '../../models';
 
 export const client = new LightwaveRfClient(config.lightwaverf.bearer, config.lightwaverf.refresh);
 
@@ -10,7 +11,7 @@ function findFeatureId(type, features) {
 }
 
 function authenticate() {
-  client.authenticate().then(({ accessToken, refreshToken, expiresIn }) => {
+  return client.authenticate().then(({ accessToken, refreshToken, expiresIn }) => {
     console.log(`Rotating LightwaveRf refresh token from ${config.lightwaverf.refresh} to ${refreshToken}`);
 
     if (process.env.NODE_ENV === 'development') {
@@ -27,12 +28,53 @@ function authenticate() {
   }).then(null, console.error);
 }
 
-authenticate();
+authenticate().then(() => Device.registerProvider('lightwaverf', {
+  setProperty(device, key, value) {
+    switch (key) {
+      case 'on':
+        return client.write(device.meta.switchFeatureId, +value);
+      default:
+        throw new Error(`"${key}" is not a recognised property for LightwaveRf`);
+    }
+  },
+
+  async getProperty(device, key) {
+    switch (key) {
+      case 'on':
+        return !(await device.getLatestEvent('on')).end;
+      default:
+        throw new Error(`"${key}" is not a recognised property for LightwaveRf`);
+    }
+  },
+
+  async synchronize() {
+    const structure = await client.structure(config.lightwaverf.structure);
+    const lights = structure.devices.filter(device => device.cat === 'Lighting').map(device => device.featureSets).flat();
+
+    for (const light of lights) {
+      let device = await Device.findByProviderId('lightwaverf', light.featureSetId);
+
+      if (device === null) {
+        device = Device.build({
+          provider: 'lightwaverf',
+          providerId: light.featureSetId
+        });
+      }
+
+      device.type = 'light';
+      device.name = light.name;
+      device.meta.switchFeatureId = findFeatureId('switch', light.features);
+
+      await device.save();
+    }
+  }
+}));
 
 export async function setLightFeatureValue(featureId, value) {
   await client.write(featureId, value);
 }
 
+// TODO: Delete
 export async function getLightsAndStatus() {
   const structure = await client.structure(config.lightwaverf.structure);
   const lights = structure.devices.filter(device => device.cat === 'Lighting');

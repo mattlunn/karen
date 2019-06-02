@@ -1,13 +1,14 @@
 import { login } from 'tplink-cloud-api';
+import { Device } from '../../models';
 import config from '../../config';
 import bus, * as events from '../../bus';
 
 function getHandlerForDevice(client, device) {
-  switch (device.deviceModel) {
+  switch (device.meta.deviceModel) {
     case 'HS100(UK)':
-      return client.getHS100(device.alias);
+      return client.getHS100(device.name);
     case 'HS110(UK)':
-      return client.getHS110(device.alias);
+      return client.getHS110(device.name);
   }
 
   return null;
@@ -67,5 +68,47 @@ bus.on(events.LAST_USER_LEAVES, async () => {
     console.log(`Turning ${device.name} off, as no-one is at home, and it has been left on!`);
 
     turnLightOnOrOff(device.switchFeatureId, false);
+  }
+});
+
+Device.registerProvider('tplink', {
+  async setProperty(device, key, value) {
+    switch (key) {
+      case 'on':
+        return getHandlerForDevice(await authenticatedClient, device)[value ? 'powerOn' : 'powerOff']();
+      default:
+        throw new Error(`"${key}" is not a recognised property for tplink`);
+    }
+  },
+
+  async getProperty(device, key) {
+    switch (key) {
+      case 'on':
+        return getHandlerForDevice(await authenticatedClient, device).isOn().catch(() => false);
+      default:
+        throw new Error(`"${key}" is not a recognised property for tplink`);
+    }
+  },
+
+  async synchronize() {
+    const client = await authenticatedClient;
+    const lights = await client.getDeviceList();
+
+    for (const light of lights) {
+      let device = await Device.findByProviderId('tplink', light.deviceId);
+
+      if (device === null) {
+        device = Device.build({
+          provider: 'tplink',
+          providerId: light.deviceId
+        });
+      }
+
+      device.type = 'light';
+      device.name = light.alias;
+      device.meta.deviceModel = light.deviceModel;
+
+      await device.save();
+    }
   }
 });

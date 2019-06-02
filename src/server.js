@@ -11,7 +11,7 @@ import smartthingsRoutes from './routes/smartthings';
 import lightwaveRfRoutes from './routes/lightwaverf';
 import recordingRoutes from './routes/recording';
 import auth from './middleware/auth';
-import { Stay } from './models';
+import { Stay, Device } from './models';
 import { setEta } from './services/nest';
 import bodyParser from 'body-parser';
 import config from './config';
@@ -79,6 +79,8 @@ nowAndSetInterval(async () => {
     await nextEta.save();
   }
 }, moment.duration(Math.max(config.nest.eta_delivery_interval_in_minutes, 15), 'minutes').as('milliseconds'));
+
+setInterval(() => Device.synchronize(), moment.duration(1, 'day').as('milliseconds'));
 
 app.listen(config.port, () => {
   console.log(`Listening on ${config.port}`);
