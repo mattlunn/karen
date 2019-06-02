@@ -1,8 +1,8 @@
 import express from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import config from '../config';
-import { client, getLightsAndStatus } from '../services/lightwaverf';
-import { Event } from '../models';
+import { client } from '../services/lightwaverf';
+import { Device, Event } from '../models';
 
 const router = express.Router();
 
@@ -31,23 +31,13 @@ router.post('/event', asyncWrapper(async (req, res) => {
     res.sendStatus(400);
   }
 
-  const lights = await getLightsAndStatus();
-  const light = lights.find(x => x.switchFeatureId === req.body.triggerEvent.id);
-  const activeEvent = await Event.findOne({
-    where: {
-      deviceType: 'light',
-      deviceId: light.id,
-      type: 'on',
-      end: null
-    },
-
-    order: [['createdAt', 'DESC']]
-  });
-
+  const lights = await Device.findByProvider('lightwaverf');
+  const light = lights.find(x => x.meta.switchFeatureId === req.body.triggerEvent.id);
+  const lastEvent = await light.getLatestEvent('on');
   const isOn = req.body.payload.value === 1;
 
   if (isOn) {
-    if (activeEvent) {
+    if (lastEvent && !lastEvent.end) {
       console.error(`"${light.id}" has been turned on, but is already turned on...`);
     } else {
       await Event.create({
@@ -59,11 +49,11 @@ router.post('/event', asyncWrapper(async (req, res) => {
       });
     }
   } else {
-    if (!activeEvent) {
+    if (!lastEvent || lastEvent.end) {
       console.error(`"${light.id}" has been turned off, but has no active event...`);
     } else {
-      activeEvent.end = new Date(req.body.payload.time);
-      await activeEvent.save();
+      lastEvent.end = new Date(req.body.payload.time);
+      await lastEvent.save();
     }
   }
 
@@ -87,7 +77,7 @@ router.get('/setup', asyncWrapper(async (req, res) => {
     });
   }
 
-  const lights = await getLightsAndStatus();
+  const lights = await Device.findByProvider('lightwaverf');
 
   // Will error if first time setup, and karen hasn't been created yet.
   try {
@@ -97,7 +87,7 @@ router.get('/setup', asyncWrapper(async (req, res) => {
   await client.request('/events', {
     url: `${url}/lightwaverf/event`,
     ref: eventId,
-    events: lights.map(({ switchFeatureId: id }) => ({
+    events: lights.map(({ meta: { switchFeatureId: id }}) => ({
       type: 'feature',
       id
     }))

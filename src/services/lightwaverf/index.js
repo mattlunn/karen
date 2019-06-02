@@ -1,7 +1,7 @@
 import LightwaveRfClient from './lib/client';
 import config from '../../config';
-import bus, * as events from '../../bus';
 import { saveConfig } from '../../helpers/config';
+import { Device } from '../../models';
 
 export const client = new LightwaveRfClient(config.lightwaverf.bearer, config.lightwaverf.refresh);
 
@@ -10,7 +10,7 @@ function findFeatureId(type, features) {
 }
 
 function authenticate() {
-  client.authenticate().then(({ accessToken, refreshToken, expiresIn }) => {
+  return client.authenticate().then(({ accessToken, refreshToken, expiresIn }) => {
     console.log(`Rotating LightwaveRf refresh token from ${config.lightwaverf.refresh} to ${refreshToken}`);
 
     if (process.env.NODE_ENV === 'development') {
@@ -27,48 +27,47 @@ function authenticate() {
   }).then(null, console.error);
 }
 
-authenticate();
-
-export async function setLightFeatureValue(featureId, value) {
-  await client.write(featureId, value);
-}
-
-export async function getLightsAndStatus() {
-  const structure = await client.structure(config.lightwaverf.structure);
-  const lights = structure.devices.filter(device => device.cat === 'Lighting');
-  const featureValues = await client.read(lights.reduce((ar, { featureSets }) => {
-    for (const { features } of featureSets) {
-      ar.push(
-        findFeatureId('switch', features),
-        findFeatureId('dimLevel', features)
-      );
+authenticate().then(() => Device.registerProvider('lightwaverf', {
+  setProperty(device, key, value) {
+    switch (key) {
+      case 'on':
+        return client.write(device.meta.switchFeatureId, +value);
+      default:
+        throw new Error(`"${key}" is not a recognised property for LightwaveRf`);
     }
+  },
 
-    return ar;
-  }, []));
+  async getProperty(device, key) {
+    switch (key) {
+      case 'on': {
+        const latestEvent = await device.getLatestEvent('on');
 
-  return lights.reduce((ar, { featureSets }) => {
-    for (const { name, features } of featureSets) {
-      ar.push({
-        id: name,
-        name,
-        switchFeatureId: findFeatureId('switch', features),
-        switchIsOn: featureValues[findFeatureId('switch', features)] === 1,
-        dimLevelFeatureId: findFeatureId('dimLevel', features),
-        dimLevel: featureValues[findFeatureId('dimLevel', features)],
-        provider: 'lightwaverf'
-      });
+        return !!(latestEvent && !latestEvent.end);
+      }
+      default:
+        throw new Error(`"${key}" is not a recognised property for LightwaveRf`);
     }
+  },
 
-    return ar;
-  }, []);
-}
+  async synchronize() {
+    const structure = await client.structure(config.lightwaverf.structure);
+    const lights = structure.devices.filter(device => device.cat === 'Lighting').map(device => device.featureSets).flat();
 
-bus.on(events.LAST_USER_LEAVES, async () => {
-  const devices = await getLightsAndStatus();
-  const onDevices = devices.filter(device => device.switchIsOn);
+    for (const light of lights) {
+      let device = await Device.findByProviderId('lightwaverf', light.featureSetId);
 
-  console.log(`Turning off ${onDevices.length} lights, as they have all been left on!`);
+      if (device === null) {
+        device = Device.build({
+          provider: 'lightwaverf',
+          providerId: light.featureSetId
+        });
+      }
 
-  await client.write(onDevices.map(({ switchFeatureId }) => ({ featureId: switchFeatureId, value: 0 })));
-});
+      device.type = 'light';
+      device.name = light.name;
+      device.meta.switchFeatureId = findFeatureId('switch', light.features);
+
+      await device.save();
+    }
+  }
+}));

@@ -11,7 +11,7 @@ import smartthingsRoutes from './routes/smartthings';
 import lightwaveRfRoutes from './routes/lightwaverf';
 import recordingRoutes from './routes/recording';
 import auth from './middleware/auth';
-import { Stay } from './models';
+import { Stay, Device } from './models';
 import { setEta } from './services/nest';
 import bodyParser from 'body-parser';
 import config from './config';
@@ -80,6 +80,8 @@ nowAndSetInterval(async () => {
   }
 }, moment.duration(Math.max(config.nest.eta_delivery_interval_in_minutes, 15), 'minutes').as('milliseconds'));
 
+setInterval(() => Device.synchronize(), moment.duration(1, 'day').as('milliseconds'));
+
 app.listen(config.port, () => {
   console.log(`Listening on ${config.port}`);
 });
@@ -89,5 +91,17 @@ Object.keys(events).forEach((event) => {
     bus.on(event, () => {
       console.log(`Received ${event} event`);
     });
+  }
+});
+
+bus.on(events.LAST_USER_LEAVES, async () => {
+  const lights = await Device.findByType('light');
+
+  for (const light of lights) {
+    if (await light.getProperty('on')) {
+      console.log(`Turning ${light.name} off, as no-one is at home, and it has been left on!`);
+
+      await light.setProperty('on', false);
+    }
   }
 });

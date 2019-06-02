@@ -1,4 +1,4 @@
-export default class TpLinkLight {
+export default class Light {
   constructor(data) {
     this.data = data;
   }
@@ -8,7 +8,7 @@ export default class TpLinkLight {
   }
 
   isOn() {
-    return this.data.isOn;
+    return this.data.getProperty('on');
   }
 
   name() {

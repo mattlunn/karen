@@ -1,14 +1,12 @@
 import { ApolloServer } from 'apollo-server-express';
 import * as db from '../models';
-import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, TimePeriod, lightFactory, History } from './models';
+import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History } from './models';
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
 import makeSynologyRequest from '../services/synology/instance'
 import DataLoaderWithContextAndNoIdParam from './lib/dataloader-with-context-and-no-id-param';
 import DataLoaderWithContext from './lib/dataloader-with-context';
 import schema from './schema';
-import { getLightsAndStatus as getLightsAndStatusFromLightwave, setLightFeatureValue as setLightwaveLightFeatureValue } from '../services/lightwaverf';
-import { getLightsAndStatus as getLightsAndStatusFromTpLink, turnLightOnOrOff as turnTpLinkLightOnOrOff } from '../services/tplink';
 import { getHeatingStatus, getOccupancyStatus, setTargetTemperature } from '../services/nest';
 
 function factoryFromConstructor(Constructor) {
@@ -36,8 +34,6 @@ const resolvers = {
     },
 
     async getHistory(parent, args, context, info) {
-      debugger;
-
       const data = await db.Event.findAll({
         where: {
           deviceId: args.id,
@@ -63,28 +59,9 @@ const resolvers = {
 
   Mutation: {
     async updateLight(parent, args, context, info) {
-      const lights = await Promise.all([
-        getLightsAndStatusFromLightwave(),
-        getLightsAndStatusFromTpLink()
-      ]);
+      const light = await db.Device.findById(args.id);
 
-      const light = lights.flat().find(x => x.id === args.id);
-
-      if (light) {
-        switch (light.provider) {
-          case 'lightwaverf':
-            await setLightwaveLightFeatureValue(light.switchFeatureId, +args.isOn);
-            break;
-          case 'tplink':
-            await turnTpLinkLightOnOrOff(args.id, args.isOn);
-            break;
-          default:
-            throw new Error(`${light.provider} is not a recognised provider`);
-        }
-      } else {
-        throw new Error(`${args.id} is not a recognised light id`);
-      }
-
+      await light.setProperty('on', args.isOn);
       return new Lighting(context);
     },
 
@@ -186,13 +163,10 @@ export default new ApolloServer({
 
       return response.data.cameras;
     }),
-    lights: new DataLoaderWithContextAndNoIdParam(lightFactory, async () => {
-      const lights = await Promise.all([
-        getLightsAndStatusFromLightwave(),
-        getLightsAndStatusFromTpLink()
-      ]);
+    lights: new DataLoaderWithContextAndNoIdParam((lights) => lights.map(light => new Light(light)), async () => {
+      const lights = await db.Device.findByType('light');
 
-      return lights.flat();
+      return lights;
     }),
     thermostats: new DataLoaderWithContextAndNoIdParam((thermostats) => thermostats.map(data => new Thermostat(data)), () => {
       const thermostats = getHeatingStatus();

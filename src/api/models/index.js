@@ -7,5 +7,4 @@ export { default as Heating } from './heating';
 export { default as Thermostat } from './thermostat';
 export { default as TimePeriod } from './time-period';
 export { default as History } from './history';
-
-export { default as lightFactory } from './light';
+export { default as Light } from './light';

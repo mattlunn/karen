@@ -1,5 +1,4 @@
-import { getLightsAndStatus as getLightsAndStatusFromLightwave, setLightFeatureValue as setLightwaveLightFeatureValue } from '../../services/lightwaverf';
-import { getLightsAndStatus as getLightsAndStatusFromTpLink, turnLightOnOrOff as turnTpLinkLightOnOrOff } from '../../services/tplink';
+import { Device } from '../../models';
 import getSunriseAndSunset from '../../helpers/sun';
 import moment from 'moment';
 
@@ -39,37 +38,18 @@ function normalizeTime(time) {
   }
 }
 
-async function switchLight(light, value) {
-  switch (light.provider) {
-    case 'lightwaverf':
-      await setLightwaveLightFeatureValue(light.switchFeatureId, value);
-      break;
-    case 'tplink':
-      await turnTpLinkLightOnOrOff(lightId, value);
-      break;
-    default:
-      throw new Error(`${light.provider} is not a recognised provider`);
-  }
-}
-
 function isWithinTime(betweens) {
   return betweens.some(({ from, until }) => normalizeTime(from).isBefore(Date.now()) && normalizeTime(until).isAfter(Date.now()));
 }
 
-export default async function (event, { between, lightId }) {
-  const lights = await Promise.all([
-    getLightsAndStatusFromLightwave(),
-    getLightsAndStatusFromTpLink()
-  ]);
-
-  const light = lights.flat().find(x => x.id === lightId);
+export default async function (event, { between, lightName }) {
+  const light = await Device.findByName(lightName);
 
   if (isWithinTime(between)) {
-    const isOn = light.isOn || light.switchIsOn;
     const shouldBeOn = !event.end;
 
-    if (shouldBeOn !== isOn) {
-      await switchLight(light, +shouldBeOn);
+    if (shouldBeOn !== await light.getProperty('on')) {
+      await light.setProperty('on', shouldBeOn);
     }
   }
 }
