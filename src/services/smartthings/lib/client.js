@@ -48,4 +48,10 @@ export default class SmartThingsClient {
   createSubscription(installedAppId, subscription) {
     return this._request(`/installedapps/${installedAppId}/subscriptions`, subscription);
   }
+
+  issueCommand(deviceId, command) {
+    return this._request(`/devices/${deviceId}/commands`, {
+      commands: [command]
+    });
+  }
 }
