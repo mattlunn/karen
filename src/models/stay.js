@@ -6,19 +6,10 @@ export default function (sequelize) {
     eta: {
       type: Sequelize.DATE
     },
-    etaSentToNestAt: {
-      type: Sequelize.DATE
-    },
     arrival: {
       type: Sequelize.DATE
     },
-    arrivalSentToNestAt: {
-      type: Sequelize.DATE
-    },
     departure: {
-      type: Sequelize.DATE
-    },
-    departureSentToNestAt: {
       type: Sequelize.DATE
     },
     userId: {
@@ -74,22 +65,6 @@ export default function (sequelize) {
         arrival: {
           $not: null
         }
-      }
-    });
-  };
-
-  stay.findNextEta = function (date) {
-    return this.findOne({
-      where: {
-        etaSentToNestAt: null,
-        eta: {
-          lt: date,
-          gt: new Date()
-        },
-        userId: {
-          $not: null
-        },
-        arrival: null
       }
     });
   };

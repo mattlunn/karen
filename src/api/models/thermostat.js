@@ -2,41 +2,40 @@ import { Event } from '../../models';
 import { TimePeriod } from '.';
 
 export default class Thermostat {
-  constructor({ thermostat, homeDetails }) {
-    this.thermostat = thermostat;
-    this.homeDetails = homeDetails;
+  constructor(device) {
+    this.device = device;
   }
 
   id() {
-    return this.thermostat.id;
+    return this.device.id;
   }
 
   targetTemperature() {
-    return this.thermostat.target;
+    return this.device.getProperty('target');
   }
 
   currentTemperature() {
-    return this.thermostat.current;
+    return this.device.getProperty('temperature');
   }
 
   isHeating() {
-    return this.thermostat.heating;
+    return this.device.getProperty('heating');
   }
 
   humidity() {
-    return this.thermostat.humidity;
+    return this.device.getProperty('humidity');
   }
 
   isHome() {
-    return this.homeDetails.home;
+    return false;
   }
 
   eta() {
-    return +this.homeDetails.eta;
+    return 0;
   }
 
   async heatingHistory(args) {
-    const entries = await Event.getHeatingHistoryForThermostat(this.thermostat.id, args.start, args.end);
+    const entries = await Event.getHeatingHistoryForThermostat(this.device.id, args.start, args.end);
 
     return entries.map(entry => new TimePeriod(entry));
   }

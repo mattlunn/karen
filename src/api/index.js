@@ -7,7 +7,6 @@ import makeSynologyRequest from '../services/synology/instance'
 import DataLoaderWithContextAndNoIdParam from './lib/dataloader-with-context-and-no-id-param';
 import DataLoaderWithContext from './lib/dataloader-with-context';
 import schema from './schema';
-import { getHeatingStatus, getOccupancyStatus, setTargetTemperature } from '../services/nest';
 
 function factoryFromConstructor(Constructor) {
   return (data, context) => new Constructor(data, context);
@@ -66,11 +65,10 @@ const resolvers = {
     },
 
     async updateThermostat(parent, args, context, info) {
-      await setTargetTemperature(args.id, args.targetTemperature);
+      const thermostat = await db.Device.findById(args.id);
+      await thermostat.setProperty('target', args.targetTemperature);
 
-      const thermostats = await context.thermostats.load();
-
-      return thermostats.find(x => x.id() === args.id);
+      return new Thermostat(thermostat);
     },
 
     async updateUser(parent, args, context, info) {
@@ -132,7 +130,6 @@ const resolvers = {
         }
 
         upcoming.eta = eta;
-        upcoming.etaSentToNestAt = null;
 
         await upcoming.save();
       }
@@ -163,19 +160,11 @@ export default new ApolloServer({
 
       return response.data.cameras;
     }),
-    lights: new DataLoaderWithContextAndNoIdParam((lights) => lights.map(light => new Light(light)), async () => {
-      const lights = await db.Device.findByType('light');
-
-      return lights;
+    lights: new DataLoaderWithContextAndNoIdParam((lights) => lights.map(light => new Light(light)), () => {
+      return db.Device.findByType('light');
     }),
     thermostats: new DataLoaderWithContextAndNoIdParam((thermostats) => thermostats.map(data => new Thermostat(data)), () => {
-      const thermostats = getHeatingStatus();
-      const homeDetails = getOccupancyStatus();
-
-      return Promise.resolve(thermostats.map(thermostat => ({
-        thermostat,
-        homeDetails
-      })));
+      return db.Device.findByType('thermostat');
     })
   }),
   formatError(error) {

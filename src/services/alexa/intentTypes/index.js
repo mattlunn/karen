@@ -37,7 +37,6 @@ export const GoingOut = async (intent) => {
   const stay = new Stay();
 
   stay.eta = eta;
-  stay.etaSentToNestAt = null;
 
   await stay.save();
 
