@@ -74,7 +74,7 @@
   },
   "scripts": {
     "start": "babel-node server.js",
-    "dev": "nodemon --exec babel-node --inspect server.js",
+    "dev": "NODE_ENV=development nodemon --exec babel-node server.js",
     "debug": "babel-node --inspect-brk server.js",
     "create-user": "babel-node scripts/create-user.js",
     "migrate": "babel-node scripts/migrate.js",

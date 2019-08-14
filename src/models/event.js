@@ -46,7 +46,6 @@ export default function (sequelize) {
           $lt: end
         },
         deviceId: id,
-        deviceType: 'thermostat',
         type: 'heating'
       },
 

@@ -1,7 +1,6 @@
 require('console-stamp')(console);
 
 import express from 'express';
-import nestRoutes from './routes/nest';
 import alexaRoutes from './routes/alexa';
 import apiRoutes from './routes/api';
 import locationRoutes from './routes/location';
@@ -12,7 +11,6 @@ import lightwaveRfRoutes from './routes/lightwaverf';
 import recordingRoutes from './routes/recording';
 import auth from './middleware/auth';
 import { Stay, Device } from './models';
-import { setEta } from './services/nest';
 import bodyParser from 'body-parser';
 import config from './config';
 import moment from 'moment-timezone';
@@ -29,6 +27,7 @@ require('./services/unifi');
 require('./services/lightwaverf');
 require('./services/tplink');
 require('./services/smartthings');
+require('./services/tado');
 
 require('./ifttt');
 
@@ -44,7 +43,6 @@ api.applyMiddleware({
   path: '/graphql'
 });
 
-app.use('/nest', nestRoutes);
 app.use('/alexa', alexaRoutes);
 app.use('/api', apiRoutes);
 app.use('/authentication', authenticationRoutes);
@@ -57,28 +55,6 @@ app.use('/', express.static(__dirname + '/static'));
 app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
   maxAge: moment.duration(1, 'year').asMilliseconds()
 }));
-
-nowAndSetInterval(async () => {
-  const [ stays, nextEta ] = await Promise.all([
-    Stay.findCurrentStays(),
-    Stay.findNextEta(moment().add(config.nest.eta_earliest_delivery_in_minutes, 'minutes'))
-  ]);
-
-  if (stays.length) {
-    console.log('Not processing any ETAs, as someone is still at home...');
-  } else if (!nextEta) {
-    console.log('No ETAs to process...');
-  } else {
-    await setEta(
-      nextEta.id,
-      moment(nextEta.eta).subtract(config.nest.eta_window_in_minutes, 'minutes'),
-      moment(nextEta.eta).add(config.nest.eta_window_in_minutes, 'minutes')
-    );
-
-    nextEta.etaSentToNestAt = new Date();
-    await nextEta.save();
-  }
-}, moment.duration(Math.max(config.nest.eta_delivery_interval_in_minutes, 15), 'minutes').as('milliseconds'));
 
 setInterval(() => Device.synchronize(), moment.duration(1, 'day').as('milliseconds'));
 
