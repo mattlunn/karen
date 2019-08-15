@@ -1,7 +1,7 @@
 import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, EVENT } from '../../bus';
 import moment from 'moment';
 import config from '../../config';
-import { Event, Recording, Stay } from '../../models';
+import { Event, Recording, Stay, Device } from '../../models';
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
 import { sendNotification } from '../../helpers/notification';
@@ -126,7 +126,7 @@ async function captureRecording(event, startOfRecording, endOfRecording) {
   }
 }
 
-export async function maybeDispatchNotification(event, now) {
+async function maybeDispatchNotification(event, now) {
   if (now.isSame(event.start)) {
     const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(now)
 
@@ -190,3 +190,33 @@ export async function onMotionDetected(cameraId, startOfDetectedMotion) {
     });
   }
 }());
+
+Device.registerProvider('synology', {
+  async setProperty(device, key, value) {
+    throw new Error(`Unable to handle setting '${key}' for ${device.type}`);
+  },
+
+  async getProperty(device, key) {
+    throw new Error(`Unable to handle retrieving '${key}' for ${device.type}`);
+  },
+
+  async synchronize() {
+    const { data: { cameras }} = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
+
+    for (const camera of cameras) {
+      let knownDevice = await Device.findByProviderId('synology', camera.id);
+
+      if (!knownDevice) {
+        knownDevice = Device.build({
+          provider: 'synology',
+          providerId: camera.id,
+          type: 'camera'
+        });
+      }
+
+      knownDevice.name = camera.newName;
+
+      await knownDevice.save();
+    }
+  }
+});
