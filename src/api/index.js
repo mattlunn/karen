@@ -143,6 +143,7 @@ const resolvers = {
 };
 
 export default new ApolloServer({
+  debug: true,
   typeDefs: schema,
   resolvers,
   context: ({ req }) => ({

@@ -24,8 +24,10 @@ Device.registerProvider('tado', {
       case 'temperature':
       case 'humidity':
         return (await device.getLatestEvent(key)).value;
-      case 'heating':
-        return !(await device.getLatestEvent(key)).end;
+      case 'heating': {
+        const latestEvent = await device.getLatestEvent(key);
+        return !!latestEvent && !latestEvent.end;
+      }
       default:
         throw new Error(`Unable to handle retrieving '${key}' for ${device.type}`);
     }
