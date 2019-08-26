@@ -74,7 +74,6 @@ nowAndSetInterval(async () => {
       if (currentValue === true || typeof currentValue === 'number') {
         await Event.create({
           deviceId: device.id,
-          deviceType: device.type,
           start: Date.now(),
           value: Number(currentValue),
           type
