@@ -1,7 +1,7 @@
 import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, EVENT } from '../../bus';
 import moment from 'moment';
 import config from '../../config';
-import { Event, Recording, Stay } from '../../models';
+import { Event, Recording, Stay, Device } from '../../models';
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
 import { sendNotification } from '../../helpers/notification';
@@ -44,17 +44,9 @@ bus.on(FIRST_USER_HOME, async () => {
 // Add an IFTTT hook which downloads footage from start -> end, +- 5 seconds.
 // Add an IFTTT hook which notifies on motion
 
-async function createEvent(cameraId, now) {
-  let activeCameraEvent = await Event.findOne({
-    where: {
-      deviceType: 'camera',
-      deviceId: cameraId,
-      type: 'motion',
-      end: null
-    },
-
-    order: [['start', 'DESC']]
-  });
+async function createEvent(device, now) {
+  const latestCameraEvent = await device.getLatestEvent('motion');
+  let activeCameraEvent = latestCameraEvent && !latestCameraEvent.end ? latestCameraEvent : null;
 
   if (activeCameraEvent) {
     const cutoffForExtension = moment(now).subtract(config.synology.maximum_length_of_event_in_seconds, 's');
@@ -71,8 +63,7 @@ async function createEvent(cameraId, now) {
   if (!activeCameraEvent) {
     activeCameraEvent = await Event.create({
       start: now,
-      deviceType: 'camera',
-      deviceId: cameraId,
+      deviceId: device.id,
       type: 'motion'
     });
   }
@@ -126,7 +117,7 @@ async function captureRecording(event, startOfRecording, endOfRecording) {
   }
 }
 
-export async function maybeDispatchNotification(event, now) {
+async function maybeDispatchNotification(event, now) {
   if (now.isSame(event.start)) {
     const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(now)
 
@@ -137,15 +128,16 @@ export async function maybeDispatchNotification(event, now) {
 }
 
 export async function onMotionDetected(cameraId, startOfDetectedMotion) {
-  const event = await createEvent(cameraId, startOfDetectedMotion);
+  const device = await Device.findByProviderId('synology', cameraId);
+  const event = await createEvent(device, startOfDetectedMotion);
 
-  latestCameraEvents.set(cameraId, startOfDetectedMotion);
+  latestCameraEvents.set(device.id, startOfDetectedMotion);
   await maybeDispatchNotification(event, startOfDetectedMotion);
 
   setTimeout(async () => {
     const now = Date.now();
 
-    if (latestCameraEvents.get(cameraId) === startOfDetectedMotion) {
+    if (latestCameraEvents.get(device.id) === startOfDetectedMotion) {
       event.end = now;
       await event.save();
     }
@@ -190,3 +182,33 @@ export async function onMotionDetected(cameraId, startOfDetectedMotion) {
     });
   }
 }());
+
+Device.registerProvider('synology', {
+  async setProperty(device, key, value) {
+    throw new Error(`Unable to handle setting '${key}' for ${device.type}`);
+  },
+
+  async getProperty(device, key) {
+    throw new Error(`Unable to handle retrieving '${key}' for ${device.type}`);
+  },
+
+  async synchronize() {
+    const { data: { cameras }} = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
+
+    for (const camera of cameras) {
+      let knownDevice = await Device.findByProviderId('synology', camera.id);
+
+      if (!knownDevice) {
+        knownDevice = Device.build({
+          provider: 'synology',
+          providerId: camera.id,
+          type: 'camera'
+        });
+      }
+
+      knownDevice.name = camera.newName;
+
+      await knownDevice.save();
+    }
+  }
+});

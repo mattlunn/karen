@@ -35,7 +35,6 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
         start: {
           $lt: since
         },
-        deviceType: 'camera',
         type: 'motion'
       },
       limit
@@ -102,7 +101,6 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
         start: {
           $lt: since
         },
-        deviceType: 'light',
         type: 'on'
       },
       limit

@@ -41,7 +41,6 @@ router.post('/event', asyncWrapper(async (req, res) => {
       console.error(`"${light.id}" has been turned on, but is already turned on...`);
     } else {
       await Event.create({
-        deviceType: 'light',
         deviceId: light.id,
         type: 'on',
         start: new Date(req.body.payload.time),

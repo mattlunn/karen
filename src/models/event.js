@@ -3,11 +3,6 @@ import bus, { EVENT_START, EVENT_END } from '../bus';
 
 export default function (sequelize) {
   const event = sequelize.define('event', {
-    deviceType: {
-      type: Sequelize.STRING,
-      allowNull: false
-    },
-
     deviceId: {
       type: Sequelize.INTEGER,
       allowNull: false

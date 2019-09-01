@@ -59,7 +59,6 @@ export default async function ({ eventData }) {
           }
 
           await Event.create({
-            deviceType: device.type,
             deviceId: device.id,
             type: eventType,
             value: 1,
@@ -80,7 +79,6 @@ export default async function ({ eventData }) {
           }
 
           await Event.create({
-            deviceType: device.type,
             deviceId: device.id,
             type: eventType,
             value: eventValue,
