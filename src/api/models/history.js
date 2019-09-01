@@ -39,30 +39,41 @@ class Aggregate {
   }
 }
 
+class Datum {
+  constructor(data) {
+    this.period = {
+      start: +data.start,
+      end: +data.end
+    };
+
+    this.value = data.value;
+  }
+}
+
 export default class History {
   constructor(data, { from, to }) {
-    this.data = data;
-    this.start = moment(from);
-    this.end = moment(to);
+    this._data = data;
+    this._start = moment(from);
+    this._end = moment(to);
   }
 
   *_createAggregates(aggregate) {
     let startOfAggregate = null;
-    let endOfAggregate = moment(this.start);
+    let endOfAggregate = moment(this._start);
     let startIndex = null;
     let endIndex = 0;
 
     do {
       startIndex = endIndex;
       startOfAggregate = endOfAggregate;
-      endOfAggregate = moment.min(moment(startOfAggregate).add(aggregate), this.end);
+      endOfAggregate = moment.min(moment(startOfAggregate).add(aggregate), this._end);
 
-      while (endIndex < this.data.length && moment(this.data[endIndex].start).isBefore(endOfAggregate)) {
+      while (endIndex < this._data.length && moment(this._data[endIndex].start).isBefore(endOfAggregate)) {
         endIndex++;
       }
 
-      yield new Aggregate(startOfAggregate, endOfAggregate, this.data.slice(startIndex, endIndex));
-    } while (!endOfAggregate.isSame(this.end));
+      yield new Aggregate(startOfAggregate, endOfAggregate, this._data.slice(startIndex, endIndex));
+    } while (!endOfAggregate.isSame(this._end));
   }
 
   month() {
@@ -71,5 +82,9 @@ export default class History {
 
   day() {
     return this._createAggregates(moment.duration(1, 'day'));
+  }
+
+  data() {
+    return this._data.map(datum => new Datum(datum));
   }
 }

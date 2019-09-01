@@ -32,6 +32,7 @@ import { ApolloProvider } from 'react-apollo';
 library.add(faLightbulb, faVideo, faHome, faWalking);
 
 require('./styles/app.less');
+require('react-vis/dist/style.css');
 
 const client = new ApolloClient({
   uri: '/graphql',
