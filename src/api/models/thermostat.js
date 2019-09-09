@@ -10,6 +10,10 @@ export default class Thermostat {
     return this.device.id;
   }
 
+  name() {
+    return this.device.name;
+  }
+
   targetTemperature() {
     return this.device.getProperty('target');
   }

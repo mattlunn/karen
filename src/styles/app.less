@@ -387,7 +387,6 @@ button.secondary {
 
 .heating {
   background: #373f48;
-  display: flex;
   color: @heating-off-text-color;
 
   & .rc-slider-mark-text {
@@ -401,6 +400,16 @@ button.secondary {
     & .rc-slider-mark-text {
       color: @heating-text-color;
     }
+  }
+
+  &__title {
+    background: #1d2126;
+    padding: 10px 20px;
+    font-size: 0.8em;
+  }
+
+  &__container {
+    display: flex;
   }
 
   &__slider {
