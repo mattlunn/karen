@@ -6,7 +6,7 @@ import { saveConfig } from '../../helpers/config';
 let token;
 
 export async function getAccessToken() {
-  if (!token || token.expiresAt < Date.now() - 1000 * 60) {
+  if (!token || token.expiresAt < Date.now() + 1000 * 60) {
     const response = await fetch('https://auth.tado.com/oauth/token', {
       method: 'POST',
       body: stringify({

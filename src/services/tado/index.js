@@ -62,18 +62,21 @@ nowAndSetInterval(async () => {
 
   async function updateState(device, type, currentValue) {
     const lastEvent = await device.getLatestEvent(type);
+    const valueHasChanged = !lastEvent
+      || typeof currentValue === 'number' && currentValue !== lastEvent.value
+      || typeof currentValue === 'boolean' && !lastEvent.end !== currentValue;
 
-    if (!lastEvent || lastEvent.value !== Number(currentValue)) {
+    if (valueHasChanged) {
       // on -> off (update old, don't create new)
       // off -> on (don't touch old, create new)
       // value -> value (update old, create new)
 
-      if (lastEvent && ((currentValue === false && !lastEvent.end) || typeof currentValue === 'number')) {
+      if (lastEvent && currentValue !== true) {
         lastEvent.end = Date.now();
         await lastEvent.save();
       }
 
-      if (currentValue === true || typeof currentValue === 'number') {
+      if (currentValue !== false) {
         await Event.create({
           deviceId: device.id,
           start: Date.now(),
