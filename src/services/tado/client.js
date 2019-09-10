@@ -73,15 +73,25 @@ export default class TadoClient {
     return json;
   }
 
-  async getZones() {
+  getZones() {
     return this._request('/zones');
   }
 
-  async getZoneState(zone) {
+  getZoneState(zone) {
     return this._request(`/zones/${zone}/state`);
   }
 
-  async setHeatingPowerForZone(zone, value) {
+  async getActiveTimetable(zone) {
+    const data = await this._request(`/zones/${zone}/schedule/activeTimetable`);
+
+    return data.id;
+  }
+
+  getTimetableBlocks(zone, timetable) {
+    return this._request(`/zones/${zone}/schedule/timetables/${timetable}/blocks`);
+  }
+
+  setHeatingPowerForZone(zone, value) {
     return this._request(`/zones/${zone}/overlay`, {
       setting: {
         type: 'HEATING',
@@ -96,7 +106,7 @@ export default class TadoClient {
     });
   }
 
-  async endManualHeatingForZone(zone) {
+  endManualHeatingForZone(zone) {
     return this._request(`/zones/${zone}/overlay`, null, 'DELETE');
   }
 }

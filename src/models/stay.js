@@ -31,6 +31,22 @@ export default function (sequelize) {
     })));
   };
 
+  stay.findNextUpcomingEta = function () {
+    return this.findOne({
+      where: {
+        eta: {
+          $gt: Date.now()
+        },
+
+        arrival: null
+      },
+
+      order: [
+        'eta'
+      ]
+    });
+  };
+
   stay.findCurrentOrLastStays = function (userIds) {
     return Promise.all(userIds.map((userId) => this.findOne({
       where: {

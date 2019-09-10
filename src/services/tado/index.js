@@ -1,8 +1,10 @@
-import { Device, Event } from '../../models';
+import { Device, Event, Stay } from '../../models';
 import TadoClient, { getAccessToken } from './client';
 import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import { sendNotification } from '../../helpers/notification';
 import bus, { FIRST_USER_HOME, LAST_USER_LEAVES } from '../../bus';
+import moment from 'moment';
 
 Device.registerProvider('tado', {
   async setProperty(device, key, value) {
@@ -126,3 +128,78 @@ bus.on(FIRST_USER_HOME, async () => {
     }
   }
 });
+
+nowAndSetInterval(async () => {
+  const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+  const now = moment();
+  const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(now.valueOf());
+
+  function getTimetabledTemperature(timetable, time) {
+    function getDayTypes() {
+      switch (time.day()) {
+        case 0:
+          return ['SUNDAY', 'MONDAY_TO_SUNDAY'];
+        case 1:
+          return ['MONDAY', 'MONDAY_TO_SUNDAY', 'MONDAY_TO_FRIDAY'];
+        case 2:
+          return ['TUESDAY', 'MONDAY_TO_SUNDAY', 'MONDAY_TO_FRIDAY'];
+        case 3:
+          return ['WEDNESDAY', 'MONDAY_TO_SUNDAY', 'MONDAY_TO_FRIDAY'];
+        case 4:
+          return ['THURSDAY', 'MONDAY_TO_SUNDAY', 'MONDAY_TO_FRIDAY'];
+        case 5:
+          return ['FRIDAY', 'MONDAY_TO_SUNDAY', 'MONDAY_TO_FRIDAY'];
+        case 6:
+          return ['SATURDAY', 'MONDAY_TO_SUNDAY'];
+      }
+    }
+
+    const dayTypes = getDayTypes();
+
+    return timetable.find(block => {
+      if (!dayTypes.includes(block.dayType)) {
+        return false;
+      }
+
+      return moment(block.start, 'HH:mm').isBefore(time) && moment(block.end, 'HH:mm').isAfter(time);
+    });
+  }
+
+  if (!isSomeoneAtHome) {
+    const nextEta = await Stay.findNextUpcomingEta();
+
+    if (nextEta) {
+      const devices = await Device.findByProvider('tado');
+
+      for (const device of devices) {
+        if (device.type === 'thermostat') {
+          const [
+            currentTemperature,
+            zoneState,
+            activeTimetable
+          ] = await Promise.all([
+            device.getProperty('temperature'),
+            client.getZoneState(device.providerId),
+            client.getActiveTimetable(device.providerId)
+          ]);
+
+          const { setting: timetabledTemperature } = getTimetabledTemperature(await client.getTimetableBlocks(device.providerId, activeTimetable), moment(nextEta.eta));
+
+          if (zoneState.overlayType === 'MANUAL' && zoneState.overlay.setting.power === 'OFF' && timetabledTemperature.power !== 'OFF') {
+            const desiredTemperature = timetabledTemperature.temperature.celsius;
+            const difference = desiredTemperature - currentTemperature;
+
+            console.log(`"${device.name}" is currently at ${currentTemperature}. ETA is for ${nextEta.eta}, where the temperature is expected to be ${desiredTemperature}`);
+
+            if (difference > Math.round(moment(nextEta.eta).diff(now, 'm') / 60)) {
+              console.log(`Ending Manual heating for ${device.name}. Hope it's warm when you get home!`);
+              sendNotification(`Turning "${device.name}" on, so hopefully it'll get from ${currentTemperature.toFixed(1)} to ${desiredTemperature.toFixed(1)} by the time you get home!`);
+
+              await client.endManualHeatingForZone(device.providerId);
+            }
+          }
+        }
+      }
+    }
+  }
+}, Math.max(config.tado.eta_check_interval_minutes, 15) * 60 * 1000);
