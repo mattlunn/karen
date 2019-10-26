@@ -1,5 +1,6 @@
 require('console-stamp')(console);
 
+import moment from './moment';
 import express from 'express';
 import alexaRoutes from './routes/alexa';
 import apiRoutes from './routes/api';
@@ -10,16 +11,12 @@ import smartthingsRoutes from './routes/smartthings';
 import lightwaveRfRoutes from './routes/lightwaverf';
 import recordingRoutes from './routes/recording';
 import auth from './middleware/auth';
-import { Stay, Device } from './models';
+import { Device } from './models';
 import bodyParser from 'body-parser';
 import config from './config';
-import moment from 'moment-timezone';
-import nowAndSetInterval from './helpers/now-and-set-interval';
 import bus, * as events from './bus';
 import cookieParser from 'cookie-parser';
 import api from './api';
-
-moment.tz.setDefault('Europe/London');
 
 require('./services/ifttt');
 require('./services/synology');
