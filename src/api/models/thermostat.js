@@ -41,6 +41,6 @@ export default class Thermostat {
   async heatingHistory(args) {
     const entries = await Event.getHeatingHistoryForThermostat(this.device.id, args.start, args.end);
 
-    return entries.map(entry => new TimePeriod(entry));
+    return entries.map(entry => new TimePeriod({ ...entry, end: entry.end || args.end }));
   }
 }
