@@ -18,7 +18,6 @@ const formatTemperature = (temp) => temp.toFixed(1);
       currentTemperature
       isHeating
       humidity
-      isHome
     }
   }
 `, {
@@ -34,8 +33,15 @@ export default class Thermostat extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      targetTemperature: props.targetTemperature
+    this.state = {};
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    return {
+      ...state,
+
+      lastTargetTemperature: props.targetTemperature,
+      targetTemperature: (state.lastTargetTemperature === props.targetTemperature && state.targetTemperature) || props.targetTemperature
     };
   }
 

@@ -61,7 +61,6 @@ export default gql`
     currentTemperature: Float!,
     isHeating: Boolean!,
     humidity: Float!,
-    isHome: Boolean!,
 
     heatingHistory(start: Float!, end: Float!): [TimePeriod]
   }
@@ -86,5 +85,6 @@ export default gql`
 
   type Subscription {
     onLightChanged: Light
+    onThermostatChanged: Thermostat
   }
 `

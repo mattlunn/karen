@@ -13,6 +13,40 @@ function factoryFromConstructor(Constructor) {
   return (data, context) => new Constructor(data, context);
 }
 
+function createSubscriptionForDeviceType(deviceType, mapper, properties) {
+  return {
+    subscribe() {
+      let ended = false;
+
+      return {
+        [Symbol.asyncIterator]() {
+          return {
+            next() {
+              return new Promise((res) => {
+                bus.once(DEVICE_PROPERTY_CHANGED, ({ device, property }) => {
+                  if (ended) {
+                    res({ done: true });
+                  }
+
+                  if (device.type === deviceType && (!Array.isArray(properties) || properties.includes(property))) {
+                    res({ done: false, value: mapper(device) });
+                  }
+                });
+              });
+            },
+
+            return() {
+              ended = true;
+
+              return Promise.resolve();
+            }
+          };
+        }
+      }
+    }
+  };
+}
+
 const resolvers = {
   Query: {
     async getUsers(parent, args, context, info) {
@@ -143,37 +177,8 @@ const resolvers = {
   },
 
   Subscription: {
-    onLightChanged: {
-      subscribe() {
-        let ended = false;
-
-        return {
-          [Symbol.asyncIterator]() {
-            return {
-              next() {
-                return new Promise((res) => {
-                  bus.once(DEVICE_PROPERTY_CHANGED, ({ device, property }) => {
-                    if (ended) {
-                      res({ done: true });
-                    }
-
-                    if (device.type === 'light' && property === 'on') {
-                      res({ done: false, value: { onLightChanged: new Light(device) }});
-                    }
-                  });
-                });
-              },
-
-              return() {
-                ended = true;
-
-                return Promise.resolve();
-              }
-            };
-          }
-        }
-      }
-    }
+    onThermostatChanged: createSubscriptionForDeviceType('thermostat', device => ({ onThermostatChanged: new Thermostat(device) })),
+    onLightChanged: createSubscriptionForDeviceType('light', device => ({ onLightChanged: new Light(device) }), ['on'])
   }
 };
 
