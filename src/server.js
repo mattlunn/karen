@@ -18,6 +18,7 @@ import bus, * as events from './bus';
 import cookieParser from 'cookie-parser';
 import api from './api';
 import { createServer } from 'http';
+import compression from 'compression';
 
 require('./services/ifttt');
 require('./services/synology');
@@ -33,6 +34,7 @@ const app = express();
 const server = createServer(app);
 
 app.set('trust proxy', config.trust_proxy);
+app.use(compression());
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use('/graphql', auth);
