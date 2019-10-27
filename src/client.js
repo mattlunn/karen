@@ -24,7 +24,11 @@ import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 
-import ApolloClient from 'apollo-boost';
+import { ApolloClient } from 'apollo-client';
+import { InMemoryCache } from 'apollo-cache-inmemory';
+import { HttpLink } from 'apollo-link-http';
+import { onError } from 'apollo-link-error';
+import { ApolloLink } from 'apollo-link';
 import { ApolloProvider } from 'react-apollo';
 
 library.add(faLightbulb, faVideo, faHome, faWalking);
@@ -32,13 +36,20 @@ library.add(faLightbulb, faVideo, faHome, faWalking);
 require('./styles/app.less');
 
 const client = new ApolloClient({
-  uri: '/graphql',
-  onError({ networkError} ) {
-    if (networkError && networkError.statusCode === 401) {
-      store.dispatch(push('/login'));
-    }
-  }
+  link: ApolloLink.from([
+    onError(({ networkError }) => {
+      if (networkError && networkError.statusCode === 401) {
+        store.dispatch(push('/login'));
+      }
+    }),
+    new HttpLink({
+      uri: '/graphql',
+      credentials: 'same-origin'
+    })
+  ]),
+  cache: new InMemoryCache()
 });
+
 const history = createHistory();
 const store = createStore(combineReducers({
   router: routerReducer,
