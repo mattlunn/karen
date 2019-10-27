@@ -39,7 +39,7 @@ library.add(faLightbulb, faVideo, faHome, faWalking);
 require('./styles/app.less');
 
 const wsLink = new WebSocketLink({
-  uri: `ws://${location.hostname}/graphql`,
+  uri: `ws${location.protocol.slice(4)}//${location.hostname}/graphql`,
   options: {
     reconnect: true
   },
