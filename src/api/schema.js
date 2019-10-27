@@ -61,7 +61,6 @@ export default gql`
     currentTemperature: Float!,
     isHeating: Boolean!,
     humidity: Float!,
-    eta: Float,
     isHome: Boolean!,
 
     heatingHistory(start: Float!, end: Float!): [TimePeriod]

@@ -34,10 +34,6 @@ export default class Thermostat {
     return false;
   }
 
-  eta() {
-    return 0;
-  }
-
   async heatingHistory(args) {
     const entries = await Event.getHeatingHistoryForThermostat(this.device.id, args.start, args.end);
 

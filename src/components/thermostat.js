@@ -18,7 +18,6 @@ const formatTemperature = (temp) => temp.toFixed(1);
       currentTemperature
       isHeating
       humidity
-      eta
       isHome
     }
   }
@@ -122,12 +121,8 @@ export default class Thermostat extends Component {
                 </dd>
               </dl>
               <dl>
-                <dt>ETA</dt>
-                <dd>{this.props.eta ? new Date(this.props.eta).toString().split(' (')[0] : 'N/A'}</dd>
-              </dl>
-              <dl>
                 <dt>State</dt>
-                <dd>{this.props.isHome ? 'Home' : 'Away'}</dd>
+                <dd>{this.props.isHeating ? 'ON' : 'OFF'}</dd>
               </dl>
             </div>
           </div>
