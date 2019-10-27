@@ -1,23 +1,9 @@
 import React, { useEffect } from 'react';
-import classnames from 'classnames';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLightbulb } from '@fortawesome/free-regular-svg-icons';
+import LightingTile from './lighting-tile';
 import gql from 'graphql-tag';
-import { useQuery, useMutation } from '@apollo/react-hooks';
+import { useQuery } from '@apollo/react-hooks';
 
 export default function() {
-  const [setLightSwitchStatus] = useMutation(gql`
-    mutation updateLight($id: ID!, $isOn: Boolean) {
-      updateLight(id: $id, isOn: $isOn) {
-        lights {
-          id
-          name
-          isOn
-        }
-      }
-    }
-  `);
-
   const { data, subscribeToMore } = useQuery(
     gql`{
       getLighting {
@@ -53,18 +39,7 @@ export default function() {
 
   return (
     <ul>
-      {data && data.getLighting.lights.map((light, idx) => {
-        return (
-          <li key={idx} className={classnames('lighting', { 'lighting--is-on': light.isOn })}>
-            <div className={classnames('lighting__container', { 'lighting__container--is-on': light.isOn })} onClick={() => setLightSwitchStatus({ variables: { id: light.id, isOn: !light.isOn }})}>
-              <span className="lighting__name">{light.name}</span>
-              <span className="lighting__light">
-                <FontAwesomeIcon icon={faLightbulb} />
-              </span>
-            </div>
-          </li>
-        );
-      })}
+      {data && data.getLighting.lights.map(({ id, name, isOn }) => <LightingTile id={id} name={name} isOn={isOn} />)}
     </ul>
   );
 }

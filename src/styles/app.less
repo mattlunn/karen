@@ -455,7 +455,7 @@ button.secondary {
   .heating {
     &__container {
       flex-direction: column;
-    } 
+    }
   }
 }
 
@@ -633,6 +633,7 @@ button.secondary {
     margin: 10px 5px;
     padding: 30px 15px;
     cursor: pointer;
+    position: relative;
 
     &--is-on {
       border-color: orange;
@@ -649,6 +650,22 @@ button.secondary {
     width: 25%;
     font-size: 24px;
     text-align: right;
+  }
+
+  &__loading-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background-size: 40px;
+    background-color: rgba(232, 232, 232, 0.5);
+    cursor: wait;
+    display: none;
+
+    &--visible {
+      display: block;
+    }
   }
 }
 
