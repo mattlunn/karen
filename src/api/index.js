@@ -7,6 +7,7 @@ import makeSynologyRequest from '../services/synology/instance'
 import DataLoaderWithContextAndNoIdParam from './lib/dataloader-with-context-and-no-id-param';
 import DataLoaderWithContext from './lib/dataloader-with-context';
 import schema from './schema';
+import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 
 function factoryFromConstructor(Constructor) {
   return (data, context) => new Constructor(data, context);
@@ -138,6 +139,28 @@ const resolvers = {
       context.currentOrLastStayByUserId.prime(user.id, current);
 
       return new User(user, context);
+    }
+  },
+
+  Subscription: {
+    onLightChanged: {
+      subscribe: function() {
+        return {
+          [Symbol.asyncIterator]() {
+            return {
+              next() {
+                return new Promise((res) => {
+                  bus.once(DEVICE_PROPERTY_CHANGED, ({ device, property }) => {
+                    if (device.type === 'light' && property === 'on') {
+                      res({ done: false, value: { onLightChanged: new Light(device) }});
+                    }
+                  });
+                });
+              }
+            };
+          }
+        }
+      }
     }
   }
 };

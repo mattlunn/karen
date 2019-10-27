@@ -1,4 +1,5 @@
 import Sequelize from 'sequelize';
+import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 
 export default function (sequelize) {
   const device = sequelize.define('device', {
@@ -44,12 +45,21 @@ export default function (sequelize) {
     }
   });
 
-  device.prototype.setProperty = function (key, value) {
-    return device._providers.get(this.provider).setProperty(this, key, value);
+  device.prototype.setProperty = function (property, value) {
+    return device._providers.get(this.provider).setProperty(this, property, value).then(() => {
+      this.onPropertyChanged(property);
+    });
   };
 
-  device.prototype.getProperty = function (key) {
-    return device._providers.get(this.provider).getProperty(this, key);
+  device.prototype.onPropertyChanged = function (property) {
+    bus.emit(DEVICE_PROPERTY_CHANGED, {
+      device: this,
+      property
+    });
+  };
+
+  device.prototype.getProperty = function (property) {
+    return device._providers.get(this.provider).getProperty(this, property);
   };
 
   device.prototype.getLatestEvent = async function (type) {

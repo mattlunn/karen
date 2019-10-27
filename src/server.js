@@ -17,6 +17,7 @@ import config from './config';
 import bus, * as events from './bus';
 import cookieParser from 'cookie-parser';
 import api from './api';
+import { createServer } from 'http';
 
 require('./services/ifttt');
 require('./services/synology');
@@ -29,6 +30,7 @@ require('./services/tado');
 require('./ifttt');
 
 const app = express();
+const server = createServer(app);
 
 app.set('trust proxy', config.trust_proxy);
 app.use(bodyParser.json());
@@ -39,6 +41,8 @@ api.applyMiddleware({
   app,
   path: '/graphql'
 });
+
+api.installSubscriptionHandlers(server);
 
 app.use('/alexa', alexaRoutes);
 app.use('/api', apiRoutes);
@@ -55,8 +59,9 @@ app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
 
 setInterval(() => Device.synchronize(), moment.duration(1, 'day').as('milliseconds'));
 
-app.listen(config.port, () => {
+server.listen(config.port, () => {
   console.log(`Listening on ${config.port}`);
+  console.log(`Subscriptions listening on ws://localhost:80${api.subscriptionsPath}`);
 });
 
 Object.keys(events).forEach((event) => {
