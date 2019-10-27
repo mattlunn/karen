@@ -84,7 +84,11 @@ export default async function ({ eventData }) {
             value: eventValue,
             start: Date.now()
           });
+        } else {
+          continue;
         }
+
+        device.onPropertyChanged(eventType);
       }
     }
   }

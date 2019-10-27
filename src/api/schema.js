@@ -84,4 +84,8 @@ export default gql`
     updateLight(id: ID!, isOn: Boolean): Lighting
     updateThermostat(id: ID!, targetTemperature: Float): Thermostat
   }
+
+  type Subscription {
+    onLightChanged: Light
+  }
 `

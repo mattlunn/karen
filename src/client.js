@@ -24,21 +24,55 @@ import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 
-import ApolloClient from 'apollo-boost';
-import { ApolloProvider } from 'react-apollo';
+import { ApolloClient } from 'apollo-client';
+import { InMemoryCache } from 'apollo-cache-inmemory';
+import { onError } from 'apollo-link-error';
+import { ApolloLink } from 'apollo-link';
+import { ApolloProvider } from '@apollo/react-components';
+import { split } from 'apollo-link';
+import { HttpLink } from 'apollo-link-http';
+import { WebSocketLink } from 'apollo-link-ws';
+import { getMainDefinition } from 'apollo-utilities';
 
 library.add(faLightbulb, faVideo, faHome, faWalking);
 
 require('./styles/app.less');
 
-const client = new ApolloClient({
-  uri: '/graphql',
-  onError({ networkError} ) {
-    if (networkError && networkError.statusCode === 401) {
-      store.dispatch(push('/login'));
-    }
-  }
+const wsLink = new WebSocketLink({
+  uri: `ws://${location.hostname}/graphql`,
+  options: {
+    reconnect: true
+  },
+  credentials: 'same-origin'
 });
+
+const httpLink = new HttpLink({
+  uri: '/graphql',
+  credentials: 'same-origin'
+});
+
+const client = new ApolloClient({
+  link: ApolloLink.from([
+    onError(({ networkError }) => {
+      if (networkError && networkError.statusCode === 401) {
+        store.dispatch(push('/login'));
+      }
+    }),
+    split(
+      ({ query }) => {
+        const definition = getMainDefinition(query);
+        return (
+          definition.kind === 'OperationDefinition' &&
+          definition.operation === 'subscription'
+        );
+      },
+      wsLink,
+      httpLink
+    )
+  ]),
+  cache: new InMemoryCache()
+});
+
 const history = createHistory();
 const store = createStore(combineReducers({
   router: routerReducer,
