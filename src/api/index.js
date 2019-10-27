@@ -144,18 +144,30 @@ const resolvers = {
 
   Subscription: {
     onLightChanged: {
-      subscribe: function() {
+      subscribe() {
+        let ended = false;
+
         return {
           [Symbol.asyncIterator]() {
             return {
               next() {
                 return new Promise((res) => {
                   bus.once(DEVICE_PROPERTY_CHANGED, ({ device, property }) => {
+                    if (ended) {
+                      res({ done: true });
+                    }
+
                     if (device.type === 'light' && property === 'on') {
                       res({ done: false, value: { onLightChanged: new Light(device) }});
                     }
                   });
                 });
+              },
+
+              return() {
+                ended = true;
+
+                return Promise.resolve();
               }
             };
           }

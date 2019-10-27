@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import Thermostat from './thermostat';
-import { graphql } from 'react-apollo';
+import { graphql } from '@apollo/react-hoc';
 import gql from 'graphql-tag';
 import moment from 'moment-timezone';
 

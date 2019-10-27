@@ -26,14 +26,30 @@ import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 
 import { ApolloClient } from 'apollo-client';
 import { InMemoryCache } from 'apollo-cache-inmemory';
-import { HttpLink } from 'apollo-link-http';
 import { onError } from 'apollo-link-error';
 import { ApolloLink } from 'apollo-link';
-import { ApolloProvider } from 'react-apollo';
+import { ApolloProvider } from '@apollo/react-components';
+import { split } from 'apollo-link';
+import { HttpLink } from 'apollo-link-http';
+import { WebSocketLink } from 'apollo-link-ws';
+import { getMainDefinition } from 'apollo-utilities';
 
 library.add(faLightbulb, faVideo, faHome, faWalking);
 
 require('./styles/app.less');
+
+const wsLink = new WebSocketLink({
+  uri: `ws://${location.hostname}/graphql`,
+  options: {
+    reconnect: true
+  },
+  credentials: 'same-origin'
+});
+
+const httpLink = new HttpLink({
+  uri: '/graphql',
+  credentials: 'same-origin'
+});
 
 const client = new ApolloClient({
   link: ApolloLink.from([
@@ -42,10 +58,17 @@ const client = new ApolloClient({
         store.dispatch(push('/login'));
       }
     }),
-    new HttpLink({
-      uri: '/graphql',
-      credentials: 'same-origin'
-    })
+    split(
+      ({ query }) => {
+        const definition = getMainDefinition(query);
+        return (
+          definition.kind === 'OperationDefinition' &&
+          definition.operation === 'subscription'
+        );
+      },
+      wsLink,
+      httpLink
+    )
   ]),
   cache: new InMemoryCache()
 });

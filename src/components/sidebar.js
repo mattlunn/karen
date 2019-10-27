@@ -3,7 +3,7 @@ import UserStatus from './user-status';
 import classnames from 'classnames';
 import { AWAY, HOME } from '../constants/status';
 import gql from 'graphql-tag';
-import { graphql } from 'react-apollo';
+import { graphql } from '@apollo/react-hoc';
 
 @graphql(gql`{
   stays: getUsers {
