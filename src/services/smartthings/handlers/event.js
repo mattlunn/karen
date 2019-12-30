@@ -29,6 +29,11 @@ const attributeHandlers = {
   temperature: {
     valueMapper: (value) => Number(value),
     eventMapper: () => 'temperature'
+  },
+
+  contact: {
+    valueMapper: (value) => value === 'open',
+    eventMapper: () => 'open'
   }
 };
 
