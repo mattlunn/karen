@@ -3,8 +3,6 @@ import { Device } from '../models';
 import { sendNotification } from '../helpers/notification';
 
 export default function ({ thermostatName, lightName, sensorName, maximumHumidity }) {
-  debugger;
-
   bus.on(EVENT_START, async (event) => {
     if (event.type === 'humidity') {
       const thermostat = await event.getDevice();
