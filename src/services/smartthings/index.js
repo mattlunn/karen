@@ -74,8 +74,9 @@ Device.registerProvider('smartthings', {
 
   async getProperty(device, key) {
     switch (key) {
-      case 'on': {
-        const latestEvent = await device.getLatestEvent('on');
+      case 'on':
+      case 'open': {
+        const latestEvent = await device.getLatestEvent(key);
 
         return !!(latestEvent && !latestEvent.end);
       }

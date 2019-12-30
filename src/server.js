@@ -28,7 +28,7 @@ require('./services/tplink');
 require('./services/smartthings');
 require('./services/tado');
 
-require('./ifttt');
+require('./automations');
 
 const app = express();
 const server = createServer(app);
