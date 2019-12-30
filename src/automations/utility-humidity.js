@@ -3,6 +3,8 @@ import { Device } from '../models';
 import { sendNotification } from '../helpers/notification';
 
 export default function ({ thermostatName, lightName, sensorName, maximumHumidity }) {
+  debugger;
+
   bus.on(EVENT_START, async (event) => {
     if (event.type === 'humidity') {
       const thermostat = await event.getDevice();
@@ -21,7 +23,7 @@ export default function ({ thermostatName, lightName, sensorName, maximumHumidit
         const isTooHumid = event.value > maximumHumidity;
 
         if (isDoorClosed && isTooHumid !== isLightOn) {
-          sendNotification(`Turning ${lightName} ${isTooHumid ? 'on' : 'off'} as humidity is ${event.humidity}`);
+          sendNotification(`Turning ${lightName} ${isTooHumid ? 'on' : 'off'} as humidity is ${event.value}`);
 
           await light.setProperty('on', isTooHumid);
         }
