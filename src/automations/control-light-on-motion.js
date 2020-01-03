@@ -1,10 +1,15 @@
 import bus, { EVENT_START, EVENT_END } from '../bus';
 import { Device } from '../models';
+import { isWithinTime } from '../helpers/time';
 
-export default function ({ sensorName, lightName }) {
+export default function ({ sensorName, lightName, between }) {
   [EVENT_START, EVENT_END].forEach((eventEvent) => {
     bus.on(eventEvent, async (event) => {
       if (event.type === 'motion') {
+        if (Array.isArray(between) && !isWithinTime(between, event.start)) {
+          return;
+        }
+
         const sensor = await event.getDevice();
 
         if (sensor.name === sensorName) {
