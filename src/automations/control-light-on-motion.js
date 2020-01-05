@@ -2,7 +2,9 @@ import bus, { EVENT_START, EVENT_END } from '../bus';
 import { Device } from '../models';
 import { isWithinTime } from '../helpers/time';
 
-export default function ({ sensorName, lightName, between }) {
+const offDelays = new Map();
+
+export default function ({ sensorName, lightName, between, offDelaySeconds = 0 }) {
   [EVENT_START, EVENT_END].forEach((eventEvent) => {
     bus.on(eventEvent, async (event) => {
       if (event.type === 'motion') {
@@ -17,8 +19,14 @@ export default function ({ sensorName, lightName, between }) {
           const lightIsOn = await light.getProperty('on');
           const lightDesiredOn = eventEvent === EVENT_START;
 
-          if (lightIsOn !== lightDesiredOn) {
-            light.setProperty('on', lightDesiredOn);
+          clearTimeout(offDelays.get(lightName));
+
+          if (lightDesiredOn && !lightIsOn) {
+            light.setProperty('on', true);
+          } else if (!lightDesiredOn && lightIsOn) {
+            offDelays.set(lightName, setTimeout(() => {
+              light.setProperty('on', false);
+            }, offDelaySeconds * 1000));
           }
         }
       }
