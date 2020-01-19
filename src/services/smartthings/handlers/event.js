@@ -34,6 +34,11 @@ const attributeHandlers = {
   contact: {
     valueMapper: (value) => value === 'open',
     eventMapper: () => 'open'
+  },
+
+  humidity: {
+    valueMapper: (value) => Number(value),
+    eventMapper: () => 'humidity'
   }
 };
 

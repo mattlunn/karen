@@ -9,7 +9,8 @@ import { Device } from '../../models';
 const deviceTypeMappings = new Map([
   ['Fibaro Dimmer 2 ZW5', 'light'],
   ['SmartSense Motion Sensor', 'motion_sensor'],
-  ['SmartSense Multi Sensor', 'contact_sensor']
+  ['SmartSense Multi Sensor', 'contact_sensor'],
+  ['Aeon Multisensor 6', 'multi_sensor']
 ]);
 
 let accessTokenPromise;
@@ -74,12 +75,17 @@ Device.registerProvider('smartthings', {
 
   async getProperty(device, key) {
     switch (key) {
+      case 'motion':
       case 'on':
       case 'open': {
         const latestEvent = await device.getLatestEvent(key);
 
         return !!(latestEvent && !latestEvent.end);
       }
+      case 'motion':
+        case 'humidity': {
+          return (await device.getLatestEvent(key)).value;
+        }
       default:
         throw new Error(`"${key}" is not a recognised property for SmartThings`);
     }
