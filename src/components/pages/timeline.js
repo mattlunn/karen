@@ -10,7 +10,7 @@ import moment from 'moment';
 import { connect } from 'react-redux';
 import Event from '../event';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
-import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
+import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
 
@@ -69,8 +69,8 @@ export default class Timeline extends Component {
         return (
           <Event
             timestamp={event.timestamp}
-            title={"Motion detected"}
-            icon={faVideo}
+            title={`Motion detected by "${event.deviceName}"`}
+            icon={faEye}
             controls={({ togglePanel }) => {
               return event.recordingId ? [
                 <a onClick={(e) => {
