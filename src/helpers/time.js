@@ -37,6 +37,6 @@ export function normalizeTime(time) {
   }
 }
 
-export function isWithinTime(betweens, date = Date.now()) {
-  return betweens.some(({ start, end }) => normalizeTime(start).isBefore(date) && normalizeTime(end).isAfter(date));
+export function isWithinTime(start, end, date = Date.now()) {
+  return normalizeTime(start).isBefore(date) && normalizeTime(end).isAfter(date);
 }

@@ -68,6 +68,13 @@ Device.registerProvider('smartthings', {
           capability: 'switch',
           command: value ? 'on' : 'off'
         });
+      case 'brightness':
+        return client.issueCommand(device.providerId, {
+          component: 'main',
+          capability: 'switchLevel',
+          command: 'setLevel',
+          arguments: [value]
+        });
       default:
         throw new Error(`"${key}" is not a recognised property for SmartThings`);
     }
