@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLightbulb } from '@fortawesome/free-regular-svg-icons';
 import gql from 'graphql-tag';
-import { useMutation } from '@apollo/react-hooks';
+import { useMutation, useSubscription } from '@apollo/react-hooks';
 
 export default function({ id, name, isOn }) {
   const [setLightSwitchStatus] = useMutation(gql`
@@ -18,8 +18,28 @@ export default function({ id, name, isOn }) {
     }
   `);
 
-  const [desiredState, setDesiredState] = useState(isOn);
-  const isLoading = desiredState !== isOn;
+  useSubscription(gql`
+    subscription onLightChanged($id: ID!) {
+      onLightChanged(id: $id) {
+        id
+        name
+        isOn
+      }
+    }
+  `, {
+    variables: {
+      id
+    },
+
+    onSubscriptionData({ subscriptionData: { data: { onLightChanged: { isOn }}}}) {
+      if (desiredState === isOn) {
+        setDesiredState(null);
+      }
+    }
+  });
+
+  const [desiredState, setDesiredState] = useState(null);
+  const isLoading = desiredState !== null;
 
   return (
     <li key={id} className={classnames('lighting', { 'lighting--is-on': isOn })}>

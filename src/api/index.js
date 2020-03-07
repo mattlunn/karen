@@ -15,7 +15,7 @@ function factoryFromConstructor(Constructor) {
 
 function createSubscriptionForDeviceType(deviceType, mapper, properties) {
   return {
-    subscribe() {
+    subscribe(_, { id }) {
       let ended = false;
 
       return {
@@ -26,7 +26,19 @@ function createSubscriptionForDeviceType(deviceType, mapper, properties) {
                 bus.once(DEVICE_PROPERTY_CHANGED, ({ device, property }) => {
                   if (ended) {
                     res({ done: true });
-                  } else if (device.type === deviceType && (!Array.isArray(properties) || properties.includes(property))) {
+                  } else {
+                    if (device.type !== deviceType) {
+                      return;
+                    }
+
+                    if (id && device.id !== Number(id)) {
+                      return;
+                    }
+
+                    if (Array.isArray(properties) && !properties.includes(property)) {
+                      return;
+                    }
+
                     res({ done: false, value: mapper(device) });
                   }
                 });

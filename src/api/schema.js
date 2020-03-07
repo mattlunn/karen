@@ -84,7 +84,7 @@ export default gql`
   }
 
   type Subscription {
-    onLightChanged: Light
+    onLightChanged(id: ID): Light
     onThermostatChanged: Thermostat
   }
 `
