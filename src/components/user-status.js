@@ -21,7 +21,8 @@ function mapDispatchToProps(dispatch, ownProps) {
 @graphql(gql`mutation($id: ID!, $status: Status) {
   updateUser(id:$id, status:$status) {
     id,
-    status
+    status,
+    since
   }
 }`, {
   props({ mutate, ownProps }) {
