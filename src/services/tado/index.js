@@ -5,6 +5,8 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { sendNotification } from '../../helpers/notification';
 import bus, { FIRST_USER_HOME, LAST_USER_LEAVES } from '../../bus';
 import moment from 'moment';
+import getTimetabledTemperature from './helpers/get-timetabled-temperature';
+import getWarmupRatePerHour from './helpers/get-warmup-rate-per-hour';
 
 Device.registerProvider('tado', {
   async setProperty(device, key, value) {
@@ -25,6 +27,7 @@ Device.registerProvider('tado', {
       case 'target':
       case 'temperature':
       case 'humidity':
+      case 'power':
         return (await device.getLatestEvent(key)).value;
       case 'heating': {
         const latestEvent = await device.getLatestEvent(key);
@@ -99,7 +102,8 @@ nowAndSetInterval(async () => {
         updateState(device, 'heating', data.activityDataPoints.heatingPower.percentage > 0),
         updateState(device, 'humidity', data.sensorDataPoints.humidity.percentage),
         updateState(device, 'temperature', data.sensorDataPoints.insideTemperature.celsius),
-        updateState(device, 'target', data.setting.power === 'ON' ? data.setting.temperature.celsius : 0)
+        updateState(device, 'target', data.setting.power === 'ON' ? data.setting.temperature.celsius : 0),
+        updateState(device, 'power', data.activityDataPoints.heatingPower.percentage)
       ]);
     }
   }
@@ -136,37 +140,6 @@ nowAndSetInterval(async () => {
   const now = moment();
   const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(now.valueOf());
 
-  function getTimetabledTemperature(timetable, time) {
-    function getDayTypes() {
-      switch (time.day()) {
-        case 0:
-          return ['SUNDAY', 'MONDAY_TO_SUNDAY'];
-        case 1:
-          return ['MONDAY', 'MONDAY_TO_SUNDAY', 'MONDAY_TO_FRIDAY'];
-        case 2:
-          return ['TUESDAY', 'MONDAY_TO_SUNDAY', 'MONDAY_TO_FRIDAY'];
-        case 3:
-          return ['WEDNESDAY', 'MONDAY_TO_SUNDAY', 'MONDAY_TO_FRIDAY'];
-        case 4:
-          return ['THURSDAY', 'MONDAY_TO_SUNDAY', 'MONDAY_TO_FRIDAY'];
-        case 5:
-          return ['FRIDAY', 'MONDAY_TO_SUNDAY', 'MONDAY_TO_FRIDAY'];
-        case 6:
-          return ['SATURDAY', 'MONDAY_TO_SUNDAY'];
-      }
-    }
-
-    const dayTypes = getDayTypes();
-
-    return timetable.find(block => {
-      if (!dayTypes.includes(block.dayType)) {
-        return false;
-      }
-
-      return moment(block.start, 'HH:mm').isBefore(time) && moment(block.end, 'HH:mm').isAfter(time);
-    });
-  }
-
   if (!isSomeoneAtHome) {
     const nextEta = await Stay.findNextUpcomingEta();
 
@@ -190,12 +163,11 @@ nowAndSetInterval(async () => {
           if (zoneState.overlayType === 'MANUAL' && zoneState.overlay.setting.power === 'OFF' && timetabledTemperature.power !== 'OFF') {
             const desiredTemperature = timetabledTemperature.temperature.celsius;
             const difference = desiredTemperature - currentTemperature;
+            const warmupRatePerHour = await getWarmupRatePerHour(device);
+            const hoursNeededToWarmUp = difference / warmupRatePerHour;
 
-            console.log(`"${device.name}" is currently at ${currentTemperature}. ETA is for ${nextEta.eta}, where the temperature is expected to be ${desiredTemperature}`);
-
-            if (difference > Math.round(moment(nextEta.eta).diff(now, 'm') / 60)) {
-              console.log(`Ending Manual heating for ${device.name}. Hope it's warm when you get home!`);
-              sendNotification(`Turning "${device.name}" on, so hopefully it'll get from ${currentTemperature.toFixed(1)} to ${desiredTemperature.toFixed(1)} by the time you get home!`);
+            if (moment().add(hoursNeededToWarmUp, 'h').isAfter(nextEta.eta)) {
+              sendNotification(`Turning "${device.name}" on, so hopefully we'll heat up by ${warmupRatePerHour.toFixed(1)}°/hr to get from ${currentTemperature.toFixed(1)} to ${desiredTemperature.toFixed(1)} by the time you get home!`);
 
               await client.endManualHeatingForZone(device.providerId);
             }
@@ -204,4 +176,4 @@ nowAndSetInterval(async () => {
       }
     }
   }
-}, Math.max(config.tado.eta_check_interval_minutes, 15) * 60 * 1000);
+}, Math.max(config.tado.eta_check_interval_minutes, 10) * 60 * 1000);
