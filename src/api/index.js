@@ -26,9 +26,7 @@ function createSubscriptionForDeviceType(deviceType, mapper, properties) {
                 bus.once(DEVICE_PROPERTY_CHANGED, ({ device, property }) => {
                   if (ended) {
                     res({ done: true });
-                  }
-
-                  if (device.type === deviceType && (!Array.isArray(properties) || properties.includes(property))) {
+                  } else if (device.type === deviceType && (!Array.isArray(properties) || properties.includes(property))) {
                     res({ done: false, value: mapper(device) });
                   }
                 });
@@ -38,7 +36,9 @@ function createSubscriptionForDeviceType(deviceType, mapper, properties) {
             return() {
               ended = true;
 
-              return Promise.resolve();
+              return Promise.resolve({
+                done: true
+              });
             }
           };
         }

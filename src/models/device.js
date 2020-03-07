@@ -45,10 +45,19 @@ export default function (sequelize) {
     }
   });
 
+  /**
+   * This method triggers the update of the property at the service level. It does
+   * not wait for the property to update before returning.
+   *
+   * In other words, by awaiting this method, you are subscribing to "I have successfully
+   * told (e.g. SmartThings) to change the brightness of the light". It does NOT mean "The
+   * brightness of the light has changed."
+   *
+   * In part, this is due to some APIs (TP Link, Tado, I'm looking at you), where we have
+   * to poll for updates, rather than subscribe to updates.
+   */
   device.prototype.setProperty = function (property, value) {
-    return device._providers.get(this.provider).setProperty(this, property, value).then(() => {
-      this.onPropertyChanged(property);
-    });
+    return device._providers.get(this.provider).setProperty(this, property, value);
   };
 
   device.prototype.onPropertyChanged = function (property) {
