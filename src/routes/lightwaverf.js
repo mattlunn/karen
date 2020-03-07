@@ -46,6 +46,8 @@ router.post('/event', asyncWrapper(async (req, res) => {
         start: new Date(req.body.payload.time),
         value: 1
       });
+
+      light.onPropertyChange('on');
     }
   } else {
     if (!lastEvent || lastEvent.end) {
@@ -53,6 +55,8 @@ router.post('/event', asyncWrapper(async (req, res) => {
     } else {
       lastEvent.end = new Date(req.body.payload.time);
       await lastEvent.save();
+
+      light.onPropertyChange('on');
     }
   }
 
