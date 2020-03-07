@@ -12,8 +12,9 @@ export async function getAccessToken() {
       body: stringify({
         client_id: 'tado-web-app',
         client_secret: 'wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc',
-        grant_type: 'refresh_token',
-        refresh_token: config.tado.refresh_token,
+        grant_type: 'password',
+        username: config.tado.username,
+        password: config.tado.password,
         scope: 'home.user'
       }),
       headers: {
@@ -25,15 +26,11 @@ export async function getAccessToken() {
       throw new Error(`Unable to get Access Token: HTTP status code was '${response.status}'`);
     }
 
-    const { access_token, refresh_token, expires_in } = await response.json();
+    const { access_token, expires_in } = await response.json();
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Rotating Tado refresh_token from ${config.tado.refresh_token} to ${refresh_token}`);
       console.log(`Tado access_token is '${access_token}'`);
     }
-
-    config.tado.refresh_token = refresh_token;
-    saveConfig();
 
     token = {
       accessToken: access_token,
