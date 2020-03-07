@@ -30,6 +30,10 @@ export default class Thermostat {
     return this.device.getProperty('humidity');
   }
 
+  power() {
+    return this.device.getProperty('power');
+  }
+
   async heatingHistory(args) {
     const entries = await Event.getHeatingHistoryForThermostat(this.device.id, args.start, args.end);
 

@@ -130,6 +130,10 @@ export default class Thermostat extends Component {
                 <dt>State</dt>
                 <dd>{this.props.isHeating ? 'ON' : 'OFF'}</dd>
               </dl>
+              <dl>
+                <dt>Power</dt>
+                <dd>{this.props.power}%</dd>
+              </dl>
             </div>
           </div>
         </div>

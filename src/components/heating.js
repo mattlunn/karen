@@ -14,6 +14,7 @@ export default function() {
           targetTemperature
           currentTemperature
           isHeating
+          power,
           humidity
           heatingHistory(start: $start, end: $end) {
             start
@@ -39,6 +40,7 @@ export default function() {
             targetTemperature
             currentTemperature
             isHeating
+            power,
             humidity
           }
         }
