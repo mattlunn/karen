@@ -1,7 +1,6 @@
 import fetch from 'node-fetch';
 import config from '../../config.json';
 import { stringify } from 'querystring';
-import { saveConfig } from '../../helpers/config';
 
 let token;
 
