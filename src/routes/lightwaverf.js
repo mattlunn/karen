@@ -47,7 +47,7 @@ router.post('/event', asyncWrapper(async (req, res) => {
         value: 1
       });
 
-      light.onPropertyChange('on');
+      light.onPropertyChanged('on');
     }
   } else {
     if (!lastEvent || lastEvent.end) {
@@ -56,7 +56,7 @@ router.post('/event', asyncWrapper(async (req, res) => {
       lastEvent.end = new Date(req.body.payload.time);
       await lastEvent.save();
 
-      light.onPropertyChange('on');
+      light.onPropertyChanged('on');
     }
   }
 
