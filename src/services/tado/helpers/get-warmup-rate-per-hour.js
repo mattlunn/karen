@@ -41,6 +41,6 @@ export default async function getWarmupRatePerHour(device) {
   }
 
   return history.reduce((acc, { start, end }) => {
-    return acc + ((findTemperateAtTime(end) - findTemperateAtTime(start)) / moment(end).diff(start, 'h'));
+    return acc + ((findTemperateAtTime(end) - findTemperateAtTime(start)) / moment(end).diff(start, 'h', true));
   }, 0) / history.length;
 }
