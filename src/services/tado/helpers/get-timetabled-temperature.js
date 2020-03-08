@@ -27,6 +27,12 @@ export default function getTimetabledTemperature(timetable, time) {
       return false;
     }
 
-    return moment(block.start, 'HH:mm').isBefore(time) && moment(block.end, 'HH:mm').isAfter(time);
+    const blockEnd = moment(block.end, 'HH:mm');
+
+    if (block.end === '00:00') {
+      blockEnd.add(1, 'd');
+    }
+
+    return moment(block.start, 'HH:mm').isSameOrBefore(time) && blockEnd.isAfter(time);
   });
 }
