@@ -9,7 +9,7 @@ export default async function (intent) {
   const devices = await Device.findAll({
     where: {
       name: {
-        [Op.like]: `%${roomName}%`
+        [Op.like]: `${roomName}%`
       },
       type: 'light'
     }
