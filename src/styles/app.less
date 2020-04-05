@@ -674,3 +674,40 @@ button.secondary {
     width: 100%;
   }
 }
+
+.body {
+  h2 {
+    font-size: 1.5em;
+    margin-bottom: 0.5em;
+  }
+
+  &--history {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .light-history {
+    &__plot {
+      .rv-xy-plot__axis--horizontal {
+        .rv-xy-plot__axis__tick {
+          display: none;
+
+          .rv-xy-plot__axis__tick__text {
+            display: none;
+          }
+        }
+
+        .rv-xy-plot__axis__tick:nth-of-type(4n + 1 /* every hour */) {
+          display: inline;
+        }
+
+        .rv-xy-plot__axis__tick:nth-of-type(12n + 1 /* every 3 hours */) {
+          .rv-xy-plot__axis__tick__text {
+            display: inline;
+          }
+        }
+      }
+    }
+  }
+}

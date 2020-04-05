@@ -97,8 +97,6 @@ const resolvers = {
         order: ['start']
       });
 
-      console.log(data.length + ' rows to look at');
-
       return new History(data, args);
     }
   },

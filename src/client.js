@@ -37,6 +37,7 @@ import { getMainDefinition } from 'apollo-utilities';
 library.add(faLightbulb, faVideo, faHome, faWalking);
 
 import './styles/app.less';
+import 'react-vis/dist/style.css';
 
 const wsLink = new WebSocketLink({
   uri: `ws${location.protocol.slice(4)}//${location.hostname}/graphql`,

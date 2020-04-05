@@ -49,9 +49,15 @@ export default gql`
     duration: Float
   }
 
+  type Datum {
+    period: TimePeriod
+    value: Float
+  }
+
   type History {
     month: [Aggregate],
-    day: [Aggregate]
+    day: [Aggregate],
+    data: [Datum]
   }
 
   type Thermostat {
