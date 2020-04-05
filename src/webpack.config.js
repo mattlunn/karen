@@ -8,7 +8,8 @@ module.exports = {
   entry: path.join(__dirname, 'client.js'),
   output: {
     path: path.join(__dirname, 'static'),
-    filename: 'app.[chunkhash].min.js'
+    filename: 'app.[chunkhash].min.js',
+    publicPath: '/'
   },
   mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   module: {
@@ -32,7 +33,7 @@ module.exports = {
     }),
     new webpack.ContextReplacementPlugin(/moment[\/\\]locale$/, /uk/),
     new HtmlWebpackPlugin({
-      template: __dirname + '/views/layout.html'
+      template: __dirname + '/views/layout.html',
     })
   ],
 
