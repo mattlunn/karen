@@ -29,6 +29,16 @@ const attributeHandlers = {
   temperature: {
     valueMapper: (value) => Number(value),
     eventMapper: () => 'temperature'
+  },
+
+  contact: {
+    valueMapper: (value) => value === 'open',
+    eventMapper: () => 'open'
+  },
+
+  humidity: {
+    valueMapper: (value) => Number(value),
+    eventMapper: () => 'humidity'
   }
 };
 
@@ -84,7 +94,11 @@ export default async function ({ eventData }) {
             value: eventValue,
             start: Date.now()
           });
+        } else {
+          continue;
         }
+
+        device.onPropertyChanged(eventType);
       }
     }
   }

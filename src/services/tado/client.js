@@ -1,19 +1,19 @@
 import fetch from 'node-fetch';
 import config from '../../config.json';
 import { stringify } from 'querystring';
-import { saveConfig } from '../../helpers/config';
 
 let token;
 
 export async function getAccessToken() {
-  if (!token || token.expiresAt < Date.now() - 1000 * 60) {
+  if (!token || token.expiresAt < Date.now() + 1000 * 60) {
     const response = await fetch('https://auth.tado.com/oauth/token', {
       method: 'POST',
       body: stringify({
         client_id: 'tado-web-app',
         client_secret: 'wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc',
-        grant_type: 'refresh_token',
-        refresh_token: config.tado.refresh_token,
+        grant_type: 'password',
+        username: config.tado.username,
+        password: config.tado.password,
         scope: 'home.user'
       }),
       headers: {
@@ -25,15 +25,11 @@ export async function getAccessToken() {
       throw new Error(`Unable to get Access Token: HTTP status code was '${response.status}'`);
     }
 
-    const { access_token, refresh_token, expires_in } = await response.json();
+    const { access_token, expires_in } = await response.json();
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Rotating Tado refresh_token from ${config.tado.refresh_token} to ${refresh_token}`);
       console.log(`Tado access_token is '${access_token}'`);
     }
-
-    config.tado.refresh_token = refresh_token;
-    saveConfig();
 
     token = {
       accessToken: access_token,
@@ -73,15 +69,25 @@ export default class TadoClient {
     return json;
   }
 
-  async getZones() {
+  getZones() {
     return this._request('/zones');
   }
 
-  async getZoneState(zone) {
+  getZoneState(zone) {
     return this._request(`/zones/${zone}/state`);
   }
 
-  async setHeatingPowerForZone(zone, value) {
+  async getActiveTimetable(zone) {
+    const data = await this._request(`/zones/${zone}/schedule/activeTimetable`);
+
+    return data.id;
+  }
+
+  getTimetableBlocks(zone, timetable) {
+    return this._request(`/zones/${zone}/schedule/timetables/${timetable}/blocks`);
+  }
+
+  setHeatingPowerForZone(zone, value) {
     return this._request(`/zones/${zone}/overlay`, {
       setting: {
         type: 'HEATING',
@@ -96,7 +102,7 @@ export default class TadoClient {
     });
   }
 
-  async endManualHeatingForZone(zone) {
+  endManualHeatingForZone(zone) {
     return this._request(`/zones/${zone}/overlay`, null, 'DELETE');
   }
 }

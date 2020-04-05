@@ -10,6 +10,10 @@ export default class Thermostat {
     return this.device.id;
   }
 
+  name() {
+    return this.device.name;
+  }
+
   targetTemperature() {
     return this.device.getProperty('target');
   }
@@ -26,17 +30,13 @@ export default class Thermostat {
     return this.device.getProperty('humidity');
   }
 
-  isHome() {
-    return false;
-  }
-
-  eta() {
-    return 0;
+  power() {
+    return this.device.getProperty('power');
   }
 
   async heatingHistory(args) {
     const entries = await Event.getHeatingHistoryForThermostat(this.device.id, args.start, args.end);
 
-    return entries.map(entry => new TimePeriod(entry));
+    return entries.map(entry => new TimePeriod({ ...entry, end: entry.end || args.end }));
   }
 }

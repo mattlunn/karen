@@ -67,8 +67,7 @@ export default gql`
     currentTemperature: Float!,
     isHeating: Boolean!,
     humidity: Float!,
-    eta: Float,
-    isHome: Boolean!,
+    power: Float!
 
     heatingHistory(start: Float!, end: Float!): [TimePeriod]
   }
@@ -89,5 +88,10 @@ export default gql`
     updateUser(id: ID!, eta: Float, status: Status): User
     updateLight(id: ID!, isOn: Boolean): Lighting
     updateThermostat(id: ID!, targetTemperature: Float): Thermostat
+  }
+
+  type Subscription {
+    onLightChanged(id: ID): Light
+    onThermostatChanged: Thermostat
   }
 `

@@ -6,7 +6,7 @@ import { humanDate } from '../helpers/date';
 import { connect } from 'react-redux';
 import { showModal } from '../actions/modal';
 import { ETA_PICKER } from '../constants/modals';
-import { graphql } from 'react-apollo';
+import { graphql } from '@apollo/react-hoc';
 import gql from 'graphql-tag';
 
 function mapDispatchToProps(dispatch, ownProps) {
@@ -21,7 +21,8 @@ function mapDispatchToProps(dispatch, ownProps) {
 @graphql(gql`mutation($id: ID!, $status: Status) {
   updateUser(id:$id, status:$status) {
     id,
-    status
+    status,
+    since
   }
 }`, {
   props({ mutate, ownProps }) {

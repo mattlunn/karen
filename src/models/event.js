@@ -37,8 +37,12 @@ export default function (sequelize) {
           $lt: end
         },
         end: {
-          $gte: start,
-          $lt: end
+          $or: [{
+            $gte: start,
+            $lt: end
+          }, {
+            $eq: null
+          }]
         },
         deviceId: id,
         type: 'heating'

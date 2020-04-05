@@ -46,9 +46,6 @@ Synology.prototype._request = async function (endpoint, api, method, version, pa
 
   const query = Object.keys(params).map((key) => key + '=' + encodeURIComponent(params[key])).join('&');
   const url = 'http://' + this._host + ':' + this._port + '/webapi/' + endpoint + '?' + query;
-
-  console.log('Requesting [' + url + ']');
-
   const response = await request(url, {
     encoding: (json ? 'utf8' : null)
   });

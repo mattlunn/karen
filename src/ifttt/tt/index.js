@@ -1,1 +1,0 @@
-export { default as turnOnLight } from './turn-on-light';

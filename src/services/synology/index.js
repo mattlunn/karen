@@ -71,7 +71,7 @@ async function createEvent(device, now) {
   return activeCameraEvent;
 }
 
-async function captureRecording(event, startOfRecording, endOfRecording) {
+async function captureRecording(event, providerId, startOfRecording, endOfRecording) {
   const existingRecording = await event.getRecording();
   let attempts = 10;
   let cameraRecording;
@@ -87,7 +87,7 @@ async function captureRecording(event, startOfRecording, endOfRecording) {
     }, true, 5);
 
     cameraRecording = synologyRecordings.data.events.find((recording) => {
-      return String(recording.cameraId) === event.deviceId
+      return String(recording.cameraId) === providerId
         && moment.unix(recording.startTime).isBefore(startOfRecording)
         && moment.unix(recording.stopTime).isAfter(endOfRecording);
     });
@@ -142,7 +142,7 @@ export async function onMotionDetected(cameraId, startOfDetectedMotion) {
       await event.save();
     }
 
-    enqueueWorkItem(() => captureRecording(event, moment(event.start).subtract(2, 's'), moment(now).add(2, 's')));
+    enqueueWorkItem(() => captureRecording(event, device.providerId, moment(event.start).subtract(2, 's'), moment(now).add(2, 's')));
   }, config.synology.length_of_motion_event_in_seconds * 1000);
 }
 

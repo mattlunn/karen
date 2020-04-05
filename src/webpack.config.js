@@ -1,12 +1,8 @@
 const webpack = require('webpack');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
-
-const extractLessPlugin = new ExtractTextPlugin({
-  filename: 'app.[contenthash].css'
-});
 
 module.exports = {
   entry: path.join(__dirname, 'client.js'),
@@ -14,33 +10,26 @@ module.exports = {
     path: path.join(__dirname, 'static'),
     filename: 'app.[chunkhash].min.js'
   },
+  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   module: {
     rules: [{
-        test: /\.js$/,
-        exclude: /node_modules/,
-        use: [{
-          loader: 'babel-loader',
-          options: {
-            plugins: ['transform-decorators-legacy'],
-            presets: ['react', ['env', { targets: { browsers: ['last 2 Chrome versions'] }}], 'stage-2'],
-          }
-        }]
-      }, {
-      test: /\.less$/,
-      use: extractLessPlugin.extract({
-        use: [{
-          loader: 'css-loader'
-        }, {
-          loader: 'less-loader'
-        }]
-      })
+      test: /\.js$/,
+      exclude: /node_modules/,
+      use: [{
+        loader: 'babel-loader',
+        options: {
+          presets: ['@babel/preset-react', ['@babel/preset-env', { targets: { browsers: ['last 2 Chrome versions'] }}]],
+        }
+      }]
     }, {
-      test: /(\.css|\.scss)$/,
-      loaders: ['style-loader', 'css-loader?sourceMap']
+      test: /\.(css|less)$/i,
+      use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader'],
     }]
   },
   plugins: [
-    extractLessPlugin,
+    new MiniCssExtractPlugin({
+      filename: 'app.[contenthash].css'
+    }),
     new webpack.ContextReplacementPlugin(/moment[\/\\]locale$/, /uk/),
     new HtmlWebpackPlugin({
       template: __dirname + '/views/layout.html'
@@ -50,22 +39,3 @@ module.exports = {
   cache: true,
   devtool: 'source-map'
 };
-
-if (process.env.NODE_ENV === 'production') {
-  module.exports.plugins.unshift(
-    new UglifyJsPlugin({
-      uglifyOptions: {
-        ecma: 8,
-        compress: { warnings: false },
-        mangle: true,
-        sourceMap: true,
-        beautify: false,
-        dead_code: true
-      }
-    }),
-
-    new webpack.DefinePlugin({
-      'process.env.NODE_ENV': '"production"'
-    }),
-  );
-}

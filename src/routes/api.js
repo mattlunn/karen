@@ -28,7 +28,8 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
   const events = await Promise.all([
     Event.findAll({
       include: [
-        Recording
+        Recording,
+        Device
       ],
       order: [['start', 'DESC']],
       where: {
@@ -44,7 +45,8 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
           id: event.id,
           timestamp: event.start,
           recordingId: event.recording && event.recording.id,
-          type: 'motion'
+          type: 'motion',
+          deviceName: event.device.name
         };
       })
     }),

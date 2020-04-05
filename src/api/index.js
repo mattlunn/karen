@@ -7,9 +7,56 @@ import makeSynologyRequest from '../services/synology/instance'
 import DataLoaderWithContextAndNoIdParam from './lib/dataloader-with-context-and-no-id-param';
 import DataLoaderWithContext from './lib/dataloader-with-context';
 import schema from './schema';
+import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 
 function factoryFromConstructor(Constructor) {
   return (data, context) => new Constructor(data, context);
+}
+
+function createSubscriptionForDeviceType(deviceType, mapper, properties) {
+  return {
+    subscribe(_, { id }) {
+      let ended = false;
+
+      return {
+        [Symbol.asyncIterator]() {
+          return {
+            next() {
+              return new Promise((res) => {
+                bus.once(DEVICE_PROPERTY_CHANGED, ({ device, property }) => {
+                  if (ended) {
+                    res({ done: true });
+                  } else {
+                    if (device.type !== deviceType) {
+                      return;
+                    }
+
+                    if (id && device.id !== Number(id)) {
+                      return;
+                    }
+
+                    if (Array.isArray(properties) && !properties.includes(property)) {
+                      return;
+                    }
+
+                    res({ done: false, value: mapper(device) });
+                  }
+                });
+              });
+            },
+
+            return() {
+              ended = true;
+
+              return Promise.resolve({
+                done: true
+              });
+            }
+          };
+        }
+      }
+    }
+  };
 }
 
 const resolvers = {
@@ -49,8 +96,6 @@ const resolvers = {
 
         order: ['start']
       });
-
-      console.log(data.length + ' rows to look at');
 
       return new History(data, args);
     }
@@ -139,6 +184,11 @@ const resolvers = {
 
       return new User(user, context);
     }
+  },
+
+  Subscription: {
+    onThermostatChanged: createSubscriptionForDeviceType('thermostat', device => ({ onThermostatChanged: new Thermostat(device) })),
+    onLightChanged: createSubscriptionForDeviceType('light', device => ({ onLightChanged: new Light(device) }), ['on'])
   }
 };
 

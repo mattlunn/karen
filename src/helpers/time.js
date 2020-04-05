@@ -1,5 +1,4 @@
-import { Device } from '../../models';
-import getSunriseAndSunset from '../../helpers/sun';
+import getSunriseAndSunset from './sun';
 import moment from 'moment';
 
 // "from" or "to" can be;
@@ -21,7 +20,7 @@ function normalizeDuration(offset) {
   return duration;
 }
 
-function normalizeTime(time) {
+export function normalizeTime(time) {
   if (time.includes('sunrise') || time.includes('sunset')) {
     const sunEvents = getSunriseAndSunset();
     const [sunEvent, direction, offset] = time.split(/ *([+-]) */);
@@ -38,18 +37,6 @@ function normalizeTime(time) {
   }
 }
 
-function isWithinTime(betweens) {
-  return betweens.some(({ from, until }) => normalizeTime(from).isBefore(Date.now()) && normalizeTime(until).isAfter(Date.now()));
-}
-
-export default async function (event, { between, lightName }) {
-  const light = await Device.findByName(lightName);
-
-  if (isWithinTime(between)) {
-    const shouldBeOn = !event.end;
-
-    if (shouldBeOn !== await light.getProperty('on')) {
-      await light.setProperty('on', shouldBeOn);
-    }
-  }
+export function isWithinTime(start, end, date = Date.now()) {
+  return normalizeTime(start).isBefore(date) && normalizeTime(end).isAfter(date);
 }

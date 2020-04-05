@@ -1,5 +1,6 @@
 require('console-stamp')(console);
 
+import moment from './moment';
 import express from 'express';
 import alexaRoutes from './routes/alexa';
 import apiRoutes from './routes/api';
@@ -10,16 +11,14 @@ import smartthingsRoutes from './routes/smartthings';
 import lightwaveRfRoutes from './routes/lightwaverf';
 import recordingRoutes from './routes/recording';
 import auth from './middleware/auth';
-import { Stay, Device } from './models';
+import { Device } from './models';
 import bodyParser from 'body-parser';
 import config from './config';
-import moment from 'moment-timezone';
-import nowAndSetInterval from './helpers/now-and-set-interval';
 import bus, * as events from './bus';
 import cookieParser from 'cookie-parser';
 import api from './api';
-
-moment.tz.setDefault('Europe/London');
+import { createServer } from 'http';
+import compression from 'compression';
 
 require('./services/ifttt');
 require('./services/synology');
@@ -29,11 +28,13 @@ require('./services/tplink');
 require('./services/smartthings');
 require('./services/tado');
 
-require('./ifttt');
+require('./automations');
 
 const app = express();
+const server = createServer(app);
 
 app.set('trust proxy', config.trust_proxy);
+app.use(compression());
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use('/graphql', auth);
@@ -42,6 +43,8 @@ api.applyMiddleware({
   app,
   path: '/graphql'
 });
+
+api.installSubscriptionHandlers(server);
 
 app.use('/alexa', alexaRoutes);
 app.use('/api', apiRoutes);
@@ -58,8 +61,9 @@ app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
 
 setInterval(() => Device.synchronize(), moment.duration(1, 'day').as('milliseconds'));
 
-app.listen(config.port, () => {
+server.listen(config.port, () => {
   console.log(`Listening on ${config.port}`);
+  console.log(`Subscriptions listening on ws://localhost:80${api.subscriptionsPath}`);
 });
 
 Object.keys(events).forEach((event) => {

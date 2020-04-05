@@ -4,7 +4,7 @@ async function processQueue() {
   while (queue.length) {
     try {
       await queue[0]();
-    } finally {
+    } catch(e) {} finally {
       queue.shift();
     }
   }

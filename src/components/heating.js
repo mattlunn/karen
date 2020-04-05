@@ -1,47 +1,70 @@
-import React, { Component } from 'react';
+import React, { useEffect } from 'react';
 import Thermostat from './thermostat';
-import { graphql } from 'react-apollo';
 import gql from 'graphql-tag';
 import moment from 'moment-timezone';
+import { useQuery } from '@apollo/react-hooks';
 
-@graphql(gql`
-  query ($start: Float!, $end: Float!) {
-    getHeating {
-      thermostats {
-        id
-        name
-        targetTemperature
-        currentTemperature
-        isHeating
-        humidity
-        eta
-        isHome
-        heatingHistory(start: $start, end: $end) {
-          start
-          end
+export default function() {
+  const { data, subscribeToMore } = useQuery(gql`
+    query ($start: Float!, $end: Float!) {
+      getHeating {
+        thermostats {
+          id
+          name
+          targetTemperature
+          currentTemperature
+          isHeating
+          power,
+          humidity
+          heatingHistory(start: $start, end: $end) {
+            start
+            end
+          }
         }
       }
     }
-  }
-`, {
-  props: ({ data: { getHeating }}) => ({ ...getHeating }),
-  options: {
+  `, {
     variables: {
       start: moment().startOf('day').valueOf(),
-      end: moment().valueOf()
+      end: moment().endOf('minute').valueOf()
     }
-  }
-})
-export default class Heating extends Component {
-  render() {
-    return (
-      <div>
-        {this.props.thermostats && this.props.thermostats.map(thermostat => {
-          return (
-            <Thermostat {...thermostat} />
-          );
-        })}
-      </div>
-    );
-  }
+  });
+
+  useEffect(() => {
+    return subscribeToMore({
+      document: gql`
+        subscription {
+          onThermostatChanged {
+            id
+            name
+            targetTemperature
+            currentTemperature
+            isHeating
+            power,
+            humidity
+          }
+        }
+      `,
+      updateQuery(prev, { subscriptionData: { data: { onThermostatChanged }}} ) {
+        return {
+          getHeating: {
+            __typename: 'Heating',
+            thermostats: prev.getHeating.thermostats.map(t => {
+              return t.id === onThermostatChanged.id ? { ...t, ...onThermostatChanged } : t;
+            })
+          }
+        };
+      }
+    });
+  });
+
+  return (
+    <div>
+      {data && data.getHeating.thermostats.map(thermostat => {
+        return (
+          <Thermostat {...thermostat} />
+        );
+      })}
+    </div>
+  );
 }
