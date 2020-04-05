@@ -65,13 +65,15 @@ class LightHistory extends Component {
         <h3>{this.props.name}</h3>
 
         {this.props.data && (
-          <FlexibleWidthXYPlot height={300} yType="ordinal" yDomain={[0, 1, 2, 3, 4, 5, 6]} xDomain={Array.from({ length: 96 }, (v, i) => i)} xType="ordinal" dontCheckIfEmpty>
-            <XAxis tickFormat={v => v % 4 === 0 ? `${String(v / 4).padStart(2, '0')}:00` : ''}/>
-            <YAxis tickFormat={v => moment().subtract(v, 'd').format('dd')[0]}/>
-            <HeatmapSeries
-              data={this.formatData()}
-            />
-          </FlexibleWidthXYPlot>
+          <div className="light-history__plot">
+            <FlexibleWidthXYPlot height={300} yType="ordinal" yDomain={[0, 1, 2, 3, 4, 5, 6]} xDomain={Array.from({ length: 96 }, (v, i) => i)} xType="ordinal" dontCheckIfEmpty>
+              <XAxis tickFormat={v => v % 4 === 0 ? `${String(v / 4).padStart(2, '0')}:00` : ''}/>
+              <YAxis tickFormat={v => moment().subtract(v, 'd').format('dd')[0]}/>
+              <HeatmapSeries
+                data={this.formatData()}
+              />
+            </FlexibleWidthXYPlot>
+          </div>
         )}
       </React.Fragment>
     );
@@ -90,6 +92,10 @@ class LightHistory extends Component {
 })
 export default class History extends Component {
   render() {
+    const { lights = [] } = this.props;
+
+    lights.sort((a, b) => a.name.localeCompare(b.name));
+
     return (
       <div>
         <Header />
@@ -98,7 +104,7 @@ export default class History extends Component {
           <div className='body body--history'>
             <h2>Lighting</h2>
 
-            {this.props.lights && this.props.lights.map(light => <LightHistory id={light.id} name={light.name} />)}
+            {lights.map(light => <LightHistory id={light.id} name={light.name} />)}
           </div>
         </div>
 
