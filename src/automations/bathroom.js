@@ -33,8 +33,12 @@ export default function ({ sensorName, lightName, maximumHumidity, offDelaySecon
             timeoutToTurnOff = setTimeout(async () => {
               const humidity = await sensor.getProperty('humidity');
 
+              timeoutToTurnOff = null;
+
               if (humidity < maximumHumidity) {
                 await light.setProperty('on', false);
+              } else {
+                await light.setProperty('brightness', 1);
               }
             }, offDelaySeconds * 1000);
           }
@@ -46,8 +50,10 @@ export default function ({ sensorName, lightName, maximumHumidity, offDelaySecon
             const desiredLightState = event.value > maximumHumidity;
             const actualLightState = await light.getProperty('on');
 
-            if (desiredLightState !== actualLightState) {
-              await light.setProperty('on', desiredLightState);
+            if (desiredLightState === true && actualLightState === false) {
+              await light.setProperty('brightness', 1);
+            } else if (desiredLightState === false && actualLightState === true) {
+              await light.setProperty('on', false);
             }
           }
         }
