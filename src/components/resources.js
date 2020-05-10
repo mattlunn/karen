@@ -10,9 +10,6 @@ export default function(requestedResources) {
     };
   }
 
-  @connect(mapStateToProps, {
-    fetchResource
-  })
   class Loader extends Component {
     componentDidMount() {
       for (const resource of requestedResources) {
@@ -24,7 +21,7 @@ export default function(requestedResources) {
 
     render() {
       if (this.props.resources.length === requestedResources.length) {
-        return <h1>{this.props.children}</h1>
+        return <h1>{this.props.children}</h1>;
       } else {
         return (
           <div className="resource-loader__loading-spinner">
@@ -35,5 +32,9 @@ export default function(requestedResources) {
     }
   }
 
-  return Component => () => <Loader><Component /></Loader>
+  const WrappedLoader = connect(mapStateToProps, {
+    fetchResource
+  })(Loader);
+
+  return Component => () => <WrappedLoader><Component /></WrappedLoader>;
 }

@@ -16,21 +16,7 @@ function mapStateToProps() {
   };
 }
 
-@graphql(gql`{
-  getSecurityStatus {
-    cameras {
-      id,
-      snapshot,
-      name
-    },
-
-    isHome
-  }
-}`, {
-  props: ({ data: { getSecurityStatus }}) => ({ ...getSecurityStatus })
-})
-@connect(mapStateToProps)
-export default class Security extends Component {
+class Security extends Component {
   constructor() {
     super();
 
@@ -59,8 +45,6 @@ export default class Security extends Component {
               [camera.id]: snapshot
             }
           });
-        } catch (e) {
-          throw e;
         } finally {
           this.loading[camera.id] = false;
         }
@@ -83,7 +67,7 @@ export default class Security extends Component {
         <ul className="security__camera-list">
           {this.props.cameras && this.props.cameras.map((camera) => {
             return (
-              <li className="security__camera">
+              <li className="security__camera" key={camera.id}>
                 <h3>
                   {camera.name}
 
@@ -107,3 +91,17 @@ export default class Security extends Component {
     );
   }
 }
+
+export default graphql(gql`{
+  getSecurityStatus {
+    cameras {
+      id,
+      snapshot,
+      name
+    },
+
+    isHome
+  }
+}`, {
+  props: ({ data: { getSecurityStatus }}) => ({ ...getSecurityStatus })
+})(connect(mapStateToProps)(Security));

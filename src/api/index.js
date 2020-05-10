@@ -3,7 +3,7 @@ import * as db from '../models';
 import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History } from './models';
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
-import makeSynologyRequest from '../services/synology/instance'
+import makeSynologyRequest from '../services/synology/instance';
 import DataLoaderWithContextAndNoIdParam from './lib/dataloader-with-context-and-no-id-param';
 import DataLoaderWithContext from './lib/dataloader-with-context';
 import schema from './schema';
@@ -54,7 +54,7 @@ function createSubscriptionForDeviceType(deviceType, mapper, properties) {
             }
           };
         }
-      }
+      };
     }
   };
 }

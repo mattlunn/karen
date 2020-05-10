@@ -10,10 +10,7 @@ function mapStateToProps(state) {
   };
 }
 
-@connect(mapStateToProps, {
-  attemptLogin
-})
-export default class Home extends Component {
+class Home extends Component {
   constructor() {
     super();
 
@@ -54,3 +51,7 @@ export default class Home extends Component {
     );
   }
 }
+
+export default connect(mapStateToProps, {
+  attemptLogin
+})(Home);

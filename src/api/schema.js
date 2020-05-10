@@ -94,4 +94,4 @@ export default gql`
     onLightChanged(id: ID): Light
     onThermostatChanged: Thermostat
   }
-`
+`;

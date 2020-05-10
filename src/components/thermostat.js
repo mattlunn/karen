@@ -9,27 +9,7 @@ import 'rc-slider/assets/index.css';
 const SliderWithTooltip = createSliderWithTooltip(Slider);
 const formatTemperature = (temp) => temp.toFixed(1);
 
-@graphql(gql`
-  mutation updateThermostat($id: ID!, $targetTemperature: Float) {
-    updateThermostat(id: $id, targetTemperature: $targetTemperature) {
-      id
-      name
-      targetTemperature
-      currentTemperature
-      isHeating
-      humidity
-    }
-  }
-`, {
-  props: ({ mutate, ownProps: { id } }) => ({
-    setTargetTemperature(targetTemperature) {
-      mutate({
-        variables: { id, targetTemperature }
-      });
-    }
-  })
-})
-export default class Thermostat extends Component {
+class Thermostat extends Component {
   constructor(props) {
     super(props);
 
@@ -74,7 +54,7 @@ export default class Thermostat extends Component {
 
   render() {
     const hoursHeatingActive = +((this.props.heatingHistory.reduce((total, curr) => {
-      return total + (curr.end - curr.start)
+      return total + (curr.end - curr.start);
     }, 0) / 1000 / 60 / 60).toFixed(1));
 
     const marks = {
@@ -141,3 +121,24 @@ export default class Thermostat extends Component {
     );
   }
 }
+
+export default graphql(gql`
+  mutation updateThermostat($id: ID!, $targetTemperature: Float) {
+    updateThermostat(id: $id, targetTemperature: $targetTemperature) {
+      id
+      name
+      targetTemperature
+      currentTemperature
+      isHeating
+      humidity
+    }
+  }
+  `, {
+  props: ({ mutate, ownProps: { id } }) => ({
+    setTargetTemperature(targetTemperature) {
+      mutate({
+        variables: { id, targetTemperature }
+      });
+    }
+  })
+})(Thermostat);

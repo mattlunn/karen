@@ -13,6 +13,7 @@ module.exports = {
     Atomics: 'readonly',
     SharedArrayBuffer: 'readonly'
   },
+  parser: 'babel-eslint',
   parserOptions: {
     ecmaFeatures: {
       jsx: true
@@ -21,8 +22,23 @@ module.exports = {
     sourceType: 'module'
   },
   plugins: [
-    'react'
+    'react',
+    'babel'
   ],
   rules: {
-  }
-}
+    'no-prototype-builtins': 0,
+    'no-unused-vars': 0,
+    'react/prop-types': 0,
+    'babel/semi': 1
+  },
+  overrides: [
+    {
+      files: [
+        "**/*.test.js"
+      ],
+      env: {
+        jest: true
+      }
+    }
+  ],
+};

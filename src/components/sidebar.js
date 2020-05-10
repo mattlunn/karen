@@ -5,18 +5,7 @@ import { AWAY, HOME } from '../constants/status';
 import gql from 'graphql-tag';
 import { graphql } from '@apollo/react-hoc';
 
-@graphql(gql`{
-  stays: getUsers {
-    id
-    avatar
-    status
-    since
-    until
-  }
-}`, {
-  props: ({ data }) => data
-})
-export default class SideBar extends Component {
+class SideBar extends Component {
   render() {
     const { stays } = this.props;
 
@@ -38,8 +27,20 @@ export default class SideBar extends Component {
 
         <h2>Effra Road</h2>
 
-        {stays && stays.map((stay) => <UserStatus {...stay} />)}
+        {stays && stays.map((stay) => <UserStatus key={stay.id} {...stay} />)}
       </div>
     );
   }
 }
+
+export default graphql(gql`{
+  stays: getUsers {
+    id
+    avatar
+    status
+    since
+    until
+  }
+}`, {
+  props: ({ data }) => data
+})(SideBar);

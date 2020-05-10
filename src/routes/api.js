@@ -48,7 +48,7 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
           type: 'motion',
           deviceName: event.device.name
         };
-      })
+      });
     }),
 
     Stay.findAll({
@@ -178,7 +178,7 @@ router.get('/recording/:id', asyncWrapper(async function (req, res) {
     'Content-Type': 'video/mp4',
     'Content-Range': 'bytes ' + range.start + '-' + range.end + '/' + recording.size,
     'Content-Length': chunk + 1
-  })
+  });
 
   return s3.serve(recording.recording, range.start, range.end).then((file) => {
     res.end(file);

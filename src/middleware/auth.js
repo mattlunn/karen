@@ -5,7 +5,7 @@ const factories = [
   function (req) {
     const token = (
       req.header('Authorization') || ''
-    ).match(/^Bearer ([a-zA-Z0-9_=\/+]{1,255})$/);
+    ).match(/^Bearer ([a-zA-Z0-9_=/+]{1,255})$/);
 
     return token === null ? null : token[1];
   },
@@ -27,10 +27,12 @@ export default asyncWrapper(async (req, res, next) => {
 
         return next();
       }
-    } catch (e) {}
+    } catch (e) {
+      // Intentionally empty
+    }
   }
 
   res
     .status(401)
     .end();
-})
+});

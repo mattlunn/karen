@@ -23,7 +23,7 @@ class Aggregate {
       if (!row.end) {
         total += 1;
       } else {
-        total += moment(row.end).diff(row.start, 'minutes')
+        total += moment(row.end).diff(row.start, 'minutes');
       }
 
       count += row.value;
@@ -34,7 +34,7 @@ class Aggregate {
 
   duration() {
     return this.data.reduce((acc, curr) => {
-      return acc + moment(curr.end).diff(curr.start, 'seconds')
+      return acc + moment(curr.end).diff(curr.start, 'seconds');
     }, 0);
   }
 }

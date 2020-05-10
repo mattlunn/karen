@@ -48,4 +48,4 @@ export default async function (intent) {
       text: str
     }
   };
-};
+}

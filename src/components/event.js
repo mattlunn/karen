@@ -12,7 +12,7 @@ export default class Event extends Component {
   render() {
     return (
       <React.Fragment>
-        <span class="event__timestamp">{moment(this.props.timestamp).format('HH:mm:ss')}</span>
+        <span className="event__timestamp">{moment(this.props.timestamp).format('HH:mm:ss')}</span>
 
         <span className="event__icon"><FontAwesomeIcon icon={this.props.icon} /></span>
 
@@ -26,7 +26,7 @@ export default class Event extends Component {
               togglePanel: (panel) => this.setState({ panel: this.state.panel === panel ? null : panel })
             }).map((control, idx) => {
               return (
-                <React.Fragment>
+                <React.Fragment key={idx}>
                   {idx !== 0 && <React.Fragment>&nbsp;&bull;&nbsp;</React.Fragment>}
                   {control}
                 </React.Fragment>

@@ -5,7 +5,7 @@ import { closeModal } from '../../actions/modal';
 import { ETA_PICKER } from '../../constants/modals';
 import { range } from '../../helpers/iterable';
 import pad from 'left-pad';
-import Calendar from 'react-calendar'
+import Calendar from 'react-calendar';
 import moment from 'moment';
 import gql from 'graphql-tag';
 import { graphql } from '@apollo/react-hoc';
@@ -20,29 +20,7 @@ function mapDispatchToProps(dispatch, ownProps) {
   };
 }
 
-@connect(mapStateToProps, mapDispatchToProps)
-@graphql(gql`mutation($id: ID!, $eta: Float) {
-  updateUser(id: $id, eta: $eta) {
-    id,
-    until
-  }
-}`, {
-  props({ mutate, ownProps }) {
-    return {
-      setEta(id, eta) {
-        mutate({
-          variables: {
-            id,
-            eta: +eta
-          }
-        }).then(() => {
-          ownProps.closeModal();
-        });
-      }
-    }
-  }
-})
-export default class EtaPicker extends Component {
+class EtaPicker extends Component {
   constructor(props) {
     super(props);
 
@@ -102,3 +80,27 @@ export default class EtaPicker extends Component {
     );
   }
 }
+
+export default connect(mapStateToProps, mapDispatchToProps)(
+  graphql(gql`mutation($id: ID!, $eta: Float) {
+    updateUser(id: $id, eta: $eta) {
+      id,
+      until
+    }
+  }`, {
+    props({ mutate, ownProps }) {
+      return {
+        setEta(id, eta) {
+          mutate({
+            variables: {
+              id,
+              eta: +eta
+            }
+          }).then(() => {
+            ownProps.closeModal();
+          });
+        }
+      };
+    }
+  })(EtaPicker)
+);
