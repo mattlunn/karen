@@ -94,7 +94,8 @@
     "debug": "babel-node --inspect-brk server.js",
     "create-user": "babel-node scripts/create-user.js",
     "migrate": "babel-node scripts/migrate.js",
-    "build": "node node_modules/webpack/bin/webpack"
+    "build": "node node_modules/webpack/bin/webpack",
+    "test": "jest ."
   },
   "author": "",
   "license": "ISC"
