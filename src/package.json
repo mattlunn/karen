@@ -103,7 +103,7 @@
     "migrate": "babel-node scripts/migrate.js",
     "build": "node node_modules/webpack/bin/webpack",
     "test": "jest .",
-    "lint": "eslint ."
+    "lint": "eslint --max-warnings 0 ."
   },
   "author": "",
   "license": "ISC"
