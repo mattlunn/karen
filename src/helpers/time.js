@@ -20,9 +20,9 @@ function normalizeDuration(offset) {
   return duration;
 }
 
-export function normalizeTime(time) {
+export function normalizeTime(time, date) {
   if (time.includes('sunrise') || time.includes('sunset')) {
-    const sunEvents = getSunriseAndSunset();
+    const sunEvents = getSunriseAndSunset(date);
     const [sunEvent, direction, offset] = time.split(/ *([+-]) */);
     const timeOfSunEvent = moment(sunEvents[sunEvent]);
 
@@ -33,10 +33,30 @@ export function normalizeTime(time) {
 
     return timeOfSunEvent;
   } else {
-    return moment(time, 'HH:mm');
+    const [hour, minute] = time.split(':');
+    const ret = moment(date);
+
+    ret.set({
+      hour,
+      minute
+    });
+
+    return ret;
   }
 }
 
+// Has tests!
 export function isWithinTime(start, end, date = Date.now()) {
-  return normalizeTime(start).isBefore(date) && normalizeTime(end).isAfter(date);
+  let normalizedStart = normalizeTime(start, date);
+  let normalizedEnd = normalizeTime(end, date);
+
+  if (normalizedEnd.isSameOrBefore(normalizedStart)) {
+    if (normalizedEnd.isBefore(date)) {
+      normalizedEnd = normalizeTime(end, moment(date).add(1, 'd'));
+    } else if (normalizedStart.isAfter(date)) {
+      normalizedStart = normalizeTime(start, moment(date).subtract(1, 'd'));
+    }
+  }
+
+  return normalizedStart.isSameOrBefore(date) && normalizedEnd.isAfter(date);
 }
