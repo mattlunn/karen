@@ -4,31 +4,7 @@ import gql from 'graphql-tag';
 import moment from 'moment';
 import { FlexibleWidthXYPlot, XAxis, YAxis, HeatmapSeries } from 'react-vis';
 
-@graphql(gql`
-  query getHistory($id: ID!, $type: String, $from: Float!, $to: Float!) {
-    getHistory(id: $id, type: $type, from: $from, to: $to) {
-      data {
-        period {
-          start
-          end
-        }
-
-        value
-      }
-    }
-  }
-`, {
-  options: ({ id }) => ({
-    variables: {
-      id,
-      type: 'on',
-      from: moment().subtract(6, 'd').startOf('d').valueOf(),
-      to: moment().endOf('d').valueOf()
-    },
-  }),
-  props: ({ data: { getHistory }}) => ({ ...getHistory })
-})
-export default class LightingHistory extends Component {
+class LightingHistory extends Component {
   formatData() {
     const daysSinceEpoch = Math.floor(Date.now() / 8.64e+7);
     const bucketSize = 1000 * 60 * 15;
@@ -76,3 +52,28 @@ export default class LightingHistory extends Component {
     );
   }
 }
+
+export default graphql(gql`
+  query getHistory($id: ID!, $type: String, $from: Float!, $to: Float!) {
+    getHistory(id: $id, type: $type, from: $from, to: $to) {
+      data {
+        period {
+          start
+          end
+        }
+
+        value
+      }
+    }
+  }
+  `, {
+  options: ({ id }) => ({
+    variables: {
+      id,
+      type: 'on',
+      from: moment().subtract(6, 'd').startOf('d').valueOf(),
+      to: moment().endOf('d').valueOf()
+    },
+  }),
+  props: ({ data: { getHistory }}) => ({ ...getHistory })
+})(LightingHistory);

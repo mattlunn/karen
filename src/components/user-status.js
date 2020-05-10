@@ -18,28 +18,7 @@ function mapDispatchToProps(dispatch, ownProps) {
   };
 }
 
-@graphql(gql`mutation($id: ID!, $status: Status) {
-  updateUser(id:$id, status:$status) {
-    id,
-    status,
-    since
-  }
-}`, {
-  props({ mutate, ownProps }) {
-    return {
-      toggleStatus() {
-        mutate({
-          variables: {
-            id: ownProps.id,
-            status: ownProps.status === HOME ? AWAY : HOME
-          }
-        });
-      }
-    }
-  }
-})
-@connect(null, mapDispatchToProps)
-export default class UserStatus extends Component {
+class UserStatus extends Component {
   renderStatusMessage() {
     if (this.props.status === HOME) {
       const sinceMoment = moment(this.props.since);
@@ -85,3 +64,24 @@ export default class UserStatus extends Component {
     );
   }
 }
+
+export default graphql(gql`mutation($id: ID!, $status: Status) {
+  updateUser(id:$id, status:$status) {
+    id,
+    status,
+    since
+  }
+}`, {
+  props({ mutate, ownProps }) {
+    return {
+      toggleStatus() {
+        mutate({
+          variables: {
+            id: ownProps.id,
+            status: ownProps.status === HOME ? AWAY : HOME
+          }
+        });
+      }
+    };
+  }
+})(connect(null, mapDispatchToProps)(UserStatus));

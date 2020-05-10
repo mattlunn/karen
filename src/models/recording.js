@@ -22,4 +22,4 @@ export default function (sequelize) {
       type: Sequelize.INTEGER.UNSIGNED
     }
   });
-};
+}

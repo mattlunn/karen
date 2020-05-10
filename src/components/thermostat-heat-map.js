@@ -37,9 +37,10 @@ export default class HeatingHeatMap extends Component {
     return (
       <div className="heating-heat-map">
         <div className="heating-heat-map__map">
-          {this.props.activity.map((activity) => {
+          {this.props.activity.map((activity, index) => {
             return (
               <div
+                key={index}
                 className="heating-heat-map__heat-segment"
                 style={{
                   marginLeft: dateAsIncrementingPercentage(activity.start),

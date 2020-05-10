@@ -17,7 +17,7 @@ S3.prototype.remove = function (handle) {
   return new Promise((resolve, reject) => {
     this.client.deleteObject({
       Key: handle
-    }, (err, data) => {
+    }, (err) => {
       if (err) {
         reject(err);
       } else {
@@ -33,7 +33,7 @@ S3.prototype.store = function (id, buffer) {
       Body: buffer,
       ContentType: 'video/mp4',
       Key: id
-    }, (err, data) => {
+    }, (err) => {
       if (err) {
         reject(err);
       } else {

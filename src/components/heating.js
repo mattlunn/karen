@@ -60,9 +60,9 @@ export default function() {
 
   return (
     <div>
-      {data && data.getHeating.thermostats.map(thermostat => {
+      {data && data.getHeating.thermostats.map((thermostat, index) => {
         return (
-          <Thermostat {...thermostat} />
+          <Thermostat key={index} {...thermostat} />
         );
       })}
     </div>

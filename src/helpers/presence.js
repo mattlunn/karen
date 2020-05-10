@@ -41,13 +41,13 @@ export async function markUserAsAway(user) {
       await current.save();
 
       if (unclaimedEta) {
-        console.log(`${res.locals.user.handle} claims ETA ${unclaimedEta.id}`);
+        console.log(`${user.handle} claims ETA ${unclaimedEta.id}`);
 
         unclaimedEta.userId = userId;
 
         await unclaimedEta.save();
       } else if (current.eta !== null && moment(current.eta).isAfter(current.departure)) {
-        console.log(`Exit for ${res.locals.user.handle} in stay ${current.id}`
+        console.log(`Exit for ${user.handle} in stay ${current.id}`
         + ` is before the ETA, and there is no upcoming unclaimed ETA. Assuming `
         + ` user went near to home, without actually going in...`);
 

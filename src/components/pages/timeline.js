@@ -22,11 +22,7 @@ function mapStateToProps(state) {
   };
 }
 
-@resources([ TIMELINE ])
-@connect(mapStateToProps, {
-  loadMoreTimelineEvents
-})
-export default class Timeline extends Component {
+class Timeline extends Component {
   *groupEventsByDays() {
     let i = 0;
 
@@ -53,9 +49,9 @@ export default class Timeline extends Component {
     ) - 200) {
       this.props.loadMoreTimelineEvents();
     }
-  }
+  };
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     window.addEventListener('scroll', this.handleScroll);
   }
 
@@ -73,12 +69,12 @@ export default class Timeline extends Component {
             icon={faEye}
             controls={({ togglePanel }) => {
               return event.recordingId ? [
-                <a onClick={(e) => {
+                <a key={0} onClick={(e) => {
                   e.preventDefault();
                   togglePanel('view');
                 }} href="#" className="card-link">view</a>,
-                <a href={"/recording/" + event.recordingId + "?download=true"} className="card-link">download</a>
-              ] : []
+                <a key={1} href={"/recording/" + event.recordingId + "?download=true"} className="card-link">download</a>
+              ] : [];
             }}
             panels={{
               view: (
@@ -164,3 +160,9 @@ export default class Timeline extends Component {
     );
   }
 }
+
+export default resources([ TIMELINE ])(
+  connect(mapStateToProps, {
+    loadMoreTimelineEvents
+  })(Timeline)
+);

@@ -28,7 +28,7 @@ export default function (state = { loggingIn: false }, action) {
     default:
       return state;
   }
-};
+}
 
 export function getIsLoggingIn({ loggingIn }) {
   return loggingIn;

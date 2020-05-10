@@ -4,7 +4,9 @@ async function processQueue() {
   while (queue.length) {
     try {
       await queue[0]();
-    } catch(e) {} finally {
+    } catch(e) {
+      // Intentionally empty
+    } finally {
       queue.shift();
     }
   }

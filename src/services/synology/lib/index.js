@@ -71,4 +71,4 @@ export default async function (host, port, account, password, session) {
   await synology.init();
 
   return synology;
-};
+}

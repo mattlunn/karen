@@ -119,7 +119,7 @@ async function captureRecording(event, providerId, startOfRecording, endOfRecord
 
 async function maybeDispatchNotification(event, now) {
   if (now.isSame(event.start)) {
-    const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(now)
+    const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(now);
 
     if (!isSomeoneAtHome) {
       sendNotification('Motion detected at ' + moment(now).format('HH:mm:ss'), 'https://karen.mattlunn.me.uk/timeline');

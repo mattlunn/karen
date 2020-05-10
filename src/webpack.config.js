@@ -2,7 +2,6 @@ const webpack = require('webpack');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
 
 module.exports = {
   entry: path.join(__dirname, 'client.js'),
@@ -31,7 +30,7 @@ module.exports = {
     new MiniCssExtractPlugin({
       filename: 'app.[contenthash].css'
     }),
-    new webpack.ContextReplacementPlugin(/moment[\/\\]locale$/, /uk/),
+    new webpack.ContextReplacementPlugin(/moment[/\\]locale$/, /uk/),
     new HtmlWebpackPlugin({
       template: __dirname + '/views/layout.html',
     })

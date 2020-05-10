@@ -12,8 +12,7 @@ function mapStateToProps(state) {
   };
 }
 
-@connect(mapStateToProps)
-export default class Modals extends Component {
+class Modals extends Component {
   constructor() {
     super();
 
@@ -37,3 +36,5 @@ export default class Modals extends Component {
     }
   }
 }
+
+export default connect(mapStateToProps)(Modals);

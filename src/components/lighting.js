@@ -3,7 +3,7 @@ import LightingTile from './lighting-tile';
 import gql from 'graphql-tag';
 import { useQuery } from '@apollo/react-hooks';
 
-export default function() {
+export default function Lighting() {
   const { data, subscribeToMore } = useQuery(
     gql`{
       getLighting {
@@ -32,14 +32,14 @@ export default function() {
           getLighting: {
             lights: lights.map(light => light.id === changedLight.id ? changedLight : light)
           }
-        }
+        };
       }
     });
   });
 
   return (
     <ul>
-      {data && data.getLighting.lights.map(({ id, name, isOn }) => <LightingTile id={id} name={name} isOn={isOn} />)}
+      {data && data.getLighting.lights.map(({ id, name, isOn }) => <LightingTile key={id} id={id} name={name} isOn={isOn} />)}
     </ul>
   );
 }

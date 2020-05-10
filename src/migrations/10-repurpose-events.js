@@ -5,7 +5,7 @@ module.exports = {
       return queryInterface.changeColumn('events', 'deviceId', {
         type: Sequelize.STRING,
         allowNull: false
-      })
+      });
     }).then(() => {
       return queryInterface.renameColumn('events', 'timestamp', 'start');
     }).then(() => {
@@ -103,7 +103,7 @@ module.exports = {
     }).then(() => {
       return queryInterface.renameColumn('events', 'deviceId', 'cameraId');
     }).then(() => {
-      return queryInterface.renameColumn('events', 'start', 'timestamp')
+      return queryInterface.renameColumn('events', 'start', 'timestamp');
     }).then(() => {
       return queryInterface.removeColumn('events', 'end');
     }).then(() => {

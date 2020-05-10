@@ -32,7 +32,7 @@ export default function (state = { events: [], isLoadingMoreEvents: false, hasMo
     default:
       return state;
   }
-};
+}
 
 export function getEvents({ timeline: { events } }) {
   return events;

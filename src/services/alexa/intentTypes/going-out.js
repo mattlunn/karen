@@ -46,4 +46,4 @@ export default async function (intent) {
       text: `Karen said she's missing you already`
     }
   };
-};
+}

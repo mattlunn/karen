@@ -20,6 +20,7 @@ function getAccessToken() {
 }
 
 nowAndSetInterval(() => {
+  // eslint-disable-next-line no-async-promise-executor
   accessTokenPromise = new Promise(async (res) => {
     // {"access_token":"583a45c7-d64c-45b1-a70b-b7de4de5c26d","token_type":"bearer","refresh_token":"f23a5350-16b4-4e1a-b39c-c05898856f3d","expires_in":86399,"scope":"r:locations:* x:devices:* i:deviceprofiles r:devices:* w:devices:*","installed_app_id":"14082a1f-8070-4796-be37-14939e34f938"}
     const response = await fetch('https://auth-global.api.smartthings.com/oauth/token', {
@@ -89,10 +90,9 @@ Device.registerProvider('smartthings', {
 
         return !!(latestEvent && !latestEvent.end);
       }
-      case 'motion':
-        case 'humidity': {
-          return (await device.getLatestEvent(key)).value;
-        }
+      case 'humidity': {
+        return (await device.getLatestEvent(key)).value;
+      }
       default:
         throw new Error(`"${key}" is not a recognised property for SmartThings`);
     }

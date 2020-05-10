@@ -5,7 +5,7 @@ import { faLightbulb } from '@fortawesome/free-regular-svg-icons';
 import gql from 'graphql-tag';
 import { useMutation, useSubscription } from '@apollo/react-hooks';
 
-export default function({ id, name, isOn }) {
+export default function LightingTile({ id, name, isOn }) {
   const [setLightSwitchStatus] = useMutation(gql`
     mutation updateLight($id: ID!, $isOn: Boolean) {
       updateLight(id: $id, isOn: $isOn) {

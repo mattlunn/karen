@@ -85,7 +85,9 @@ router.get('/setup', asyncWrapper(async (req, res) => {
   // Will error if first time setup, and karen hasn't been created yet.
   try {
     await client.request(`/events/${eventId}`, null, 'DELETE');
-  } catch (e) {};
+  } catch (e) {
+    // Intentionally empty
+  }
 
   await client.request('/events', {
     url: `${url}/lightwaverf/event`,
