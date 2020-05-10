@@ -1,3 +1,5 @@
+jest.mock('../config', () => ({}), { virtual: true });
+
 import { isWithinTime } from './time';
 import moment from 'moment-timezone';
 
