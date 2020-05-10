@@ -11,8 +11,8 @@ import { connect } from 'react-redux';
 import Event from '../event';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
-import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
-import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
+import { faHome } from '@fortawesome/free-solid-svg-icons/faHome'
+import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb'
 
 function mapStateToProps(state) {
   return {
