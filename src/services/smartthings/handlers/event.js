@@ -51,6 +51,8 @@ export default async function ({ eventData }) {
   for (const { deviceEvent: { attribute, deviceId, value } } of eventData.events) {
     const attributeHandler = attributeHandlers[attribute];
 
+    console.log(`${attribute} has changed to ${value} for ${deviceId}`);
+
     if (attributeHandler) {
       const device = await Device.findByProviderId('smartthings', deviceId);
 
