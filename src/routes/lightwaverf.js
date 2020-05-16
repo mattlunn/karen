@@ -26,15 +26,37 @@ const router = express.Router();
   payload: { time: 1559479315874, value: 1 } }
 */
 
-router.post('/event', asyncWrapper(async (req, res) => {
-  if (req.body.id !== config.lightwaverf.event_id) {
-    res.sendStatus(400);
+const eventHandlers = new Map();
+
+eventHandlers.set('dimLevel', async ({ featureId, value, time }) => {
+  const lights = await Device.findByProvider('lightwaverf');
+  const light = lights.find(x => x.meta.dimLevelFeatureId === featureId);
+  const lastEvent = await light.getLatestEvent('brightness');
+
+  if (lastEvent) {
+    if (lastEvent.value === value) {
+      return;
+    } else {
+      lastEvent.end = new Date(time);
+      await lastEvent.save();
+    }
   }
 
+  await Event.create({
+    deviceId: light.id,
+    type: 'brightness',
+    start: new Date(time),
+    value
+  });
+
+  light.onPropertyChanged('brightness');
+});
+
+eventHandlers.set('switch', async ({ featureId, value, time }) => {
   const lights = await Device.findByProvider('lightwaverf');
-  const light = lights.find(x => x.meta.switchFeatureId === req.body.triggerEvent.id);
+  const light = lights.find(x => x.meta.switchFeatureId === featureId);
   const lastEvent = await light.getLatestEvent('on');
-  const isOn = req.body.payload.value === 1;
+  const isOn = value === 1;
 
   if (isOn) {
     if (lastEvent && !lastEvent.end) {
@@ -43,7 +65,7 @@ router.post('/event', asyncWrapper(async (req, res) => {
       await Event.create({
         deviceId: light.id,
         type: 'on',
-        start: new Date(req.body.payload.time),
+        start: new Date(time),
         value: 1
       });
 
@@ -53,11 +75,25 @@ router.post('/event', asyncWrapper(async (req, res) => {
     if (!lastEvent || lastEvent.end) {
       console.error(`"${light.id}" has been turned off, but has no active event...`);
     } else {
-      lastEvent.end = new Date(req.body.payload.time);
+      lastEvent.end = new Date(time);
       await lastEvent.save();
 
       light.onPropertyChanged('on');
     }
+  }
+});
+
+router.post('/event', asyncWrapper(async (req, res) => {
+  if (req.body.id !== config.lightwaverf.event_id) {
+    res.sendStatus(400);
+  }
+
+  const payload = req.body.payload;
+
+  if (eventHandlers.has(payload.type)) {
+    await Promise.resolve(eventHandlers.get(payload.type)(payload));
+  } else {
+    console.error(`Lightwave's webhook does not know how to handle "${payload.type}" events`);
   }
 
   res.sendStatus(200);
@@ -92,10 +128,13 @@ router.get('/setup', asyncWrapper(async (req, res) => {
   await client.request('/events', {
     url: `${url}/lightwaverf/event`,
     ref: eventId,
-    events: lights.map(({ meta: { switchFeatureId: id }}) => ({
+    events: lights.flatMap(({ meta: { switchFeatureId, dimLevelFeatureId }}) => ([{
       type: 'feature',
-      id
-    }))
+      id: dimLevelFeatureId
+    }, {
+      type: 'feature',
+      id: switchFeatureId
+    }]))
   });
 
   res.sendStatus(200);

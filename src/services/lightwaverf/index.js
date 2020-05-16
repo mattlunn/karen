@@ -65,6 +65,7 @@ authenticate().then(() => Device.registerProvider('lightwaverf', {
       device.type = 'light';
       device.name = light.name;
       device.meta.switchFeatureId = findFeatureId('switch', light.features);
+      device.meta.dimLevelFeatureId = findFeatureId('dimLevel', light.features);
 
       await device.save();
     }
