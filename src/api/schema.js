@@ -27,6 +27,7 @@ export default gql`
     id: ID!
     name: String!
     isOn: Boolean!
+    brightness: Int
   }
 
   type Camera {

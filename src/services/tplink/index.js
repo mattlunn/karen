@@ -29,6 +29,8 @@ Device.registerProvider('tplink', {
 
   async getProperty(device, key) {
     switch (key) {
+      case 'brightness':
+        return 100;
       case 'on':
         return getHandlerForDevice(await authenticatedClient, device).isOn().catch(() => false);
       default:

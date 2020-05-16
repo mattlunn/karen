@@ -43,6 +43,9 @@ authenticate().then(() => Device.registerProvider('lightwaverf', {
 
         return !!(latestEvent && !latestEvent.end);
       }
+      case 'brightness': {
+        return (await device.getLatestEvent(key)).value;
+      }
       default:
         throw new Error(`"${key}" is not a recognised property for LightwaveRf`);
     }

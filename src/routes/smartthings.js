@@ -31,7 +31,7 @@ async function validateRequest(req) {
 }
 
 router.post('/endpoint', asyncWrapper(async (req, res, next) => {
-  if (!await validateRequest(req)) {
+  if (req.body.lifecycle !== 'PING' && !await validateRequest(req)) {
     console.warn('Request to /smartthings/endpoint was blocked, because the request was deemed invalid');
     return res.sendStatus(401);
   } else {

@@ -10,7 +10,8 @@ export default function Lighting() {
         lights {
           id,
           name,
-          isOn
+          isOn,
+          brightness
         }
       }
     }`
@@ -24,6 +25,7 @@ export default function Lighting() {
             id
             name
             isOn
+            brightness
           }
         }
       `,
@@ -39,7 +41,7 @@ export default function Lighting() {
 
   return (
     <ul>
-      {data && data.getLighting.lights.map(({ id, name, isOn }) => <LightingTile key={id} id={id} name={name} isOn={isOn} />)}
+      {data && data.getLighting.lights.map(({ id, name, isOn, brightness }) => <LightingTile key={id} id={id} name={name} isOn={isOn} brightness={brightness}/>)}
     </ul>
   );
 }

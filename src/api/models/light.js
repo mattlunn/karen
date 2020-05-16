@@ -11,6 +11,10 @@ export default class Light {
     return this.data.getProperty('on');
   }
 
+  brightness() {
+    return this.data.getProperty('brightness');
+  }
+
   name() {
     return this.data.name;
   }
