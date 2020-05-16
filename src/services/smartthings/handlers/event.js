@@ -39,6 +39,11 @@ const attributeHandlers = {
   humidity: {
     valueMapper: (value) => Number(value),
     eventMapper: () => 'humidity'
+  },
+
+  level: {
+    valueMapper: (value) => Number(value),
+    eventMapper: () => 'brightness'
   }
 };
 

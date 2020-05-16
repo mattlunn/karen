@@ -90,7 +90,8 @@ Device.registerProvider('smartthings', {
 
         return !!(latestEvent && !latestEvent.end);
       }
-      case 'humidity': {
+      case 'humidity':
+      case 'brightness': {
         return (await device.getLatestEvent(key)).value;
       }
       default:

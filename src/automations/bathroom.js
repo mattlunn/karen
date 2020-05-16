@@ -14,20 +14,26 @@ let timeoutToTurnOff = null;
 export default function ({ sensorName, lightName, maximumHumidity, offDelaySeconds = 0, between = [{ start: '00:00', end: '23:59', brightness: 100 }] }) {
   [EVENT_START, EVENT_END].forEach((eventEvent) => {
     bus.on(eventEvent, async (event) => {
-      const sensor = await event.getDevice();
-      const light = await Device.findByName(lightName);
+      const [sensor, light] = await Promise.all([
+        event.getDevice(),
+        Device.findByName(lightName)
+      ]);
 
       if (sensor.name === sensorName) {
         if (event.type === 'motion') {
           if (eventEvent === EVENT_START) {
-            const isLightOn = await light.getProperty('on');
-            const { brightness = 100 } = between.find(({ start, end }) => isWithinTime(start, end)) || {};
+            const [isLightOn, currentBrightness] = await Promise.all([
+              light.getProperty('on'),
+              light.getProperty('brightness')
+            ]);
+
+            const { brightness: desiredBrightness = 100 } = between.find(({ start, end }) => isWithinTime(start, end)) || {};
 
             clearTimeout(timeoutToTurnOff);
             timeoutToTurnOff = null;
 
-            if (!isLightOn) {
-              await light.setProperty('brightness', brightness);
+            if (!isLightOn || desiredBrightness !== currentBrightness) {
+              await light.setProperty('brightness', desiredBrightness);
             }
           } else if (eventEvent === EVENT_END) {
             timeoutToTurnOff = setTimeout(async () => {
