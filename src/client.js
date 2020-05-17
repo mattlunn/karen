@@ -13,10 +13,8 @@ import { ConnectedRouter, routerReducer, routerMiddleware, push } from 'react-ro
 import createHistory from 'history/createBrowserHistory';
 import { Provider } from 'react-redux';
 
-import resources from './reducers/resources';
 import user from './reducers/user';
 import modal from './reducers/modal';
-import timeline from './reducers/timeline';
 
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faLightbulb } from '@fortawesome/free-regular-svg-icons/faLightbulb';
@@ -77,10 +75,8 @@ const client = new ApolloClient({
 const history = createHistory();
 const store = createStore(combineReducers({
   router: routerReducer,
-  resources,
   user,
   modal,
-  timeline
 }), applyMiddleware(
   thunk,
   routerMiddleware(history)

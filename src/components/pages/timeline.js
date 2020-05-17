@@ -2,25 +2,14 @@ import React, { Component } from 'react';
 import SideBar from '../sidebar';
 import Modals from '../modals';
 import Header from '../header';
-import resources from '../resources';
-import { TIMELINE} from '../../constants/resources';
-import { getEvents, getIsLoadingMoreEvents, getHasMoreEvents } from '../../reducers/timeline';
-import { loadMoreTimelineEvents } from '../../actions/timeline';
 import moment from 'moment';
-import { connect } from 'react-redux';
 import Event from '../event';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
-
-function mapStateToProps(state) {
-  return {
-    events: getEvents(state),
-    isLoadingMoreEvents: getIsLoadingMoreEvents(state),
-    hasMoreEvents: getHasMoreEvents(state)
-  };
-}
+import { graphql } from '@apollo/react-hoc';
+import gql from 'graphql-tag';
 
 class Timeline extends Component {
   *groupEventsByDays() {
@@ -161,8 +150,64 @@ class Timeline extends Component {
   }
 }
 
-export default resources([ TIMELINE ])(
-  connect(mapStateToProps, {
-    loadMoreTimelineEvents
-  })(Timeline)
-);
+
+export default graphql(gql`
+  query getTimeline($since: Float!, $limit: Int!) {
+    getTimeline(since: $since, limit: $limit) {
+      ...on Event {
+        id
+        timestamp
+      }
+
+      ...on MotionEvent {
+        recording {
+          id
+        }
+
+        device {
+          id
+          name
+        }
+      }
+
+      ...on ArrivalEvent {
+        id
+        timestamp
+        user {
+          id
+          avatar
+        }
+      }
+
+      ...on LightOffEvent {
+        device {
+          id
+          name
+        }
+      }
+    }
+  }
+`, {
+  props: ({ data: { getTimeline: events, fetchMore, networkStatus }}) => ({
+    events,
+
+    isLoadingMoreEvents: networkStatus === 3,
+    hasMoreEvents: !!events.length,
+
+    loadMoreTimelineEvents() {
+      return fetchMore({
+        variables: {
+          limit: 100,
+          since: events[events.length - 1].timestamp
+        }
+      });
+    }
+  }),
+
+  options: {
+    variables: {
+      limit: 100,
+      since: Date.now()
+    }
+  }
+})(Timeline);
