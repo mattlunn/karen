@@ -31,6 +31,8 @@ import { split } from 'apollo-link';
 import { HttpLink } from 'apollo-link-http';
 import { WebSocketLink } from 'apollo-link-ws';
 import { getMainDefinition } from 'apollo-utilities';
+import { IntrospectionFragmentMatcher } from 'apollo-cache-inmemory';
+import introspectionQueryResultData from './fragment-types.json';
 
 library.add(faLightbulb, faVideo, faHome, faWalking);
 
@@ -69,7 +71,11 @@ const client = new ApolloClient({
       httpLink
     )
   ]),
-  cache: new InMemoryCache()
+  cache: new InMemoryCache({
+    fragmentMatcher: new IntrospectionFragmentMatcher({
+      introspectionQueryResultData
+    })
+  })
 });
 
 const history = createHistory();

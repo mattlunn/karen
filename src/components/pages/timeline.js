@@ -49,20 +49,20 @@ class Timeline extends Component {
   }
 
   createEvent(event) {
-    switch (event.type) {
-      case 'motion':
+    switch (event.__typename) {
+      case 'MotionEvent':
         return (
           <Event
             timestamp={event.timestamp}
-            title={`Motion detected by "${event.deviceName}"`}
+            title={`Motion detected by "${event.device.name}"`}
             icon={faEye}
             controls={({ togglePanel }) => {
-              return event.recordingId ? [
+              return event.recordin ? [
                 <a key={0} onClick={(e) => {
                   e.preventDefault();
                   togglePanel('view');
                 }} href="#" className="card-link">view</a>,
-                <a key={1} href={"/recording/" + event.recordingId + "?download=true"} className="card-link">download</a>
+                <a key={1} href={"/recording/" + event.recording.id + "?download=true"} className="card-link">download</a>
               ] : [];
             }}
             panels={{
@@ -70,42 +70,42 @@ class Timeline extends Component {
                 <video
                   width="100%"
                   controls
-                  src={"/recording/" + event.recordingId}
+                  src={"/recording/" + event.recording?.id}
                 />
               )
             }}
           />
         );
-      case 'departure':
+      case 'DepartureEvent':
         return (
           <Event
             timestamp={event.timestamp}
             icon={faWalking}
-            title={event.user + ' left the house'}
+            title={event.user.id + ' left the house'}
           />
         );
-      case 'arrival':
+      case 'ArrivalEvent':
         return (
           <Event
             timestamp={event.timestamp}
             icon={faHome}
-            title={event.user + ' arrived home'}
+            title={event.user.id + ' arrived home'}
           />
         );
-        case 'light_on':
+        case 'LightOnEvent':
           return (
             <Event
               timestamp={event.timestamp}
               icon={faLightbulb}
-              title={`The "${event.device}" light was switched on`}
+              title={`The "${event.device.name}" light was switched on`}
             />
           );
-        case 'light_off':
+        case 'LightOffEvent':
           return (
             <Event
               timestamp={event.timestamp}
               icon={faLightbulb}
-              title={`The "${event.device}" light was switched off after being on for ${Math.ceil(event.duration / 1000 / 60)} minutes`}
+              title={`The "${event.device.name}" light was switched off after being on for ${Math.ceil(event.duration / 1000 / 60)} minutes`}
             />
           );
     }
@@ -175,7 +175,6 @@ export default graphql(gql`
         timestamp
         user {
           id
-          avatar
         }
       }
 
@@ -188,21 +187,31 @@ export default graphql(gql`
     }
   }
 `, {
-  props: ({ data: { getTimeline: events, fetchMore, networkStatus }}) => ({
-    events,
+  props: ({ data: { getTimeline: events = [], fetchMore, networkStatus }}) => {
+    return {
+      events,
 
-    isLoadingMoreEvents: networkStatus === 3,
-    hasMoreEvents: !!events.length,
+      isLoadingMoreEvents: networkStatus === 3,
+      hasMoreEvents: !!events.length,
 
-    loadMoreTimelineEvents() {
-      return fetchMore({
-        variables: {
-          limit: 100,
-          since: events[events.length - 1].timestamp
-        }
-      });
-    }
-  }),
+      loadMoreTimelineEvents() {
+        return fetchMore({
+          variables: {
+            limit: 100,
+            since: events[events.length - 1].timestamp
+          },
+
+          updateQuery(previousResult, { fetchMoreResult }) {
+            return {
+              ...previousResult,
+
+              getTimeline: previousResult.getTimeline.concat(fetchMoreResult.getTimeline)
+            };
+          }
+        });
+      }
+    };
+  },
 
   options: {
     variables: {
