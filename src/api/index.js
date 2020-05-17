@@ -1,9 +1,10 @@
 import { ApolloServer } from 'apollo-server-express';
 import * as db from '../models';
-import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History } from './models';
+import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording } from './models';
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
 import makeSynologyRequest from '../services/synology/instance';
+import DataLoader from 'dataloader';
 import DataLoaderWithContextAndNoIdParam from './lib/dataloader-with-context-and-no-id-param';
 import DataLoaderWithContext from './lib/dataloader-with-context';
 import schema from './schema';
@@ -98,6 +99,68 @@ const resolvers = {
       });
 
       return new History(data, args);
+    },
+
+    async getTimeline(parent, { since, limit }, context, info) {
+      const events = await Promise.all([
+        db.Event.findAll({
+          order: [['start', 'DESC']],
+          where: {
+            start: {
+              $lt: since
+            },
+            type: 'motion'
+          },
+          limit
+        }).then((events) => events.map((event) => new MotionEvent(event))),
+
+        db.Stay.findAll({
+          where: {
+            arrival: {
+              $lt: since
+            }
+          },
+
+          limit,
+          order: [['arrival', 'DESC']],
+        }).then((stays) => stays.map((stay) => new ArrivalEvent(stay))),
+
+        db.Stay.findAll({
+          where: {
+            departure: {
+              $lt: since
+            }
+          },
+
+          limit,
+          order: [['departure', 'DESC']],
+        }).then((stays) => stays.map((stay) => new DepartureEvent(stay))),
+
+        db.Event.findAll({
+          order: [['start', 'DESC']],
+          where: {
+            start: {
+              $lt: since
+            },
+            type: 'on'
+          },
+          limit
+        }).then((events) => {
+          return events.map((event) => {
+            const ret = [new LightOnEvent(event)];
+
+            if (event.end) {
+              ret.push(new LightOffEvent(event));
+            }
+
+            return ret;
+          }).flat();
+        }),
+      ]);
+
+      return events.flat().sort((a, b) => {
+        return b.timestamp - a.timestamp;
+      }).slice(0, 100);
     }
   },
 
@@ -186,9 +249,15 @@ const resolvers = {
     }
   },
 
+  TimelineEvent: {
+    __resolveType(obj, context, info) {
+      return obj.constructor.name;
+    }
+  },
+
   Subscription: {
     onThermostatChanged: createSubscriptionForDeviceType('thermostat', device => ({ onThermostatChanged: new Thermostat(device) })),
-    onLightChanged: createSubscriptionForDeviceType('light', device => ({ onLightChanged: new Light(device) }), ['on', 'brightness'])
+    onLightChanged: createSubscriptionForDeviceType('light', device => ({ onLightChanged: new Light(device), __typename: 'Lighting' }), ['on', 'brightness'])
   }
 };
 
@@ -196,28 +265,61 @@ export default new ApolloServer({
   debug: true,
   typeDefs: schema,
   resolvers,
-  context: ({ req }) => ({
-    req: req,
-    userByHandle: new DataLoaderWithContext(factoryFromConstructor(User), (handles) => db.User.findByHandlers(handles)),
-    upcomingStayByUserId: new DataLoaderWithContext(factoryFromConstructor(Stay), (id) => db.Stay.findUpcomingStays(id)),
-    currentOrLastStayByUserId: new DataLoaderWithContext(factoryFromConstructor(Stay), (id) => db.Stay.findCurrentOrLastStays(id)),
-    isHome: new DataLoaderWithContextAndNoIdParam((value) => value, async () => {
-      const response = await makeSynologyRequest('SYNO.SurveillanceStation.HomeMode', 'GetInfo');
+  context: ({ req }) => {
+    const context = {
+      req: req,
+      userByHandle: new DataLoaderWithContext(factoryFromConstructor(User), (handles) => db.User.findByHandlers(handles)),
+      upcomingStayByUserId: new DataLoaderWithContext(factoryFromConstructor(Stay), (id) => db.Stay.findUpcomingStays(id)),
+      currentOrLastStayByUserId: new DataLoaderWithContext(factoryFromConstructor(Stay), (id) => db.Stay.findCurrentOrLastStays(id)),
+      isHome: new DataLoaderWithContextAndNoIdParam((value) => value, async () => {
+        const response = await makeSynologyRequest('SYNO.SurveillanceStation.HomeMode', 'GetInfo');
 
-      return response.data.on;
-    }),
-    cameras: new DataLoaderWithContextAndNoIdParam((cameras, context) => cameras.map(data => new Camera(data, context)), async () => {
-      const response = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
+        return response.data.on;
+      }),
+      cameras: new DataLoaderWithContextAndNoIdParam((cameras, context) => cameras.map(data => new Camera(data, context)), async () => {
+        const response = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
 
-      return response.data.cameras;
-    }),
-    lights: new DataLoaderWithContextAndNoIdParam((lights) => lights.map(light => new Light(light)), () => {
-      return db.Device.findByType('light');
-    }),
-    thermostats: new DataLoaderWithContextAndNoIdParam((thermostats) => thermostats.map(data => new Thermostat(data)), () => {
-      return db.Device.findByType('thermostat');
-    })
-  }),
+        return response.data.cameras;
+      }),
+      lights: new DataLoaderWithContextAndNoIdParam((lights) => lights.map(light => new Light(light)), () => {
+        return db.Device.findByType('light');
+      }),
+      thermostats: new DataLoaderWithContextAndNoIdParam((thermostats) => thermostats.map(data => new Thermostat(data)), () => {
+        return db.Device.findByType('thermostat');
+      }),
+      users: new DataLoader(async (ids) => {
+        const users = await db.User.findAll({
+          where: {
+            id: ids
+          }
+        });
+
+        return users.map(x => new User(x, context));
+      }),
+      devices: new DataLoader(async (ids) => {
+        const devices = await db.Device.findAll({
+          where: {
+            id: ids
+          }
+        });
+
+        const devicesMap = new Map(devices.map(x => [x.id.toString(), new Device(x)]));
+        return ids.map(x => devicesMap.get(x));
+      }),
+      recordings: new DataLoader(async (ids) => {
+        const recordings = await db.Recording.findAll({
+          where: {
+            eventId: ids
+          }
+        });
+
+        const recordingsMap = new Map(recordings.map(x => [x.eventId, new Recording(x)]));
+        return ids.map(x => recordingsMap.get(x));
+      })
+    };
+
+    return context;
+  },
   formatError(error) {
     console.error(`${error.message}: ${error.extensions.exception.stacktrace.join('\n')}`);
 
