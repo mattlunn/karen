@@ -1,7 +1,6 @@
 export default class Camera {
-  constructor(camera, context) {
+  constructor(camera) {
     this.camera = camera;
-    this.context = context;
   }
 
   name() {
@@ -12,9 +11,7 @@ export default class Camera {
     return this.camera.id;
   }
 
-  snapshot() {
-    const { req } = this.context;
-
+  snapshot(_, { req }) {
     return `${req.protocol}://${req.headers.host}/api/snapshot/${this.camera.id}`;
   }
 }

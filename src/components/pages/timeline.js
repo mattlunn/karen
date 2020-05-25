@@ -57,7 +57,7 @@ class Timeline extends Component {
             title={`Motion detected by "${event.device.name}"`}
             icon={faEye}
             controls={({ togglePanel }) => {
-              return event.recordin ? [
+              return event.recording ? [
                 <a key={0} onClick={(e) => {
                   e.preventDefault();
                   togglePanel('view');

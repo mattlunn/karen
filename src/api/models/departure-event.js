@@ -11,7 +11,7 @@ export default class DepartureEvent {
     return +this.data.departure;
   }
 
-  user(_, { users }) {
-    return users.load(this.data.userId);
+  user(_, { usersById }) {
+    return usersById.load(this.data.userId);
   }
 }

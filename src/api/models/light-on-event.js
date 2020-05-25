@@ -11,7 +11,7 @@ export default class LightOnEvent {
     return +this.data.start;
   }
 
-  device(_, { devices }) {
-    return devices.load(this.data.deviceId);
+  device(_, { devicesById }) {
+    return devicesById.load(+this.data.deviceId);
   }
 }

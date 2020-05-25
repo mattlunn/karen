@@ -4,15 +4,10 @@ import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, His
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
 import makeSynologyRequest from '../services/synology/instance';
-import DataLoader from 'dataloader';
-import DataLoaderWithContextAndNoIdParam from './lib/dataloader-with-context-and-no-id-param';
-import DataLoaderWithContext from './lib/dataloader-with-context';
+import UnorderedDataLoader from './lib/unordered-dataloader';
+import DataLoaderWithNoIdParam from './lib/dataloader-with-no-id-param';
 import schema from './schema';
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
-
-function factoryFromConstructor(Constructor) {
-  return (data, context) => new Constructor(data, context);
-}
 
 function createSubscriptionForDeviceType(deviceType, mapper, properties) {
   return {
@@ -275,54 +270,29 @@ export default new ApolloServer({
   context: ({ req }) => {
     const context = {
       req: req,
-      userByHandle: new DataLoaderWithContext(factoryFromConstructor(User), (handles) => db.User.findByHandlers(handles)),
-      upcomingStayByUserId: new DataLoaderWithContext(factoryFromConstructor(Stay), (id) => db.Stay.findUpcomingStays(id)),
-      currentOrLastStayByUserId: new DataLoaderWithContext(factoryFromConstructor(Stay), (id) => db.Stay.findCurrentOrLastStays(id)),
-      isHome: new DataLoaderWithContextAndNoIdParam((value) => value, async () => {
+      userByHandle: new UnorderedDataLoader(db.User.findByHandles.bind(db.User), ({ handle }) => handle, user => new User(user)),
+      upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
+      currentOrLastStayByUserId: new UnorderedDataLoader(db.Stay.findCurrentOrLastStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
+      isHome: new DataLoaderWithNoIdParam(async () => {
         const response = await makeSynologyRequest('SYNO.SurveillanceStation.HomeMode', 'GetInfo');
 
         return response.data.on;
-      }),
-      cameras: new DataLoaderWithContextAndNoIdParam((cameras, context) => cameras.map(data => new Camera(data, context)), async () => {
+      }, (value) => value),
+      cameras: new DataLoaderWithNoIdParam(async () => {
         const response = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
 
         return response.data.cameras;
-      }),
-      lights: new DataLoaderWithContextAndNoIdParam((lights) => lights.map(light => new Light(light)), () => {
-        return db.Device.findByType('light');
-      }),
-      thermostats: new DataLoaderWithContextAndNoIdParam((thermostats) => thermostats.map(data => new Thermostat(data)), () => {
-        return db.Device.findByType('thermostat');
-      }),
-      users: new DataLoader(async (ids) => {
-        const users = await db.User.findAll({
-          where: {
-            id: ids
-          }
-        });
+      }, (cameras) => cameras.map(data => new Camera(data))),
+      lights: new DataLoaderWithNoIdParam(() => db.Device.findByType('light'), (lights) => lights.map(light => new Light(light))),
+      thermostats: new DataLoaderWithNoIdParam(() => db.Device.findByType('thermostat'), (thermostats) => thermostats.map(data => new Thermostat(data))),
+      usersById: new UnorderedDataLoader((ids) => db.User.findAll({ where: { id: ids }}), ({ id }) => id, user => {
+        const userModel = new User(user);
 
-        return users.map(x => new User(x, context));
+        context.userByHandle.prime(user.handle, userModel);
+        return userModel;
       }),
-      devices: new DataLoader(async (ids) => {
-        const devices = await db.Device.findAll({
-          where: {
-            id: ids
-          }
-        });
-
-        const devicesMap = new Map(devices.map(x => [x.id.toString(), new Device(x)]));
-        return ids.map(x => devicesMap.get(x));
-      }),
-      recordings: new DataLoader(async (ids) => {
-        const recordings = await db.Recording.findAll({
-          where: {
-            eventId: ids
-          }
-        });
-
-        const recordingsMap = new Map(recordings.map(x => [x.eventId, new Recording(x)]));
-        return ids.map(x => recordingsMap.get(x));
-      })
+      devicesById: new UnorderedDataLoader((ids) => db.Device.findAll({ where: { id: ids }}), device => device.id, device => new Device(device)),
+      recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording))
     };
 
     return context;

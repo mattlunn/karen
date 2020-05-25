@@ -11,7 +11,7 @@ export default class ArrivalEvent {
     return +this.data.arrival;
   }
 
-  user(_, { users }) {
-    return users.load(this.data.userId);
+  user(_, { usersById }) {
+    return usersById.load(this.data.userId);
   }
 }

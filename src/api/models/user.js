@@ -1,18 +1,15 @@
 export default class User {
-  constructor(user, context) {
-    this.context = context;
+  constructor(user) {
     this.user = user;
 
     this.avatar = this.user.avatar;
     this.id = this.user.handle;
-
-    this.context.userByHandle.prime(this.user.handle, this);
   }
 
-  async status() {
+  async status(_, { upcomingStayByUserId, currentOrLastStayByUserId }) {
     const [upcoming, currentOrLast] = await Promise.all([
-      this.context.upcomingStayByUserId.load(this.user.id, this.context),
-      this.context.currentOrLastStayByUserId.load(this.user.id, this.context)
+      upcomingStayByUserId.load(this.user.id),
+      currentOrLastStayByUserId.load(this.user.id)
     ]);
 
     if (upcoming || currentOrLast.departure) {
@@ -22,10 +19,10 @@ export default class User {
     }
   }
 
-  async since() {
+  async since(_, { upcomingStayByUserId, currentOrLastStayByUserId }) {
     const [upcoming, currentOrLast] = await Promise.all([
-      this.context.upcomingStayByUserId.load(this.user.id, this.context),
-      this.context.currentOrLastStayByUserId.load(this.user.id, this.context)
+      upcomingStayByUserId.load(this.user.id),
+      currentOrLastStayByUserId.load(this.user.id)
     ]);
 
     if (upcoming || currentOrLast.departure) {
@@ -35,10 +32,10 @@ export default class User {
     }
   }
 
-  async until() {
+  async until(_, { upcomingStayByUserId, currentOrLastStayByUserId }) {
     const [upcoming, currentOrLast] = await Promise.all([
-      this.context.upcomingStayByUserId.load(this.user.id, this.context),
-      this.context.currentOrLastStayByUserId.load(this.user.id, this.context)
+      upcomingStayByUserId.load(this.user.id),
+      currentOrLastStayByUserId.load(this.user.id)
     ]);
 
     if (upcoming || currentOrLast.departure) {

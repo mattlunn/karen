@@ -98,7 +98,7 @@
   "scripts": {
     "start": "babel-node server.js",
     "dev": "NODE_ENV=development nodemon --ignore 'config.json' --ignore 'components/*' --ignore 'static/*' --exec babel-node server.js",
-    "debug": "babel-node --inspect-brk server.js",
+    "debug": "babel-node --inspect server.js",
     "create-user": "babel-node scripts/create-user.js",
     "migrate": "babel-node scripts/migrate.js",
     "build": "node node_modules/webpack/bin/webpack",

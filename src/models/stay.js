@@ -22,13 +22,15 @@ export default function (sequelize) {
     }
   });
 
-  stay.findUpcomingStays = function (userIds) {
-    return Promise.all(userIds.map(userId => this.findOne({
+  stay.findUpcomingStays = async function (userIds) {
+    const stays = await Promise.all(userIds.map(userId => this.findOne({
       where: {
         arrival: null,
         userId
       }
     })));
+
+    return stays.filter(stay => stay);
   };
 
   stay.findNextUpcomingEta = function () {
@@ -47,8 +49,8 @@ export default function (sequelize) {
     });
   };
 
-  stay.findCurrentOrLastStays = function (userIds) {
-    return Promise.all(userIds.map((userId) => this.findOne({
+  stay.findCurrentOrLastStays = async function (userIds) {
+    const stays = await Promise.all(userIds.map((userId) => this.findOne({
       where: {
         arrival: {
           [Op.not]: null
@@ -60,6 +62,8 @@ export default function (sequelize) {
         ['arrival', 'DESC']
       ]
     })));
+
+    return stays.filter(stay => stay);
   };
 
   stay.findCurrentStay = function (userId) {

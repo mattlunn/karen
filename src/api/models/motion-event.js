@@ -11,11 +11,11 @@ export default class MotionEvent {
     return +this.data.start;
   }
 
-  async device(_, { devices }) {
-    return devices.load(this.data.deviceId);
+  device(_, { devicesById }) {
+    return devicesById.load(+this.data.deviceId);
   }
 
-  recording(_, { recordings }) {
-    return recordings.load(this.data.id);
+  recording(_, { recordingsByEventId }) {
+    return recordingsByEventId.load(this.data.id);
   }
 }
