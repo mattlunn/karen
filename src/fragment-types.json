@@ -1,0 +1,1 @@
+{"__schema":{"types":[{"kind":"UNION","name":"TimelineEvent","possibleTypes":[{"name":"MotionEvent"},{"name":"ArrivalEvent"},{"name":"DepartureEvent"},{"name":"LightOnEvent"},{"name":"LightOffEvent"}]},{"kind":"INTERFACE","name":"Event","possibleTypes":[{"name":"MotionEvent"},{"name":"ArrivalEvent"},{"name":"DepartureEvent"},{"name":"LightOnEvent"},{"name":"LightOffEvent"}]}]}}

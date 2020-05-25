@@ -2,25 +2,14 @@ import React, { Component } from 'react';
 import SideBar from '../sidebar';
 import Modals from '../modals';
 import Header from '../header';
-import resources from '../resources';
-import { TIMELINE} from '../../constants/resources';
-import { getEvents, getIsLoadingMoreEvents, getHasMoreEvents } from '../../reducers/timeline';
-import { loadMoreTimelineEvents } from '../../actions/timeline';
 import moment from 'moment';
-import { connect } from 'react-redux';
 import Event from '../event';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
-
-function mapStateToProps(state) {
-  return {
-    events: getEvents(state),
-    isLoadingMoreEvents: getIsLoadingMoreEvents(state),
-    hasMoreEvents: getHasMoreEvents(state)
-  };
-}
+import { graphql } from '@apollo/react-hoc';
+import gql from 'graphql-tag';
 
 class Timeline extends Component {
   *groupEventsByDays() {
@@ -60,20 +49,20 @@ class Timeline extends Component {
   }
 
   createEvent(event) {
-    switch (event.type) {
-      case 'motion':
+    switch (event.__typename) {
+      case 'MotionEvent':
         return (
           <Event
             timestamp={event.timestamp}
-            title={`Motion detected by "${event.deviceName}"`}
+            title={`Motion detected by "${event.device.name}"`}
             icon={faEye}
             controls={({ togglePanel }) => {
-              return event.recordingId ? [
+              return event.recordin ? [
                 <a key={0} onClick={(e) => {
                   e.preventDefault();
                   togglePanel('view');
                 }} href="#" className="card-link">view</a>,
-                <a key={1} href={"/recording/" + event.recordingId + "?download=true"} className="card-link">download</a>
+                <a key={1} href={`/recording/${event.recording.id}?download=true`} className="card-link">download</a>
               ] : [];
             }}
             panels={{
@@ -81,42 +70,42 @@ class Timeline extends Component {
                 <video
                   width="100%"
                   controls
-                  src={"/recording/" + event.recordingId}
+                  src={`/recording/${event.recording?.id}`}
                 />
               )
             }}
           />
         );
-      case 'departure':
+      case 'DepartureEvent':
         return (
           <Event
             timestamp={event.timestamp}
             icon={faWalking}
-            title={event.user + ' left the house'}
+            title={`${event.user.id} left the house`}
           />
         );
-      case 'arrival':
+      case 'ArrivalEvent':
         return (
           <Event
             timestamp={event.timestamp}
             icon={faHome}
-            title={event.user + ' arrived home'}
+            title={`${event.user.id} arrived home`}
           />
         );
-        case 'light_on':
+        case 'LightOnEvent':
           return (
             <Event
               timestamp={event.timestamp}
               icon={faLightbulb}
-              title={`The "${event.device}" light was switched on`}
+              title={`The "${event.device.name}" light was switched on`}
             />
           );
-        case 'light_off':
+        case 'LightOffEvent':
           return (
             <Event
               timestamp={event.timestamp}
               icon={faLightbulb}
-              title={`The "${event.device}" light was switched off after being on for ${Math.ceil(event.duration / 1000 / 60)} minutes`}
+              title={`The "${event.device.name}" light was switched off after being on for ${Math.ceil(event.duration / 1000 / 60)} minutes`}
             />
           );
     }
@@ -161,8 +150,98 @@ class Timeline extends Component {
   }
 }
 
-export default resources([ TIMELINE ])(
-  connect(mapStateToProps, {
-    loadMoreTimelineEvents
-  })(Timeline)
-);
+
+export default graphql(gql`
+  query getTimeline($since: Float!, $limit: Int!) {
+    getTimeline(since: $since, limit: $limit) {
+      ...on Event {
+        id
+        timestamp
+      }
+
+      ...on MotionEvent {
+        recording {
+          id
+        }
+
+        device {
+          id
+          name
+        }
+      }
+
+      ...on ArrivalEvent {
+        id
+        timestamp
+        user {
+          id
+        }
+      }
+
+      ...on DepartureEvent {
+        id
+        timestamp
+        user {
+          id
+        }
+      }
+
+      ...on LightOffEvent {
+        device {
+          id
+          name
+        }
+
+        duration
+      }
+
+      ...on LightOnEvent {
+        device {
+          id
+          name
+        }
+      }
+    }
+  }
+`, {
+  props: ({ data: { getTimeline: events = [], fetchMore, networkStatus }}) => {
+    const isLoadingMoreEvents = networkStatus === 3;
+
+    return {
+      events,
+      isLoadingMoreEvents,
+
+      hasMoreEvents: !!events.length,
+
+      loadMoreTimelineEvents() {
+        if (isLoadingMoreEvents) {
+          return;
+        }
+
+        return fetchMore({
+          variables: {
+            limit: 100,
+            since: events[events.length - 1].timestamp
+          },
+
+          updateQuery(previousResult, { fetchMoreResult }) {
+            return {
+              ...previousResult,
+
+              getTimeline: previousResult.getTimeline.concat(fetchMoreResult.getTimeline)
+            };
+          }
+        });
+      }
+    };
+  },
+
+  options: {
+    variables: {
+      limit: 100,
+      since: Date.now()
+    },
+
+    notifyOnNetworkStatusChange: true
+  }
+})(Timeline);

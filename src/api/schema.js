@@ -6,6 +6,54 @@ export default gql`
     AWAY
   }
 
+  interface Event {
+    id: ID!,
+    timestamp: Float!
+  }
+
+  type Device {
+    id: ID!
+    name: String!
+  }
+
+  type MotionEvent implements Event {
+    id: ID!
+    timestamp: Float!
+    device: Device!
+    recording: Recording
+  }
+
+  type LightOnEvent implements Event {
+    id: ID!
+    timestamp: Float!
+    device: Device!
+  }
+
+  type LightOffEvent implements Event {
+    id: ID!
+    timestamp: Float!
+    device: Device!
+    duration: Int!
+  }
+
+  type ArrivalEvent implements Event {
+    id: ID!
+    timestamp: Float!
+    user: User!
+  }
+
+  type DepartureEvent implements Event {
+    id: ID!
+    timestamp: Float!
+    user: User!
+  }
+
+  type Recording {
+    id: ID!
+  }
+
+  union TimelineEvent = MotionEvent | ArrivalEvent | DepartureEvent | LightOnEvent | LightOffEvent
+
   type User {
     id: ID!,
     avatar: String!,
@@ -32,8 +80,8 @@ export default gql`
 
   type Camera {
     id: ID!,
+    name: String!
     snapshot: String,
-    name: String
   }
 
   type TimePeriod {
@@ -63,7 +111,7 @@ export default gql`
 
   type Thermostat {
     id: ID!,
-    name: String,
+    name: String!,
     targetTemperature: Float,
     currentTemperature: Float!,
     isHeating: Boolean!,
@@ -83,6 +131,7 @@ export default gql`
     getLighting: Lighting,
     getHeating: Heating,
     getHistory(id: ID!, type: String, from: Float!, to: Float!): History
+    getTimeline(since: Float!, limit: Int!): [TimelineEvent!]
   }
 
   type Mutation {
