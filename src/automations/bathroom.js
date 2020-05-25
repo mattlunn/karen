@@ -11,7 +11,19 @@ let timeoutToTurnOff = null;
 //   Otherwise if new value > max, turn light on
 //   Otherwise if new value < max, turn light off
 
-export default function ({ sensorName, lightName, maximumHumidity, offDelaySeconds = 0, between = [{ start: '00:00', end: '23:59', brightness: 100 }] }) {
+export default function ({ motionSensorNames, humiditySensorName, lightName, maximumHumidity, offDelaySeconds = 0, between = [{ start: '00:00', end: '23:59', brightness: 100 }] }) {
+  async function isSomeoneInRoom() {
+    const sensors = await Device.findAll({ where: { name: motionSensorNames }});
+    const sensorMotions = await Promise.all(sensors.map(sensor => sensor.getProperty('motion')));
+
+    return sensorMotions.some(hasMotion => hasMotion);
+  }
+
+  async function getHumidityInRoom() {
+    const humiditySensor = await Device.findByName(humiditySensorName);
+    return humiditySensor.getProperty('humidity');
+  }
+
   [EVENT_START, EVENT_END].forEach((eventEvent) => {
     bus.on(eventEvent, async (event) => {
       const [sensor, light] = await Promise.all([
@@ -19,7 +31,7 @@ export default function ({ sensorName, lightName, maximumHumidity, offDelaySecon
         Device.findByName(lightName)
       ]);
 
-      if (sensor.name === sensorName) {
+      if (motionSensorNames.includes(sensor.name)) {
         if (event.type === 'motion') {
           if (eventEvent === EVENT_START) {
             const [isLightOn, currentBrightness] = await Promise.all([
@@ -35,9 +47,9 @@ export default function ({ sensorName, lightName, maximumHumidity, offDelaySecon
             if (!isLightOn || desiredBrightness !== currentBrightness) {
               await light.setProperty('brightness', desiredBrightness);
             }
-          } else if (eventEvent === EVENT_END) {
+          } else if (eventEvent === EVENT_END && !await isSomeoneInRoom()) {
             timeoutToTurnOff = setTimeout(async () => {
-              const humidity = await sensor.getProperty('humidity');
+              const humidity = await getHumidityInRoom();
 
               timeoutToTurnOff = null;
 
@@ -50,9 +62,7 @@ export default function ({ sensorName, lightName, maximumHumidity, offDelaySecon
           }
 
         } else if (event.type === 'humidity' && eventEvent === EVENT_START) {
-          const isSomeoneInRoom = await sensor.getProperty('motion');
-
-          if (!isSomeoneInRoom && timeoutToTurnOff === null) {
+          if (!await isSomeoneInRoom() && timeoutToTurnOff === null) {
             const desiredLightState = event.value > maximumHumidity;
             const actualLightState = await light.getProperty('on');
 
