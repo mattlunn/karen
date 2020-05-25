@@ -1,12 +1,7 @@
 import getSunriseAndSunset from './sun';
 import moment from 'moment';
 
-// "from" or "to" can be;
-// - "sunrise", "sunset"
-// - "sunrise + 1h30m 27s"
-// - "00:00"
-
-function normalizeDuration(offset) {
+function normalizeOffset(offset) {
   const duration = moment.duration();
 
   // period === ["1h", "30m"]
@@ -20,20 +15,11 @@ function normalizeDuration(offset) {
   return duration;
 }
 
-export function normalizeTime(time, date) {
-  if (time.includes('sunrise') || time.includes('sunset')) {
-    const sunEvents = getSunriseAndSunset(date);
-    const [sunEvent, direction, offset] = time.split(/ *([+-]) */);
-    const timeOfSunEvent = moment(sunEvents[sunEvent]);
-
-    // offset === "1h30m"
-    if (offset) {
-      timeOfSunEvent[direction === '+' ? 'add' : 'subtract'](normalizeDuration(offset));
-    }
-
-    return timeOfSunEvent;
+function normalizeBase(base, date) {
+  if (base === 'sunrise' || base === 'sunset') {
+    return moment(getSunriseAndSunset(date)[base]);
   } else {
-    const [hour, minute] = time.split(':');
+    const [hour, minute] = base.split(':');
     const ret = moment(date);
 
     ret.set({
@@ -45,17 +31,25 @@ export function normalizeTime(time, date) {
   }
 }
 
+function normalizeTime(time, date) {
+  const [base, direction, offset] = time.split(/ *([+-]) */);
+  const normalizedBase = normalizeBase(base, date);
+
+  if (offset) {
+    normalizedBase[direction === '+' ? 'add' : 'subtract'](normalizeOffset(offset));
+  }
+
+  return normalizedBase;
+}
+
 // Has tests!
 export function isWithinTime(start, end, date = Date.now()) {
-  let normalizedStart = normalizeTime(start, date);
-  let normalizedEnd = normalizeTime(end, date);
+  const normalizedStart = normalizeTime(start, date);
+  const normalizedEnd = normalizeTime(end, date);
 
-  if (normalizedEnd.isSameOrBefore(normalizedStart)) {
-    if (normalizedEnd.isBefore(date)) {
-      normalizedEnd = normalizeTime(end, moment(date).add(1, 'd'));
-    } else if (normalizedStart.isAfter(date)) {
-      normalizedStart = normalizeTime(start, moment(date).subtract(1, 'd'));
-    }
+  if (normalizedStart.isAfter(date) && normalizedEnd.date() - normalizedStart.date() === 1) {
+    normalizedStart.subtract(1, 'd');
+    normalizedEnd.subtract(1, 'd');
   }
 
   return normalizedStart.isSameOrBefore(date) && normalizedEnd.isAfter(date);
