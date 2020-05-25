@@ -107,7 +107,7 @@ const resolvers = {
           order: [['start', 'DESC']],
           where: {
             start: {
-              $lt: since
+              [db.Op.lt]: since
             },
             type: 'motion'
           },
@@ -117,7 +117,7 @@ const resolvers = {
         db.Stay.findAll({
           where: {
             arrival: {
-              $lt: since
+              [db.Op.lt]: since
             }
           },
 
@@ -128,7 +128,7 @@ const resolvers = {
         db.Stay.findAll({
           where: {
             departure: {
-              $lt: since
+              [db.Op.lt]: since
             }
           },
 
@@ -140,7 +140,7 @@ const resolvers = {
           order: [['start', 'DESC']],
           where: {
             start: {
-              $lt: since
+              [db.Op.lt]: since
             },
             type: 'on'
           },
@@ -159,8 +159,15 @@ const resolvers = {
       ]);
 
       return events.flat().sort((a, b) => {
-        return b.timestamp - a.timestamp;
-      }).slice(0, 100);
+        const aTimestamp = a.timestamp();
+        const bTimestamp = b.timestamp();
+
+        if (aTimestamp instanceof Promise || bTimestamp instanceof Promise) {
+          throw new Error('timestamp() cannot return a Promise for Events');
+        }
+
+        return bTimestamp - aTimestamp;
+      }).slice(0, limit);
     }
   },
 

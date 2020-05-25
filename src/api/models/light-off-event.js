@@ -14,4 +14,8 @@ export default class LightOffEvent {
   device(_, { devices }) {
     return devices.load(this.data.deviceId);
   }
+
+  duration() {
+    return this.data.end - this.data.start;
+  }
 }

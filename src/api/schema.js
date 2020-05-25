@@ -33,6 +33,7 @@ export default gql`
     id: ID!
     timestamp: Float!
     device: Device!
+    duration: Int!
   }
 
   type ArrivalEvent implements Event {

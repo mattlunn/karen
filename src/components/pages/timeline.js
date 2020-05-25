@@ -62,7 +62,7 @@ class Timeline extends Component {
                   e.preventDefault();
                   togglePanel('view');
                 }} href="#" className="card-link">view</a>,
-                <a key={1} href={"/recording/" + event.recording.id + "?download=true"} className="card-link">download</a>
+                <a key={1} href={`/recording/${event.recording.id}?download=true`} className="card-link">download</a>
               ] : [];
             }}
             panels={{
@@ -70,7 +70,7 @@ class Timeline extends Component {
                 <video
                   width="100%"
                   controls
-                  src={"/recording/" + event.recording?.id}
+                  src={`/recording/${event.recording?.id}`}
                 />
               )
             }}
@@ -81,7 +81,7 @@ class Timeline extends Component {
           <Event
             timestamp={event.timestamp}
             icon={faWalking}
-            title={event.user.id + ' left the house'}
+            title={`${event.user.id} left the house`}
           />
         );
       case 'ArrivalEvent':
@@ -89,7 +89,7 @@ class Timeline extends Component {
           <Event
             timestamp={event.timestamp}
             icon={faHome}
-            title={event.user.id + ' arrived home'}
+            title={`${event.user.id} arrived home`}
           />
         );
         case 'LightOnEvent':
@@ -178,7 +178,24 @@ export default graphql(gql`
         }
       }
 
+      ...on DepartureEvent {
+        id
+        timestamp
+        user {
+          id
+        }
+      }
+
       ...on LightOffEvent {
+        device {
+          id
+          name
+        }
+
+        duration
+      }
+
+      ...on LightOnEvent {
         device {
           id
           name
@@ -188,13 +205,19 @@ export default graphql(gql`
   }
 `, {
   props: ({ data: { getTimeline: events = [], fetchMore, networkStatus }}) => {
+    const isLoadingMoreEvents = networkStatus === 3;
+
     return {
       events,
+      isLoadingMoreEvents,
 
-      isLoadingMoreEvents: networkStatus === 3,
       hasMoreEvents: !!events.length,
 
       loadMoreTimelineEvents() {
+        if (isLoadingMoreEvents) {
+          return;
+        }
+
         return fetchMore({
           variables: {
             limit: 100,
@@ -217,6 +240,8 @@ export default graphql(gql`
     variables: {
       limit: 100,
       since: Date.now()
-    }
+    },
+
+    notifyOnNetworkStatusChange: true
   }
 })(Timeline);

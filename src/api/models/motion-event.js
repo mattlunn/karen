@@ -12,13 +12,7 @@ export default class MotionEvent {
   }
 
   async device(_, { devices }) {
-    const device = await devices.load(this.data.deviceId);
-
-    if (!device) {
-      debugger;
-    }
-
-    return device;
+    return devices.load(this.data.deviceId);
   }
 
   recording(_, { recordings }) {
