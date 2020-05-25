@@ -1,4 +1,4 @@
-import Sequelize from 'sequelize';
+import Sequelize, { Op } from 'sequelize';
 import bus, { FIRST_USER_HOME, LAST_USER_LEAVES } from '../bus';
 
 export default function (sequelize) {
@@ -35,7 +35,7 @@ export default function (sequelize) {
     return this.findOne({
       where: {
         eta: {
-          $gt: Date.now()
+          [Op.gt]: Date.now()
         },
 
         arrival: null
@@ -51,7 +51,7 @@ export default function (sequelize) {
     return Promise.all(userIds.map((userId) => this.findOne({
       where: {
         arrival: {
-          $not: null
+          [Op.not]: null
         },
         userId
       },
@@ -67,7 +67,7 @@ export default function (sequelize) {
       where: {
         departure: null,
         arrival: {
-          $not: null
+          [Op.not]: null
         },
         userId
       }
@@ -79,7 +79,7 @@ export default function (sequelize) {
       where: {
         departure: null,
         arrival: {
-          $not: null
+          [Op.not]: null
         }
       }
     });
@@ -107,12 +107,12 @@ export default function (sequelize) {
     return await this.findOne({
       where: {
         arrival: {
-          $lt: timestamp
+          [Op.lt]: timestamp
         },
 
-        $or: [{
+        [Op.or]: [{
           departure: {
-            $gt: timestamp
+            [Op.gt]: timestamp
           }
         }, {
           departure: null

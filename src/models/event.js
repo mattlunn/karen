@@ -1,4 +1,4 @@
-import Sequelize from 'sequelize';
+import Sequelize, { Op } from 'sequelize';
 import bus, { EVENT_START, EVENT_END } from '../bus';
 
 export default function (sequelize) {
@@ -33,15 +33,15 @@ export default function (sequelize) {
     const data = await this.findAll({
       where: {
         start: {
-          $gte: start,
-          $lt: end
+          [Op.gte]: start,
+          [Op.lt]: end
         },
         end: {
-          $or: [{
-            $gte: start,
-            $lt: end
+          [Op.or]: [{
+            [Op.gte]: start,
+            [Op.lt]: end
           }, {
-            $eq: null
+            [Op.eq]: null
           }]
         },
         deviceId: id,

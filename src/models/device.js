@@ -90,6 +90,14 @@ export default function (sequelize) {
     });
   };
 
+  device.findById = function (id) {
+    return this.findOne({
+      where: {
+        id
+      }
+    });
+  };
+
   device.findByProviderId = function (provider, id) {
     return this.findOne({
       where: {

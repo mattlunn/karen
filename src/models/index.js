@@ -24,3 +24,5 @@ Stay.belongsTo(User);
 Event.hasOne(Recording);
 Device.hasMany(Event);
 Event.belongsTo(Device);
+
+export const Op = Sequelize.Op;

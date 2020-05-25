@@ -1,4 +1,4 @@
-import { Event } from '../../../models';
+import { Event, Op } from '../../../models';
 import moment from 'moment';
 
 export default async function getWarmupRatePerHour(device) {
@@ -7,7 +7,7 @@ export default async function getWarmupRatePerHour(device) {
       deviceId: device.id,
       type: 'power',
       end: {
-        $ne: null
+        [Op.ne]: null
       },
       value: 100
     },
@@ -24,13 +24,13 @@ export default async function getWarmupRatePerHour(device) {
       deviceId: device.id,
       type: 'temperature',
 
-      $or: history.map(x => [
+      [Op.or]: history.map(x => [
         {
-          start: { $lte: x.start },
-          end: { $gt: x.start }
+          start: { [Op.lte]: x.start },
+          end: { [Op.gt]: x.start }
         }, {
-          start: { $lte: x.end },
-          end: { $gt: x.end }
+          start: { [Op.lte]: x.end },
+          end: { [Op.gt]: x.end }
         }
       ]).flat()
     }

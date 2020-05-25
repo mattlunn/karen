@@ -56,7 +56,7 @@
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
     "reselect": "^3.0.1",
-    "sequelize": "^4.33.1",
+    "sequelize": "^5.21.10",
     "subscriptions-transport-ws": "^0.9.16",
     "suncalc": "^1.8.0",
     "tplink-cloud-api": "^0.3.8",

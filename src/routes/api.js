@@ -1,6 +1,6 @@
 import express from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
-import { User, Event, Recording, Stay, Device } from '../models';
+import { User, Event, Recording, Stay, Device, Op } from '../models';
 import { makeSynologyRequest } from '../services/synology';
 import moment from 'moment';
 import s3 from '../services/s3';
@@ -34,7 +34,7 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
       order: [['start', 'DESC']],
       where: {
         start: {
-          $lt: since
+          [Op.lt]: since
         },
         type: 'motion'
       },
@@ -54,7 +54,7 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
     Stay.findAll({
       where: {
         arrival: {
-          $lt: since
+          [Op.lt]: since
         }
       },
 
@@ -77,7 +77,7 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
     Stay.findAll({
       where: {
         departure: {
-          $lt: since
+          [Op.lt]: since
         }
       },
 
@@ -101,7 +101,7 @@ router.get('/timeline', asyncWrapper(async (req, res) => {
       order: [['start', 'DESC']],
       where: {
         start: {
-          $lt: since
+          [Op.lt]: since
         },
         type: 'on'
       },

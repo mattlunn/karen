@@ -85,12 +85,12 @@ const resolvers = {
           deviceId: args.id,
           type: args.type,
           start: {
-            $gte: args.from,
-            lt: args.to
+            [db.Op.gte]: args.from,
+            [db.Op.lt]: args.to
           },
           end: {
-            $gte: args.from,
-            lt: args.to
+            [db.Op.gte]: args.from,
+            [db.Op.lt]: args.to
           }
         },
 
