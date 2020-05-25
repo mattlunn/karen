@@ -264,7 +264,7 @@ const resolvers = {
 
   Subscription: {
     onThermostatChanged: createSubscriptionForDeviceType('thermostat', device => ({ onThermostatChanged: new Thermostat(device) })),
-    onLightChanged: createSubscriptionForDeviceType('light', device => ({ onLightChanged: new Light(device), __typename: 'Lighting' }), ['on', 'brightness'])
+    onLightChanged: createSubscriptionForDeviceType('light', device => ({ onLightChanged: new Light(device) }), ['on', 'brightness'])
   }
 };
 
