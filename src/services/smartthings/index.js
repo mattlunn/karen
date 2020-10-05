@@ -8,6 +8,7 @@ import { Device } from '../../models';
 
 const deviceTypeMappings = new Map([
   ['Fibaro Dimmer 2 ZW5', 'light'],
+  ['Fibaro Motion Sensor ZW5', 'multi_sensor'],
   ['SmartSense Motion Sensor', 'motion_sensor'],
   ['SmartSense Multi Sensor', 'contact_sensor'],
   ['Aeon Multisensor 6', 'multi_sensor']
@@ -91,6 +92,7 @@ Device.registerProvider('smartthings', {
         return !!(latestEvent && !latestEvent.end);
       }
       case 'humidity':
+      case 'illuminance':
       case 'brightness': {
         return (await device.getLatestEvent(key)).value;
       }

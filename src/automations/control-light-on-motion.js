@@ -11,11 +11,12 @@ export default function ({ sensorName, lightName, between = [{ start: '00:00', e
         const sensor = await event.getDevice();
 
         if (sensor.name === sensorName) {
-          for (const { start, end, brightness = 100 } of between) {
+          for (const { start, end, illuminance = null, brightness = 100 } of between) {
             if (isWithinTime(start, end)) {
               const light = await Device.findByName(lightName);
               const lightIsOn = await light.getProperty('on');
-              const lightDesiredOn = eventEvent === EVENT_START;
+              const belowIlluminanceThreshold = lightIsOn || illuminance === null || await sensor.getProperty('illuminance') < illuminance;
+              const lightDesiredOn = eventEvent === EVENT_START && belowIlluminanceThreshold;
 
               clearTimeout(offDelays.get(lightName));
 

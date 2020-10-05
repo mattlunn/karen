@@ -44,6 +44,11 @@ const attributeHandlers = {
   level: {
     valueMapper: (value) => Number(value),
     eventMapper: () => 'brightness'
+  },
+
+  illuminance: {
+    valueMapper: (value) => Number(value),
+    eventMapper: () => 'illuminance'
   }
 };
 
