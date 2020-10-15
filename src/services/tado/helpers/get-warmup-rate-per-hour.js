@@ -27,17 +27,17 @@ export default async function getWarmupRatePerHour(device) {
       [Op.or]: history.map(x => [
         {
           start: { [Op.lte]: x.start },
-          end: { [Op.gt]: x.start }
+          end: { [Op.gte]: x.start }
         }, {
           start: { [Op.lte]: x.end },
-          end: { [Op.gt]: x.end }
+          end: { [Op.gte]: x.end }
         }
       ]).flat()
     }
   });
 
   function findTemperateAtTime(time) {
-    return temperatures.find(({ start, end }) => start <= time && end > time).value;
+    return temperatures.find(({ start, end }) => start <= time && end >= time).value;
   }
 
   return history.reduce((acc, { start, end }) => {
