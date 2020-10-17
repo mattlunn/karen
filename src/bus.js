@@ -6,6 +6,8 @@ export const MOTION_DETECTED = 'MOTION_DETECTED';
 export const NOTIFICATION = 'NOTIFICATION';
 export const EVENT_START = 'EVENT_START';
 export const EVENT_END = 'EVENT_END';
+export const STAY_START = 'STAY_START';
+export const STAY_END = 'STAY_END';
 export const DEVICE_PROPERTY_CHANGED = 'DEVICE_PROPERTY_CHANGED';
 
 const emitter = new EventEmitter();
