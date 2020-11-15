@@ -5,6 +5,7 @@ import { stringify } from 'querystring';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import SmartThingsApiClient from './lib/client';
 import { Device } from '../../models';
+import { ensureDeviceEvent } from './attribute-handlers';
 
 const deviceTypeMappings = new Map([
   ['Fibaro Dimmer 2 ZW5', 'light'],
@@ -49,6 +50,7 @@ nowAndSetInterval(() => {
       }
 
       config.smartthings.refresh_token = refresh_token;
+      console.log(access_token);
       res(access_token);
       saveConfig();
     } else {
@@ -58,6 +60,25 @@ nowAndSetInterval(() => {
     }
   });
 }, 1000 * 60 * 60);
+
+nowAndSetInterval(async () => {
+  const client = new SmartThingsApiClient(await getAccessToken());
+  const devices = await Device.findByProvider('smartthings');
+
+  await Promise.all(devices.map(async (device) => {
+    const actualStatus = await client.getDeviceStatus(device.providerId);
+
+    return Object.values(actualStatus.components.main).map((capabilityAttributes) => {
+      return Object.keys(capabilityAttributes).map(async (attributeName) => {
+        const attribute = capabilityAttributes[attributeName];
+
+        if (await ensureDeviceEvent(device, attributeName, attribute.value, attribute.timestamp)) {
+          console.warn(`'${device.name}' had it's ${attributeName} property manually updated at ${new Date().toISOString()} because the event at ${attribute.timestamp} was not received/ processed successfully'`);
+        }
+      });
+    });
+  }).flat());
+}, 1000 * 60);
 
 Device.registerProvider('smartthings', {
   async setProperty(device, key, value) {

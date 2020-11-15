@@ -1,4 +1,5 @@
-import { Event, Device } from '../../../models';
+import { Device } from '../../../models';
+import { ensureDeviceEvent } from '../attribute-handlers';
 
 /*
   {
@@ -15,102 +16,13 @@ import { Event, Device } from '../../../models';
   }
 */
 
-const attributeHandlers = {
-  switch: {
-    valueMapper: (value) => value === 'on',
-    eventMapper: () => 'on'
-  },
-
-  motion: {
-    valueMapper: (value) => value === 'active',
-    eventMapper: () => 'motion'
-  },
-
-  temperature: {
-    valueMapper: (value) => Number(value),
-    eventMapper: () => 'temperature'
-  },
-
-  contact: {
-    valueMapper: (value) => value === 'open',
-    eventMapper: () => 'open'
-  },
-
-  humidity: {
-    valueMapper: (value) => Number(value),
-    eventMapper: () => 'humidity'
-  },
-
-  level: {
-    valueMapper: (value) => Number(value),
-    eventMapper: () => 'brightness'
-  },
-
-  illuminance: {
-    valueMapper: (value) => Number(value),
-    eventMapper: () => 'illuminance'
-  }
-};
-
 export default async function ({ eventData }) {
   for (const { deviceEvent: { attribute, deviceId, value } } of eventData.events) {
-    const attributeHandler = attributeHandlers[attribute];
+    const device = await Device.findByProviderId('smartthings', deviceId);
 
-    console.log(`${attribute} has changed to ${value} for ${deviceId}`);
-
-    if (attributeHandler) {
-      const device = await Device.findByProviderId('smartthings', deviceId);
-
-      if (device) {
-        const eventType = attributeHandler.eventMapper(attribute);
-        const eventValue = attributeHandler.valueMapper(value);
-
-        const lastEvent = await Event.findOne({
-          where: {
-            deviceId: device.id,
-            type: eventType
-          },
-
-          order: [['start', 'DESC']]
-        });
-
-        if (eventValue === true) {
-          if (lastEvent && lastEvent.end === null) {
-            console.error(`Cannot process '${eventType}' for device '${device.id}' as previous event has not ended`);
-            continue;
-          }
-
-          await Event.create({
-            deviceId: device.id,
-            type: eventType,
-            value: 1,
-            start: Date.now()
-          });
-        } else if (eventValue === false) {
-          if (lastEvent && lastEvent.end !== null) {
-            console.error(`Cannot process end of '${eventType}' for device '${device.id}' as there is no open event`);
-            continue;
-          }
-
-          lastEvent.end = Date.now();
-          await lastEvent.save();
-        } else if (!lastEvent || lastEvent.value !== eventValue) {
-          if (lastEvent) {
-            lastEvent.end = Date.now();
-            await lastEvent.save();
-          }
-
-          await Event.create({
-            deviceId: device.id,
-            type: eventType,
-            value: eventValue,
-            start: Date.now()
-          });
-        } else {
-          continue;
-        }
-
-        device.onPropertyChanged(eventType);
+    if (device) {
+      if (await ensureDeviceEvent(device, attribute, value, new Date())) {
+        console.log(`${attribute}} has changed to ${value} for ${device.name} (${device.id})`);
       }
     }
   }

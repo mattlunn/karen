@@ -5,29 +5,38 @@ export default class SmartThingsClient {
     this._token = token;
   }
 
-  async _request(url, body) {
+  async _request(url, data) {
     const response = await fetch(`https://api.smartthings.com/v1/${url.startsWith('/') ? url.slice(1) : url}`, {
       headers: {
         'Authorization': `Bearer ${this._token}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      method: body ? 'POST' : 'GET',
-      body: body ? JSON.stringify(body) : undefined
+      method: data ? 'POST' : 'GET',
+      body: data ? JSON.stringify(data) : undefined
     });
 
-    const json = await response.json();
+    const body = await response.text();
 
     if (response.ok) {
-      return json;
+      return JSON.parse(body);
     } else {
-      const error = new Error(json.error.message);
+      let error;
+
+      try {
+        const json = JSON.parse(body);
+
+        error = new Error(json.error.message);
+        error.code = json.error.code;
+        error.details = json.error.details;
+      } catch (e) {
+        error = new Error(`Got HTTP ${response.status} from SmartThings API while requesting ${url}. Response was not valid JSON.`);
+        error.code = -1;
+        error.details = body;
+      }
 
       error.status = response.status;
-      error.code = json.error.code;
-      error.details = json.error.details;
-
-      console.dir(json, { depth: null });
+      console.dir(error, { depth: null });
 
       throw error;
     }
@@ -35,6 +44,10 @@ export default class SmartThingsClient {
 
   getDevices() {
     return this._request('/devices');
+  }
+
+  getDeviceStatus(id) {
+    return this._request(`/devices/${id}/status`);
   }
 
   getInstalledApps() {
