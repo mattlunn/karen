@@ -20,7 +20,7 @@ function normalizeBase(base, date) {
     return moment(getSunriseAndSunset(date)[base]);
   } else {
     const [hour, minute] = base.split(':');
-    const ret = moment(date);
+    const ret = moment(date).startOf('m');
 
     ret.set({
       hour,
@@ -31,7 +31,7 @@ function normalizeBase(base, date) {
   }
 }
 
-function normalizeTime(time, date) {
+export function normalizeTime(time, date = new Date()) {
   const [base, direction, offset] = time.split(/ *([+-]) */);
   const normalizedBase = normalizeBase(base, date);
 
