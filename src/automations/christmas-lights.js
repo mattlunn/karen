@@ -11,29 +11,33 @@ import setIntervalForTime from '../helpers/set-interval-for-time';
 // Gets turned on at certain time, or when someone comes home.
 // Gets turned off when Karen turns off all the lights
 
-export default function ({ switchName, morningStart, morningEnd, eveningStart, eveningEnd }) {
-  async function setDeviceOnStatus(onStatus) {
-    const device = await Device.findByName(switchName);
+export default function ({ switchNames, morningStart, morningEnd, eveningStart, eveningEnd }) {
+  async function setDevicesOnStatus(onStatus) {
+    return Promise.all(switchNames.map(async (switchName) => {
+      const device = await Device.findByName(switchName);
 
-    if (device) {
-      const isOn = await device.getProperty('on');
+      console.log('Handling ' + switchName);
 
-      if (isOn !== onStatus) {
-        await device.setProperty('on', onStatus);
+      if (device) {
+        const isOn = await device.getProperty('on');
+
+        if (isOn !== onStatus) {
+          await device.setProperty('on', onStatus);
+        }
       }
-    }
+    }));
   }
 
   // Turn on in the morning when motion first detected.
   bus.on(EVENT_START, async (event) => {
     if (event.type === 'motion' && isWithinTime(morningStart, morningEnd, event.start)) {
-      await setDeviceOnStatus(true);
+      await setDevicesOnStatus(true);
     }
   });
 
   // Turn off at end of morning at specified time.
   setIntervalForTime(async () => {
-    await setDeviceOnStatus(false);
+    await setDevicesOnStatus(false);
   }, morningEnd);
 
   // Turn on in the evening at certain time if someone is at home
@@ -41,14 +45,14 @@ export default function ({ switchName, morningStart, morningEnd, eveningStart, e
     const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(Date.now());
 
     if (isSomeoneAtHome) {
-      await setDeviceOnStatus(true);
+      await setDevicesOnStatus(true);
     }
   }, eveningStart);
 
   // Otherwise turn on in the evening when someone first comes home.
   bus.on(FIRST_USER_HOME, async (event) => {
     if (isWithinTime(eveningStart, eveningEnd, event.start)) {
-      await setDeviceOnStatus(true);
+      await setDevicesOnStatus(true);
     }
   });
 }
