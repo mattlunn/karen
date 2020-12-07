@@ -66,14 +66,6 @@ server.listen(config.port, () => {
   console.log(`Subscriptions listening on ws://localhost:80${api.subscriptionsPath}`);
 });
 
-Object.keys(events).forEach((event) => {
-  if (event !== 'default') {
-    bus.on(event, () => {
-      console.log(`Received ${event} event`);
-    });
-  }
-});
-
 bus.on(events.LAST_USER_LEAVES, async () => {
   const lights = await Device.findByType('light');
 
