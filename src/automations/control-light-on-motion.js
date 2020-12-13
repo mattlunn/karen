@@ -4,7 +4,7 @@ import { isWithinTime } from '../helpers/time';
 
 const offDelays = new Map();
 
-export default function ({ sensorName, lightName, between = [{ start: '00:00', end: '00:00' }], offDelaySeconds = 0 }) {
+export default function ({ sensorName, lightName, between = [{ start: '00:00', end: '00:00 + 1d' }], offDelaySeconds = 0 }) {
   [EVENT_START, EVENT_END].forEach((eventEvent) => {
     bus.on(eventEvent, async (event) => {
       if (event.type === 'motion') {
