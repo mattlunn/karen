@@ -16,12 +16,12 @@ export default function ({ thermostatName, lightName, sensorName, maximumHumidit
           Device.findByName(sensorName)
         ]);
 
-        const isDoorClosed = !await sensor.getProperty('open');
+        const hasMotion = await sensor.getProperty('motion');
         const isLightOn = await light.getProperty('on');
         const isTooHumid = event.value > maximumHumidity;
 
-        if (isDoorClosed && isTooHumid !== isLightOn) {
-          sendNotification(`Turning ${lightName} ${isTooHumid ? 'on' : 'off'} as humidity is ${event.value}`);
+        if (!hasMotion && isTooHumid !== isLightOn) {
+          sendNotification(`Turning ${lightName} ${isTooHumid ? 'on' : 'off'} as humidity is ${event.value}%`);
 
           await light.setProperty('on', isTooHumid);
         }
