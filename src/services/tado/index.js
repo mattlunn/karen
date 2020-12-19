@@ -3,7 +3,6 @@ import TadoClient, { getAccessToken } from './client';
 import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { sendNotification } from '../../helpers/notification';
-import bus, { FIRST_USER_HOME, LAST_USER_LEAVES } from '../../bus';
 import moment from 'moment';
 import getTimetabledTemperature from './helpers/get-timetabled-temperature';
 import getWarmupRatePerHour from './helpers/get-warmup-rate-per-hour';
@@ -14,6 +13,21 @@ Device.registerProvider('tado', {
       case 'target': {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
         await client.setHeatingPowerForZone(device.providerId, value === null ? false : value);
+
+        break;
+      }
+      case 'on': {
+        const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+
+        if (value === true) {
+          const data = await client.getZoneState(device.providerId);
+
+          if (data.overlayType === 'MANUAL' && data.overlay.setting.power === 'OFF') {
+            await client.endManualHeatingForZone(device.providerId);
+          }
+        } else /* value === false */ {
+          await client.setHeatingPowerForZone(device.providerId, false);
+        }
 
         break;
       }
@@ -108,32 +122,6 @@ nowAndSetInterval(async () => {
     }
   }
 }, Math.max(config.tado.sync_interval_seconds, 10) * 1000);
-
-bus.on(LAST_USER_LEAVES, async () => {
-  const client = new TadoClient(await getAccessToken(), config.tado.home_id);
-  const devices = await Device.findByProvider('tado');
-
-  for (const device of devices) {
-    if (device.type === 'thermostat') {
-      await client.setHeatingPowerForZone(device.providerId, false);
-    }
-  }
-});
-
-bus.on(FIRST_USER_HOME, async () => {
-  const client = new TadoClient(await getAccessToken(), config.tado.home_id);
-  const devices = await Device.findByProvider('tado');
-
-  for (const device of devices) {
-    if (device.type === 'thermostat') {
-      const data = await client.getZoneState(device.providerId);
-
-      if (data.overlayType === 'MANUAL' && data.overlay.setting.power === 'OFF') {
-        await client.endManualHeatingForZone(device.providerId);
-      }
-    }
-  }
-});
 
 nowAndSetInterval(async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);

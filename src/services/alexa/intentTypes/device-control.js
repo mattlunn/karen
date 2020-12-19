@@ -1,7 +1,7 @@
 import { Device } from '../../../models';
 import { Op } from 'sequelize';
-import { joinWithAnd, pluralise } from '../helpers/speech';
 import { changeLightsToDesiredState } from '../helpers/lights';
+import { pluralise, joinWithAnd } from '../../../helpers/array';
 
 export default async function (intent) {
   const roomName = intent.slots.deviceName.value;
@@ -37,7 +37,7 @@ export default async function (intent) {
       str += `but `;
     }
 
-    str += `Karen could not turn off the ${joinWithAnd(failedUpdates)} light${pluralise(successfulUpdates)}`;
+    str += `Karen could not turn off the ${joinWithAnd(failedUpdates.map(x => x.name))} light${pluralise(successfulUpdates)}`;
   } else if (successfulUpdates.length === 0) {
     str += `Karen could not find any ${roomName} lights`;
   }
