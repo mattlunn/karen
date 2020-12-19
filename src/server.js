@@ -14,7 +14,6 @@ import auth from './middleware/auth';
 import { Device } from './models';
 import bodyParser from 'body-parser';
 import config from './config';
-import bus, * as events from './bus';
 import cookieParser from 'cookie-parser';
 import api from './api';
 import { createServer } from 'http';
@@ -64,16 +63,4 @@ setInterval(() => Device.synchronize(), moment.duration(1, 'day').as('millisecon
 server.listen(config.port, () => {
   console.log(`Listening on ${config.port}`);
   console.log(`Subscriptions listening on ws://localhost:80${api.subscriptionsPath}`);
-});
-
-bus.on(events.LAST_USER_LEAVES, async () => {
-  const lights = await Device.findByType('light');
-
-  for (const light of lights) {
-    if (await light.getProperty('on')) {
-      console.log(`Turning ${light.name} off, as no-one is at home, and it has been left on!`);
-
-      await light.setProperty('on', false);
-    }
-  }
 });

@@ -1,5 +1,5 @@
 import { Device } from '../../../models';
-import { joinWithAnd, pluralise } from '../helpers/speech';
+import { joinWithAnd, pluralise } from '../../../helpers/array';
 import { changeLightsToDesiredState } from '../helpers/lights';
 
 export default async function () {
@@ -13,7 +13,7 @@ export default async function () {
   let str = `Karen has turned off all the lights`;
 
   if (failedUpdates.length > 0) {
-    str += `, except the ${joinWithAnd(failedUpdates)} light${pluralise(failedUpdates)}`;
+    str += `, except the ${joinWithAnd(failedUpdates.map(x => x.name))} light${pluralise(failedUpdates)}`;
   }
 
   return {

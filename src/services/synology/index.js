@@ -1,10 +1,9 @@
-import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, EVENT } from '../../bus';
+import bus, { LAST_USER_LEAVES, FIRST_USER_HOME } from '../../bus';
 import moment from 'moment';
 import config from '../../config';
 import { Event, Recording, Stay, Device } from '../../models';
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
-import { sendNotification } from '../../helpers/notification';
 import uuidv4 from 'uuid/v4';
 import sleep from '../../helpers/sleep';
 import { enqueueWorkItem } from '../../queue';
@@ -42,7 +41,6 @@ bus.on(FIRST_USER_HOME, async () => {
 // then restart timeout. If one doesn't exist, create one.
 
 // Add an IFTTT hook which downloads footage from start -> end, +- 5 seconds.
-// Add an IFTTT hook which notifies on motion
 
 async function createEvent(device, now) {
   const latestCameraEvent = await device.getLatestEvent('motion');
@@ -117,22 +115,11 @@ async function captureRecording(event, providerId, startOfRecording, endOfRecord
   }
 }
 
-async function maybeDispatchNotification(event, now) {
-  if (now.isSame(event.start)) {
-    const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(now);
-
-    if (!isSomeoneAtHome) {
-      sendNotification('Motion detected at ' + moment(now).format('HH:mm:ss'), 'https://karen.mattlunn.me.uk/timeline');
-    }
-  }
-}
-
 export async function onMotionDetected(cameraId, startOfDetectedMotion) {
   const device = await Device.findByProviderId('synology', cameraId);
   const event = await createEvent(device, startOfDetectedMotion);
 
   latestCameraEvents.set(device.id, startOfDetectedMotion);
-  await maybeDispatchNotification(event, startOfDetectedMotion);
 
   setTimeout(async () => {
     const now = Date.now();
