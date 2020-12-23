@@ -6,6 +6,11 @@ export default gql`
     AWAY
   }
 
+  enum AlarmMode {
+    AWAY,
+    NIGHT
+  }
+
   interface Event {
     id: ID!,
     timestamp: Float!
@@ -64,7 +69,7 @@ export default gql`
 
   type Security {
     cameras: [Camera],
-    isHome: Boolean
+    alarmMode: AlarmMode
   }
 
   type Lighting {

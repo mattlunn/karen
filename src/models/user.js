@@ -18,6 +18,10 @@ export default function (sequelize) {
       allowNull: false,
       defaultValue: ''
     },
+    mobileNumber: {
+      type: Sequelize.STRING,
+      allowNull: true
+    },
     avatar: {
       type: Sequelize.VIRTUAL,
       get: function () {
