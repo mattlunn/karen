@@ -1,7 +1,8 @@
 import bus, { EVENT_START } from '../bus';
-import { Device, Arming, Stay, User, Event } from '../models';
+import { Device, Arming, Stay, User, AlarmActivation, Event } from '../models';
 import { call } from '../services/twilio';
 import moment from 'moment';
+import { say } from '../services/alexa';
 
 async function turnOnAllTheLights() {
   const lights = await Device.findByType('light');
@@ -33,6 +34,42 @@ async function notifyAbsentUsersOfEvent(event) {
   }
 }
 
+async function notifyNightModeAlexa(name, event) {
+  const alexa = await Device.findByName(name);
+  const device = await event.getDevice();
+  const message = [
+    '<audio src="soundbank://soundlibrary/alarms/back_up_beeps/back_up_beeps_09"/>',
+    `Motion was detected by the ${device.name} at ${moment(event.start).format('HH:mm:ss')}`
+  ];
+
+  say(alexa, [
+    ...message,
+    ...message,
+    ...message,
+    ...message,
+    ...message,
+  ].join(''));
+}
+
+async function ensureActivation(arming, event, autoSuppressAfterMinutes) {
+  const mostRecentActivation = await arming.getMostRecentActivation();
+
+  if (mostRecentActivation) {
+    const isSuppressed = mostRecentActivation.suppressed || moment(event.start).diff(mostRecentActivation.startedAt, 'minutes') > autoSuppressAfterMinutes;
+
+    if (!isSuppressed) {
+      return false;
+    }
+  }
+
+  await AlarmActivation.create({
+    armingId: arming.id,
+    startedAt: event.start
+  });
+
+  return true;
+}
+
 /*
   const event = await Event.findOne({
     where: {
@@ -44,17 +81,21 @@ async function notifyAbsentUsersOfEvent(event) {
   return;
 */
 
-export default async function (opts) {
+export default async function ({ auto_suppress_after_minutes: autoSuppressAfterMinutes, night_mode_alexa: nightModeAlexa }) {
   bus.on(EVENT_START, async (event) => {
     if (event.type === 'motion') {
       const arming = await Arming.getActiveArming(event.start);
 
       if (arming) {
-        notifyAbsentUsersOfEvent(event);
-        turnOnAllTheLights();
+        const isNewAlarmActivation = ensureActivation(arming, event, autoSuppressAfterMinutes);
 
-        if (arming.mode === Arming.MODE_NIGHT) {
+        if (isNewAlarmActivation) {
+          notifyAbsentUsersOfEvent(event);
+          turnOnAllTheLights();
 
+          if (arming.mode === Arming.MODE_NIGHT) {
+            notifyNightModeAlexa(nightModeAlexa, event);
+          }
         }
       }
     }

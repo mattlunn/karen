@@ -45,7 +45,7 @@ export default function () {
 
       if (!activeArming) {
         await Arming.create({
-          start: stay.end,
+          start: stay.departure,
           mode: Arming.MODE_AWAY
         });
       }
@@ -62,7 +62,7 @@ export default function () {
     const activeArming = await Arming.getActiveArming(stay.start);
 
     if (activeArming?.mode === Arming.MODE_AWAY) {
-      activeArming.end = stay.start;
+      activeArming.end = stay.arrival;
       await activeArming.save();
     }
 

@@ -8,7 +8,8 @@ export default gql`
 
   enum AlarmMode {
     AWAY,
-    NIGHT
+    NIGHT,
+    OFF
   }
 
   interface Event {

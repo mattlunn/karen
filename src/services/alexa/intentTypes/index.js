@@ -1,4 +1,4 @@
 export GoingOut from './going-out';
 export LightsOff from './lights-off';
 export DeviceControl from './device-control';
-export NightAlarmAnnouncement from './night-alarm-announcement';
+export WhatsTheMessage from './whats-the-message';

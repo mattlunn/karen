@@ -35,6 +35,14 @@ export default function (sequelize) {
     });
   };
 
+  arming.prototype.getMostRecentActivation = async function() {
+    const activations = await this.getAlarmActivations();
+
+    return activations.reduce((mostRecent, curr) => {
+      return mostRecent.startedAt > curr.startedAt ? mostRecent : curr;
+    });
+  };
+
   arming.MODE_AWAY = 'AWAY';
   arming.MODE_NIGHT = 'NIGHT';
 

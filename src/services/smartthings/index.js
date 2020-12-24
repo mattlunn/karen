@@ -12,7 +12,8 @@ const deviceTypeMappings = new Map([
   ['Fibaro Motion Sensor', 'multi_sensor'],
   ['SmartSense Motion Sensor', 'motion_sensor'],
   ['SmartSense Multi Sensor', 'contact_sensor'],
-  ['Aeon Multisensor 6', 'multi_sensor']
+  ['Aeon Multisensor 6', 'multi_sensor'],
+  ['Simulated Alexa Button', 'alexa']
 ]);
 
 let accessTokenPromise;
@@ -70,6 +71,12 @@ Device.registerProvider('smartthings', {
           component: 'main',
           capability: 'switch',
           command: value ? 'on' : 'off'
+        });
+      case 'push':
+        return client.issueCommand(device.providerId, {
+          component: 'main',
+          capability: 'momentary',
+          command: 'push'
         });
       case 'brightness':
         return client.issueCommand(device.providerId, {
