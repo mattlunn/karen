@@ -70,6 +70,24 @@ async function ensureActivation(arming, event, autoSuppressAfterMinutes) {
   return true;
 }
 
+async function soundTheAlarm(alarmAlexa) {
+  const device = await Device.findByName(alarmAlexa);
+  const message = [
+    '<audio src="soundbank://soundlibrary/alarms/car_alarms/car_alarms_02"/>',
+    'The alarm is on. You must identify yourself'
+  ];
+
+  say(device, [
+    ...message,
+    ...message,
+    ...message,
+    ...message,
+    ...message,
+  ].join(''));
+
+
+}
+
 /*
   const event = await Event.findOne({
     where: {
@@ -81,7 +99,7 @@ async function ensureActivation(arming, event, autoSuppressAfterMinutes) {
   return;
 */
 
-export default async function ({ auto_suppress_after_minutes: autoSuppressAfterMinutes, night_mode_alexa: nightModeAlexa }) {
+export default async function ({ auto_suppress_after_minutes: autoSuppressAfterMinutes, night_mode_alexa: nightModeAlexa, alarm_alexa: alarmAlexa }) {
   bus.on(EVENT_START, async (event) => {
     if (event.type === 'motion') {
       const arming = await Arming.getActiveArming(event.start);
@@ -95,6 +113,8 @@ export default async function ({ auto_suppress_after_minutes: autoSuppressAfterM
 
           if (arming.mode === Arming.MODE_NIGHT) {
             notifyNightModeAlexa(nightModeAlexa, event);
+          } else {
+            soundTheAlarm(alarmAlexa);
           }
         }
       }
