@@ -12,18 +12,6 @@ const greetings = [
 ];
 
 export default async function ({ alexa_name: alexaName }) {
-
-    const [
-      device,
-      user
-    ] = await Promise.all([
-      Device.findByName('Upstairs Alexa'),
-
-    ]);
-
-    say(device, greetings[Math.floor(Math.random() * greetings.length)]('Sandra'));
-
-
   bus.on(FIRST_USER_HOME, (stay) => {
     bus.on(EVENT_START, async function listener(event) {
       bus.off(EVENT_START, listener);

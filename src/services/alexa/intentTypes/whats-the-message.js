@@ -2,17 +2,19 @@ import { messages } from '../index';
 
 export default async function ({ slots: { device }}) {
   const deviceName = device.resolutions.resolutionsPerAuthority[0]?.values[0]?.value.name;
-  const messageQueue = messages.get(deviceName) || [];
+  const message = messages.get(deviceName)?.getMessageToSend();
 
-  if (!messageQueue.length) {
-    console.log(`"${deviceName}" asked for messages, but there were none in the queue.`);
+  if (!message) {
+    console.log(`"${deviceName}" asked for messages, but there was none.`);
     return;
   }
+
+  messages.delete(deviceName);
 
   return {
     outputSpeech: {
       type: 'SSML',
-      ssml: `<speak>${messageQueue.splice(0).join('')}</speak>`
+      ssml: `<speak>${message}</speak>`
     }
   };
 }

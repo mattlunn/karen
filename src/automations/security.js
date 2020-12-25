@@ -1,8 +1,9 @@
-import bus, { EVENT_START } from '../bus';
 import { Device, Arming, Stay, User, AlarmActivation, Event } from '../models';
 import { call } from '../services/twilio';
-import moment from 'moment';
 import { say } from '../services/alexa';
+import bus, { EVENT_START } from '../bus';
+import moment from 'moment';
+import sleep from '../helpers/sleep';
 
 async function turnOnAllTheLights() {
   const lights = await Device.findByType('light');
@@ -48,56 +49,38 @@ async function notifyNightModeAlexa(name, event) {
     ...message,
     ...message,
     ...message,
-  ].join(''));
+  ]);
 }
 
-async function ensureActivation(arming, event, autoSuppressAfterMinutes) {
-  const mostRecentActivation = await arming.getMostRecentActivation();
-
-  if (mostRecentActivation) {
-    const isSuppressed = mostRecentActivation.suppressed || moment(event.start).diff(mostRecentActivation.startedAt, 'minutes') > autoSuppressAfterMinutes;
-
-    if (!isSuppressed) {
-      return false;
-    }
-  }
-
-  await AlarmActivation.create({
-    armingId: arming.id,
-    startedAt: event.start
-  });
-
-  return true;
-}
-
-async function soundTheAlarm(alarmAlexa) {
+async function soundTheAlarm(alarmAlexa, activation) {
+  const successAsBoolean = (promise) => promise.then(() => true, () => false);
   const device = await Device.findByName(alarmAlexa);
-  const message = [
-    '<audio src="soundbank://soundlibrary/alarms/car_alarms/car_alarms_02"/>',
-    'The alarm is on. You must identify yourself'
-  ];
-
-  say(device, [
-    ...message,
-    ...message,
-    ...message,
-    ...message,
-    ...message,
-  ].join(''));
-
-
-}
-
-/*
-  const event = await Event.findOne({
-    where: {
-      id: 468157
+  const sounds = (function*() {
+    for (let i=0;i<15;i++) {
+      yield i % 2 === 0
+        ? '<audio src="soundbank://soundlibrary/alarms/car_alarms/car_alarms_02"/>'
+        : 'The alarm is on. You must identify yourself';
     }
-  });
 
+    while (true) {
+      yield '<audio src="soundbank://soundlibrary/alarms/car_alarms/car_alarm_04"/>';
+    }
+  }());
 
-  return;
-*/
+  while (!activation.isSuppressed) {
+    if (await successAsBoolean(say(device, [
+      sounds.next().value,
+      sounds.next().value,
+      sounds.next().value,
+      sounds.next().value,
+      sounds.next().value
+    ]))) {
+      await sleep(20000);
+    }
+
+    await activation.reload();
+  }
+}
 
 export default async function ({ auto_suppress_after_minutes: autoSuppressAfterMinutes, night_mode_alexa: nightModeAlexa, alarm_alexa: alarmAlexa }) {
   bus.on(EVENT_START, async (event) => {
@@ -105,16 +88,21 @@ export default async function ({ auto_suppress_after_minutes: autoSuppressAfterM
       const arming = await Arming.getActiveArming(event.start);
 
       if (arming) {
-        const isNewAlarmActivation = ensureActivation(arming, event, autoSuppressAfterMinutes);
+        let mostRecentActivation = await arming.getMostRecentActivation();
 
-        if (isNewAlarmActivation) {
+        if (!mostRecentActivation || mostRecentActivation.suppressed) {
+          mostRecentActivation = await AlarmActivation.create({
+            armingId: arming.id,
+            startedAt: event.start
+          });
+
           notifyAbsentUsersOfEvent(event);
           turnOnAllTheLights();
 
           if (arming.mode === Arming.MODE_NIGHT) {
             notifyNightModeAlexa(nightModeAlexa, event);
           } else {
-            soundTheAlarm(alarmAlexa);
+            soundTheAlarm(alarmAlexa, mostRecentActivation);
           }
         }
       }

@@ -1,4 +1,5 @@
-import Sequelize, { Op } from 'sequelize';
+import Sequelize from 'sequelize';
+import moment from 'moment';
 
 export default function (sequelize) {
   const alarmActivation = sequelize.define('alarm_activation', {
@@ -14,7 +15,11 @@ export default function (sequelize) {
 
     suppressedAt: {
       type: Sequelize.DATE,
-      allowNull: true
+      allowNull: true,
+
+      get() {
+        return this.getDataValue('suppressedAt') || moment().diff(this.startedAt, 'minutes') > 5;
+      }
     },
 
     suppressedBy: {
