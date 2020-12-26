@@ -5,6 +5,8 @@ import bus, { EVENT_START } from '../bus';
 import moment from 'moment';
 import sleep from '../helpers/sleep';
 
+const successAsBoolean = (promise) => promise.then(() => true, () => false);
+
 async function turnOnAllTheLights() {
   const lights = await Device.findByType('light');
 
@@ -43,17 +45,14 @@ async function notifyNightModeAlexa(name, event) {
     `Motion was detected by the ${device.name} at ${moment(event.start).format('HH:mm:ss')}`
   ];
 
-  say(alexa, [
-    ...message,
-    ...message,
-    ...message,
-    ...message,
-    ...message,
-  ]);
+  for (let i=0;i<3;i++) {
+    if (await successAsBoolean(say(alexa, [...message, ...message]))) {
+      await sleep(8000);
+    }
+  }
 }
 
 async function soundTheAlarm(alarmAlexa, activation) {
-  const successAsBoolean = (promise) => promise.then(() => true, () => false);
   const device = await Device.findByName(alarmAlexa);
   const sounds = (function*() {
     for (let i=0;i<15;i++) {
@@ -82,15 +81,21 @@ async function soundTheAlarm(alarmAlexa, activation) {
   }
 }
 
-export default async function ({ auto_suppress_after_minutes: autoSuppressAfterMinutes, night_mode_alexa: nightModeAlexa, alarm_alexa: alarmAlexa }) {
+export default async function ({ night_mode_alexa: nightModeAlexa, alarm_alexa: alarmAlexa, excluded_devices: excludedDevices = [] }) {
   bus.on(EVENT_START, async (event) => {
     if (event.type === 'motion') {
-      const arming = await Arming.getActiveArming(event.start);
+      const [
+        arming,
+        device
+       ] = await Promise.all([
+        Arming.getActiveArming(event.start),
+        event.getDevice()
+      ]);
 
-      if (arming) {
+      if (arming && !excludedDevices.includes(device.name)) {
         let mostRecentActivation = await arming.getMostRecentActivation();
 
-        if (!mostRecentActivation || mostRecentActivation.suppressed) {
+        if (!mostRecentActivation || mostRecentActivation.isSuppressed) {
           mostRecentActivation = await AlarmActivation.create({
             armingId: arming.id,
             startedAt: event.start

@@ -25,6 +25,16 @@ export default function (sequelize) {
     suppressedBy: {
       type: Sequelize.INTEGER,
       allowNull: true
+    },
+
+    isSuppressed: {
+      type: Sequelize.VIRTUAL,
+      get() {
+        return this.suppressedAt && moment(this.suppressedAt).isBefore(new Date());
+      },
+      set() {
+        throw new Error();
+      }
     }
   });
 
