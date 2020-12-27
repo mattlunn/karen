@@ -273,11 +273,6 @@ export default new ApolloServer({
       userByHandle: new UnorderedDataLoader(db.User.findByHandles.bind(db.User), ({ handle }) => handle, user => new User(user)),
       upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
       currentOrLastStayByUserId: new UnorderedDataLoader(db.Stay.findCurrentOrLastStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
-      isHome: new DataLoaderWithNoIdParam(async () => {
-        const response = await makeSynologyRequest('SYNO.SurveillanceStation.HomeMode', 'GetInfo');
-
-        return response.data.on;
-      }, (value) => value),
       cameras: new DataLoaderWithNoIdParam(async () => {
         const response = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
 

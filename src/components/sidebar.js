@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
 import UserStatus from './user-status';
 import classnames from 'classnames';
-import { AWAY, HOME } from '../constants/status';
 import gql from 'graphql-tag';
 import { graphql } from '@apollo/react-hoc';
 
 class SideBar extends Component {
   render() {
-    const { stays } = this.props;
+    const { stays, security } = this.props;
+    const isArmed = security && security.alarmMode !== 'OFF';
 
     return (
       <div className={classnames('sidebar', {
@@ -15,12 +15,12 @@ class SideBar extends Component {
       })}>
         <div className="sidebar__house">
           <div className={classnames('sidebar__house-border', {
-            'sidebar__house-border--away': stays && stays.every(x => x.status === AWAY),
-            'sidebar__house-border--home': stays && stays.some(x => x.status === HOME),
+            'sidebar__house-border--armed': isArmed,
+            'sidebar__house-border--off': !isArmed,
           })}>
             <div className={classnames('house', {
-              'house--away': stays && stays.every(x => x.status === AWAY),
-              'house--home': stays && stays.some(x => x.status === HOME)
+              'house--away': security && security.alarmMode === 'AWAY',
+              'house--home': security && security.alarmMode !== 'AWAY'
             })} />
           </div>
         </div>
@@ -40,6 +40,10 @@ export default graphql(gql`{
     status
     since
     until
+  }
+
+  security: getSecurityStatus {
+    alarmMode
   }
 }`, {
   props: ({ data }) => data

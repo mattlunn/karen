@@ -1,4 +1,3 @@
-import classNames from 'classnames';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import gql from 'graphql-tag';
@@ -68,17 +67,7 @@ class Security extends Component {
           {this.props.cameras && this.props.cameras.map((camera) => {
             return (
               <li className="security__camera" key={camera.id}>
-                <h3>
-                  {camera.name}
-
-                  &nbsp;
-
-                  <span className={classNames('security__home-mode-indicator', {
-                    'security__home-mode-indicator--is-home': this.props.isHome
-                  })}>
-                    &#x25cf;
-                  </span>
-                </h3>
+                <h3>{camera.name}</h3>
                 <img
                   className="loading-spinner"
                   src={this.state.snapshots[camera.id] || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAJCAQAAACRI2S5AAAAEElEQVR42mNkIAAYRxWAAQAG9gAKqv6+AwAAAABJRU5ErkJggg=='}
@@ -98,9 +87,7 @@ export default graphql(gql`{
       id,
       snapshot,
       name
-    },
-
-    isHome
+    }
   }
 }`, {
   props: ({ data: { getSecurityStatus }}) => ({ ...getSecurityStatus })
