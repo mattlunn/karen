@@ -14,8 +14,6 @@ const greetings = [
 export default async function ({ alexa_name: alexaName }) {
   bus.on(FIRST_USER_HOME, (stay) => {
     bus.on(EVENT_START, async function listener(event) {
-      bus.off(EVENT_START, listener);
-
       if (event.type === 'motion') {
         const [
           device,
@@ -25,6 +23,7 @@ export default async function ({ alexa_name: alexaName }) {
           stay.getUser()
         ]);
 
+        bus.off(EVENT_START, listener);
         say(device, greetings[Math.floor(Math.random() * greetings.length)](user.handle));
       }
     });
