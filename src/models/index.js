@@ -28,10 +28,15 @@ Stay.belongsTo(User);
 Event.hasOne(Recording);
 Device.hasMany(Event);
 Event.belongsTo(Device);
-Arming.hasMany(AlarmActivation);
+AlarmActivation.belongsTo(Arming);
+Arming.hasMany(AlarmActivation, {
+  as: 'AlarmActivations'
+});
 User.hasMany(AlarmActivation, {
   foreignKey: 'suppressedBy'
 });
-AlarmActivation.belongsTo(User);
+AlarmActivation.belongsTo(User, {
+  foreignKey: 'suppressedBy'
+});
 
 export const Op = Sequelize.Op;

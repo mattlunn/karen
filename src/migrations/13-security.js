@@ -30,7 +30,7 @@ module.exports = {
         type: Sequelize.DATE
       }
     }).then(() => {
-      return queryInterface.createTable('alarm_activation', {
+      return queryInterface.createTable('alarm_activations', {
         id: {
           allowNull: false,
           autoIncrement: true,

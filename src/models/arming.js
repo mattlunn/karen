@@ -38,6 +38,10 @@ export default function (sequelize) {
   arming.prototype.getMostRecentActivation = async function() {
     const activations = await this.getAlarmActivations();
 
+    if (activations.length === 0) {
+      return null;
+    }
+
     return activations.reduce((mostRecent, curr) => {
       return mostRecent.startedAt > curr.startedAt ? mostRecent : curr;
     });

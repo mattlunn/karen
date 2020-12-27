@@ -18,7 +18,15 @@ export default function (sequelize) {
       allowNull: true,
 
       get() {
-        return this.getDataValue('suppressedAt') || moment().diff(this.startedAt, 'minutes') > 5;
+        if (this.getDataValue('suppressedAt')) {
+          return this.getDataValue('suppressedAt');
+        }
+
+        const autoSuppressionTime = moment(this.startedAt).add(5, 'minutes');
+
+        return autoSuppressionTime.isAfter(moment())
+          ? null
+          : autoSuppressionTime;
       }
     },
 
@@ -30,7 +38,7 @@ export default function (sequelize) {
     isSuppressed: {
       type: Sequelize.VIRTUAL,
       get() {
-        return this.suppressedAt && moment(this.suppressedAt).isBefore(new Date());
+        return !!this.suppressedAt;
       },
       set() {
         throw new Error();

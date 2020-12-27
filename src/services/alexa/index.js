@@ -9,7 +9,7 @@ export const messages = new Map();
  * What we instead do is;
  *
  *  1. Register a fake Contact Sensor (this was done in the SmartThings Graph UI).
- *  2. Register a Routing (in the Alexa App) so that when the Contact sensor is opened, Alexa asks Karen
+ *  2. Register a Routine (in the Alexa App) so that when the Contact sensor is opened, Alexa asks Karen
  *     for the latest messages
  *  3. Register an Intent ("WhatsTheMessage") which returns whatever text we want Alexa to read out.
  *
