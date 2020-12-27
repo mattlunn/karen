@@ -53,7 +53,14 @@ async function notifyNightModeAlexa(name, event) {
 }
 
 async function soundTheAlarm(alarmAlexa, activation) {
-  const device = await Device.findByName(alarmAlexa);
+  const [
+    device,
+    arming
+  ] = await Promise.all([
+    Device.findByName(alarmAlexa),
+    activation.getArming()
+  ]);
+
   const sounds = (function*() {
     for (let i=0;i<15;i++) {
       yield i % 2 === 0
@@ -66,7 +73,7 @@ async function soundTheAlarm(alarmAlexa, activation) {
     }
   }());
 
-  while (!activation.isSuppressed) {
+  while (!arming.end && !activation.isSuppressed) {
     if (await successAsBoolean(say(device, [
       sounds.next().value,
       sounds.next().value,
@@ -77,7 +84,10 @@ async function soundTheAlarm(alarmAlexa, activation) {
       await sleep(20000);
     }
 
-    await activation.reload();
+    await Promise.all([
+      activation.reload(),
+      arming.reload()
+    ]);
   }
 }
 

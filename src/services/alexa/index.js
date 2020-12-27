@@ -45,7 +45,7 @@ export async function say(device, message, ttlInSeconds = 30) {
 
     reject = (reason) => {
       fulfilled = true;
-      res(reason);
+      rej(reason);
     };
   });
 
