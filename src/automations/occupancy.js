@@ -34,7 +34,7 @@ async function turnOffLights() {
 export default function () {
   bus.on(LAST_USER_LEAVES, async (stay) => {
     try {
-      const [
+      let [
         activeArming,
         lightsTurnedOff,
       ] = await Promise.all([
@@ -44,13 +44,19 @@ export default function () {
       ]);
 
       if (!activeArming) {
-        await Arming.create({
+        activeArming = await Arming.create({
           start: stay.departure,
           mode: Arming.MODE_AWAY
         });
       }
 
-      sendNotification(`No-one is home. The heating has been turned off, as well as ${lightsTurnedOff.length ? `the ${joinWithAnd(lightsTurnedOff.map(x => x.name))} light${pluralise(lightsTurnedOff)}` : `all the lights`}.${activeArming ? '' : ' The alarm was also turned on.'}`);
+      const notification = [
+        `No-one is home.`,
+        `The heating has been turned off, as well as ${lightsTurnedOff.length ? `the ${joinWithAnd(lightsTurnedOff.map(x => x.name))} light${pluralise(lightsTurnedOff)}` : `all the lights`}.`,
+        activeArming.mode === Arming.MODE_AWAY ? 'The alarm is also on' : 'The alarm is on, but in Night Mode'
+      ].join(' ');
+
+      sendNotification(notification);
     } catch (e) {
       console.error(e);
 
