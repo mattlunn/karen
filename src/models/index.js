@@ -11,7 +11,11 @@ import alarmActivationFactory from './alarm_activation';
 
 const instance = new Sequelize(config.database.name, config.database.user, config.database.password, {
   dialect: 'mysql',
-  logging: false
+  logging(query) {
+    if (process.env.SEQUELIZE_LOGGING === 'true') {
+      console.log(query);
+    }
+  }
 });
 
 export const User = userFactory(instance);

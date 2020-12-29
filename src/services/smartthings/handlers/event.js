@@ -49,6 +49,11 @@ const attributeHandlers = {
   illuminance: {
     valueMapper: (value) => Number(value),
     eventMapper: () => 'illuminance'
+  },
+
+  power: {
+    valueMapper: (value) => Number(value),
+    eventMapper: () => 'power'
   }
 };
 
