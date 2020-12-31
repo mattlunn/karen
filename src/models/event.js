@@ -29,6 +29,7 @@ export default function (sequelize) {
     }
   });
 
+  // TODO: DELETE
   event.getHeatingHistoryForThermostat = async function (id, start, end) {
     const data = await this.findAll({
       where: {

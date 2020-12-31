@@ -1,6 +1,3 @@
-import { Event } from '../../models';
-import { TimePeriod } from '.';
-
 export default class Thermostat {
   constructor(device) {
     this.device = device;
@@ -32,11 +29,5 @@ export default class Thermostat {
 
   power() {
     return this.device.getProperty('power');
-  }
-
-  async heatingHistory(args) {
-    const entries = await Event.getHeatingHistoryForThermostat(this.device.id, args.start, args.end);
-
-    return entries.map(entry => new TimePeriod({ ...entry, end: entry.end || args.end }));
   }
 }
