@@ -116,8 +116,12 @@ export default class History {
           [db.Op.lt]: to
         },
         end: {
-          [db.Op.gte]: from,
-          [db.Op.lt]: to
+          [Op.or]: [{
+            [Op.eq]: null
+          }, {
+            [db.Op.gte]: from,
+            [db.Op.lt]: to
+          }]
         }
       },
 
