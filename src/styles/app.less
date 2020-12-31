@@ -463,10 +463,13 @@ button.secondary {
     margin-bottom: 5px;
   }
 
-  &__heat-segment {
-    background: @heating-color;
+  &__segment {
     height: 10px;
     float: left;
+
+    &--heating {
+      background: @heating-color;
+    }
   }
 
   &__rest-of-day {

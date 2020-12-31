@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react';
 import Thermostat from './thermostat';
 import gql from 'graphql-tag';
-import moment from 'moment-timezone';
 import { useQuery } from '@apollo/react-hooks';
 
-export default function() {
+export default function Heating() {
   const { data, subscribeToMore } = useQuery(gql`
-    query ($start: Float!, $end: Float!) {
+    query getHeating {
       getHeating {
         thermostats {
           id
@@ -16,19 +15,10 @@ export default function() {
           isHeating
           power,
           humidity
-          heatingHistory(start: $start, end: $end) {
-            start
-            end
-          }
         }
       }
     }
-  `, {
-    variables: {
-      start: moment().startOf('day').valueOf(),
-      end: moment().endOf('minute').valueOf()
-    }
-  });
+  `);
 
   useEffect(() => {
     return subscribeToMore({

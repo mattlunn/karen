@@ -4,6 +4,7 @@ import classnames from 'classnames';
 import ThermostatHeatMap from './thermostat-heat-map';
 import { graphql } from '@apollo/react-hoc';
 import gql from 'graphql-tag';
+import moment from 'moment';
 import 'rc-slider/assets/index.css';
 
 const SliderWithTooltip = createSliderWithTooltip(Slider);
@@ -53,9 +54,13 @@ class Thermostat extends Component {
   };
 
   render() {
-    const hoursHeatingActive = +((this.props.heatingHistory.reduce((total, curr) => {
-      return total + (curr.end - curr.start);
-    }, 0) / 1000 / 60 / 60).toFixed(1));
+    if (!Array.isArray(this.props.data)) {
+      return null;
+    }
+
+    const hoursHeatingActive = +((this.props.data.reduce((total, curr) => {
+      return total + (curr.datum.isHeating ? 1 : 0);
+    }, 0) / 60 / 60).toFixed(1));
 
     const marks = {
       10: 'Off',
@@ -98,7 +103,7 @@ class Thermostat extends Component {
             </div>
           </div>
           <div className="heating__side">
-            <ThermostatHeatMap activity={this.props.heatingHistory} />
+            <ThermostatHeatMap activity={this.props.data} />
             <div className="heating__details">
               <dl>
                 <dt>Today</dt>
@@ -122,7 +127,7 @@ class Thermostat extends Component {
   }
 }
 
-export default graphql(gql`
+const withSetTargetTemperature = graphql(gql`
   mutation updateThermostat($id: ID!, $targetTemperature: Float) {
     updateThermostat(id: $id, targetTemperature: $targetTemperature) {
       id
@@ -141,4 +146,38 @@ export default graphql(gql`
       });
     }
   })
-})(Thermostat);
+});
+
+const withThermostatHistory = graphql(gql`
+  query getHistory($ids: [ID!], $type: String, $from: Float!, $to: Float!, $interval: Float!) {
+    getHistory(ids: $ids, type: $type, from: $from, to: $to, interval: $interval) {
+      data {
+        period {
+          start
+          end
+        }
+
+        datum {
+          ...on Thermostat {
+            isHeating
+          }
+        }
+      }
+    }
+  }
+`, {
+  options({ id }) {
+    return {
+      variables: {
+        ids: [id],
+        type: 'thermostat',
+        from: moment().startOf('day').valueOf(),
+        to: moment().endOf('minute').valueOf(),
+        interval: moment.duration(5, 'minute').asMilliseconds()
+      },
+    };
+  },
+  props: ({ data }) => ({ data: data?.getHistory?.data })
+});
+
+export default withThermostatHistory(withSetTargetTemperature(Thermostat));

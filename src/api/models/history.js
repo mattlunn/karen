@@ -22,54 +22,68 @@ class HistoryEvent {
 
 class ThermostatHistoryEvent extends HistoryEvent {
   async targetTemperature() {
-    return await this._getOrRetrieveLastEventOfType('target');
+    return (await this._getOrRetrieveLastEventOfType('target')).value;
   }
 
   async currentTemperature() {
-    return await this._getOrRetrieveLastEventOfType('temperature');
+    return (await this._getOrRetrieveLastEventOfType('temperature')).value;
   }
 
-  isHeating() {
-    throw new Error('TODO');
+  async isHeating() {
+    const previousEvent = await this._getOrRetrieveLastEventOfType('heating');
+
+    if (!previousEvent.end) {
+      return true;
+    }
+
+    return previousEvent.end > this._start;
   }
 
   async humidity() {
-    return await this._getOrRetrieveLastEventOfType('humidity');
+    return (await this._getOrRetrieveLastEventOfType('humidity')).value;
   }
 
   async power() {
-    return await this._getOrRetrieveLastEventOfType('power');
+    return (await this._getOrRetrieveLastEventOfType('power')).value;
   }
 }
 
 class LightHistoryEvent extends HistoryEvent {
-  isOn() {
-    throw new Error('TODO');
+  async isOn() {
+    const previousEvent = await this._getOrRetrieveLastEventOfType('on');
+
+    if (!previousEvent.end) {
+      return true;
+    }
+
+    return previousEvent.end > this._start;
   }
 
   async brightness() {
-    return await this._getOrRetrieveLastEventOfType('brightness');
+    return (await this._getOrRetrieveLastEventOfType('brightness')).value;
   }
 
   async power() {
-    return await this._getOrRetrieveLastEventOfType('power');
+    return (await this._getOrRetrieveLastEventOfType('power')).value;
   }
 }
 
 class HistoryDatum {
-  constructor(device, period, lastEventRetriever) {
+  constructor(device, start, end, lastEventRetriever) {
     this._device = device;
     this._getOrRetrieveLastEventOfType = lastEventRetriever;
+    this._start = start;
+    this._end = end;
 
-    this.period = period;
+    this.period = new TimePeriod({ start, end });
   }
 
   datum() {
     switch (this._device.type) {
       case 'thermostat':
-        return new ThermostatHistoryEvent(this.period.start, this._device, this._getOrRetrieveLastEventOfType);
+        return new ThermostatHistoryEvent(this._start, this._device, this._getOrRetrieveLastEventOfType);
       case 'light':
-        return new LightHistoryEvent(this.period.start, this._device, this._getOrRetrieveLastEventOfType);
+        return new LightHistoryEvent(this._start, this._device, this._getOrRetrieveLastEventOfType);
     }
   }
 }
@@ -114,7 +128,7 @@ export default class History {
   _createGetterForDeviceTypes(device, events) {
     return (type) => {
       if (events[type]) {
-        return events[type].value;
+        return events[type];
       }
 
       if (!this._previousDeviceTypeEvents.has(device)) {
@@ -140,7 +154,7 @@ export default class History {
         }));
       }
 
-      return deviceEvents.get(type).then(({ value }) => value);
+      return deviceEvents.get(type);
     };
   }
 
@@ -149,6 +163,10 @@ export default class History {
     const events = await this._getEvents(Array.from(deviceToIdMap.keys()), from, to);
     const lasts = new Map(Array.from(deviceToIdMap.values()).map(x => ([x, {}])));
     const ret = [];
+
+    if (interval === 0) {
+      throw new Error('Interval cannot be 0');
+    }
 
     let currentIndex = 0;
     let currentElement = events[currentIndex];
@@ -165,10 +183,7 @@ export default class History {
         currentElement = events[currentIndex];
       }
 
-      ret.push(...Array.from(lasts).map(([device, deviceEvents]) => new HistoryDatum(device, new TimePeriod({
-        start: currentPeriodStart,
-        end: currentPeriodStart + interval
-      }), this._createGetterForDeviceTypes(device, { ...deviceEvents }))));
+      ret.push(...Array.from(lasts).map(([device, deviceEvents]) => new HistoryDatum(device, currentPeriodStart, currentPeriodStart + interval, this._createGetterForDeviceTypes(device, { ...deviceEvents }))));
     }
 
     return ret;
