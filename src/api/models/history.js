@@ -52,6 +52,10 @@ class LightHistoryEvent extends HistoryEvent {
   async isOn() {
     const previousEvent = await this._getOrRetrieveLastEventOfType('on');
 
+    if (!previousEvent) {
+      return false;
+    }
+
     if (!previousEvent.end) {
       return true;
     }

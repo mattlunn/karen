@@ -4,28 +4,25 @@ import gql from 'graphql-tag';
 import moment from 'moment';
 import { FlexibleWidthXYPlot, XAxis, YAxis, HeatmapSeries } from 'react-vis';
 
+const INTERVAL_SIZE_MS = moment.duration(15, 'minutes').asMilliseconds();
+
 class HeatingHistory extends Component {
   formatData() {
-    const daysSinceEpoch = Math.floor(Date.now() / 8.64e+7);
-    const bucketSize = 1000 * 60 * 15;
-    const getDstAdjustedBucket = (time) => (time + (moment(time).utcOffset() * 60 * 1000)) / bucketSize;
+    const daysSinceEpoch = moment.duration(moment(Date.now()).startOf('day')).asDays();
     const data = [];
 
-    // For each "on" datum, walk through each of it's 15 minutes of being on,
-    // and generate a data point for it. The "x" will be the 0-indexed 15 minute period
-    // and the "y" will be the offset of the day, from today.
-    for (const datum of this.props.data) {
-      const start = Math.floor(getDstAdjustedBucket(datum.period.start));
-      const end = Math.ceil(getDstAdjustedBucket(datum.period.end));
+    // The "x" will be the 0-indexed 15 minute period and the "y" will be the
+    // offset of the day, from today.
+    for (let i=0;i<this.props.data.length;i++) {
+      const { period, datum: { power }} = this.props.data[i];
+      const startOfPeriod = moment(period.start);
+      const startOfDay = moment(period.start).startOf('day');
 
-      for (let i=start; i<end; i++) {
-        const daySinceEpoch = Math.floor(i / (4 * 24));
-        const bucketOfToday = i- (daySinceEpoch * 4 * 24);
-
+      if (power > 0) {
         data.push({
-          x: bucketOfToday,
-          y: daysSinceEpoch - daySinceEpoch,
-          color: datum.value / 100
+          y: daysSinceEpoch - moment.duration(startOfDay.valueOf()).asDays(),
+          x: Math.floor(moment.duration(startOfPeriod.diff(startOfDay)).asMilliseconds() / INTERVAL_SIZE_MS),
+          color: power / 100
         });
       }
     }
@@ -56,26 +53,30 @@ class HeatingHistory extends Component {
 }
 
 export default graphql(gql`
-  query getHistory($id: ID!, $type: String, $from: Float!, $to: Float!) {
-    getHistory(id: $id, type: $type, from: $from, to: $to) {
+  query getHistory($ids: [ID!], $type: String, $from: Float!, $to: Float!, $interval: Float!) {
+    getHistory(ids: $ids, type: $type, from: $from, to: $to, interval: $interval) {
       data {
         period {
           start
           end
         }
-
-        value
+        datum {
+          ... on Thermostat {
+            power
+          }
+        }
       }
     }
   }
   `, {
   options: ({ id }) => ({
     variables: {
-      id,
-      type: 'power',
+      ids: [id],
+      type: 'thermostat',
       from: moment().subtract(6, 'd').startOf('d').valueOf(),
-      to: moment().endOf('d').valueOf()
-    },
+      to: moment().valueOf(),
+      interval: INTERVAL_SIZE_MS
+    }
   }),
   props: ({ data: { getHistory }}) => ({ ...getHistory })
 })(HeatingHistory);
