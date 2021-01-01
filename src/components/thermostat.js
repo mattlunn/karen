@@ -59,8 +59,12 @@ class Thermostat extends Component {
     }
 
     const hoursHeatingActive = +((this.props.data.reduce((total, curr) => {
-      return total + (curr.datum.isHeating ? 1 : 0);
-    }, 0) / 60 / 60).toFixed(1));
+      if (curr.datum.isHeating) {
+        total += curr.period.end - curr.period.start;
+      }
+
+      return total;
+    }, 0) / 1000 / 60 / 60).toFixed(1));
 
     const marks = {
       10: 'Off',
