@@ -76,24 +76,7 @@ const resolvers = {
     },
 
     async getHistory(parent, args, context, info) {
-      const data = await db.Event.findAll({
-        where: {
-          deviceId: args.id,
-          type: args.type,
-          start: {
-            [db.Op.gte]: args.from,
-            [db.Op.lt]: args.to
-          },
-          end: {
-            [db.Op.gte]: args.from,
-            [db.Op.lt]: args.to
-          }
-        },
-
-        order: ['start']
-      });
-
-      return new History(data, args);
+      return new History(args);
     },
 
     async getTimeline(parent, { since, limit }, context, info) {
@@ -254,6 +237,12 @@ const resolvers = {
   TimelineEvent: {
     __resolveType(obj, context, info) {
       return obj.constructor.name;
+    }
+  },
+
+  HistoryDatumType: {
+    __resolveType(obj, context, info) {
+      return obj._device.type[0].toUpperCase() + obj._device.type.slice(1);
     }
   },
 

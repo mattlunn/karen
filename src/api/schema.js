@@ -59,6 +59,7 @@ export default gql`
   }
 
   union TimelineEvent = MotionEvent | ArrivalEvent | DepartureEvent | LightOnEvent | LightOffEvent
+  union HistoryDatumType = Thermostat | Light
 
   type User {
     id: ID!,
@@ -95,26 +96,6 @@ export default gql`
     end: Float!
   }
 
-  type Aggregate {
-    start: Float
-    end: Float
-    min: Float
-    max: Float
-    average: Float,
-    duration: Float
-  }
-
-  type Datum {
-    period: TimePeriod
-    value: Float
-  }
-
-  type History {
-    month: [Aggregate],
-    day: [Aggregate],
-    data: [Datum]
-  }
-
   type Thermostat {
     id: ID!,
     name: String!,
@@ -123,12 +104,19 @@ export default gql`
     isHeating: Boolean!,
     humidity: Float!,
     power: Float!
-
-    heatingHistory(start: Float!, end: Float!): [TimePeriod]
   }
 
   type Heating {
     thermostats: [Thermostat]
+  }
+
+  type History {
+    data: [HistoryDatum!]
+  }
+
+  type HistoryDatum {
+    period: TimePeriod!
+    datum: HistoryDatumType!
   }
 
   type Query {
@@ -136,7 +124,7 @@ export default gql`
     getSecurityStatus: Security
     getLighting: Lighting,
     getHeating: Heating,
-    getHistory(id: ID!, type: String, from: Float!, to: Float!): History
+    getHistory(ids: [ID!], type: String, from: Float!, to: Float!, interval: Float!): History
     getTimeline(since: Float!, limit: Int!): [TimelineEvent!]
   }
 

@@ -1,22 +1,11 @@
 import React, { Component } from 'react';
-import moment from 'moment';
 import classnames from 'classnames';
+
+const MINUTES_IN_A_DAY = 1440;
+const INTERVAL_SIZE_MINS = 5;
 
 export default class HeatingHeatMap extends Component {
   render() {
-    const dateAsIncrementingPercentage = (() => {
-      const SECONDS_PER_DAY = 60 * 60 * 24;
-      let curr = 0;
-
-      return (date) => {
-        const percentage = (moment(date).diff(moment(date).startOf('day'), 'seconds') / SECONDS_PER_DAY) - curr;
-
-        curr += percentage;
-
-        return `${percentage * 100}%`;
-      };
-    })();
-
     const hours = [];
 
     for (let hour=1;hour<24;hour++) {
@@ -37,14 +26,13 @@ export default class HeatingHeatMap extends Component {
     return (
       <div className="heating-heat-map">
         <div className="heating-heat-map__map">
-          {this.props.activity.map((activity, index) => {
+          {this.props.activity.map(({ datum: { isHeating }}, index) => {
             return (
               <div
                 key={index}
-                className="heating-heat-map__heat-segment"
+                className={classnames('heating-heat-map__segment', { 'heating-heat-map__segment--heating': isHeating })}
                 style={{
-                  marginLeft: dateAsIncrementingPercentage(activity.start),
-                  width: dateAsIncrementingPercentage(activity.end)
+                  width: ((INTERVAL_SIZE_MINS * 100) / MINUTES_IN_A_DAY) + '%'
                 }}
               />
             );
@@ -53,8 +41,7 @@ export default class HeatingHeatMap extends Component {
           <div
             className="heating-heat-map__rest-of-day"
             style={{
-              marginLeft: dateAsIncrementingPercentage(new Date()),
-              width: dateAsIncrementingPercentage(moment().endOf('day'))
+              width: ((1 - ((this.props.activity.length * INTERVAL_SIZE_MINS) / MINUTES_IN_A_DAY)) * 100) + '%'
             }}
           />
         </div>

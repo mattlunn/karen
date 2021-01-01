@@ -29,34 +29,6 @@ export default function (sequelize) {
     }
   });
 
-  event.getHeatingHistoryForThermostat = async function (id, start, end) {
-    const data = await this.findAll({
-      where: {
-        start: {
-          [Op.gte]: start,
-          [Op.lt]: end
-        },
-        end: {
-          [Op.or]: [{
-            [Op.gte]: start,
-            [Op.lt]: end
-          }, {
-            [Op.eq]: null
-          }]
-        },
-        deviceId: id,
-        type: 'heating'
-      },
-
-      order: ['start']
-    });
-
-    return data.map((row) => ({
-      start: Math.max(row.start, start),
-      end: Math.min(row.end, end)
-    }));
-  };
-
   event.addHook('afterSave',  (event) => {
     bus.emit(event.end ? EVENT_END : EVENT_START, event);
     console.log(`${event.end ? EVENT_END : EVENT_START} called on Event ${event.id}`);
