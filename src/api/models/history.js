@@ -166,6 +166,34 @@ export default class History {
     };
   }
 
+  /**
+   * Works by:
+   *
+   * 1. Getting a list of the devices we want the history for.
+   * 2. For those devices, get all events that took place between the to and from requested.
+   * 3. Then for each "interval" within that time window, create a "HistoryDatum" entry.
+   *
+   * Additional complexity is due to trying to do this in as few MySQL queries as possible.
+   * We load all the events first. Then as we interate through the intervals, we keep track
+   * of what the "last" event for each device, for each event type. In theory, this makes it
+   * easy for each HistoryDatum to figure out it's value, as it's just the value of the last
+   * event for the device/ type it represents.
+   *
+   * However, some events may be still be open from before "from", which will not be returned
+   * in our MySQL query. This will cause empty data in the first HistoryDatums, until a change
+   * in that event type occurs, causing an Event to then exist within our MySQL result set.
+   *
+   * As a fix for this, we pass HistoryDatum a "getter" for data, which will return from the
+   * * "lasts" Map if an entry exists, but will otherwise get (and then cache/ re-use) the
+   * last event to occur before "from".
+   *
+   * The caching is key, as otherwise for cases where the event that occured before "from" has a long
+   * duration spanning many HistoryDatum, each HistoryDatum would make a query to get the same value.
+   *
+   * Another option was for the "_getEvents" function to just additionally load the event
+   * for each event type immediately preceeding the "from", but then "getEvents" has to be aware
+   * of what event types a Device can emit.
+   */
   async data(_, __, { variableValues: { from, to, interval, type, ids }}) {
     const deviceToIdMap = await this._getDeviceMap(type, ids);
     const events = await this._getEvents(Array.from(deviceToIdMap.keys()), from, to);
