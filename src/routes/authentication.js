@@ -3,6 +3,7 @@ import auth from '../middleware/auth';
 import { Router } from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import moment from 'moment';
+import config from '../config';
 
 const router = Router();
 
@@ -37,6 +38,31 @@ router.post('/logout', auth, asyncWrapper(async (req, res) => {
   } else {
     res.sendStatus(500);
   }
+}));
+
+router.get('/authorize', asyncWrapper(async (req, res) => {
+  const client = config.authentication.clients.find(x => x.client_id === req.query.client_id);
+
+  if (!client) {
+    res.sendStatus(400);
+  } else {
+    res.redirect(`${req.query.redirect_uri}?state=${req.query.state}&code=${Date.now()}`);
+  }
+}));
+
+router.post('/token', asyncWrapper(async (req, res) => {
+  const client = config.authentication.clients.find(x => x.client_id === req.body.client_id && x.client_secret === req.body.client_secret);
+
+  if (!client) {
+    return res.sendStatus(400);
+  }
+
+  res.json({
+    access_token: client.access_token,
+    token_type: 'bearer',
+    expires_in: moment.duration(1, 'y').asSeconds(),
+    refresh_token: 'invalid'
+  });
 }));
 
 export default router;

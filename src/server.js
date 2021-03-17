@@ -34,6 +34,7 @@ const server = createServer(app);
 
 app.set('trust proxy', config.trust_proxy);
 app.use(compression());
+app.use(bodyParser.urlencoded());
 app.use(bodyParser.json());
 app.use(cookieParser());
 app.use('/graphql', auth);

@@ -79,6 +79,25 @@ const resolvers = {
       return new History(args);
     },
 
+    async getDevice(parent, args, context, info) {
+      const device = await db.Device.findById(args.id);
+
+      switch (device?.type) {
+        case 'thermostat':
+          return {
+            type: 'thermostat',
+            device: new Thermostat(device)
+          };
+        case 'light':
+          return {
+            type: 'light',
+            device: new Light(device)
+          };
+        default:
+          throw new Error(`Device '${args.id}' either does not exist, or is not a type I can return info on.`);
+      }
+    },
+
     async getTimeline(parent, { since, limit }, context, info) {
       const events = await Promise.all([
         db.Event.findAll({
@@ -153,7 +172,12 @@ const resolvers = {
     async updateLight(parent, args, context, info) {
       const light = await db.Device.findById(args.id);
 
-      await light.setProperty('on', args.isOn);
+      if ('brightness' in args) {
+        await light.setProperty('brightness', args.brightness);
+      } else if ('isOn' in args) {
+        await light.setProperty('on', args.isOn);
+      }
+
       return new Lighting(context);
     },
 
@@ -235,6 +259,12 @@ const resolvers = {
   },
 
   TimelineEvent: {
+    __resolveType(obj, context, info) {
+      return obj.constructor.name;
+    }
+  },
+
+  Device: {
     __resolveType(obj, context, info) {
       return obj.constructor.name;
     }

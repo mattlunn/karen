@@ -17,7 +17,7 @@ export default gql`
     timestamp: Float!
   }
 
-  type Device {
+  interface Device {
     id: ID!
     name: String!
   }
@@ -61,6 +61,11 @@ export default gql`
   union TimelineEvent = MotionEvent | ArrivalEvent | DepartureEvent | LightOnEvent | LightOffEvent
   union HistoryDatumType = Thermostat | Light
 
+  type DeviceWrapper {
+    type: String!,
+    device: Device!
+  }
+
   type User {
     id: ID!,
     avatar: String!,
@@ -78,14 +83,14 @@ export default gql`
     lights: [Light]
   }
 
-  type Light {
+  type Light implements Device {
     id: ID!
     name: String!
     isOn: Boolean!
     brightness: Int
   }
 
-  type Camera {
+  type Camera implements Device {
     id: ID!,
     name: String!
     snapshot: String,
@@ -96,7 +101,7 @@ export default gql`
     end: Float!
   }
 
-  type Thermostat {
+  type Thermostat implements Device {
     id: ID!,
     name: String!,
     targetTemperature: Float,
@@ -120,6 +125,7 @@ export default gql`
   }
 
   type Query {
+    getDevice(id: ID!): DeviceWrapper,
     getUsers: [User]
     getSecurityStatus: Security
     getLighting: Lighting,
@@ -130,7 +136,7 @@ export default gql`
 
   type Mutation {
     updateUser(id: ID!, eta: Float, status: Status): User
-    updateLight(id: ID!, isOn: Boolean): Lighting
+    updateLight(id: ID!, isOn: Boolean, brightness: Int): Lighting
     updateThermostat(id: ID!, targetTemperature: Float): Thermostat
   }
 

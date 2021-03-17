@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "outDir": "../dist",
+    "esModuleInterop": true,
+    "typeRoots": [
+      "node_modules/@types",
+      "./custom-typings"
+    ],
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strict": true,
+    "target": "ES2015",
+    "module": "commonjs",
+    "forceConsistentCasingInFileNames": true
+  },
+  "extends": "@tsconfig/node14/tsconfig.json"
+}
