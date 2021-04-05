@@ -1,0 +1,20 @@
+{
+    "directive": {
+        "header": {
+            "namespace": "Alexa",
+            "name": "ReportState",
+            "payloadVersion": "3",
+            "messageId": "1abf7662-b833-4ee3-85af-f4d86b84a113",
+            "correlationToken": "AAAAAAAAAQB+ZijMOH8b2w0pFMw5ovE9/AEAAAAAAABMRVisP/GkWrp3yHWjSaQXiBz3z4VmxpqKdP5Ur7YQvePwbdslBZNR5msaJq9pZk9qEbk7IYaloxyWnMuJ+2Tnldn2TwsWibsrHmbt5WJevFeoxxvpl1P81quU/f51HDtK9YD635820mZ5z+hoWwzcvpMCjzUhtND8FH7kGqyJBxmjrqlA3DFvpDK/QYenUAFFLz6rLJz7JR0R6JzxX/cn58whp1CVzhefRnA1Vqytuj1Ep3oIfb/ldZoNM7oHoqE1Hhl81v5jDf+Z4ffanNDtiAG/Yw7Ybzds6oWF7mVRde/05JpRet5I4blBNTXoQYgaU73UkgW+kPsUs9pdQc623LFFSJCwPZMyMF0ZLhsBd1FKHdyYsTSnTQdn/FAK0yMrJJJQd3QTVeBH2gXJTcPNVUX1tXbpRNjc/NAVPP7OnMzoKVZH0NIUF46fsH0hRATviLb+0VbksP8FrfclAla8asXi1JfQaTG90jpyOObbqvNw7jx700OHhq/GmfP5bRrb+N10j3wrhug3pqb642MwT/7/LyhGPKJb0tdE85vPY7zKQ6Khs+YCJT3Xe2fNClKtGuWeOOk/ILE6ToXeX1G7dUpj3KAf6lTFki5SJhyH7xuYwbYfzWuvW1o4eC1iUHBeXIWaZeD+CEp3J25WNes5Rnn8UQLAA5lWkZDv"
+        },
+        "endpoint": {
+            "scope": {
+                "type": "BearerToken",
+                "token": "3904e9ab-7c14-430b-88b9-76510cd4a879"
+            },
+            "endpointId": "36",
+            "cookie": {}
+        },
+        "payload": {}
+    }
+}

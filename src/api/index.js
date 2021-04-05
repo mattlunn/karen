@@ -8,6 +8,7 @@ import UnorderedDataLoader from './lib/unordered-dataloader';
 import DataLoaderWithNoIdParam from './lib/dataloader-with-no-id-param';
 import schema from './schema';
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
+import createNewRelicPlugin from '@newrelic/apollo-server-plugin';
 
 function createSubscriptionForDeviceType(deviceType, mapper, properties) {
   return {
@@ -286,6 +287,7 @@ export default new ApolloServer({
   debug: true,
   typeDefs: schema,
   resolvers,
+  plugins: [createNewRelicPlugin],
   context: ({ req }) => {
     const context = {
       req: req,

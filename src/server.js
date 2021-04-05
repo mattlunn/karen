@@ -19,6 +19,7 @@ import api from './api';
 import { createServer } from 'http';
 import compression from 'compression';
 
+require('newrelic');
 require('./services/ifttt');
 require('./services/synology');
 require('./services/unifi');
