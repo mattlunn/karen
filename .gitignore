@@ -8,3 +8,4 @@ static
 sessions
 dist
 .vscode
+newrelic_agent.log
