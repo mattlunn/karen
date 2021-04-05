@@ -1,4 +1,5 @@
-require('newrelic');
+import 'newrelic';
+
 require('console-stamp')(console);
 
 import moment from './moment';
