@@ -6,3 +6,5 @@ config.json
 *.iml
 static
 sessions
+dist
+.vscode
