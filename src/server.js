@@ -20,6 +20,7 @@ import cookieParser from 'cookie-parser';
 import api from './api';
 import { createServer } from 'http';
 import compression from 'compression';
+import { createBackgroundTransaction } from './helpers/newrelic';
 
 require('./services/ifttt');
 require('./services/synology');
@@ -61,7 +62,7 @@ app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
   maxAge: moment.duration(1, 'year').asMilliseconds()
 }));
 
-setInterval(() => Device.synchronize(), moment.duration(1, 'day').as('milliseconds'));
+setInterval(createBackgroundTransaction('device:synchronize', () => Device.synchronize()), moment.duration(1, 'day').as('milliseconds'));
 
 server.listen(config.port, () => {
   console.log(`Listening on ${config.port}`);
