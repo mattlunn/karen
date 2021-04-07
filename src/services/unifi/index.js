@@ -3,10 +3,11 @@ import config from '../../config';
 import { User, Stay } from '../../models';
 import { markUserAsAway, markUserAsHome } from '../../helpers/presence';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import { createBackgroundTransaction } from '../../helpers/newrelic';
 
 const TEN_MINUTES_IN_MS = 1000 * 60 * 10;
 
-nowAndSetInterval(async () => {
+nowAndSetInterval(createBackgroundTransaction('unifi:check-presence', async () => {
   const [
     users,
     unifiUsers,
@@ -131,4 +132,4 @@ nowAndSetInterval(async () => {
       }
     }
   }
-}, config.unifi.device_check_interval_in_seconds * 1000);
+}), config.unifi.device_check_interval_in_seconds * 1000);

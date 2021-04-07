@@ -1,9 +1,10 @@
 import bus, { EVENT_START } from '../bus';
 import { Device } from '../models';
 import { sendNotification } from '../helpers/notification';
+import { createBackgroundTransaction } from '../helpers/newrelic';
 
 export default function ({ thermostatName, lightName, sensorName, maximumHumidity }) {
-  bus.on(EVENT_START, async (event) => {
+  bus.on(EVENT_START, createBackgroundTransaction('automations:utility-humidity:event-start', async (event) => {
     if (event.type === 'humidity') {
       const thermostat = await event.getDevice();
 
@@ -27,5 +28,5 @@ export default function ({ thermostatName, lightName, sensorName, maximumHumidit
         }
       }
     }
-  });
+  }));
 }

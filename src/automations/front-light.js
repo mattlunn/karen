@@ -1,6 +1,7 @@
 import bus, { STAY_START } from '../bus';
 import { isWithinTime } from '../helpers/time';
 import { Device } from '../models';
+import { createBackgroundTransaction } from '../helpers/newrelic';
 
 let offTimeout;
 let offExecutionTime;
@@ -21,7 +22,7 @@ function turnOffAfter(device, delayInMs) {
 }
 
 export default function ({ offDelayInMinutes, start, end, lightName }) {
-  bus.on(STAY_START, async () => {
+  bus.on(STAY_START, createBackgroundTransaction('automations:front-light:stay-start', async () => {
     if (isWithinTime(start, end)) {
       const device = await Device.findByName(lightName);
 
@@ -31,5 +32,5 @@ export default function ({ offDelayInMinutes, start, end, lightName }) {
         turnOffAfter(device, offDelayInMinutes * 60000);
       }
     }
-  });
+  }));
 }

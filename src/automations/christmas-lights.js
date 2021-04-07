@@ -16,8 +16,6 @@ export default function ({ switchNames, morningStart, morningEnd, eveningStart, 
     return Promise.all(switchNames.map(async (switchName) => {
       const device = await Device.findByName(switchName);
 
-      console.log('Handling ' + switchName);
-
       if (device) {
         const isOn = await device.getProperty('on');
 

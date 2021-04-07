@@ -1,6 +1,7 @@
 import bus, { EVENT_START, EVENT_END } from '../bus';
 import { Device } from '../models';
 import { isWithinTime } from '../helpers/time';
+import { createBackgroundTransaction } from '../helpers/newrelic';
 
 let timeoutToTurnOff = null;
 
@@ -25,7 +26,7 @@ export default function ({ motionSensorNames, humiditySensorName, lightName, max
   }
 
   [EVENT_START, EVENT_END].forEach((eventEvent) => {
-    bus.on(eventEvent, async (event) => {
+    bus.on(eventEvent, createBackgroundTransaction(`automations:bathroom:${eventEvent.toLowerCase()}`, async (event) => {
       const [sensor, light] = await Promise.all([
         event.getDevice(),
         Device.findByName(lightName)
@@ -74,6 +75,6 @@ export default function ({ motionSensorNames, humiditySensorName, lightName, max
           }
         }
       }
-    });
+    }));
   });
 }

@@ -5,7 +5,9 @@ import s3 from '../s3';
 import makeSynologyRequest from './instance';
 import uuidv4 from 'uuid/v4';
 import sleep from '../../helpers/sleep';
+import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { enqueueWorkItem } from '../../queue';
+import { createBackgroundTransaction } from '../../helpers/newrelic';
 
 export { makeSynologyRequest };
 
@@ -111,42 +113,30 @@ export async function onMotionDetected(cameraId, startOfDetectedMotion) {
   }, config.synology.length_of_motion_event_in_seconds * 1000);
 }
 
-(function removeOldUnarmedRecordings() {
+nowAndSetInterval(createBackgroundTransaction('synology:clear-old-recordings', async () => {
   if (typeof config.days_to_keep_recordings_while_home === 'number') {
-    var cutoffForUnarmedRecordings = moment().subtract(config.days_to_keep_recordings_while_home, 'days');
-
-    Recording.findAll({
+    const cutoffForUnarmedRecordings = moment().subtract(config.days_to_keep_recordings_while_home, 'days');
+    const recordings = await Recording.findAll({
       where: {
         start: {
           $lt: cutoffForUnarmedRecordings.toDate()
         }
       },
       include: [Event]
-    }).then((recordings) => {
-      var promiseChain = Promise.resolve();
-
-      recordings.forEach((recording) => {
-        promiseChain = promiseChain.then(() => {
-          return Stay.checkIfSomeoneHomeAt(recording.event.start).then((isHome) => {
-            if (isHome) {
-              return s3.remove(recording.recording).then(() => {
-                return recording.destroy();
-              });
-            }
-          });
-        });
-      });
-
-      return promiseChain;
-    }).catch((err) => {
-      console.log('An error occurred whilst removing old unarmed recordings');
-      console.log(err);
-    }).then(() => {
-      console.log('Old recordings removed. See you again tomorrow...');
-      setTimeout(removeOldUnarmedRecordings, moment.duration(1, 'day').as('milliseconds'));
     });
+
+    for (const recording of recordings) {
+      const isHome = await Stay.checkIfSomeoneHomeAt(recording.event.start);
+
+      if (isHome) {
+        await s3.remove(recording.recording);
+        await recording.destroy();
+      }
+    }
+
+    console.log('Old recordings removed. See you again tomorrow...');
   }
-}());
+}), moment.duration(1, 'day').as('milliseconds'));
 
 Device.registerProvider('synology', {
   async setProperty(device, key, value) {

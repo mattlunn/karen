@@ -2,6 +2,7 @@ import bus, { LAST_USER_LEAVES, FIRST_USER_HOME } from '../bus';
 import { Device, Arming } from '../models';
 import { sendNotification } from '../helpers/notification';
 import { joinWithAnd, pluralise } from '../helpers/array';
+import { createBackgroundTransaction } from '../helpers/newrelic';
 
 async function turnOffThermostats() {
   const thermostats = await Device.findByType('thermostat');
@@ -32,7 +33,7 @@ async function turnOffLights() {
 }
 
 export default function () {
-  bus.on(LAST_USER_LEAVES, async (stay) => {
+  bus.on(LAST_USER_LEAVES, createBackgroundTransaction('automations:occupancy:last-user-leaves', async (stay) => {
     try {
       let [
         activeArming,
@@ -62,9 +63,9 @@ export default function () {
 
       sendNotification(`No-one is home, but there was a problem turning off the heating and lights, or turning on the alarm!`);
     }
-  });
+  }));
 
-  bus.on(FIRST_USER_HOME, async (stay) => {
+  bus.on(FIRST_USER_HOME, createBackgroundTransaction('automations:occupancy:first-user-home', async (stay) => {
     const activeArming = await Arming.getActiveArming(stay.start);
 
     if (activeArming?.mode === Arming.MODE_AWAY) {
@@ -72,6 +73,6 @@ export default function () {
       await activeArming.save();
     }
 
-    turnOnThermostats();
-  });
+    await turnOnThermostats();
+  }));
 }

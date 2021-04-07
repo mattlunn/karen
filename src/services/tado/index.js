@@ -6,6 +6,7 @@ import { sendNotification } from '../../helpers/notification';
 import moment from 'moment';
 import getTimetabledTemperature from './helpers/get-timetabled-temperature';
 import getWarmupRatePerHour from './helpers/get-warmup-rate-per-hour';
+import { createBackgroundTransaction } from '../../helpers/newrelic';
 
 Device.registerProvider('tado', {
   async setProperty(device, key, value) {
@@ -75,7 +76,7 @@ Device.registerProvider('tado', {
   }
 });
 
-nowAndSetInterval(async () => {
+nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);
   const devices = await Device.findByProvider('tado');
 
@@ -121,9 +122,9 @@ nowAndSetInterval(async () => {
       ]);
     }
   }
-}, Math.max(config.tado.sync_interval_seconds, 10) * 1000);
+}), Math.max(config.tado.sync_interval_seconds, 10) * 1000);
 
-nowAndSetInterval(async () => {
+nowAndSetInterval(createBackgroundTransaction('tado:eta', async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);
   const now = moment();
   const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(now.valueOf());
@@ -164,4 +165,4 @@ nowAndSetInterval(async () => {
       }
     }
   }
-}, Math.max(config.tado.eta_check_interval_minutes, 10) * 60 * 1000);
+}), Math.max(config.tado.eta_check_interval_minutes, 10) * 60 * 1000);

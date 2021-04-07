@@ -4,6 +4,7 @@ import { say } from '../services/alexa';
 import bus, { EVENT_START } from '../bus';
 import moment from 'moment';
 import sleep from '../helpers/sleep';
+import { createBackgroundTransaction } from '../helpers/newrelic';
 
 const successAsBoolean = (promise) => promise.then(() => true, () => false);
 
@@ -92,7 +93,7 @@ async function soundTheAlarm(alarmAlexa, activation) {
 }
 
 export default async function ({ night_mode_alexa: nightModeAlexa, alarm_alexa: alarmAlexa, excluded_devices: excludedDevices = [] }) {
-  bus.on(EVENT_START, async (event) => {
+  bus.on(EVENT_START, createBackgroundTransaction('automations:security:event-start', async (event) => {
     if (event.type === 'motion') {
       const [
         arming,
@@ -122,5 +123,5 @@ export default async function ({ night_mode_alexa: nightModeAlexa, alarm_alexa: 
         }
       }
     }
-  });
+  }));
 }

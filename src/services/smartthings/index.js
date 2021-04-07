@@ -5,6 +5,7 @@ import { stringify } from 'querystring';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import SmartThingsApiClient from './lib/client';
 import { Device } from '../../models';
+import { startBackgroundTransaction } from '../../helpers/newrelic';
 
 const deviceTypeMappings = new Map([
   ['Fibaro Dimmer 2 ZW5', 'light'],
@@ -23,8 +24,7 @@ function getAccessToken() {
 }
 
 nowAndSetInterval(() => {
-  // eslint-disable-next-line no-async-promise-executor
-  accessTokenPromise = new Promise(async (res) => {
+  accessTokenPromise = startBackgroundTransaction('smartthings:refresh-tokens', async () => {
     // {"access_token":"583a45c7-d64c-45b1-a70b-b7de4de5c26d","token_type":"bearer","refresh_token":"f23a5350-16b4-4e1a-b39c-c05898856f3d","expires_in":86399,"scope":"r:locations:* x:devices:* i:deviceprofiles r:devices:* w:devices:*","installed_app_id":"14082a1f-8070-4796-be37-14939e34f938"}
     const response = await fetch('https://auth-global.api.smartthings.com/oauth/token', {
       method: 'POST',
@@ -51,8 +51,9 @@ nowAndSetInterval(() => {
       }
 
       config.smartthings.refresh_token = refresh_token;
-      res(access_token);
       saveConfig();
+
+      return access_token;
     } else {
       const message = await response.text();
 
