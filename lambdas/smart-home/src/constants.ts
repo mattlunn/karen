@@ -1,0 +1,1 @@
+export const ALARM_ENDPOINT_ID = '044feaa3-6236-48b1-805f-56cd190ae96d'; // Random GUID

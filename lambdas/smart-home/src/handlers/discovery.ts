@@ -3,6 +3,7 @@ import { Context } from 'aws-lambda';
 import { Light, Thermostat } from '../custom-typings/karen-types';
 import { SmartHomeRequest, SmartHomeResponse } from '../custom-typings/lambda';
 import client from '../client';
+import { ALARM_ENDPOINT_ID } from '../constants';
 
 const GET_DEVICES = gql`
   query GetDevices {
@@ -167,7 +168,7 @@ function mapLightToEndpoints(light: Light): SmartHomeEndpoint {
 function createAlarmEndpoint(): SmartHomeEndpoint {
   return {
     friendlyName: 'Alarm',
-    endpointId: '044feaa3-6236-48b1-805f-56cd190ae96d', // Random GUID
+    endpointId: ALARM_ENDPOINT_ID,
     displayCategories: ['SECURITY_PANEL'],
     manufacturerName: 'Karen',
     description: `Security Alarm`,
