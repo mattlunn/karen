@@ -23,3 +23,4 @@ export interface Device {
 }
 
 export type DeviceStatus = 'OK' | 'OFFLINE';
+export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';

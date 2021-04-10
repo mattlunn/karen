@@ -21,7 +21,7 @@ export type SmartHomeEndpointRequest<Payload = undefined> = SmartHomeRequest & {
       },
       endpointId: string
     },
-    payload: T
+    payload: Payload
   }
 }
 

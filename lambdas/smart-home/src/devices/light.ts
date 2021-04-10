@@ -14,7 +14,7 @@ const MODIFY_LIGHT = gql`
   }
 `;
 
-export async function modifyAndCreateResponseObject(request: SmartHomeEndpointRequest, variables: { id: string, isOn?: boolean, brightness?: number }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
+export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { id: string, isOn?: boolean, brightness?: number }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
   const response = await client.mutate<{ updateLight: Light }>({
     mutation: MODIFY_LIGHT,

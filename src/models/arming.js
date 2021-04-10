@@ -22,11 +22,11 @@ export default function (sequelize) {
     return this.findOne({
       where: {
         start: {
-          [Op.lt]: when
+          [Op.lte]: when
         },
         end: {
           [Op.or]: [{
-            [Op.gte]: when,
+            [Op.gt]: when,
           }, {
             [Op.eq]: null
           }]

@@ -147,6 +147,7 @@ export default gql`
     updateUser(id: ID!, eta: Float, status: Occupancy): User
     updateLight(id: ID!, isOn: Boolean, brightness: Int): Light
     updateThermostat(id: ID!, targetTemperature: Float): Thermostat
+    updateAlarm(mode: AlarmMode): Security
   }
 
   type Subscription {

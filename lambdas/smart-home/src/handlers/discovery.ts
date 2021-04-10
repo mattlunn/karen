@@ -42,6 +42,7 @@ interface SmartHomeEndpointCapability {
   type: 'AlexaInterface';
   interface: string;
   version: '3';
+  configuration?: any
   properties?: {
     supported: {
       name: string
@@ -52,7 +53,7 @@ interface SmartHomeEndpointCapability {
   }
 }
 
-type SmartHomeDisplayCategory = 'LIGHT' | 'TEMPERATURE_SENSOR' | 'CHRISTMAS_TREE' | 'THERMOSTAT';
+type SmartHomeDisplayCategory = 'LIGHT' | 'TEMPERATURE_SENSOR' | 'CHRISTMAS_TREE' | 'THERMOSTAT' | 'SECURITY_PANEL';
 
 // https://developer.amazon.com/en-US/docs/alexa/device-apis/alexa-discovery-objects.html
 interface SmartHomeEndpoint {
@@ -163,6 +164,55 @@ function mapLightToEndpoints(light: Light): SmartHomeEndpoint {
   };
 }
 
+function createAlarmEndpoint(): SmartHomeEndpoint {
+  return {
+    friendlyName: 'Alarm',
+    endpointId: '044feaa3-6236-48b1-805f-56cd190ae96d', // Random GUID
+    displayCategories: ['SECURITY_PANEL'],
+    manufacturerName: 'Karen',
+    description: `Security Alarm`,
+    capabilities: [{
+      type: 'AlexaInterface',
+      interface: 'Alexa.SecurityPanelController',
+      version: '3',
+      properties: {
+        supported: [{
+          name: 'armState'
+        }, {
+          name: 'burglaryAlarm'
+        }],
+        proactivelyReported: false,
+        retrievable: true
+      },
+      configuration: {
+        supportedArmStates: [{
+          value: 'ARMED_AWAY'
+        }, {
+          value: 'ARMED_NIGHT'
+        }, {
+          value: 'DISARMED'
+        }],
+        supportedAuthorizationTypes: []
+      }
+    }, {
+      type: 'AlexaInterface',
+      interface: 'Alexa.EndpointHealth',
+      version: '3',
+      properties: {
+        supported: [{
+          name: 'connectivity'
+        }],
+        proactivelyReported: false,
+        retrievable: true
+      }
+    }, {
+      type: 'AlexaInterface',
+      interface: 'Alexa',
+      version: '3'
+    }]
+  };
+}
+
 export async function Discover(request: SmartHomeRequest, context: Context): Promise<SmartHomeDiscoveryResponse> {
   const { data: { getHeating: { thermostats }, getLighting: { lights }}} = await client.query({
     query: GET_DEVICES
@@ -180,7 +230,8 @@ export async function Discover(request: SmartHomeRequest, context: Context): Pro
       payload: {
         endpoints: [
           ...thermostats.map(mapThermostatToEndpoints),
-          ...lights.map(mapLightToEndpoints)
+          ...lights.map(mapLightToEndpoints),
+          createAlarmEndpoint()
         ]
       }
     }

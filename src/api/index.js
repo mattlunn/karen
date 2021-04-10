@@ -189,6 +189,30 @@ const resolvers = {
       return new Thermostat(thermostat);
     },
 
+    async updateAlarm(parent, args, context, info) {
+      const currentStatus = await db.Arming.getActiveArming();
+      const desiredStatus = args.mode;
+      const now = new Date();
+
+      if ((currentStatus === null && desiredStatus === 'OFF') || currentStatus?.mode === args.mode) {
+        return new Security();
+      }
+
+      if (currentStatus !== null) {
+        currentStatus.end = now;
+        await currentStatus.save();
+      }
+
+      if (desiredStatus !== 'OFF') {
+        await db.Arming.create({
+          start: now,
+          mode: desiredStatus
+        });
+      }
+
+      return new Security();
+    },
+
     async updateUser(parent, args, context, info) {
       const user = await db.User.findOne({
         where: {
