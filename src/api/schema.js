@@ -1,25 +1,31 @@
 import { gql } from 'apollo-server-express';
 
 export default gql`
-  enum Status {
-    HOME,
+  enum Occupancy {
+    HOME
     AWAY
   }
 
   enum AlarmMode {
-    AWAY,
-    NIGHT,
+    AWAY
+    NIGHT
     OFF
   }
 
+  enum DeviceStatus {
+    OK
+    OFFLINE
+  }
+
   interface Event {
-    id: ID!,
+    id: ID!
     timestamp: Float!
   }
 
   interface Device {
     id: ID!
     name: String!
+    status: DeviceStatus
   }
 
   type MotionEvent implements Event {
@@ -62,20 +68,20 @@ export default gql`
   union HistoryDatumType = Thermostat | Light
 
   type DeviceWrapper {
-    type: String!,
+    type: String!
     device: Device!
   }
 
   type User {
-    id: ID!,
-    avatar: String!,
-    status: Status!,
-    since: Float!,
+    id: ID!
+    avatar: String!
+    status: Occupancy!
+    since: Float!
     until: Float
   }
 
   type Security {
-    cameras: [Camera],
+    cameras: [Camera]
     alarmMode: AlarmMode
   }
 
@@ -88,12 +94,14 @@ export default gql`
     name: String!
     isOn: Boolean!
     brightness: Int
+    status: DeviceStatus
   }
 
   type Camera implements Device {
-    id: ID!,
+    id: ID!
     name: String!
-    snapshot: String,
+    snapshot: String
+    status: DeviceStatus
   }
 
   type TimePeriod {
@@ -102,13 +110,14 @@ export default gql`
   }
 
   type Thermostat implements Device {
-    id: ID!,
-    name: String!,
-    targetTemperature: Float,
-    currentTemperature: Float!,
-    isHeating: Boolean!,
-    humidity: Float!,
+    id: ID!
+    name: String!
+    targetTemperature: Float
+    currentTemperature: Float!
+    isHeating: Boolean!
+    humidity: Float!
     power: Float!
+    status: DeviceStatus
   }
 
   type Heating {
@@ -125,7 +134,7 @@ export default gql`
   }
 
   type Query {
-    getDevice(id: ID!): DeviceWrapper,
+    getDevice(id: ID!): DeviceWrapper
     getUsers: [User]
     getSecurityStatus: Security
     getLighting: Lighting,
@@ -135,7 +144,7 @@ export default gql`
   }
 
   type Mutation {
-    updateUser(id: ID!, eta: Float, status: Status): User
+    updateUser(id: ID!, eta: Float, status: Occupancy): User
     updateLight(id: ID!, isOn: Boolean, brightness: Int): Light
     updateThermostat(id: ID!, targetTemperature: Float): Thermostat
   }

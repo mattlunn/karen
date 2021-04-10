@@ -93,6 +93,8 @@ Device.registerProvider('smartthings', {
 
   async getProperty(device, key) {
     switch (key) {
+      case 'connected':
+        return true;
       case 'motion':
       case 'on':
       case 'open': {

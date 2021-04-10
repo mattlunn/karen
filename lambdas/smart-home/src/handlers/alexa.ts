@@ -12,6 +12,7 @@ const GET_DEVICE = gql`
       device {
         id
         name
+        status
 
         ... on Light {
           isOn

@@ -144,7 +144,12 @@ Device.registerProvider('synology', {
   },
 
   async getProperty(device, key) {
-    throw new Error(`Unable to handle retrieving '${key}' for ${device.type}`);
+    switch (key) {
+      case 'connected':
+        return true;
+      default:
+        throw new Error(`Unable to handle retrieving '${key}' for ${device.type}`);
+    }
   },
 
   async synchronize() {

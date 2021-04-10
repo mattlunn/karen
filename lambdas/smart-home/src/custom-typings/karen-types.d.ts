@@ -3,6 +3,7 @@ export interface Light {
   name: string;
   isOn: boolean;
   brightness: number;
+  status: DeviceStatus;
 }
 
 export interface Thermostat {
@@ -13,9 +14,12 @@ export interface Thermostat {
   humidity: number;
   power: number;
   isHeating: boolean;
+  status: DeviceStatus;
 }
 
 export interface Device {
   type: 'light' | 'thermostat',
   device: Light | Thermostat
 }
+
+export type DeviceStatus = 'OK' | 'OFFLINE';

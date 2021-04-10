@@ -28,5 +28,13 @@ export function createResponseProperties(thermostat: Thermostat, sampleTime: Dat
     },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
+  }, {
+    namespace: 'Alexa.EndpointHealth',
+    name: 'connectivity',
+    value: {
+      value: thermostat.status === 'OK' ? 'OK' : 'UNREACHABLE'
+    },
+    timeOfSample: sampleTime.toISOString(),
+    uncertaintyInMilliseconds
   }];
 }

@@ -38,6 +38,8 @@ authenticate().then(() => Device.registerProvider('lightwaverf', {
 
   async getProperty(device, key) {
     switch (key) {
+      case 'connected':
+        return true;
       case 'on': {
         const latestEvent = await device.getLatestEvent('on');
 

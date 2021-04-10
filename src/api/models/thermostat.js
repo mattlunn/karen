@@ -30,4 +30,8 @@ export default class Thermostat {
   power() {
     return this.device.getProperty('power');
   }
+
+  async status() {
+    return await this.device.getProperty('connected') ? 'OK' : 'OFFLINE';
+  }
 }

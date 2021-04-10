@@ -65,7 +65,7 @@ class UserStatus extends Component {
   }
 }
 
-export default graphql(gql`mutation($id: ID!, $status: Status) {
+export default graphql(gql`mutation($id: ID!, $status: Occupancy) {
   updateUser(id:$id, status:$status) {
     id,
     status,

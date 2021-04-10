@@ -14,4 +14,8 @@ export default class Camera {
   snapshot(_, { req }) {
     return `${req.protocol}://${req.headers.host}/api/snapshot/${this.camera.id}`;
   }
+
+  async status() {
+    return await this.device.getProperty('connected') ? 'OK' : 'OFFLINE';
+  }
 }

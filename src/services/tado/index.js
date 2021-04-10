@@ -39,6 +39,8 @@ Device.registerProvider('tado', {
 
   async getProperty(device, key) {
     switch (key) {
+      case 'connected':
+        return true;
       case 'target':
       case 'temperature':
       case 'humidity':

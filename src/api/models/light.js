@@ -18,4 +18,8 @@ export default class Light {
   name() {
     return this.data.name;
   }
+
+  async status() {
+    return await this.data.getProperty('connected') ? 'OK' : 'OFFLINE';
+  }
 }

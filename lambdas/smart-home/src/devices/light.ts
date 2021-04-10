@@ -1,5 +1,5 @@
-import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from "../custom-typings/lambda";
-import { Light } from "../custom-typings/karen-types";
+import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from '../custom-typings/lambda';
+import { Light } from '../custom-typings/karen-types';
 import { gql } from '@apollo/client/core';
 import client from '../client';
 
@@ -9,6 +9,7 @@ const MODIFY_LIGHT = gql`
       id
       isOn
       brightness
+      status
     }
   }
 `;
@@ -72,6 +73,14 @@ export function createResponseProperties(light: Light, sampleTime: Date, uncerta
     namespace: 'Alexa.BrightnessController',
     name: 'brightness',
     value: light.brightness,
+    timeOfSample: sampleTime.toISOString(),
+    uncertaintyInMilliseconds
+  }, {
+    namespace: 'Alexa.EndpointHealth',
+    name: 'connectivity',
+    value: {
+      value: light.status === 'OK' ? 'OK' : 'UNREACHABLE'
+    },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }];
