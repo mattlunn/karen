@@ -9,11 +9,9 @@ export default function LightingTile({ id, name, isOn, brightness }) {
   const [setLightSwitchStatus] = useMutation(gql`
     mutation updateLight($id: ID!, $isOn: Boolean) {
       updateLight(id: $id, isOn: $isOn) {
-        lights {
-          id
-          name
-          isOn
-        }
+        id
+        name
+        isOn
       }
     }
   `);

@@ -179,7 +179,7 @@ const resolvers = {
         await light.setProperty('on', args.isOn);
       }
 
-      return new Lighting(context);
+      return new Light(light);
     },
 
     async updateThermostat(parent, args, context, info) {

@@ -1,7 +1,7 @@
-import { SmartHomeEndpointRequest, SmartHomeEndpointProperty } from '../custom-typings/lambda';
+import { SmartHomeEndpointProperty } from '../custom-typings/lambda';
 import { Thermostat } from '../custom-typings/karen-types';
 
-export function createResponseProperties(request: SmartHomeEndpointRequest, thermostat: Thermostat, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+export function createResponseProperties(thermostat: Thermostat, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
   return [{
     namespace: 'Alexa.TemperatureSensor',
     name: 'temperature',

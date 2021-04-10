@@ -1,17 +1,17 @@
 import { SmartHomeEndpointRequest, SmartHomeResponse, Context } from "../custom-typings/lambda";
-import { Light } from "../custom-typings/karen-types";
+import { Device, Light } from "../custom-typings/karen-types";
 import { modifyAndCreateResponseObject } from '../devices/light';
 import { gql } from '@apollo/client/core';
 import client from '../client';
 
-const GET_LIGHTS = gql`
-  query GetDevices {
-    getLighting {
-      lights {
-        id
-        name
-        isOn
-        brightness
+const GET_LIGHT = gql`
+  query GetLight($id: ID!) {
+    getDevice(id: $id) {
+      type
+      device {
+        ... on Light {
+          brightness
+        }
       }
     }
   }
@@ -25,19 +25,20 @@ export function SetBrightness(request: SmartHomeEndpointRequest<{ brightness: nu
 }
 
 export async function AdjustBrightness(request: SmartHomeEndpointRequest<{ brightnessDelta: number }>, context: Context): Promise<SmartHomeResponse> {
-  const response = await client.query<{ getLighting: { lights: Light[] }}>({
-    query: GET_LIGHTS
+  const id = request.directive.endpoint.endpointId;
+  const { data: { getDevice }} = await client.query<{ getDevice: Device}>({
+    query: GET_LIGHT,
+    variables: {
+      id
+    }
   });
 
-  const id = request.directive.endpoint.endpointId;
-  const light = response.data.getLighting.lights.find(x => x.id === id);
-
-  if (light === undefined) {
+  if (getDevice === null || getDevice.type !== 'light') {
     throw new Error(`Light ${id} not found`);
   }
 
   return modifyAndCreateResponseObject(request, {
     id: request.directive.endpoint.endpointId,
-    brightness: light.brightness + request.directive.payload.brightnessDelta
+    brightness: Math.max(0, Math.min(100, (getDevice.device as Light).brightness + request.directive.payload.brightnessDelta))
   });
 }

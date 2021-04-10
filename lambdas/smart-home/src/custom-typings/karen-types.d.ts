@@ -14,3 +14,8 @@ export interface Thermostat {
   power: number;
   isHeating: boolean;
 }
+
+export interface Device {
+  type: 'light' | 'thermostat',
+  device: Light | Thermostat
+}

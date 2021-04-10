@@ -6,25 +6,23 @@ import client from '../client';
 const MODIFY_LIGHT = gql`
   mutation ModifyLight($id: ID!, $isOn: Boolean, $brightness: Int) {
     updateLight(id: $id, isOn: $isOn, brightness: $brightness) {
-      lights {
-        id
-        isOn
-        brightness
-      }
+      id
+      isOn
+      brightness
     }
   }
 `;
 
 export async function modifyAndCreateResponseObject(request: SmartHomeEndpointRequest, variables: { id: string, isOn?: boolean, brightness?: number }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
-  const response = await client.mutate<{ updateLight: { lights: Light[] }}>({
+  const response = await client.mutate<{ updateLight: Light }>({
     mutation: MODIFY_LIGHT,
     variables
   });
 
   const now = new Date();
   const uncertaintyInMilliseconds = now.valueOf() - then.valueOf();
-  const light = response.data?.updateLight.lights.find(x => x.id === variables.id);
+  const light = response.data?.updateLight;
 
   if (light) {
     return {
@@ -39,7 +37,7 @@ export async function modifyAndCreateResponseObject(request: SmartHomeEndpointRe
         }
       },
       context: {
-        properties: createResponseProperties(request, light, now, uncertaintyInMilliseconds)
+        properties: createResponseProperties(light, now, uncertaintyInMilliseconds)
       }
     };
   } else {
@@ -63,7 +61,7 @@ export async function modifyAndCreateResponseObject(request: SmartHomeEndpointRe
   }
 }
 
-export function createResponseProperties(request: SmartHomeEndpointRequest, light: Light, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+export function createResponseProperties(light: Light, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
   return [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',

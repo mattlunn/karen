@@ -136,7 +136,7 @@ export default gql`
 
   type Mutation {
     updateUser(id: ID!, eta: Float, status: Status): User
-    updateLight(id: ID!, isOn: Boolean, brightness: Int): Lighting
+    updateLight(id: ID!, isOn: Boolean, brightness: Int): Light
     updateThermostat(id: ID!, targetTemperature: Float): Thermostat
   }
 
