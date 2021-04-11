@@ -3,9 +3,9 @@ import fetch from 'cross-fetch';
 
 export default new ApolloClient({
   link: new HttpLink({
-    uri: `https://${process.env.GRAPHQL_HOST}/graphql`,
+    uri: `https://${process.env.KAREN_HOST}/graphql`,
     headers: {
-      Authorization: `Bearer ${process.env.GRAPHQL_AUTH_TOKEN}`
+      Authorization: `Bearer ${process.env.KAREN_AUTH_TOKEN}`
     },
     fetch
   }),

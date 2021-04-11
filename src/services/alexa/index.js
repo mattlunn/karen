@@ -8,7 +8,7 @@ export const messages = new Map();
  *
  * What we instead do is;
  *
- *  1. Register a fake Contact Sensor (this was done in the SmartThings Graph UI).
+ *  1. Register a fake Contact Sensor for each Alexa (this is done in the Discovery response from the smart-home Lambda)
  *  2. Register a Routine (in the Alexa App) so that when the Contact sensor is opened, Alexa asks Karen
  *     for the latest messages
  *  3. Register an Intent ("WhatsTheMessage") which returns whatever text we want Alexa to read out.
@@ -81,6 +81,11 @@ export async function say(device, message, ttlInSeconds = 30) {
       reject(new Error(error));
     }
   }, ttlInSeconds * 1000);
+
+
+  // TODO: Need to swap this to call sendChangeReport.
+  // also need to figure out whether we continue to have "Device" for these Alexa's, or just swap them to be a string.
+  // Will need Alexa to become a Device provider, if we want to keep "Device's"
 
   device.setProperty('push', true);
   return promise;
