@@ -92,7 +92,24 @@ async function soundTheAlarm(alarmAlexa, activation) {
   }
 }
 
-export default async function ({ night_mode_alexa: nightModeAlexa, alarm_alexa: alarmAlexa, night_excluded_devices: nightExcludedDevices = [] }) {
+function isExcludedDevice(mode, deviceName, excludedDevices, nightExcludedDevices) {
+  if (excludedDevices.includes(deviceName)) {
+    return true;
+  }
+
+  if (mode === Arming.MODE_NIGHT && nightExcludedDevices.includes(deviceName)) {
+    return true;
+  }
+
+  return false;
+}
+
+export default async function ({
+  night_mode_alexa: nightModeAlexa,
+  alarm_alexa: alarmAlexa,
+  night_excluded_devices: nightExcludedDevices = [],
+  excluded_devices: excludedDevices = []
+}) {
   bus.on(EVENT_START, createBackgroundTransaction('automations:security:event-start', async (event) => {
     if (event.type === 'motion') {
       const [
@@ -103,7 +120,7 @@ export default async function ({ night_mode_alexa: nightModeAlexa, alarm_alexa: 
         event.getDevice()
       ]);
 
-      if (arming && !(arming.mode === Arming.MODE_NIGHT && nightExcludedDevices.includes(device.name))) {
+      if (arming && !isExcludedDevice(arming.mode, device.name, excludedDevices, nightExcludedDevices)) {
         let mostRecentActivation = await arming.getMostRecentActivation();
 
         if (!mostRecentActivation || mostRecentActivation.isSuppressed) {
