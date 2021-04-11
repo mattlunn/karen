@@ -39,6 +39,7 @@ app.set('trust proxy', config.trust_proxy);
 app.use(compression());
 app.use(bodyParser.urlencoded());
 app.use(bodyParser.json());
+app.use(bodyParser.text());
 app.use(cookieParser());
 app.use('/graphql', auth);
 

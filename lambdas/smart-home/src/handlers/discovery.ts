@@ -54,7 +54,7 @@ interface SmartHomeEndpointCapability {
   }
 }
 
-type SmartHomeDisplayCategory = 'LIGHT' | 'TEMPERATURE_SENSOR' | 'CHRISTMAS_TREE' | 'THERMOSTAT' | 'SECURITY_PANEL';
+type SmartHomeDisplayCategory = 'LIGHT' | 'TEMPERATURE_SENSOR' | 'CHRISTMAS_TREE' | 'THERMOSTAT' | 'SECURITY_PANEL' | 'CONTACT_SENSOR';
 
 // https://developer.amazon.com/en-US/docs/alexa/device-apis/alexa-discovery-objects.html
 interface SmartHomeEndpoint {
@@ -68,13 +68,9 @@ interface SmartHomeEndpoint {
   capabilities: SmartHomeEndpointCapability[]
 }
 
-type SmartHomeDiscoveryResponse = SmartHomeResponse & {
-  event: {
-    payload: {
-      endpoints: SmartHomeEndpoint[]
-    }
-  }
-}
+type SmartHomeDiscoveryResponse = SmartHomeResponse<{
+  endpoints: SmartHomeEndpoint[]
+}>
 
 function mapThermostatToEndpoints(thermostat: Thermostat): SmartHomeEndpoint {
   return {
@@ -165,6 +161,43 @@ function mapLightToEndpoints(light: Light): SmartHomeEndpoint {
   };
 }
 
+function createAlexa(id: string, name: string): SmartHomeEndpoint {
+  return {
+    friendlyName: name,
+    endpointId: id,
+    displayCategories: ['CONTACT_SENSOR'],
+    manufacturerName: 'Karen',
+    description: `Fake sensor for ${name}`,
+    capabilities: [{
+      type: 'AlexaInterface',
+      interface: 'Alexa.ContactSensor',
+      version: '3',
+      properties: {
+        supported: [{
+          name: 'detectionState'
+        }],
+        proactivelyReported: true,
+        retrievable: false
+      }
+    }, {
+      type: 'AlexaInterface',
+      interface: 'Alexa.EndpointHealth',
+      version: '3',
+      properties: {
+        supported: [{
+          name: 'connectivity'
+        }],
+        proactivelyReported: true,
+        retrievable: false
+      }
+    }, {
+      type: 'AlexaInterface',
+      interface: 'Alexa',
+      version: '3'
+    }]
+  };
+}
+
 function createAlarmEndpoint(): SmartHomeEndpoint {
   return {
     friendlyName: 'Alarm',
@@ -227,11 +260,12 @@ export async function Discover(request: SmartHomeRequest, context: Context): Pro
         namespace: 'Alexa.Discovery',
         payloadVersion: 3
       },
-
       payload: {
         endpoints: [
           ...thermostats.map(mapThermostatToEndpoints),
           ...lights.map(mapLightToEndpoints),
+          createAlexa('bf8e9bfb-ec6f-4a78-b5b5-6d9b6b3886af', 'Downstairs Alexa'),
+          createAlexa('28805b52-4e9f-4152-8d00-fb72cbcb1d17', 'Upstairs Alexa'),
           createAlarmEndpoint()
         ]
       }

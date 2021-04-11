@@ -1,18 +1,19 @@
 import { Context } from 'aws-lambda'
 
 // https://developer.amazon.com/en-US/docs/alexa/device-apis/alexa-discovery.html
-export interface SmartHomeRequest {
+export interface SmartHomeRequest<Payload = undefined> {
   directive: {
     header: {
       namespace: string
       name: string
       messageId: string
       payloadVersion: 3
-    }
+    },
+    payload: Payload
   }
 }
 
-export type SmartHomeEndpointRequest<Payload = undefined> = SmartHomeRequest & {
+export type SmartHomeEndpointRequest<Payload = undefined> = SmartHomeRequest<Payload> & {
   directive: {
     endpoint: {
       scope: {
@@ -20,8 +21,7 @@ export type SmartHomeEndpointRequest<Payload = undefined> = SmartHomeRequest & {
         token: string
       },
       endpointId: string
-    },
-    payload: Payload
+    }
   }
 }
 
@@ -34,14 +34,15 @@ export type SmartHomeEndpointProperty = {
 }
 
 // https://developer.amazon.com/en-US/docs/alexa/device-apis/alexa-discovery.html
-export interface SmartHomeResponse {
+export interface SmartHomeResponse<Payload = undefined> {
   event: {
     header: {
       namespace: string
       name: string
       messageId: string
       payloadVersion: 3
-    }
+    },
+    payload?: Payload
   }
 }
 
@@ -63,17 +64,16 @@ export type SmartHomeEndpointAndPropertiesResponse = SmartHomeEndpointResponse &
   }
 }
 
-export type SmartHomeErrorResponse = SmartHomeEndpointResponse & {
+export type SmartHomeErrorResponse = SmartHomeEndpointResponse<{
+  type: string
+  message: string
+}> & {
   event: {
     header: {
       namespace: 'Alexa'
       name: 'ErrorResponse'
       messageId: string
       payloadVersion: 3
-    },
-    payload: {
-      type: string
-      message: string
     }
   }
 }
