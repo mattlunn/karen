@@ -104,6 +104,11 @@ button.secondary {
     margin: 0 20px 20px 20px;
   }
 
+  &__alarm-status {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
   &__house-border {
     border: 3px solid transparent;
     border-radius: 100%;
@@ -117,11 +122,11 @@ button.secondary {
       height: 100px;
     }
 
-    &--armed {
+    &--away {
       border-color: @away-color;
     }
 
-    &--off {
+    &--home {
       border-color: @home-color;
     }
   }
