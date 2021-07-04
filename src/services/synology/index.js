@@ -1,6 +1,6 @@
 import moment from 'moment';
 import config from '../../config';
-import { Event, Recording, Stay, Device } from '../../models';
+import { Event, Recording, Stay, Device, Op } from '../../models';
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
 import uuidv4 from 'uuid/v4';
@@ -119,7 +119,7 @@ nowAndSetInterval(createBackgroundTransaction('synology:clear-old-recordings', a
     const recordings = await Recording.findAll({
       where: {
         start: {
-          $lt: cutoffForUnarmedRecordings.toDate()
+          [Op.lt]: cutoffForUnarmedRecordings.toDate()
         }
       },
       include: [Event]
