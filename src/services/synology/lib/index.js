@@ -14,7 +14,7 @@ Synology.prototype.init = async function () {
 
   this._apis = data.data;
 
-  const auth = await this.request('SYNO.API.Auth', 'Login', {
+  const auth = await this.request('SYNO.API.Auth', 'login', {
     account: this._account,
     passwd: this._password,
     session: this._session,
