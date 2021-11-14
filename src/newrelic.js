@@ -65,5 +65,9 @@ exports.config = {
 
   transaction_tracer: {
     record_sql: 'raw'
+  },
+  
+  slow_sql: {
+    enabled: true 
   }
 };
