@@ -1,5 +1,7 @@
-import Sequelize from 'sequelize';
+import Sequelize, { Op } from 'sequelize';
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
+
+const latestEventCache = new Map();
 
 export default function (sequelize) {
   const device = sequelize.define('device', {
@@ -72,14 +74,37 @@ export default function (sequelize) {
   };
 
   device.prototype.getLatestEvent = async function (type) {
-    return (await this.getEvents({
+    // We have this caching because MySQL's chosen query execution plan seems to suite EITHER
+    // IDs + types which never change (e.g. the brightness of a non-dimmable light), OR a type
+    // which changes often (e.g. the temperature). The bad query plans resulted in >500ms queries.
+    //
+    // By introducing this caching, the query for both these scenarios should be more similar,
+    // as in both cases they will only have to check cached value -> now, rather than the history
+    // of time.
+    
+    if (!latestEventCache.has(this.id)) {
+      latestEventCache.set(this.id, new Map());
+    }
+
+    let lastLatestEvent = latestEventCache.get(this.id).get(type);
+    const newerLatestEvent = (await this.getEvents({
       where: {
-        type
+        type,
+        start: {
+          [Op.gte]: lastLatestEvent?.start || '1970-01-01T00:00:00.000Z'
+        }
       },
 
       limit: 1,
       order: [['start', 'DESC']]
     }))[0] || null;
+
+    if (!lastLatestEvent || (newerLatestEvent && newerLatestEvent.start > lastLatestEvent.start)) {
+      lastLatestEvent = newerLatestEvent;
+      latestEventCache.get(this.id).set(type, lastLatestEvent);
+    }
+
+    return lastLatestEvent;
   };
 
   device.findByName = function (name) {
