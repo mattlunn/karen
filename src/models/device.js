@@ -99,7 +99,7 @@ export default function (sequelize) {
       order: [['start', 'DESC']]
     }))[0] || null;
 
-    if (!lastLatestEvent || (newerLatestEvent && newerLatestEvent.start > lastLatestEvent.start)) {
+    if (!lastLatestEvent || (newerLatestEvent && newerLatestEvent.start >= lastLatestEvent.start)) {
       lastLatestEvent = newerLatestEvent;
       latestEventCache.get(this.id).set(type, lastLatestEvent);
     }
