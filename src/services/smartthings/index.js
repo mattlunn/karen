@@ -149,23 +149,27 @@ Device.registerProvider('smartthings', {
       }
     */
     for (const { deviceTypeName, deviceId, label } of devices) {
-      let knownDevice = await Device.findByProviderId('smartthings', deviceId);
+      try {
+        let knownDevice = await Device.findByProviderId('smartthings', deviceId);
 
-      if (!knownDevice) {
-        if (!deviceTypeMappings.has(deviceTypeName)) {
-          console.warn(`SmartThings does not know how to handle devices of type '${deviceTypeName}'`);
-          continue;
+        if (!knownDevice) {
+          if (!deviceTypeMappings.has(deviceTypeName)) {
+            console.warn(`SmartThings does not know how to handle devices of type '${deviceTypeName}'`);
+            continue;
+          }
+
+          knownDevice = Device.build({
+            type: deviceTypeMappings.get(deviceTypeName),
+            provider: 'smartthings',
+            providerId: deviceId
+          });
         }
 
-        knownDevice = Device.build({
-          type: deviceTypeMappings.get(deviceTypeName),
-          provider: 'smartthings',
-          providerId: deviceId
-        });
+        knownDevice.name = label;
+        await knownDevice.save();
+      } catch (e) {
+        console.error(`Received an error while processing SmartThings device ${deviceId}, with label "${label}"`, e);
       }
-
-      knownDevice.name = label;
-      await knownDevice.save();
     }
   }
 });

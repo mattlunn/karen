@@ -3,6 +3,8 @@ import asyncWrapper from '../helpers/express-async-wrapper';
 import config from '../config';
 import { client } from '../services/lightwaverf';
 import { Device, Event } from '../models';
+import uuid from 'uuid/v4';
+import { saveConfig } from '../helpers/config';
 
 const router = express.Router();
 
@@ -100,23 +102,14 @@ router.post('/event', asyncWrapper(async (req, res) => {
 }));
 
 router.get('/setup', asyncWrapper(async (req, res) => {
-  const eventId = config.lightwaverf.event_id;
-  const {
-    secret,
-    url
-  } = req.query;
+  const secret = req.query.secret;
 
   if (secret !== config.lightwaverf.secret) {
     return res.sendStatus(401);
   }
 
-  if (typeof url === 'undefined') {
-    return res.status(400).json({
-      error: 'Missing url parameter'
-    });
-  }
-
   const lights = await Device.findByProvider('lightwaverf');
+  const eventId = config.lightwaverf.event_id || uuid();
 
   // Will error if first time setup, and karen hasn't been created yet.
   try {
@@ -126,7 +119,7 @@ router.get('/setup', asyncWrapper(async (req, res) => {
   }
 
   await client.request('/events', {
-    url: `${url}/lightwaverf/event`,
+    url: `${req.protocol}://${req.hostname}/lightwaverf/event`,
     ref: eventId,
     events: lights.flatMap(({ meta: { switchFeatureId, dimLevelFeatureId }}) => ([{
       type: 'feature',
@@ -136,6 +129,10 @@ router.get('/setup', asyncWrapper(async (req, res) => {
       id: switchFeatureId
     }]))
   });
+
+  config.lightwaverf.event_id = eventId;
+  config.lightwaverf.structure = (await client.structures()).structures[0];
+  saveConfig();
 
   res.sendStatus(200);
 }));
