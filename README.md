@@ -14,5 +14,11 @@
     4. Start Karen locally
     5. On your phone open Smart Things, go to Automations, Karen Dev, click next next next, and the flow should complete.
     6. You should now have a "refresh_token" in the config.json, and SmartThings is now configured.
-7. For LightWaveRF
-    1. Who knows.
+7. For LightwaveRF
+    1. Login to https://my.lightwaverf.com
+    2. Go to settings -> API
+    3. Copy the "Refresh token" into config.json. The "Basic" value is the "bearer" in config.json.
+    4. Make up a "secret" for the config.json
+    5. Start Karen locally
+    6. Go to "https://karen-dev.ngrok.io/lightwaverf/setup?secret={your-secret}"
+    7. You should now have a "structure" and "event_id" set in the config.json, and LightwaveRF is now configured.
