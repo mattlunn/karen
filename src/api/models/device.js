@@ -1,13 +1,25 @@
+import Light from './light';
+import Thermostat from './thermostat';
+import BasicDevice from './basic-device';
+
 export default class Device {
-  constructor(data) {
-    this.data = data;
-  }
-
-  id() {
-    return this.data.id;
-  }
-
-  name() {
-    return this.data.name;
+  static create(device) {
+    switch (device.type) {
+      case 'thermostat':
+        return {
+          type: 'thermostat',
+          device: new Thermostat(device)
+        };
+      case 'light':
+        return {
+          type: 'light',
+          device: new Light(device)
+        };
+      default:
+        return {
+          type: device.type,
+          device: new BasicDevice(device)
+        }
+    }
   }
 }

@@ -29,6 +29,7 @@ require('./services/lightwaverf');
 require('./services/tplink');
 require('./services/smartthings');
 require('./services/tado');
+require('./services/alexa');
 
 require('./automations');
 

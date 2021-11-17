@@ -1,34 +1,33 @@
 import { gql } from '@apollo/client/core';
 import { Context } from 'aws-lambda';
-import { Light, Thermostat } from '../custom-typings/karen-types';
+import { Light, Thermostat, BasicDevice, Device } from '../custom-typings/karen-types';
 import { SmartHomeRequest, SmartHomeResponse } from '../custom-typings/lambda';
 import client from '../client';
 import { ALARM_ENDPOINT_ID } from '../constants';
 
 const GET_DEVICES = gql`
-  query GetDevices {
-    getHeating {
-      thermostats {
-        id
-        name
+query getDevices {
+  getDevices {
+    type
+    device {
+      id
+      name
+
+      ...on Thermostat {
         targetTemperature
         currentTemperature
         isHeating
         humidity
         power
       }
-    }
 
-    getLighting {
-      lights {
-        id
-        name
+      ...on Light {
         isOn
         brightness
       }
     }
   }
-`;
+}`;
 
 interface SmartHomeEndpointAdditionalAttributes {
   manufacturer: string;
@@ -161,13 +160,13 @@ function mapLightToEndpoints(light: Light): SmartHomeEndpoint {
   };
 }
 
-function createAlexa(id: string, name: string): SmartHomeEndpoint {
+function mapAlexaToEndpoints(device: BasicDevice): SmartHomeEndpoint {
   return {
-    friendlyName: name,
-    endpointId: id,
+    friendlyName: device.name,
+    endpointId: device.name,
     displayCategories: ['CONTACT_SENSOR'],
     manufacturerName: 'Karen',
-    description: `Fake sensor for ${name}`,
+    description: `Fake sensor for ${device.name}`,
     capabilities: [{
       type: 'AlexaInterface',
       interface: 'Alexa.ContactSensor',
@@ -248,9 +247,9 @@ function createAlarmEndpoint(): SmartHomeEndpoint {
 }
 
 export async function Discover(request: SmartHomeRequest, context: Context): Promise<SmartHomeDiscoveryResponse> {
-  const { data: { getHeating: { thermostats }, getLighting: { lights }}} = await client.query({
+  const devices = (await client.query<{ getDevices: Device[] }>({
     query: GET_DEVICES
-  });
+  })).data.getDevices;
 
   return {
     event: {
@@ -261,13 +260,21 @@ export async function Discover(request: SmartHomeRequest, context: Context): Pro
         payloadVersion: 3
       },
       payload: {
-        endpoints: [
-          ...thermostats.map(mapThermostatToEndpoints),
-          ...lights.map(mapLightToEndpoints),
-          createAlexa('bf8e9bfb-ec6f-4a78-b5b5-6d9b6b3886af', 'Downstairs Alexa'),
-          createAlexa('28805b52-4e9f-4152-8d00-fb72cbcb1d17', 'Upstairs Alexa'),
-          createAlarmEndpoint()
-        ]
+        endpoints: devices.reduce((allDevices, device) => {
+          switch (device.type) {
+            case 'thermostat':
+              allDevices.push(mapThermostatToEndpoints(device.device));
+              break;
+            case 'light':
+              allDevices.push(mapLightToEndpoints(device.device));
+              break;
+            case 'alexa':
+              allDevices.push(mapAlexaToEndpoints(device.device));
+              break;
+          }
+
+          return allDevices;
+        }, new Array<SmartHomeEndpoint>(createAlarmEndpoint()))
       }
     }
   };

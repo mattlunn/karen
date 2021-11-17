@@ -1,3 +1,6 @@
+import { Device } from '../../models';
+import config from '../../config';
+
 export const messages = new Map();
 
 /**
@@ -82,11 +85,39 @@ export async function say(device, message, ttlInSeconds = 30) {
     }
   }, ttlInSeconds * 1000);
 
-
-  // TODO: Need to swap this to call sendChangeReport.
-  // also need to figure out whether we continue to have "Device" for these Alexa's, or just swap them to be a string.
-  // Will need Alexa to become a Device provider, if we want to keep "Device's"
-
   device.setProperty('push', true);
   return promise;
 }
+
+Device.registerProvider('alexa', {
+  async setProperty(device, key, value) {
+    switch (key) {
+      default:
+        throw new Error(`"${key}" is not a recognised property for SmartThings`);
+    }
+  },
+
+  async getProperty(device, key) {
+    switch (key) {
+      default:
+        throw new Error(`"${key}" is not a recognised property for SmartThings`);
+    }
+  },
+
+  async synchronize() {
+    for (const { id, name } of config.alexa.devices) {
+      let knownDevice = await Device.findByProviderId('alexa', id);
+
+      if (!knownDevice) {
+        knownDevice = Device.build({
+          type: 'alexa',
+          provider: 'alexa',
+          providerId: id
+        });
+      }
+
+      knownDevice.name = name;
+      await knownDevice.save();
+    }
+  }
+});

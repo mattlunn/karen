@@ -17,10 +17,22 @@ export interface Thermostat {
   status: DeviceStatus;
 }
 
-export interface Device {
-  type: 'light' | 'thermostat',
-  device: Light | Thermostat
+export interface BasicDevice {
+  id: string;
+  name: string;
+  status: DeviceStatus;
 }
+
+export type Device = {
+  type: 'light'
+  device: Light 
+} | { 
+  type: 'thermostat'
+  device: Thermostat
+} | {
+  type: 'alexa'
+  device: BasicDevice
+};
 
 export type DeviceStatus = 'OK' | 'OFFLINE';
 export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';
