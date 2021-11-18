@@ -28,6 +28,12 @@ export default gql`
     status: DeviceStatus
   }
 
+  type BasicDevice implements Device {
+    id: ID!
+    name: String!
+    status: DeviceStatus
+  }
+
   type MotionEvent implements Event {
     id: ID!
     timestamp: Float!
@@ -135,6 +141,7 @@ export default gql`
 
   type Query {
     getDevice(id: ID!): DeviceWrapper
+    getDevices: [DeviceWrapper]
     getUsers: [User]
     getSecurityStatus: Security
     getLighting: Lighting,

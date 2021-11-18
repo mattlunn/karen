@@ -83,20 +83,17 @@ const resolvers = {
     async getDevice(parent, args, context, info) {
       const device = await db.Device.findById(args.id);
 
-      switch (device?.type) {
-        case 'thermostat':
-          return {
-            type: 'thermostat',
-            device: new Thermostat(device)
-          };
-        case 'light':
-          return {
-            type: 'light',
-            device: new Light(device)
-          };
-        default:
-          throw new Error(`Device '${args.id}' either does not exist, or is not a type I can return info on.`);
+      if (!device) {
+        throw new Error(`Device '${args.id}' does not exist.`);
       }
+
+      return Device.create(device);
+    },
+    
+    async getDevices(parent, args, context, info) {
+      const devices = await db.Device.findAll();
+
+      return devices.map((device) => Device.create(device));
     },
 
     async getTimeline(parent, { since, limit }, context, info) {

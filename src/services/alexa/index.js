@@ -1,3 +1,8 @@
+import config from '../../config';
+import { Device } from '../../models';
+import { sendChangeReport } from './client';
+import sleep from '../../helpers/sleep';
+
 export const messages = new Map();
 
 /**
@@ -8,7 +13,7 @@ export const messages = new Map();
  *
  * What we instead do is;
  *
- *  1. Register a fake Contact Sensor (this was done in the SmartThings Graph UI).
+ *  1. Register a fake Contact Sensor for each Alexa (this is done in the Discovery response from the smart-home Lambda)
  *  2. Register a Routine (in the Alexa App) so that when the Contact sensor is opened, Alexa asks Karen
  *     for the latest messages
  *  3. Register an Intent ("WhatsTheMessage") which returns whatever text we want Alexa to read out.
@@ -82,6 +87,58 @@ export async function say(device, message, ttlInSeconds = 30) {
     }
   }, ttlInSeconds * 1000);
 
-  device.setProperty('push', true);
+  sendChangeReport(device.name, {
+    namespace: "Alexa.ContactSensor",
+    name: "detectionState",
+    value: "DETECTED",
+    timeOfSample: new Date().toISOString(),
+    uncertaintyInMilliseconds: 0
+  }, 'PHYSICAL_INTERACTION');
+
+  await sleep(10);
+
+  sendChangeReport(device.name, {
+    namespace: "Alexa.ContactSensor",
+    name: "detectionState",
+    value: "NOT_DETECTED",
+    timeOfSample: new Date().toISOString(),
+    uncertaintyInMilliseconds: 0
+  }, 'PHYSICAL_INTERACTION');
+
   return promise;
 }
+
+Device.registerProvider('alexa', {
+  async setProperty(device, key, value) {
+    switch (key) {
+      default:
+        throw new Error(`"${key}" is not a recognised property for SmartThings`);
+    }
+  },
+
+  async getProperty(device, key) {
+    switch (key) {
+      case 'connected':
+        return true;
+      default:
+        throw new Error(`"${key}" is not a recognised property for SmartThings`);
+    }
+  },
+
+  async synchronize() {
+    for (const { id, name } of config.alexa.devices) {
+      let knownDevice = await Device.findByProviderId('alexa', id);
+
+      if (!knownDevice) {
+        knownDevice = Device.build({
+          type: 'alexa',
+          provider: 'alexa',
+          providerId: id
+        });
+      }
+
+      knownDevice.name = name;
+      await knownDevice.save();
+    }
+  }
+});

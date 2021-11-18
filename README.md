@@ -23,10 +23,12 @@
     6. Go to "https://karen-dev.ngrok.io/lightwaverf/setup?secret={your-secret}"
     7. You should now have a "structure" and "event_id" set in the config.json, and LightwaveRF is now configured.
 8. For Alexa;
-    1. Sign in to https://developer.amazon.com/alexa/console/ as your dev user.
+    1. Sign in to https://developer.amazon.com/alexa/console/ask/ as your dev user.
     2. Click into the dev skill, and go to Account Linking
     3. Add an element to the "authentication.clients" section of config.json, whose "client_id" and "client_secret" matches that in the Alexa Console.
     4. Set the access_token to a secret value
+    5. Go to "Permissions" in the Alexa Console.
+    6. Copy the "Client Id" and "Client Secret" into "client_id" and "client_secret" values under `config.alexa`.
     5. Start Karen locally
     6. On your phone, sign into the Alexa app as the dev user.
     7. Go to More, Skills & Games, Your Skills, Dev, (the skill)

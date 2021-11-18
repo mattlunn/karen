@@ -29,6 +29,7 @@ require('./services/lightwaverf');
 require('./services/tplink');
 require('./services/smartthings');
 require('./services/tado');
+require('./services/alexa');
 
 require('./automations');
 
@@ -39,6 +40,7 @@ app.set('trust proxy', config.trust_proxy);
 app.use(compression());
 app.use(bodyParser.urlencoded());
 app.use(bodyParser.json());
+app.use(bodyParser.text());
 app.use(cookieParser());
 app.use('/graphql', auth);
 

@@ -1,34 +1,33 @@
 import { gql } from '@apollo/client/core';
 import { Context } from 'aws-lambda';
-import { Light, Thermostat } from '../custom-typings/karen-types';
+import { Light, Thermostat, BasicDevice, Device } from '../custom-typings/karen-types';
 import { SmartHomeRequest, SmartHomeResponse } from '../custom-typings/lambda';
 import client from '../client';
 import { ALARM_ENDPOINT_ID } from '../constants';
 
 const GET_DEVICES = gql`
-  query GetDevices {
-    getHeating {
-      thermostats {
-        id
-        name
+query getDevices {
+  getDevices {
+    type
+    device {
+      id
+      name
+
+      ...on Thermostat {
         targetTemperature
         currentTemperature
         isHeating
         humidity
         power
       }
-    }
 
-    getLighting {
-      lights {
-        id
-        name
+      ...on Light {
         isOn
         brightness
       }
     }
   }
-`;
+}`;
 
 interface SmartHomeEndpointAdditionalAttributes {
   manufacturer: string;
@@ -54,7 +53,7 @@ interface SmartHomeEndpointCapability {
   }
 }
 
-type SmartHomeDisplayCategory = 'LIGHT' | 'TEMPERATURE_SENSOR' | 'CHRISTMAS_TREE' | 'THERMOSTAT' | 'SECURITY_PANEL';
+type SmartHomeDisplayCategory = 'LIGHT' | 'TEMPERATURE_SENSOR' | 'CHRISTMAS_TREE' | 'THERMOSTAT' | 'SECURITY_PANEL' | 'CONTACT_SENSOR';
 
 // https://developer.amazon.com/en-US/docs/alexa/device-apis/alexa-discovery-objects.html
 interface SmartHomeEndpoint {
@@ -68,13 +67,9 @@ interface SmartHomeEndpoint {
   capabilities: SmartHomeEndpointCapability[]
 }
 
-type SmartHomeDiscoveryResponse = SmartHomeResponse & {
-  event: {
-    payload: {
-      endpoints: SmartHomeEndpoint[]
-    }
-  }
-}
+type SmartHomeDiscoveryResponse = SmartHomeResponse<{
+  endpoints: SmartHomeEndpoint[]
+}>
 
 function mapThermostatToEndpoints(thermostat: Thermostat): SmartHomeEndpoint {
   return {
@@ -165,6 +160,43 @@ function mapLightToEndpoints(light: Light): SmartHomeEndpoint {
   };
 }
 
+function mapAlexaToEndpoints(device: BasicDevice): SmartHomeEndpoint {
+  return {
+    friendlyName: device.name,
+    endpointId: device.name,
+    displayCategories: ['CONTACT_SENSOR'],
+    manufacturerName: 'Karen',
+    description: `Fake sensor for ${device.name}`,
+    capabilities: [{
+      type: 'AlexaInterface',
+      interface: 'Alexa.ContactSensor',
+      version: '3',
+      properties: {
+        supported: [{
+          name: 'detectionState'
+        }],
+        proactivelyReported: true,
+        retrievable: false
+      }
+    }, {
+      type: 'AlexaInterface',
+      interface: 'Alexa.EndpointHealth',
+      version: '3',
+      properties: {
+        supported: [{
+          name: 'connectivity'
+        }],
+        proactivelyReported: true,
+        retrievable: false
+      }
+    }, {
+      type: 'AlexaInterface',
+      interface: 'Alexa',
+      version: '3'
+    }]
+  };
+}
+
 function createAlarmEndpoint(): SmartHomeEndpoint {
   return {
     friendlyName: 'Alarm',
@@ -215,9 +247,9 @@ function createAlarmEndpoint(): SmartHomeEndpoint {
 }
 
 export async function Discover(request: SmartHomeRequest, context: Context): Promise<SmartHomeDiscoveryResponse> {
-  const { data: { getHeating: { thermostats }, getLighting: { lights }}} = await client.query({
+  const devices = (await client.query<{ getDevices: Device[] }>({
     query: GET_DEVICES
-  });
+  })).data.getDevices;
 
   return {
     event: {
@@ -227,13 +259,22 @@ export async function Discover(request: SmartHomeRequest, context: Context): Pro
         namespace: 'Alexa.Discovery',
         payloadVersion: 3
       },
-
       payload: {
-        endpoints: [
-          ...thermostats.map(mapThermostatToEndpoints),
-          ...lights.map(mapLightToEndpoints),
-          createAlarmEndpoint()
-        ]
+        endpoints: devices.reduce((allDevices, device) => {
+          switch (device.type) {
+            case 'thermostat':
+              allDevices.push(mapThermostatToEndpoints(device.device));
+              break;
+            case 'light':
+              allDevices.push(mapLightToEndpoints(device.device));
+              break;
+            case 'alexa':
+              allDevices.push(mapAlexaToEndpoints(device.device));
+              break;
+          }
+
+          return allDevices;
+        }, new Array<SmartHomeEndpoint>(createAlarmEndpoint()))
       }
     }
   };
