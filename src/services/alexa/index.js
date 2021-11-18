@@ -1,5 +1,7 @@
-import { Device } from '../../models';
 import config from '../../config';
+import { Device } from '../../models';
+import { sendChangeReport } from './client';
+import sleep from '../../helpers/sleep';
 
 export const messages = new Map();
 
@@ -85,7 +87,24 @@ export async function say(device, message, ttlInSeconds = 30) {
     }
   }, ttlInSeconds * 1000);
 
-  device.setProperty('push', true);
+  sendChangeReport(device.name, {
+    namespace: "Alexa.ContactSensor",
+    name: "detectionState",
+    value: "DETECTED",
+    timeOfSample: new Date().toISOString(),
+    uncertaintyInMilliseconds: 0
+  }, 'PHYSICAL_INTERACTION');
+
+  await sleep(10);
+
+  sendChangeReport(device.name, {
+    namespace: "Alexa.ContactSensor",
+    name: "detectionState",
+    value: "NOT_DETECTED",
+    timeOfSample: new Date().toISOString(),
+    uncertaintyInMilliseconds: 0
+  }, 'PHYSICAL_INTERACTION');
+
   return promise;
 }
 
@@ -99,6 +118,8 @@ Device.registerProvider('alexa', {
 
   async getProperty(device, key) {
     switch (key) {
+      case 'connected':
+        return true;
       default:
         throw new Error(`"${key}" is not a recognised property for SmartThings`);
     }

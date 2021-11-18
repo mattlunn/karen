@@ -48,10 +48,12 @@ export async function getAccessToken() {
 }
 
 export async function sendChangeReport(deviceId, changedProperty, changeReason, otherProperties = []) {
-  const response = await fetch('https://api.amazon.com/v3/events', {
+  const bearer = await getAccessToken();
+  const response = await fetch('https://api.amazonalexa.com/v3/events', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${bearer}`
     },
     body: JSON.stringify({
       event: {
@@ -64,7 +66,7 @@ export async function sendChangeReport(deviceId, changedProperty, changeReason, 
         endpoint: {
           scope: {
             type: 'BearerToken',
-            token: await getAccessToken()
+            token: bearer
           },
           endpointId: deviceId
         },
