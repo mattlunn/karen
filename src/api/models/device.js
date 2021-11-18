@@ -19,7 +19,7 @@ export default class Device {
         return {
           type: device.type,
           device: new BasicDevice(device)
-        }
+        };
     }
   }
 }
