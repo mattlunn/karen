@@ -93,7 +93,10 @@ const resolvers = {
     async getDevices(parent, args, context, info) {
       const devices = await db.Device.findAll();
 
-      return devices.map((device) => Device.create(device));
+      return devices.map((device) => ({
+        type: device.type,
+        device: Device.create(device)
+      }));
     },
 
     async getTimeline(parent, { since, limit }, context, info) {
@@ -328,7 +331,7 @@ export default new ApolloServer({
         context.userByHandle.prime(user.handle, userModel);
         return userModel;
       }),
-      devicesById: new UnorderedDataLoader((ids) => db.Device.findAll({ where: { id: ids }}), device => device.id, device => new Device(device)),
+      devicesById: new UnorderedDataLoader((ids) => db.Device.findAll({ where: { id: ids }}), device => device.id, device => Device.create(device)),
       recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording))
     };
 
