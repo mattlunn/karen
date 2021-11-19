@@ -3,9 +3,16 @@
 const fetch = require('node-fetch');
 const fs = require('fs');
 
-fetch(`http://localhost/graphql`, {
+if (!process.env.AUTH_TOKEN) {
+  throw new Error('You need to provide an AUTH_TOKEN');
+}
+
+fetch(`https://karen-dev.ngrok.io/graphql`, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.AUTH_TOKEN}`
+  },
   body: JSON.stringify({
     variables: {},
     query: `

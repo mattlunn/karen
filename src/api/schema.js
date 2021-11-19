@@ -66,11 +66,17 @@ export default gql`
     user: User!
   }
 
+  type AlarmArmingEvent implements Event {
+    id: ID!
+    timestamp: Float!
+    mode: AlarmMode
+  }
+
   type Recording {
     id: ID!
   }
 
-  union TimelineEvent = MotionEvent | ArrivalEvent | DepartureEvent | LightOnEvent | LightOffEvent
+  union TimelineEvent = MotionEvent | ArrivalEvent | DepartureEvent | LightOnEvent | LightOffEvent | AlarmArmingEvent
   union HistoryDatumType = Thermostat | Light
 
   type DeviceWrapper {

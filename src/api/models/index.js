@@ -15,3 +15,4 @@ export { default as ArrivalEvent } from './arrival-event';
 export { default as DepartureEvent } from './departure-event';
 export { default as LightOnEvent } from './light-on-event';
 export { default as LightOffEvent } from './light-off-event';
+export { default as AlarmArmingEvent } from './alarm-arming-event';

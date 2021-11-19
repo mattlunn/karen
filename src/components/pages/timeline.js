@@ -8,6 +8,7 @@ import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
+import { faShieldAlt } from '@fortawesome/free-solid-svg-icons/faShieldAlt';
 import { graphql } from '@apollo/react-hoc';
 import gql from 'graphql-tag';
 
@@ -108,6 +109,15 @@ class Timeline extends Component {
               title={`The "${event.device.name}" light was switched off after being on for ${Math.ceil(event.duration / 1000 / 60)} minutes`}
             />
           );
+        case 'AlarmArmingEvent': {
+          return (
+            <Event
+              timestamp={event.timestamp}
+              icon={faShieldAlt}
+              title={`The alarm was ${event.mode === 'OFF' ? 'turned off' : 'set to ' + event.mode.toLowerCase()}`}
+            />
+          );
+        }
     }
   }
 
@@ -200,6 +210,11 @@ export default graphql(gql`
           id
           name
         }
+      }
+
+      ...on AlarmArmingEvent {
+        timestamp
+        mode
       }
     }
   }

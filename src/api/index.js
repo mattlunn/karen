@@ -1,6 +1,6 @@
 import { ApolloServer } from 'apollo-server-express';
 import * as db from '../models';
-import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording } from './models';
+import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording, AlarmArmingEvent } from './models';
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
 import makeSynologyRequest from '../services/synology/instance';
@@ -149,6 +149,26 @@ const resolvers = {
 
             if (event.end) {
               ret.push(new LightOffEvent(event));
+            }
+
+            return ret;
+          }).flat();
+        }),
+
+        db.Arming.findAll({
+          order: [['start', 'DESC']],
+          where: {
+            start: {
+              [db.Op.lt]: since
+            }
+          },
+          limit
+        }).then((armings) => {
+          return armings.map((arming) => {
+            const ret = [new AlarmArmingEvent(arming, false)];
+
+            if (arming.end) {
+              ret.push(new AlarmArmingEvent(arming, true));
             }
 
             return ret;
