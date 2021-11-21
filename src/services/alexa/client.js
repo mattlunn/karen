@@ -28,6 +28,10 @@ export async function exchangeAuthenticationToken(grantType, exchangeToken) {
     config.alexa.access_token = json.access_token;
     config.alexa.refresh_token = json.refresh_token;
 
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Setting Alexa access token to '${json.access_token}' and refresh token to '${json.refresh_token}'`);
+    }
+
     saveConfig();
 
     return {
@@ -49,7 +53,7 @@ export async function getAccessToken() {
 
 export async function sendChangeReport(deviceId, changedProperty, changeReason, otherProperties = []) {
   const bearer = await getAccessToken();
-  const response = await fetch('https://api.amazonalexa.com/v3/events', {
+  const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
