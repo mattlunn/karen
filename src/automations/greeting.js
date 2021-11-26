@@ -1,7 +1,7 @@
 import bus, { FIRST_USER_HOME, EVENT_START } from '../bus';
 import { say } from '../services/alexa';
 import { Device } from '../models';
-import { createBackgroundTransaction } from '../helpers/newrelic';
+import { startBackgroundTransaction } from '../helpers/newrelic';
 
 const greetings = [
   (name) => `<voice name="Mizuki"><lang xml:lang="ja-JP">こんにちは ${name}</lang></voice>. That's hello, in Japanese!'`,
@@ -14,19 +14,21 @@ const greetings = [
 
 export default async function ({ alexa_name: alexaName }) {
   bus.on(FIRST_USER_HOME, (stay) => {
-    bus.on(EVENT_START, createBackgroundTransaction('automations:greeting', async function listener(event) {
-      if (event.type === 'motion') {
-        const [
-          device,
-          user
-        ] = await Promise.all([
-          Device.findByName(alexaName),
-          stay.getUser()
-        ]);
+    bus.on(EVENT_START, function listener(event) {
+      return startBackgroundTransaction('automations:greeting', async function() {
+        if (event.type === 'motion') {
+          const [
+            device,
+            user
+          ] = await Promise.all([
+            Device.findByName(alexaName),
+            stay.getUser()
+          ]);
 
-        bus.off(EVENT_START, listener);
-        say(device, greetings[Math.floor(Math.random() * greetings.length)](user.handle));
-      }
-    }));
+          bus.off(EVENT_START, listener);
+          say(device, greetings[Math.floor(Math.random() * greetings.length)](user.handle));
+        }
+      });
+    });
   });
 }
