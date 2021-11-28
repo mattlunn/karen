@@ -9,3 +9,4 @@ sessions
 dist
 .vscode
 newrelic_agent.log
+.npmrc
