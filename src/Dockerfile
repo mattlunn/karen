@@ -2,6 +2,7 @@ FROM node:14-slim
 WORKDIR /usr/src/app
 COPY ["package.json", "package-lock.json", "./"]
 RUN npm ci
+RUN npm run build
 COPY . .
 EXPOSE 8081
 RUN chown -R node /usr/src/app
