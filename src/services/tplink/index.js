@@ -21,7 +21,9 @@ Device.registerProvider('tplink', {
   async setProperty(device, key, value) {
     switch (key) {
       case 'on':
-        getHandlerForDevice(await authenticatedClient, device)[value ? 'powerOn' : 'powerOff']().catch(() => {});
+        getHandlerForDevice(await authenticatedClient, device)[value ? 'powerOn' : 'powerOff']().catch((error) => {
+          console.error(error);
+        });
         break;
       default:
         throw new Error(`"${key}" is not a recognised property for tplink`);
