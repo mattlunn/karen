@@ -1,5 +1,5 @@
 import { Event, Device } from '../../../models';
-import { addCustomAttributes } from 'newrelic';
+import newrelic from 'newrelic';
 
 /*
   {
@@ -64,7 +64,7 @@ export default async function ({ eventData }) {
 
     console.log(`${attribute} has changed to ${value} for ${deviceId}`);
 
-    addCustomAttributes({
+    newrelic.addCustomAttributes({
       providerId: deviceId,
       attribute,
       value
@@ -77,7 +77,7 @@ export default async function ({ eventData }) {
         const eventType = attributeHandler.eventMapper(attribute);
         const eventValue = attributeHandler.valueMapper(value);
 
-        addCustomAttributes({
+        newrelic.addCustomAttributes({
           deviceName: device.name,
           deviceId: device.id
         });
