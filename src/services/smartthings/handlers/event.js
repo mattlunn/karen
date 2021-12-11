@@ -1,4 +1,5 @@
 import { Event, Device } from '../../../models';
+import { addCustomAttributes } from 'newrelic';
 
 /*
   {
@@ -63,12 +64,23 @@ export default async function ({ eventData }) {
 
     console.log(`${attribute} has changed to ${value} for ${deviceId}`);
 
+    addCustomAttributes({
+      providerId: deviceId,
+      attribute,
+      value
+    });
+
     if (attributeHandler) {
       const device = await Device.findByProviderId('smartthings', deviceId);
 
       if (device) {
         const eventType = attributeHandler.eventMapper(attribute);
         const eventValue = attributeHandler.valueMapper(value);
+
+        addCustomAttributes({
+          deviceName: device.name,
+          deviceId: device.id
+        });
 
         const lastEvent = await Event.findOne({
           where: {
