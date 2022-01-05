@@ -3,6 +3,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Timeline from './components/pages/timeline';
 import Home from './components/pages/home';
+import Devices from './components/pages/devices';
+import Device from './components/pages/device';
 import Login from './components/pages/login';
 import History from './components/pages/history';
 import thunk from 'redux-thunk';
@@ -98,6 +100,8 @@ window.onload = () => {
             <Route exact path="/login" component={Login}/>
             <Route exact path="/timeline" component={Timeline}/>
             <Route exact path="/history" component={History}/>
+            <Route exact path="/device/:id" component={Device}/>
+            <Route exact path="/device" component={Devices}/>
           </Switch>
         </ConnectedRouter>
       </ApolloProvider>

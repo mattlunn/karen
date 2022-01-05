@@ -179,6 +179,15 @@ button.secondary {
 .body {
   width: calc(100vw ~"-" @sidebar-width);
   margin-left: @sidebar-width;
+
+  &--with-padding {
+    padding: 20px;
+  }
+
+  & h2 {
+    font-size: 1.5em;
+    margin-bottom: 0.5em;
+  }
 }
 
 @media (max-width: 667px) {
@@ -518,12 +527,11 @@ button.secondary {
 
   &__nav-item {
     display: inline;
+    padding-right: 20px;
   }
 
   &__nav-item-link {
     color: rgba(255,255,255,.5);
-    padding-right: .5rem;
-    padding-left: .5rem;
     display: inline;
     text-decoration: none;
 
@@ -547,18 +555,40 @@ button.secondary {
       color: rgba(255,255,255,.75);
     }
   }
+
+  &__hamburger {
+    float: right;
+    display: none;
+    color: white;
+  }
 }
 
-@media (max-width: 667px) {
+@media (max-width: 550px) {
   .header {
-    &__brand {
-      margin-right: 20px;
+    &__nav-item {
+      display: block;
+      padding-top: 5px;
+    }
+
+    &__nav-item-button {
+      padding: 0;
+    }
+
+    &__nav-items {
+      display: none;
+
+      &--open {
+        display: block;
+      }
+    }
+
+    &__hamburger {
+      display: inline;
     }
   }
 }
 
 .timeline {
-  padding: 20px;
   padding-bottom: 0;
 
   &__loader {
@@ -688,17 +718,6 @@ button.secondary {
   }
 }
 
-.body {
-  h2 {
-    font-size: 1.5em;
-    margin-bottom: 0.5em;
-  }
-
-  &--history {
-    padding: 20px;
-  }
-}
-
 .tabs {
   margin-bottom: 20px;
   border-bottom: 1px solid #ddd;
@@ -753,5 +772,26 @@ button.secondary {
         }
       }
     }
+  }
+}
+
+.device-list {
+  li {
+    border: 1px solid #ececec;
+    padding: 10px;
+    margin: 5px;
+    border-radius: 2px;
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+  }
+
+  .device-icon {
+    width: 25px;
+    display: inline-block;
+    text-align: center;
+    margin-right: 10px;
   }
 }

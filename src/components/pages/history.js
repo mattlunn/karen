@@ -23,7 +23,7 @@ class History extends Component {
         <Header />
         <div>
           <SideBar hideOnMobile />
-          <div className='body body--history'>
+          <div className='body body--with-padding'>
             <ul className="tabs">
               <li className={classnames('tab', tab === 'heating' && 'tab--selected')}><h2><Link to="/history/?tab=heating">Heating</Link></h2></li>
               <li className={classnames('tab', tab === 'lighting' && 'tab--selected')}><h2><Link to="/history/?tab=lighting">Lighting</Link></h2></li>
