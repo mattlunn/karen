@@ -87,7 +87,10 @@ const resolvers = {
         throw new Error(`Device '${args.id}' does not exist.`);
       }
 
-      return Device.create(device);
+      return {
+        type: device.type,
+        device: Device.create(device)
+      };
     },
     
     async getDevices(parent, args, context, info) {

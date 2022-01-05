@@ -129,7 +129,7 @@ class Timeline extends Component {
         <Header />
         <div>
           <SideBar hideOnMobile />
-          <div className='body'>
+          <div className='body body--with-padding'>
             <ol className='timeline'>
               {days.map(({ date, events }, idx) => {
                 return (
