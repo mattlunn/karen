@@ -30,6 +30,7 @@ require('./services/tplink');
 require('./services/smartthings');
 require('./services/tado');
 require('./services/alexa');
+require('./services/zwave');
 
 require('./automations');
 
