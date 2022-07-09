@@ -9,9 +9,15 @@ const deviceMap = new Map([
 const deviceHandlers = new Map();
 
 deviceHandlers.set('Fibargroup FGMS001', [
+  // Some of the sensors trigger the first event for motion, others trigger the 2nd.
   {
     propertyKey: 'Binary Sensor.Any',
     valueMapper: ({ newValue }) => newValue,
+    typeMapper: () => 'motion'
+  },
+  {
+    propertyKey: 'Basic.currentValue',
+    valueMapper: ({ newValue }) => newValue !== 0,
     typeMapper: () => 'motion'
   },
   { 
