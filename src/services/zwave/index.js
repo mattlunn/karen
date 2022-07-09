@@ -1,9 +1,5 @@
 import { Device, Event } from '../../models';
-import client from './lib/client';
-
-function getClient() {
-  return client;
-}
+import getClient from './lib/client';
 
 const deviceMap = new Map([
   ['Fibargroup FGMS001', 'motion_sensor'],
@@ -27,6 +23,11 @@ deviceHandlers.set('Fibargroup FGMS001', [
     propertyKey: 'Multilevel Sensor.Illuminance',
     valueMapper: ({ newValue }) => newValue,
     typeMapper: () => 'illuminance'
+  },
+  { 
+    propertyKey: 'Battery.level',
+    valueMapper: ({ newValue }) => newValue,
+    typeMapper: () => 'battery'
   }
 ]);
 
@@ -94,6 +95,8 @@ getClient().then(({ on, getNodes }) => {
             start: now
           });
         }
+
+        device.onPropertyChanged(eventType);
       }
     }
   });
