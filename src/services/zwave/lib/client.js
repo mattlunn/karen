@@ -16,7 +16,8 @@ let alwaysAPromiseOfAClient = (function getClient() {
       { "messageId": "1", "command": "set_api_schema", "schemaVersion": 20 }
       { "messageId": "2", "command": "start_listening" }
       { "messageId": "3", "command": "controller.get_state" }
-    */
+      { "messageId": "4", "command": "controller.begin_inclusion" }
+    */      
   
     function makeRequest(command, data = {}) {
       const id = uuid();
@@ -56,9 +57,9 @@ let alwaysAPromiseOfAClient = (function getClient() {
       const dataAsString = data.toString();
       const message = JSON.parse(dataAsString);
   
-      if (process.env.NODE_ENV === 'development') {
+      //if (process.env.NODE_ENV === 'development') {
         console.log(message);
-      }
+      //}
   
       switch (message.type) {
         case 'result': {
