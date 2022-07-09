@@ -8,6 +8,7 @@ export default new Promise((res, rej) => {
   const events = new EventEmitter();
   const recentEvents = new Set();
   const msgs = new Map();
+  const nodes = new Map();
 
   /*
     { "messageId": "1", "command": "set_api_schema", "schemaVersion": 20 }
@@ -15,11 +16,11 @@ export default new Promise((res, rej) => {
     { "messageId": "3", "command": "controller.get_state" }
   */
 
-  function request(command, data = {}) {
+  function makeRequest(command, data = {}) {
     const id = uuid();
     const msg = typeof command === 'object' 
       ? { ...command }
-      : { command, ...data }
+      : { command, ...data };
 
     msg.messageId = id;
 
@@ -30,13 +31,19 @@ export default new Promise((res, rej) => {
   }
 
   socket.on('open', async () => {
-    await request('set_api_schema', { schemaVersion: 20 });
+    await makeRequest('set_api_schema', { schemaVersion: 20 });
     
-    const { state: { nodes }} = await request('start_listening');
+    const initialState = await makeRequest('start_listening');
+
+    for (const node of initialState.state.nodes) {
+      nodes.set(node.nodeId, node);
+    }
 
     res({ 
-      request, 
-      nodes, 
+      makeRequest,
+      getNodes() {
+        return nodes.values();
+      },
       on(event, listener) {
         events.on(event, listener);
       }
@@ -68,6 +75,15 @@ export default new Promise((res, rej) => {
         // zwave-js sends all events twice, for whatever reason.
         if (!recentEvents.has(dataAsString)) {
           recentEvents.add(dataAsString);
+
+          if (message.event.source === 'node' && message.event.event === 'ready') {
+            nodes.set(message.event.nodeState.nodeId, message.event.nodeState);
+          }
+  
+          if (message.event.source === 'controller' && message.event.event === 'node removed') {
+            nodes.delete(message.event.nodeState.nodeId);
+          }
+
           events.emit('event', message.event);
 
           setTimeout(() => {

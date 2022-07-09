@@ -48,12 +48,12 @@ deviceHandlers.set('Fibargroup FGD212', [
   }
 ]);
 
-getClient().then(({ on, nodes }) => {
+getClient().then(({ on, getNodes }) => {
   on('event', async (data) => {
     if (data.source === 'node' && data.event === 'value updated') {
       const deviceId = data.nodeId;
       const device = await Device.findByProviderId('zwave', deviceId);
-      const node = nodes.find(x => x.nodeId === deviceId);
+      const node = Array.from(getNodes()).find(x => x.nodeId === deviceId);
       const nodeType = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
       const eventHandlers = deviceHandlers.get(nodeType).filter(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
     
@@ -101,11 +101,11 @@ getClient().then(({ on, nodes }) => {
 
 Device.registerProvider('zwave', {
   async setProperty(device, key, value) {
-    const { request } = await getClient();
+    const { makeRequest } = await getClient();
 
     switch (key) {
       case 'on': {
-        await request('node.set_value', {
+        await makeRequest('node.set_value', {
           nodeId: Number(device.providerId),
           valueId: {
             commandClass: 38,
@@ -119,7 +119,7 @@ Device.registerProvider('zwave', {
       }
 
       case 'brightness': {
-        await request('node.set_value', {
+        await makeRequest('node.set_value', {
           nodeId: Number(device.providerId),
           valueId: {
             commandClass: 38,
@@ -158,7 +158,7 @@ Device.registerProvider('zwave', {
   },
 
   async synchronize() {
-    const { nodes } = await getClient();
+    const { getNodes } = await getClient();
 
     /*
       {
@@ -219,7 +219,7 @@ Device.registerProvider('zwave', {
       }
     */
 
-    for (const node of nodes) {
+    for (const node of getNodes()) {
       if (node.ready) {
         const deviceName = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
         const deviceId = node.nodeId;
