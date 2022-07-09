@@ -135,7 +135,7 @@ Device.registerProvider('zwave', {
             endpoint: 1,
             property: "targetValue",
           },
-          value
+          value: Math.min(value, 99)
         });
 
         break;
