@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/src"
+    schedule:
+      interval: "weekly"
+    target-branch:
+      - "release/package-updates"
+  - package-ecosystem: "npm"
+    directory: "/lambdas/smart-home/src"
+    schedule:
+      interval: "weekly"
+    target-branch:
+      - "release/package-updates"
