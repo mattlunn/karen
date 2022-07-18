@@ -6,7 +6,7 @@ import newrelic from 'newrelic';
 
 let alwaysAPromiseOfAClient = (function getClient() {
   return new Promise((res, rej) => {
-    const socket = new ws(`ws://${config.zwave.host}`);
+    const socket = new ws(`wss://${config.zwave.user}:${config.zwave.password}@${config.zwave.host}`);
     const events = new EventEmitter();
     const recentEvents = new Set();
     const msgs = new Map();
