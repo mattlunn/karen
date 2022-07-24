@@ -1,0 +1,2439 @@
+{
+    "type": "event",
+    "event": {
+        "source": "node",
+        "event": "ready",
+        "nodeId": 26,
+        "nodeState": {
+            "nodeId": 26,
+            "index": 0,
+            "installerIcon": 3079,
+            "userIcon": 3079,
+            "status": 4,
+            "ready": true,
+            "isListening": true,
+            "isRouting": true,
+            "isSecure": false,
+            "manufacturerId": 134,
+            "productId": 100,
+            "productType": 2,
+            "firmwareVersion": "1.12",
+            "zwavePlusVersion": 1,
+            "deviceConfig": {
+                "filename": "/cache/db/devices/0x0086/zw100.json",
+                "isEmbedded": true,
+                "manufacturer": "AEON Labs",
+                "manufacturerId": 134,
+                "label": "ZW100",
+                "description": "MultiSensor 6",
+                "devices": [
+                    {
+                        "productType": 2,
+                        "productId": 100
+                    },
+                    {
+                        "productType": 258,
+                        "productId": 100
+                    },
+                    {
+                        "productType": 514,
+                        "productId": 100
+                    },
+                    {
+                        "productType": 770,
+                        "productId": 100
+                    },
+                    {
+                        "productType": 6658,
+                        "productId": 100
+                    }
+                ],
+                "firmwareVersion": {
+                    "min": "0.0",
+                    "max": "255.255"
+                },
+                "associations": {},
+                "paramInformation": {
+                    "_map": {}
+                },
+                "compat": {
+                    "enableBasicSetMapping": true
+                },
+                "metadata": {
+                    "inclusion": "Turn the primary controller of Z-Wave network into inclusion mode, short press the product’s Z-Wave button that you can find in the back of the product",
+                    "exclusion": "Turn the primary controller of Z-Wave network into exclusion mode, short press the product’s Z-Wave button that you can find in back of the product",
+                    "reset": "Press and hold the Z-Wave button that you can find in back of the product for 20 seconds and then release. This procedure should only be used when the primary controller is inoperable",
+                    "manual": "https://products.z-wavealliance.org/ProductManual/File?folder=&filename=MarketCertificationFiles/1390/Aeon%20Labs%20MultiSensor%206%20manual.pdf"
+                }
+            },
+            "label": "ZW100",
+            "interviewAttempts": 1,
+            "endpoints": [
+                {
+                    "nodeId": 26,
+                    "index": 0,
+                    "installerIcon": 3079,
+                    "userIcon": 3079
+                }
+            ],
+            "values": [
+                {
+                    "endpoint": 0,
+                    "commandClass": 32,
+                    "commandClassName": "Basic",
+                    "property": "currentValue",
+                    "propertyName": "currentValue",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Current value",
+                        "min": 0,
+                        "max": 99
+                    },
+                    "value": 99
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 32,
+                    "commandClassName": "Basic",
+                    "property": "targetValue",
+                    "propertyName": "targetValue",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Target value",
+                        "min": 0,
+                        "max": 99
+                    }
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 48,
+                    "commandClassName": "Binary Sensor",
+                    "property": "Any",
+                    "propertyName": "Any",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "boolean",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Any",
+                        "ccSpecific": {
+                            "sensorType": 255
+                        }
+                    },
+                    "value": true
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 49,
+                    "commandClassName": "Multilevel Sensor",
+                    "property": "Air temperature",
+                    "propertyName": "Air temperature",
+                    "ccVersion": 5,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Air temperature",
+                        "ccSpecific": {
+                            "sensorType": 1,
+                            "scale": 0
+                        },
+                        "unit": "°C"
+                    },
+                    "value": 25.5
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 49,
+                    "commandClassName": "Multilevel Sensor",
+                    "property": "Humidity",
+                    "propertyName": "Humidity",
+                    "ccVersion": 5,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Humidity",
+                        "ccSpecific": {
+                            "sensorType": 5,
+                            "scale": 0
+                        },
+                        "unit": "%"
+                    },
+                    "value": 71
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 49,
+                    "commandClassName": "Multilevel Sensor",
+                    "property": "Illuminance",
+                    "propertyName": "Illuminance",
+                    "ccVersion": 5,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Illuminance",
+                        "ccSpecific": {
+                            "sensorType": 3,
+                            "scale": 1
+                        },
+                        "unit": "Lux"
+                    },
+                    "value": 23
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 49,
+                    "commandClassName": "Multilevel Sensor",
+                    "property": "Ultraviolet",
+                    "propertyName": "Ultraviolet",
+                    "ccVersion": 5,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Ultraviolet",
+                        "ccSpecific": {
+                            "sensorType": 27,
+                            "scale": 0
+                        }
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 2,
+                    "propertyName": "Wake Device for 10 minutes After Power On",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Wake Device for 10 minutes After Power On",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 3,
+                    "propertyName": "PIR Sensor Timeout",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "PIR Sensor Timeout",
+                        "default": 240,
+                        "min": 10,
+                        "max": 3600,
+                        "valueSize": 2,
+                        "format": 0,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 240
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 4,
+                    "propertyName": "PIR Sensitivity",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "PIR Sensitivity",
+                        "default": 5,
+                        "min": 0,
+                        "max": 5,
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 5
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 5,
+                    "propertyName": "Motion Sensor Report Type to Send",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Motion Sensor Report Type to Send",
+                        "default": 1,
+                        "min": 1,
+                        "max": 2,
+                        "states": {
+                            "1": "Basic CC Report",
+                            "2": "Binary Sensor CC Report"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 8,
+                    "propertyName": "Wake Up Timeout",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Wake Up Timeout",
+                        "default": 15,
+                        "min": 8,
+                        "max": 127,
+                        "unit": "seconds",
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 15
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 9,
+                    "propertyKey": 65280,
+                    "propertyName": "Current Power Mode",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Current Power Mode",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "USB Power",
+                            "1": "Battery"
+                        },
+                        "valueSize": 2,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 9,
+                    "propertyKey": 255,
+                    "propertyName": "Sleep State",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Sleep State",
+                        "default": 0,
+                        "min": 0,
+                        "max": 2,
+                        "states": {
+                            "0": "Asleep",
+                            "1": "Awake",
+                            "2": "Always awake on USB power"
+                        },
+                        "valueSize": 2,
+                        "format": 0,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 2
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 39,
+                    "propertyName": "Low Battery Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Low Battery Threshold",
+                        "default": 20,
+                        "min": 10,
+                        "max": 50,
+                        "unit": "%",
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 20
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 40,
+                    "propertyName": "Selective Reporting",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "description": "Report only when the defined threshold is exceeded",
+                        "label": "Selective Reporting",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 41,
+                    "propertyKey": 3840,
+                    "propertyName": "Temperature Threshold Unit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Temperature Threshold Unit",
+                        "default": 1,
+                        "min": 1,
+                        "max": 2,
+                        "states": {
+                            "1": "Celsius",
+                            "2": "Fahrenheit"
+                        },
+                        "valueSize": 4,
+                        "format": 0,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 41,
+                    "propertyKey": 4294901760,
+                    "propertyName": "Temperature Change Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Temperature Change Threshold",
+                        "default": 20,
+                        "min": 10,
+                        "max": 2120,
+                        "unit": "0.1 °C/°F",
+                        "valueSize": 4,
+                        "format": 0,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 20
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 42,
+                    "propertyName": "Humidity Change Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Humidity Change Threshold",
+                        "default": 10,
+                        "min": 1,
+                        "max": 100,
+                        "unit": "%",
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 10
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 43,
+                    "propertyName": "Luminance Change Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Luminance Change Threshold",
+                        "default": 100,
+                        "min": 1,
+                        "max": 1000,
+                        "unit": "lux",
+                        "valueSize": 2,
+                        "format": 0,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 100
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 44,
+                    "propertyName": "Battery Level Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Battery Level Threshold",
+                        "default": 10,
+                        "min": 1,
+                        "max": 100,
+                        "unit": "%",
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 10
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 45,
+                    "propertyName": "Ultraviolet Change Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Ultraviolet Change Threshold",
+                        "default": 2,
+                        "min": 1,
+                        "max": 11,
+                        "valueSize": 1,
+                        "format": 0,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 2
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 46,
+                    "propertyName": "Low Temperature Alarm (-15°C)",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Low Temperature Alarm (-15°C)",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 48,
+                    "propertyKey": 1,
+                    "propertyName": "Report Below Temperature Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Report Below Temperature Threshold",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 48,
+                    "propertyKey": 2,
+                    "propertyName": "Report Below Humidity Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Report Below Humidity Threshold",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 48,
+                    "propertyKey": 4,
+                    "propertyName": "Report Below Luminance Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Report Below Luminance Threshold",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 48,
+                    "propertyKey": 8,
+                    "propertyName": "Report Below Ultraviolet Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Report Below Ultraviolet Threshold",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 48,
+                    "propertyKey": 16,
+                    "propertyName": "Report Above Temperature Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Report Above Temperature Threshold",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 48,
+                    "propertyKey": 32,
+                    "propertyName": "Report Above Humidity Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Report Above Humidity Threshold",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 48,
+                    "propertyKey": 64,
+                    "propertyName": "Report Above Luminance Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Report Above Luminance Threshold",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 48,
+                    "propertyKey": 128,
+                    "propertyName": "Report Above Ultraviolet Threshold",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Report Above Ultraviolet Threshold",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 49,
+                    "propertyKey": 3840,
+                    "propertyName": "Upper Temperature Limit Unit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Upper Temperature Limit Unit",
+                        "default": 1,
+                        "min": 1,
+                        "max": 2,
+                        "states": {
+                            "1": "Celsius",
+                            "2": "Fahrenheit"
+                        },
+                        "valueSize": 4,
+                        "format": 0,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 49,
+                    "propertyKey": 4294901760,
+                    "propertyName": "Upper Temperature Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Upper Temperature Limit",
+                        "default": 280,
+                        "min": -400,
+                        "max": 2120,
+                        "unit": "0.1 °C/°F",
+                        "valueSize": 4,
+                        "format": 0,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 280
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 50,
+                    "propertyKey": 3840,
+                    "propertyName": "Lower Temperature Limit Unit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Lower Temperature Limit Unit",
+                        "default": 1,
+                        "min": 1,
+                        "max": 2,
+                        "states": {
+                            "1": "Celsius",
+                            "2": "Fahrenheit"
+                        },
+                        "valueSize": 4,
+                        "format": 0,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 50,
+                    "propertyKey": 4294901760,
+                    "propertyName": "Lower Temperature Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Lower Temperature Limit",
+                        "default": 0,
+                        "min": -400,
+                        "max": 2120,
+                        "unit": "0.1 °C/°F",
+                        "valueSize": 4,
+                        "format": 0,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 51,
+                    "propertyName": "Upper Humidity Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Upper Humidity Limit",
+                        "default": 60,
+                        "min": 0,
+                        "max": 100,
+                        "unit": "%",
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 60
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 52,
+                    "propertyName": "Lower Humidity Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Lower Humidity Limit",
+                        "default": 50,
+                        "min": 0,
+                        "max": 100,
+                        "unit": "%",
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 50
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 53,
+                    "propertyName": "Upper Lighting Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Upper Lighting Limit",
+                        "default": 1000,
+                        "min": 0,
+                        "max": 30000,
+                        "unit": "lux",
+                        "valueSize": 2,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 1000
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 54,
+                    "propertyName": "Lower Lighting Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Lower Lighting Limit",
+                        "default": 100,
+                        "min": 0,
+                        "max": 30000,
+                        "unit": "lux",
+                        "valueSize": 2,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 100
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 55,
+                    "propertyName": "Upper Ultraviolet Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Upper Ultraviolet Limit",
+                        "default": 8,
+                        "min": 0,
+                        "max": 11,
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 8
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 56,
+                    "propertyName": "Lower Ultraviolet Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Lower Ultraviolet Limit",
+                        "default": 4,
+                        "min": 0,
+                        "max": 11,
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 4
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 57,
+                    "propertyKey": 65280,
+                    "propertyName": "Temperature Recover Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "description": "Defines the difference below or above the upper/lower limit after which the limit is reenabled",
+                        "label": "Temperature Recover Limit",
+                        "default": 20,
+                        "min": 1,
+                        "max": 255,
+                        "valueSize": 2,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 20
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 57,
+                    "propertyKey": 255,
+                    "propertyName": "Recover Limit Temperature Unit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Recover Limit Temperature Unit",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Celsius",
+                            "1": "Fahrenheit"
+                        },
+                        "valueSize": 2,
+                        "format": 0,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 58,
+                    "propertyName": "Humidity Recover Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Humidity Recover Limit",
+                        "default": 5,
+                        "min": 1,
+                        "max": 50,
+                        "unit": "%",
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 5
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 59,
+                    "propertyName": "Lighting Recover Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Lighting Recover Limit",
+                        "default": 100,
+                        "min": 10,
+                        "max": 255,
+                        "unit": "lux",
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 10
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 60,
+                    "propertyName": "Ultraviolet Recover Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Ultraviolet Recover Limit",
+                        "default": 2,
+                        "min": 1,
+                        "max": 5,
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 2
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 61,
+                    "propertyKey": 1,
+                    "propertyName": "Temperature: Below Lower Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Temperature: Below Lower Limit",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "False",
+                            "1": "True"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 61,
+                    "propertyKey": 16,
+                    "propertyName": "Temperature: Above Lower Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Temperature: Above Lower Limit",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "False",
+                            "1": "True"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 61,
+                    "propertyKey": 2,
+                    "propertyName": "Humidity: Below Lower Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Humidity: Below Lower Limit",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "False",
+                            "1": "True"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 61,
+                    "propertyKey": 32,
+                    "propertyName": "Humidity: Above Lower Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Humidity: Above Lower Limit",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "False",
+                            "1": "True"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 61,
+                    "propertyKey": 4,
+                    "propertyName": "Luminance: Below Lower Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Luminance: Below Lower Limit",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "False",
+                            "1": "True"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 61,
+                    "propertyKey": 64,
+                    "propertyName": "Luminance: Above Lower Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Luminance: Above Lower Limit",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "False",
+                            "1": "True"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 61,
+                    "propertyKey": 8,
+                    "propertyName": "Ultraviolet: Below Lower Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Ultraviolet: Below Lower Limit",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "False",
+                            "1": "True"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 61,
+                    "propertyKey": 128,
+                    "propertyName": "Ultraviolet: Above Lower Limit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Ultraviolet: Above Lower Limit",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "False",
+                            "1": "True"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 81,
+                    "propertyName": "LED Blinking",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "LED Blinking",
+                        "default": 1,
+                        "min": 0,
+                        "max": 2,
+                        "states": {
+                            "0": "Enable",
+                            "1": "Disable (only when PIR is triggered)",
+                            "2": "Disable completely"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 101,
+                    "propertyKey": 1,
+                    "propertyName": "Automatic Report: Group 1 - Battery",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 1 - Battery",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 101,
+                    "propertyKey": 16,
+                    "propertyName": "Automatic Report: Group 1 - Ultraviolet",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 1 - Ultraviolet",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 101,
+                    "propertyKey": 32,
+                    "propertyName": "Automatic Report: Group 1 - Temperature",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 1 - Temperature",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 101,
+                    "propertyKey": 64,
+                    "propertyName": "Automatic Report: Group 1 - Humidity",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 1 - Humidity",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 101,
+                    "propertyKey": 128,
+                    "propertyName": "Automatic Report: Group 1 - Luminance",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 1 - Luminance",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 102,
+                    "propertyKey": 1,
+                    "propertyName": "Automatic Report: Group 2 - Battery",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 2 - Battery",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 102,
+                    "propertyKey": 16,
+                    "propertyName": "Automatic Report: Group 2 - Ultraviolet",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 2 - Ultraviolet",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 102,
+                    "propertyKey": 32,
+                    "propertyName": "Automatic Report: Group 2 - Temperature",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 2 - Temperature",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 102,
+                    "propertyKey": 64,
+                    "propertyName": "Automatic Report: Group 2 - Humidity",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 2 - Humidity",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 102,
+                    "propertyKey": 128,
+                    "propertyName": "Automatic Report: Group 2 - Luminance",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 2 - Luminance",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 103,
+                    "propertyKey": 1,
+                    "propertyName": "Automatic Report: Group 3 - Battery",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 3 - Battery",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 103,
+                    "propertyKey": 16,
+                    "propertyName": "Automatic Report: Group 3 - Ultraviolet",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 3 - Ultraviolet",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 103,
+                    "propertyKey": 32,
+                    "propertyName": "Automatic Report: Group 3 - Temperature",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 3 - Temperature",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 103,
+                    "propertyKey": 64,
+                    "propertyName": "Automatic Report: Group 3 - Humidity",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 3 - Humidity",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 103,
+                    "propertyKey": 128,
+                    "propertyName": "Automatic Report: Group 3 - Luminance",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Report: Group 3 - Luminance",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 64,
+                    "propertyName": "Automatic Temperature Reporting Unit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Temperature Reporting Unit",
+                        "default": 1,
+                        "min": 1,
+                        "max": 2,
+                        "states": {
+                            "1": "Celsius",
+                            "2": "Fahrenheit"
+                        },
+                        "valueSize": 1,
+                        "format": 0,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 111,
+                    "propertyName": "Automatic Reporting Interval: Group 1",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Reporting Interval: Group 1",
+                        "default": 600,
+                        "min": 1,
+                        "max": 2678400,
+                        "unit": "seconds",
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 3600
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 112,
+                    "propertyName": "Automatic Reporting Interval: Group 2",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Reporting Interval: Group 2",
+                        "default": 600,
+                        "min": 1,
+                        "max": 2678400,
+                        "unit": "seconds",
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 3600
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 113,
+                    "propertyName": "Automatic Reporting Interval: Group 3",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Automatic Reporting Interval: Group 3",
+                        "default": 600,
+                        "min": 1,
+                        "max": 2678400,
+                        "unit": "seconds",
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 3600
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 201,
+                    "propertyKey": 255,
+                    "propertyName": "Temperature Calibration Unit",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Temperature Calibration Unit",
+                        "default": 1,
+                        "min": 1,
+                        "max": 2,
+                        "states": {
+                            "1": "Celsius",
+                            "2": "Fahrenheit"
+                        },
+                        "valueSize": 2,
+                        "format": 0,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 201,
+                    "propertyKey": 65280,
+                    "propertyName": "Temperature Calibration Offset",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Temperature Calibration Offset",
+                        "default": 0,
+                        "min": -128,
+                        "max": 127,
+                        "unit": "0.1 °C/°F",
+                        "valueSize": 2,
+                        "format": 0,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 202,
+                    "propertyName": "Humidity Sensor Calibration",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Humidity Sensor Calibration",
+                        "default": 0,
+                        "min": -50,
+                        "max": 50,
+                        "unit": "% rH",
+                        "valueSize": 1,
+                        "format": 0,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 203,
+                    "propertyName": "Luminance Sensor Calibration",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Luminance Sensor Calibration",
+                        "default": 0,
+                        "min": -1000,
+                        "max": 1000,
+                        "unit": "lux",
+                        "valueSize": 2,
+                        "format": 0,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 204,
+                    "propertyName": "Ultraviolet Sensor Calibration",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Ultraviolet Sensor Calibration",
+                        "default": 0,
+                        "min": -10,
+                        "max": 10,
+                        "valueSize": 1,
+                        "format": 0,
+                        "allowManualEntry": true,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 252,
+                    "propertyName": "Lock Configuration",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": true,
+                        "label": "Lock Configuration",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Disable",
+                            "1": "Enable"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 100,
+                    "propertyName": "Reset Parameters 101-103 to Default Values",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": false,
+                        "writeable": true,
+                        "label": "Reset Parameters 101-103 to Default Values",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Normal Operation",
+                            "1": "Reset"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    }
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 110,
+                    "propertyName": "Reset Parameters 111-113 to Default Values",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": false,
+                        "writeable": true,
+                        "label": "Reset Parameters 111-113 to Default Values",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1,
+                        "states": {
+                            "0": "Normal Operation",
+                            "1": "Reset"
+                        },
+                        "valueSize": 1,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    }
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 112,
+                    "commandClassName": "Configuration",
+                    "property": 255,
+                    "propertyName": "Reset to Factory Default Setting",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": false,
+                        "writeable": true,
+                        "label": "Reset to Factory Default Setting",
+                        "default": 0,
+                        "min": 0,
+                        "max": 1431655765,
+                        "states": {
+                            "0": "Normal Operation",
+                            "1": "Resets all configuration parameters to default setting",
+                            "1431655765": "Reset the product to factory default setting and exclude from Z-Wave network"
+                        },
+                        "valueSize": 4,
+                        "format": 1,
+                        "allowManualEntry": false,
+                        "isFromConfig": true
+                    }
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 113,
+                    "commandClassName": "Notification",
+                    "property": "alarmType",
+                    "propertyName": "alarmType",
+                    "ccVersion": 3,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Alarm Type",
+                        "min": 0,
+                        "max": 255
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 113,
+                    "commandClassName": "Notification",
+                    "property": "alarmLevel",
+                    "propertyName": "alarmLevel",
+                    "ccVersion": 3,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Alarm Level",
+                        "min": 0,
+                        "max": 255
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 113,
+                    "commandClassName": "Notification",
+                    "property": "Home Security",
+                    "propertyKey": "Motion sensor status",
+                    "propertyName": "Home Security",
+                    "propertyKeyName": "Motion sensor status",
+                    "ccVersion": 3,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Motion sensor status",
+                        "ccSpecific": {
+                            "notificationType": 7
+                        },
+                        "min": 0,
+                        "max": 255,
+                        "states": {
+                            "0": "idle",
+                            "8": "Motion detection"
+                        }
+                    },
+                    "value": 8
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 113,
+                    "commandClassName": "Notification",
+                    "property": "Home Security",
+                    "propertyKey": "Cover status",
+                    "propertyName": "Home Security",
+                    "propertyKeyName": "Cover status",
+                    "ccVersion": 3,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Cover status",
+                        "ccSpecific": {
+                            "notificationType": 7
+                        },
+                        "min": 0,
+                        "max": 255,
+                        "states": {
+                            "0": "idle",
+                            "3": "Tampering, product cover removed"
+                        }
+                    },
+                    "value": 0
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 114,
+                    "commandClassName": "Manufacturer Specific",
+                    "property": "manufacturerId",
+                    "propertyName": "manufacturerId",
+                    "ccVersion": 2,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Manufacturer ID",
+                        "min": 0,
+                        "max": 65535
+                    },
+                    "value": 134
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 114,
+                    "commandClassName": "Manufacturer Specific",
+                    "property": "productType",
+                    "propertyName": "productType",
+                    "ccVersion": 2,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Product type",
+                        "min": 0,
+                        "max": 65535
+                    },
+                    "value": 2
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 114,
+                    "commandClassName": "Manufacturer Specific",
+                    "property": "productId",
+                    "propertyName": "productId",
+                    "ccVersion": 2,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Product ID",
+                        "min": 0,
+                        "max": 65535
+                    },
+                    "value": 100
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 128,
+                    "commandClassName": "Battery",
+                    "property": "level",
+                    "propertyName": "level",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Battery level",
+                        "min": 0,
+                        "max": 100,
+                        "unit": "%"
+                    },
+                    "value": 100
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 128,
+                    "commandClassName": "Battery",
+                    "property": "isLow",
+                    "propertyName": "isLow",
+                    "ccVersion": 1,
+                    "metadata": {
+                        "type": "boolean",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Low battery level"
+                    },
+                    "value": false
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 132,
+                    "commandClassName": "Wake Up",
+                    "property": "wakeUpInterval",
+                    "propertyName": "wakeUpInterval",
+                    "ccVersion": 2,
+                    "metadata": {
+                        "type": "number",
+                        "default": 3600,
+                        "readable": false,
+                        "writeable": true,
+                        "label": "Wake Up interval",
+                        "min": 240,
+                        "max": 3600,
+                        "steps": 60
+                    },
+                    "value": 3600
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 132,
+                    "commandClassName": "Wake Up",
+                    "property": "controllerNodeId",
+                    "propertyName": "controllerNodeId",
+                    "ccVersion": 2,
+                    "metadata": {
+                        "type": "any",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Node ID of the controller"
+                    },
+                    "value": 1
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 134,
+                    "commandClassName": "Version",
+                    "property": "libraryType",
+                    "propertyName": "libraryType",
+                    "ccVersion": 2,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Library type",
+                        "states": {
+                            "0": "Unknown",
+                            "1": "Static Controller",
+                            "2": "Controller",
+                            "3": "Enhanced Slave",
+                            "4": "Slave",
+                            "5": "Installer",
+                            "6": "Routing Slave",
+                            "7": "Bridge Controller",
+                            "8": "Device under Test",
+                            "9": "N/A",
+                            "10": "AV Remote",
+                            "11": "AV Device"
+                        }
+                    },
+                    "value": 3
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 134,
+                    "commandClassName": "Version",
+                    "property": "protocolVersion",
+                    "propertyName": "protocolVersion",
+                    "ccVersion": 2,
+                    "metadata": {
+                        "type": "string",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Z-Wave protocol version"
+                    },
+                    "value": "4.54"
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 134,
+                    "commandClassName": "Version",
+                    "property": "firmwareVersions",
+                    "propertyName": "firmwareVersions",
+                    "ccVersion": 2,
+                    "metadata": {
+                        "type": "string[]",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Z-Wave chip firmware versions"
+                    },
+                    "value": [
+                        "1.12"
+                    ]
+                },
+                {
+                    "endpoint": 0,
+                    "commandClass": 134,
+                    "commandClassName": "Version",
+                    "property": "hardwareVersion",
+                    "propertyName": "hardwareVersion",
+                    "ccVersion": 2,
+                    "metadata": {
+                        "type": "number",
+                        "readable": true,
+                        "writeable": false,
+                        "label": "Z-Wave chip hardware version"
+                    },
+                    "value": 100
+                }
+            ],
+            "interviewStage": 5,
+            "isFrequentListening": null,
+            "maxBaudRate": 100000,
+            "version": 4,
+            "isBeaming": true,
+            "nodeType": 0,
+            "roleType": 5,
+            "deviceClass": {
+                "basic": "Routing Slave",
+                "generic": "Multilevel Sensor",
+                "specific": "Routing Multilevel Sensor",
+                "mandatorySupportedCCs": [
+                    "Basic",
+                    "Multilevel Sensor"
+                ],
+                "mandatoryControlCCs": []
+            }
+        }
+    }
+}
