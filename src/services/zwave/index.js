@@ -31,6 +31,11 @@ deviceHandlers.set('Fibargroup FGMS001', [
     typeMapper: () => 'illuminance'
   },
   { 
+    propertyKey: 'Multilevel Sensor.Humidity',
+    valueMapper: ({ newValue }) => newValue,
+    typeMapper: () => 'humidity'
+  },
+  { 
     propertyKey: 'Battery.level',
     valueMapper: ({ newValue }) => newValue,
     typeMapper: () => 'battery'
