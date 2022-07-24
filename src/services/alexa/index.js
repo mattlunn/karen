@@ -112,7 +112,7 @@ Device.registerProvider('alexa', {
   async setProperty(device, key, value) {
     switch (key) {
       default:
-        throw new Error(`"${key}" is not a recognised property for SmartThings`);
+        throw new Error(`"${key}" is not a recognised property for Alexa`);
     }
   },
 
@@ -121,7 +121,7 @@ Device.registerProvider('alexa', {
       case 'connected':
         return true;
       default:
-        throw new Error(`"${key}" is not a recognised property for SmartThings`);
+        throw new Error(`"${key}" is not a recognised property for Alexa`);
     }
   },
 

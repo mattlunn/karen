@@ -33,7 +33,6 @@
     "graphql": "^14.7.0",
     "graphql-tag": "^2.11.0",
     "history": "^4.10.1",
-    "http-signature": "^1.3.5",
     "iso8601-duration": "^1.2.0",
     "left-pad": "^1.3.0",
     "moment": "^2.29.1",
