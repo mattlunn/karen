@@ -57,9 +57,9 @@ let alwaysAPromiseOfAClient = (function getClient() {
       const dataAsString = data.toString();
       const message = JSON.parse(dataAsString);
   
-      //if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === 'development') {
         console.log(message);
-      //}
+      }
   
       switch (message.type) {
         case 'result': {
