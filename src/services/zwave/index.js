@@ -31,14 +31,32 @@ deviceHandlers.set('Fibargroup FGMS001', [
     typeMapper: () => 'illuminance'
   },
   { 
+    propertyKey: 'Battery.level',
+    valueMapper: ({ newValue }) => newValue,
+    typeMapper: () => 'battery'
+  }
+]);
+
+deviceHandlers.set('AEON Labs ZW100', [
+  {
+    propertyKey: 'Binary Sensor.Any',
+    valueMapper: ({ newValue }) => newValue,
+    typeMapper: () => 'motion'
+  },
+  { 
+    propertyKey: 'Multilevel Sensor.Air temperature',
+    valueMapper: ({ newValue }) => newValue,
+    typeMapper: () => 'temperature'
+  },
+  { 
     propertyKey: 'Multilevel Sensor.Humidity',
     valueMapper: ({ newValue }) => newValue,
     typeMapper: () => 'humidity'
   },
   { 
-    propertyKey: 'Battery.level',
+    propertyKey: 'Multilevel Sensor.Illuminance',
     valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'battery'
+    typeMapper: () => 'illuminance'
   }
 ]);
 
