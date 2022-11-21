@@ -137,7 +137,7 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
   ]);
 
   const devices = await Device.findByProvider('tado');
-  const getNextTargetForThermostat = async (zoneState) => {
+  const getNextTargetForThermostat = async (device, zoneState, activeTimetable) => {
     if (isSomeoneAtHome) {
       const { nextScheduleChange } = zoneState;
 
@@ -169,9 +169,9 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
         client.getActiveTimetable(device.providerId)
       ]);
 
-      const { nextTargetTime, nextTargetTemperature } = await getNextTargetForThermostat(zoneState, activeTimetable);
+      const { nextTargetTime, nextTargetTemperature } = await getNextTargetForThermostat(device, zoneState, activeTimetable);
 
-      console.log(`For ${device.name}, nextTargetTime: ${nextTargetTime}, nextTargetTemperature: ${nextTargetTemperature}`)
+      console.log(`For ${device.name}, nextTargetTime: ${nextTargetTime}, nextTargetTemperature: ${nextTargetTemperature}`);
 
       // Unless manual override with a end time
       if (nextTargetTemperature > currentTemperature && (zoneState.overlayType !== 'MANUAL' || zoneState.overlay.termination.type === 'MANUAL')) {
