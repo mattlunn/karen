@@ -34,4 +34,4 @@
 1. Login to NAS
 2. `cd /volume2/docker/george`
 3. `docker-compose pull karen`
-4. `docker-compose up --force --detach karen`
+4. `docker-compose up --detach karen`
