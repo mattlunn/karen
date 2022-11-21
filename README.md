@@ -1,6 +1,6 @@
 # karen
 
-## Getting Started
+## Local Dev
 
 1. Clone this repo
 2. Clone george
@@ -28,3 +28,10 @@
     6. On your phone, sign into the Alexa app as the dev user.
     7. Go to More, Skills & Games, Your Skills, Dev, (the skill)
     8. Click "Enable to use".
+
+## Deploy
+
+1. Login to NAS
+2. `cd /volume2/docker/george`
+3. `docker-compose pull karen`
+4. `docker-compose up --force karen`
