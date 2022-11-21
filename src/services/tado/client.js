@@ -87,7 +87,7 @@ export default class TadoClient {
     return this._request(`/zones/${zone}/schedule/timetables/${timetable}/blocks`);
   }
 
-  setHeatingPowerForZone(zone, value) {
+  setHeatingPowerForZone(zone, value, endAtNextTimeBlock) {
     return this._request(`/zones/${zone}/overlay`, {
       setting: {
         type: 'HEATING',
@@ -97,12 +97,8 @@ export default class TadoClient {
         }
       },
       termination: {
-        type: 'MANUAL'
+        typeSkillBasedApp: endAtNextTimeBlock ? 'NEXT_TIME_BLOCK' : 'MANUAL'
       }
     });
-  }
-
-  endManualHeatingForZone(zone) {
-    return this._request(`/zones/${zone}/overlay`, null, 'DELETE');
   }
 }
