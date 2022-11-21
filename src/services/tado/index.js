@@ -154,7 +154,7 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
       };
     }
 
-    return null;
+    return {};
   };
 
   for (const device of devices) {
