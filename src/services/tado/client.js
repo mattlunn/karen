@@ -101,4 +101,8 @@ export default class TadoClient {
       }
     });
   }
+
+  endManualHeatingForZone(zone) {
+    return this._request(`/zones/${zone}/overlay`, null, 'DELETE');
+  }
 }
