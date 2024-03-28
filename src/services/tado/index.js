@@ -82,7 +82,7 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);
   const devices = await Device.findByProvider('tado');
 
-  async function updateState(device, type, currentValue) {
+  async function updateState(device, type, currentValue, timestamp) {
     const lastEvent = await device.getLatestEvent(type);
     const valueHasChanged = !lastEvent
       || typeof currentValue === 'number' && currentValue !== lastEvent.value
@@ -94,14 +94,14 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
       // value -> value (update old, create new)
 
       if (lastEvent && currentValue !== true) {
-        lastEvent.end = Date.now();
+        lastEvent.end = timestamp;
         await lastEvent.save();
       }
 
       if (currentValue !== false) {
         await Event.create({
           deviceId: device.id,
-          start: Date.now(),
+          start: timestamp,
           value: Number(currentValue),
           type
         });
@@ -116,11 +116,11 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
       const data = await client.getZoneState(device.providerId);
 
       await Promise.all([
-        updateState(device, 'heating', data.activityDataPoints.heatingPower.percentage > 0),
-        updateState(device, 'humidity', data.sensorDataPoints.humidity.percentage),
-        updateState(device, 'temperature', data.sensorDataPoints.insideTemperature.celsius),
-        updateState(device, 'target', data.setting.power === 'ON' ? data.setting.temperature.celsius : 0),
-        updateState(device, 'power', data.activityDataPoints.heatingPower.percentage)
+        updateState(device, 'power', data.activityDataPoints.heatingPower.percentage, new Date(data.activityDataPoints.heatingPower.timestamp)),
+        updateState(device, 'heating', data.activityDataPoints.heatingPower.percentage > 0, new Date(data.activityDataPoints.heatingPower.timestamp)),
+        updateState(device, 'humidity', data.sensorDataPoints.humidity.percentage, new Date(data.sensorDataPoints.humidity.timestamp)),
+        updateState(device, 'temperature', data.sensorDataPoints.insideTemperature.celsius, new Date(data.sensorDataPoints.insideTemperature.timestamp)),
+        updateState(device, 'target', data.setting.power === 'ON' ? data.setting.temperature.celsius : 0, new Date())
       ]);
     }
   }
