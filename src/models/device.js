@@ -45,6 +45,8 @@ export default function (sequelize) {
         return this._metaParsed;
       }
     }
+  }, {
+    paranoid: true
   });
 
   /**
