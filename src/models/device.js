@@ -52,8 +52,7 @@ export default function (sequelize) {
    * not wait for the property to update before returning.
    *
    * In other words, by awaiting this method, you are subscribing to "I have successfully
-   * told (e.g. LightWave) to change the brightness of the light". It does NOT mean "The
-   * brightness of the light has changed."
+   * told (e.g. Tado) to change the temperature". It does NOT mean "The temperature has changed."
    *
    * In part, this is due to some APIs (TP Link, Tado, I'm looking at you), where we have
    * to poll for updates, rather than subscribe to updates.
