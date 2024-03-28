@@ -26,8 +26,6 @@ class SideBar extends Component {
           </div>
         </div>
 
-        <h2>Effra Road</h2>
-
         <div className="sidebar__alarm-status">
           <button disabled={alarmMode === 'OFF'} onClick={() => setAlarmMode('OFF')}>Home</button>
           <button disabled={alarmMode === 'AWAY'} onClick={() => setAlarmMode('AWAY')}>Away</button>

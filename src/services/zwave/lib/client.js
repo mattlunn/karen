@@ -15,8 +15,6 @@ let alwaysAPromiseOfAClient = (function getClient(retryCount = 0) {
       const msgs = new Map();
       const nodes = new Map();
 
-      console.log('Running');
-    
       /*
         { "messageId": "1", "command": "set_api_schema", "schemaVersion": 20 }
         { "messageId": "2", "command": "start_listening" }
