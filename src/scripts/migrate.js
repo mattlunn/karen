@@ -5,6 +5,7 @@ import yargs from 'yargs';
 
 const argv = yargs.array('up').array('down').argv;
 const instance = new Sequelize(config.database.name, config.database.user, config.database.password, {
+  host: config.database.host,
   dialect: 'mysql'
 });
 
