@@ -1,4 +1,5 @@
 import scheduleWithinTimeWhileOccupied from '../helpers/schedule-within-time-while-occupied';
+import { Device } from '../models';
 
 export default function ({ timings = [], heaterName }) {
   for (const { start, end } of timings) {
@@ -10,6 +11,6 @@ export default function ({ timings = [], heaterName }) {
       const device = await Device.findByName(heaterName);
 
       await device.setProperty('on', false);
-    })
+    });
   }
 }
