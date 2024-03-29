@@ -22,15 +22,15 @@ export default function (start, end, onStart, onEnd) {
     }
   }, end);
 
-  bus.on(FIRST_USER_HOME, async (event) => {
-    if (isWithinTime(start, end, event.start) && !isActive) {
+  bus.on(FIRST_USER_HOME, async (stay) => {
+    if (isWithinTime(start, end, stay.arrival) && !isActive) {
       isActive = true;
       await onStart();
     }
   });
 
-  bus.on(LAST_USER_LEAVES, async (event) => {
-    if (isWithinTime(start, end, event.start)) {
+  bus.on(LAST_USER_LEAVES, async (stay) => {
+    if (isWithinTime(start, end, stay.departure)) {
       isActive = false;
       await onEnd();
     }
