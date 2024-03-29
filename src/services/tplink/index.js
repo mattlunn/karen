@@ -8,6 +8,8 @@ function getHandlerForDevice(client, device) {
       return client.getHS100(device.name);
     case 'HS110(UK)':
       return client.getHS110(device.name);
+      case 'KP105(UK)':
+        return client.getHS110(device.name);
   }
 
   return null;
