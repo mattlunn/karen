@@ -181,7 +181,7 @@ const withThermostatHistory = graphql(gql`
       },
     };
   },
-  props: ({ data }) => ({ data: data?.getHistory?.data })
+  props: ({ data }) => ({ data: data?.getHistory?.data ?? [] })
 });
 
 export default withThermostatHistory(withSetTargetTemperature(Thermostat));
