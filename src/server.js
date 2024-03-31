@@ -20,7 +20,6 @@ import { createServer } from 'http';
 import compression from 'compression';
 import { createBackgroundTransaction } from './helpers/newrelic';
 
-require('./services/ifttt');
 require('./services/synology');
 require('./services/unifi');
 require('./services/tplink');

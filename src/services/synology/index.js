@@ -19,8 +19,7 @@ const latestCameraEvents = new Map();
 // On receiving motion, try find active camera event via DB query. If one exists,
 // then restart timeout. If one doesn't exist, create one.
 
-// Add an IFTTT hook which downloads footage from start -> end, +- 5 seconds.
-// Add an IFTTT hook which notifies on motion
+// Download footage from start -> end, +- 5 seconds.
 
 async function createEvent(device, now) {
   const latestCameraEvent = await device.getLatestEvent('motion');
