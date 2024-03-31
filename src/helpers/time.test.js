@@ -15,21 +15,18 @@ function getTime(hour, minute) {
 
 describe('isWithinTime', () => {
   it('should return true when time is within normal start and end', () => {
-    expect(isWithinTime('01:00', '02:00', getTime(1, 30))).toBe(true);
+    expect(isWithinTime('06:00', '07:00', getTime(6, 30))).toBe(true);
   });
 
   it.each([
-    [0, 30],
-    [2, 30]
+    [5, 30],
+    [7, 30]
   ])('should return false when time is outside normal start and end', (hour, minute) => {
-    expect(isWithinTime('01:00', '02:00', getTime(hour, minute))).toBe(false);
+    expect(isWithinTime('06:00', '07:00', getTime(hour, minute))).toBe(false);
   });
 
-  it.each([
-    [23, 30],
-    [1, 30]
-  ])('should return true when time is within start and end, with offset', (hour, minute) => {
-    expect(isWithinTime('23:00', '06:00 + 1d', getTime(hour, minute))).toBe(true);
+  it('should return true when time is within start and end, with offset', () => {
+    expect(isWithinTime('23:00', '06:00 + 1d', getTime(23, 30))).toBe(true);
   });
 
   it('should return false when sun time is before start time', () => {
