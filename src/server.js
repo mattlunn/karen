@@ -26,6 +26,7 @@ require('./services/tplink');
 require('./services/tado');
 require('./services/alexa');
 require('./services/zwave');
+require('./services/pushover');
 
 require('./automations');
 

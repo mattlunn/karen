@@ -1,10 +1,7 @@
-import bus, { NOTIFICATION }  from '../bus';
+import { sendPushNotification } from '../services/pushover';
 
-export function sendNotification(message, link) {
+export function sendNotification(message) {
   console.log(`Sending notification "${message}"`);
 
-  bus.emit(NOTIFICATION, {
-    value1: message,
-    value2: link
-  });
+  sendPushNotification(message);
 }
