@@ -16,7 +16,7 @@ export default async function getWarmupRatePerHour(device) {
       ['end', 'DESC']
     ],
 
-    limit: 10
+    limit: 20
   });
 
   const temperatures = await Event.findAll({
@@ -40,7 +40,17 @@ export default async function getWarmupRatePerHour(device) {
     return temperatures.find(({ start, end }) => start <= time && end >= time).value;
   }
 
-  return history.reduce((acc, { start, end }) => {
-    return acc + ((findTemperateAtTime(end) - findTemperateAtTime(start)) / moment(end).diff(start, 'h', true));
-  }, 0) / history.length;
+  const warmupRates = history.reduce((acc, { start, end }) => {
+    const temperatureAtStart = findTemperateAtTime(start);
+    const temperatureAtEnd = findTemperateAtTime(end);
+    const durationInHours = moment(end).diff(start, 'h', true);
+    
+    if (durationInHours > 0.5 && temperatureAtEnd > temperatureAtStart) {
+      acc.push((temperatureAtEnd - temperatureAtStart) / durationInHours);
+    }
+
+    return acc;
+  }, []);
+
+  return warmupRates.reduce((acc, curr) => acc + curr, 0) / warmupRates.length;
 }
