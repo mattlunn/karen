@@ -4,7 +4,17 @@ import config from '../../config';
 
 Device.registerProvider('shelly', {
   async setProperty(device, key, value) {
+    const shellyDevice = new DeviceClient(device.meta.endpoint, config.shelly.user, config.shelly.password);
+
     switch (key) {
+      case 'on': {
+        await shellyDevice.setIsOn(value);
+        break;
+      }
+      case 'brightness': {
+        await shellyDevice.setBrightness(value);
+        break;
+      }
       default:
         throw new Error(`Unable to handle setting '${key}' for ${device.type}`);
     }
@@ -36,7 +46,7 @@ Device.registerProvider('shelly', {
 
       device.name = await shellyDevice.getDeviceName();
 
-      await knownDevice.save();
+      await device.save();
     }
   }
 });

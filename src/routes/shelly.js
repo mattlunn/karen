@@ -16,27 +16,40 @@ router.use((req, res, next) => {
 
 router.get('/event', asyncWrapper(async (req, res) => {
   const device = await Device.findByProviderId('shelly', req.query.id);
+  const time = new Date();
+
+  console.log(req.query);
 
   if (!device) {
-    res.sendStatus(400).end('ID not provided/ recognised');
+    return res.sendStatus(400).end('ID not provided/ recognised');
   }
-  switch (req.query.action) {
-    case 'on': {
 
+  const lastEvent = await device.getLatestEvent('on');
+  const isOn = req.query.action === 'on';
+
+  if (isOn) {
+    if (lastEvent && !lastEvent.end) {
+      console.error(`"${device.id}" has been turned on, but is already turned on...`);
+    } else {
+      await Event.create({
+        deviceId: device.id,
+        type: 'on',
+        start: time,
+        value: 1
+      });
     }
-    case 'off': {
+  } else {
+    if (!lastEvent || lastEvent.end) {
+      console.error(`"${device.id}" has been turned off, but has no active event...`);
+    } else {
+      lastEvent.end = time;
+      await lastEvent.save();
     }
-    default:
-      res.sendStatus(400).end('action not provided/ supported');      
   }
-  await Event.create({
-    deviceId: light.id,
-    type: 'on',
-    start: new Date(time),
-    value: 1
-  });
 
-  light.onPropertyChanged('on');
+  device.onPropertyChanged('on');
+
+  res.sendStatus(200).end();
 }));
 
 router.get('/install', asyncWrapper(async (req, res) => {

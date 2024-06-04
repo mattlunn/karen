@@ -34,6 +34,18 @@ export default class DeviceClient {
     });
   }
 
+  async setIsOn(isOn) {
+    return await this._request('/light/0', {
+      turn: isOn ? 'on' : 'off'
+    });
+  }
+
+  async setBrightness(brightness) {
+    return await this._request('/light/0', {
+      brightness
+    });
+  }
+
   async setupAuthentication() {
     return await this._request('/settings/login', { 
       username: this._username,
