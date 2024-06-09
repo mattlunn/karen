@@ -5,7 +5,6 @@
     "forceConsistentCasingInFileNames": true,
     "module": "Node16",
     "esModuleInterop": true,
-    "resolveJsonModule": true,
     "jsx": "react",
     "declaration": true,
     "noEmit": true,

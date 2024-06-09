@@ -14,7 +14,7 @@ import shellyRoutes from './routes/shelly';
 import auth from './middleware/auth';
 import { Device } from './models';
 import bodyParser from 'body-parser';
-import config from './config.json';
+import config from './config';
 import cookieParser from 'cookie-parser';
 import api from './api';
 import { createServer } from 'http';
