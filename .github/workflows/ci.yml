@@ -64,4 +64,4 @@ jobs:
       - name: Trigger Deployment
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
-          curl -H "Authorization: Bearer ${{ secrets.DEPLOYMENT_TOKEN }}" ${{ secrets.DEPLOYMENT_WEBHOOK }}
+          curl -I -H "Authorization: Bearer ${{ secrets.DEPLOYMENT_TOKEN }}" ${{ secrets.DEPLOYMENT_WEBHOOK }}
