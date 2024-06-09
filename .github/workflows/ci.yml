@@ -12,7 +12,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: src
+        working-directory: server/src
 
     steps:
       - uses: actions/checkout@v2
@@ -23,6 +23,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run test
+      - run: npm run build
 
       - name: Log in to Docker Hub
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -49,7 +50,7 @@ jobs:
 
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
-          context: ./src
+          context: ./server/dist
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
