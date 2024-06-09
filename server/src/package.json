@@ -100,12 +100,13 @@
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "NODE_ENV=development nodemon --ignore 'config.json' --ignore 'components/*' --ignore 'static/*' --exec babel-node --inspect=0.0.0.0 --trace-warnings server.js",
+    "start:dev": "nodemon --watch ../dist ../dist/server.js",
     "debug": "babel-node --inspect-brk server.js",
     "create-user": "babel-node scripts/create-user.js",
     "migrate": "babel-node scripts/migrate.js",
     "build": "npm run build:server && npm run build:browser",
     "build:server": "babel . -d ../dist --extensions '.ts,.tsx,.js' --copy-files --include-dotfiles",
+    "dev": "babel . -d ../dist --extensions '.ts,.tsx,.js' --copy-files --include-dotfiles --watch",
     "build:browser": "node node_modules/webpack/bin/webpack",
     "test": "jest .",
     "lint": "eslint --max-warnings 0 ."
