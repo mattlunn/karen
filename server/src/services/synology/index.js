@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment, { Moment } from 'moment';
 import config from '../../config';
 import { Event, Recording, Stay, Device, Op } from '../../models';
 import s3 from '../s3';
@@ -8,6 +8,7 @@ import sleep from '../../helpers/sleep';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { enqueueWorkItem } from '../../queue';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
+import { writeFile } from 'fs';
 
 export { makeSynologyRequest };
 
@@ -81,7 +82,7 @@ async function captureRecording(event, providerId, startOfRecording, endOfRecord
 
     const video = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'Download', {
       id: cameraRecording.id,
-      offsetTimeMs: (moment(recordingToSave.start).format('X') - cameraRecording.startTime) * 1000,
+      offsetTimeMs: (moment(recordingToSave.start).unix() - cameraRecording.startTime) * 1000,
       playTimeMs: endOfRecording.diff(startOfRecording)
     }, false);
 
@@ -110,6 +111,14 @@ export async function onMotionDetected(cameraId, startOfDetectedMotion) {
 
     enqueueWorkItem(() => captureRecording(event, device.providerId, moment(event.start).subtract(2, 's'), moment(now).add(2, 's')));
   }, config.synology.length_of_motion_event_in_seconds * 1000);
+}
+
+export async function onDoorbellRing(cameraId) {
+  writeFile(__dirname + '/' + Date.now() + '.jpeg', await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
+    id: 6
+  }, false), (err) => {
+    console.log(err);
+  });
 }
 
 nowAndSetInterval(createBackgroundTransaction('synology:clear-old-recordings', async () => {

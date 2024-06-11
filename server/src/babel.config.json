@@ -1,6 +1,12 @@
 {
   "presets": [
     [
+      "@babel/preset-typescript",
+      {
+        "allowDeclareFields": true
+      }
+    ],
+    [
       "@babel/preset-env",
       {
         "targets": {
@@ -8,11 +14,9 @@
         }
       }
     ],
-    "@babel/preset-react",
-    "@babel/preset-typescript"
+    "@babel/preset-react"
   ],
   "plugins": [
-    "@babel/plugin-proposal-class-properties",
     "@babel/plugin-proposal-optional-chaining",
     "@babel/plugin-proposal-export-default-from"
   ],

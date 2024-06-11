@@ -16,7 +16,7 @@ const instance = new Sequelize(config.database.name, config.database.user, confi
     if (process.env.SEQUELIZE_LOGGING === 'true') {
       console.log(query);
     }
-  }
+  },
 });
 
 export const User = userFactory(instance);
