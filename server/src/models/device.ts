@@ -1,21 +1,21 @@
-import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional } from 'sequelize';
+import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional, NonAttribute } from 'sequelize';
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 
 const latestEventCache = new Map();
 
-class Device extends Model<InferAttributes<Device, { omit: 'meta' }>, InferCreationAttributes<Device>> {
-  declare id: CreationOptional<string>;
+export class Device extends Model<InferAttributes<Device>, InferCreationAttributes<Device>> {
+  declare id: CreationOptional<number>;
   declare provider: string;
-  declare type: string;
-  declare name: string;
   declare providerId: string;
-  declare metaStringified: string;
+  declare type: string;
+  declare name: CreationOptional<string>;
+  declare metaStringified: CreationOptional<string>;
 
   #metaParsed: Record<string, unknown>;
 
   declare getEvents: HasManyGetAssociationsMixin<{ start: Date; }>;
 
-  get meta(): Record<string, unknown> {
+  get meta(): NonAttribute<Record<string, unknown>> {
     if (!this.#metaParsed) {
       try {
         this.#metaParsed = JSON.parse(this.metaStringified);
@@ -48,8 +48,8 @@ class Device extends Model<InferAttributes<Device, { omit: 'meta' }>, InferCreat
     });
   };
 
-  getProperty<T>(property: string): Promise<T> {
-    return Device._providers.get(this.provider)!.getProperty<T>(this, property);
+  getProperty(property: string): Promise<unknown> {
+    return Device._providers.get(this.provider)!.getProperty(this, property);
   };
 
   async getLatestEvent(type: string) {
@@ -111,6 +111,21 @@ class Device extends Model<InferAttributes<Device, { omit: 'meta' }>, InferCreat
     });
   };
 
+  static async findByProviderIdOrError(provider: string, id: string) {
+    const device = await this.findOne({
+      where: {
+        provider,
+        providerId: id
+      }
+    });
+
+    if (device === null) {
+      throw new Error(`Device ${id} from ${provider} not found`);
+    }
+
+    return device;
+  };
+
   static findByProvider(provider: string) {
     return this.findAll({
       where: {
@@ -146,11 +161,11 @@ class Device extends Model<InferAttributes<Device, { omit: 'meta' }>, InferCreat
 
 type ProviderHandler = {
   setProperty(device: Device, key: string, value: unknown): void;
-  getProperty<T>(device: Device, key: string): Promise<T>;
+  getProperty(device: Device, key: string): Promise<unknown>;
   synchronize(): void;
 };
 
-export default function (sequelize: Sequelize) {
+export default function (sequelize: Sequelize): typeof Device {
   Device.init({
     id: {
       type: DataTypes.NUMBER,
@@ -196,3 +211,5 @@ export default function (sequelize: Sequelize) {
 
   return Device;
 }
+
+export type { Device as DeviceType }

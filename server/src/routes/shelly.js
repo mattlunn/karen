@@ -15,16 +15,9 @@ router.use((req, res, next) => {
 });
 
 router.get('/event', asyncWrapper(async (req, res) => {
-  const device = await Device.findByProviderId('shelly', req.query.id);
-  const time = new Date();
-
-  console.log(req.query);
-
-  if (!device) {
-    return res.sendStatus(400).end('ID not provided/ recognised');
-  }
-
+  const device = await Device.findByProviderIdOrError('shelly', req.query.id);
   const lastEvent = await device.getLatestEvent('on');
+  const time = new Date();
   const isOn = req.query.action === 'on';
 
   if (isOn) {
