@@ -1,53 +1,31 @@
-import Sequelize, { Op } from 'sequelize';
+import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional } from 'sequelize';
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 
 const latestEventCache = new Map();
 
-export default function (sequelize) {
-  const device = sequelize.define('device', {
-    type: {
-      type: Sequelize.STRING,
-      allowNull: false
-    },
+class Device extends Model<InferAttributes<Device, { omit: 'meta' }>, InferCreationAttributes<Device>> {
+  declare id: CreationOptional<string>;
+  declare provider: string;
+  declare type: string;
+  declare name: string;
+  declare providerId: string;
+  declare metaStringified: string;
 
-    name: {
-      type: Sequelize.STRING,
-      allowNull: false,
-      unique: true
-    },
+  #metaParsed: Record<string, unknown>;
 
-    provider: {
-      type: Sequelize.STRING,
-      allowNull: false
-    },
+  declare getEvents: HasManyGetAssociationsMixin<{ start: Date; }>;
 
-    providerId: {
-      type: Sequelize.STRING,
-      allowNull: true
-    },
-
-    metaStringified: {
-      type: Sequelize.STRING,
-      allowNull: true
-    },
-
-    meta: {
-      type: Sequelize.VIRTUAL,
-      get() {
-        if (!this._metaParsed) {
-          try {
-            this._metaParsed = JSON.parse(this.metaStringified);
-          } catch (e) {
-            this._metaParsed = {};
-          }
-        }
-
-        return this._metaParsed;
+  get meta(): Record<string, unknown> {
+    if (!this.#metaParsed) {
+      try {
+        this.#metaParsed = JSON.parse(this.metaStringified);
+      } catch (e) {
+        this.#metaParsed = {};
       }
     }
-  }, {
-    paranoid: true
-  });
+
+    return this.#metaParsed;
+  }
 
   /**
    * This method triggers the update of the property at the service level. It does
@@ -59,22 +37,22 @@ export default function (sequelize) {
    * In part, this is due to some APIs (TP Link, Tado, I'm looking at you), where we have
    * to poll for updates, rather than subscribe to updates.
    */
-  device.prototype.setProperty = function (property, value) {
-    return device._providers.get(this.provider).setProperty(this, property, value);
+  setProperty<T>(property: string, value: T) {
+    return Device._providers.get(this.provider)!.setProperty(this, property, value);
   };
 
-  device.prototype.onPropertyChanged = function (property) {
+  onPropertyChanged(property: string) {
     bus.emit(DEVICE_PROPERTY_CHANGED, {
       device: this,
       property
     });
   };
 
-  device.prototype.getProperty = function (property) {
-    return device._providers.get(this.provider).getProperty(this, property);
+  getProperty<T>(property: string): Promise<T> {
+    return Device._providers.get(this.provider)!.getProperty<T>(this, property);
   };
 
-  device.prototype.getLatestEvent = async function (type) {
+  async getLatestEvent(type: string) {
     // We have this caching because MySQL's chosen query execution plan seems to suite EITHER
     // IDs + types which never change (e.g. the brightness of a non-dimmable light), OR a type
     // which changes often (e.g. the temperature). The bad query plans resulted in >500ms queries.
@@ -108,7 +86,7 @@ export default function (sequelize) {
     return lastLatestEvent;
   };
 
-  device.findByName = function (name) {
+  static findByName(name: string) {
     return this.findOne({
       where: {
         name
@@ -116,7 +94,7 @@ export default function (sequelize) {
     });
   };
 
-  device.findById = function (id) {
+  static findById(id: string) {
     return this.findOne({
       where: {
         id
@@ -124,7 +102,7 @@ export default function (sequelize) {
     });
   };
 
-  device.findByProviderId = function (provider, id) {
+  static findByProviderId(provider: string, id: string) {
     return this.findOne({
       where: {
         provider,
@@ -133,7 +111,7 @@ export default function (sequelize) {
     });
   };
 
-  device.findByProvider = function (provider) {
+  static findByProvider(provider: string) {
     return this.findAll({
       where: {
         provider
@@ -141,7 +119,7 @@ export default function (sequelize) {
     });
   };
 
-  device.findByType = function (type) {
+  static findByType(type: string) {
     return this.findAll({
       where: {
         type
@@ -149,24 +127,72 @@ export default function (sequelize) {
     });
   };
 
-  device.synchronize = async function () {
-    for (const [name, { synchronize }] of device._providers) {
+  static async synchronize() {
+    for (const [name, { synchronize }] of Device._providers) {
       console.log(`Synchronizing ${name}`);
 
       await synchronize();
     }
   };
 
-  device._providers = new Map();
-  device.registerProvider = function (name, handlers) {
+  static _providers = new Map<string, ProviderHandler>();
+
+  static registerProvider(name: string, handlers: ProviderHandler) {
     this._providers.set(name, handlers);
 
     handlers.synchronize();
   };
+};
 
-  device.addHook('beforeSave', (instance) => {
+type ProviderHandler = {
+  setProperty(device: Device, key: string, value: unknown): void;
+  getProperty<T>(device: Device, key: string): Promise<T>;
+  synchronize(): void;
+};
+
+export default function (sequelize: Sequelize) {
+  Device.init({
+    id: {
+      type: DataTypes.NUMBER,
+      allowNull: false,
+      unique: true,
+      primaryKey: true
+    },
+
+    type: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+
+    provider: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+
+    providerId: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+
+    metaStringified: {
+      type: DataTypes.STRING,
+      allowNull: true
+    }
+  }, {
+    sequelize,
+    paranoid: true,
+    tableName: 'devices'
+  });
+
+  Device.addHook('beforeSave', (instance: Device) => {
     instance.metaStringified = JSON.stringify(instance.meta);
   });
 
-  return device;
+  return Device;
 }

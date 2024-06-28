@@ -24,6 +24,8 @@
 
 ## Deploy
 
+Deploys should be automated upon push to master, because of the webhook in the GHA pipeline, which calls out to the karen-updater container of watchtower. But, to do manually;
+
 1. Login to NAS
 2. `cd /volume2/docker/george`
 3. `docker-compose pull karen`

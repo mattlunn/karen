@@ -7,8 +7,6 @@ const push = new Push({
 });
 
 export function sendPushNotification(message) {
-  console.log('Called');
-
   push.send({
     message: message,
   }, function(err, result) {
