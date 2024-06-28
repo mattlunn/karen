@@ -3,7 +3,7 @@ import config from '../../config';
 import { Event, Recording, Stay, Device, Op } from '../../models';
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
-import uuidv4 from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 import sleep from '../../helpers/sleep';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { enqueueWorkItem } from '../../queue';
@@ -22,7 +22,7 @@ const latestCameraEvents = new Map();
 
 // Download footage from start -> end, +- 5 seconds.
 
-async function createEvent(device, now) {
+async function createEvent(device: Device, now: Moment) {
   const latestCameraEvent = await device.getLatestEvent('motion');
   let activeCameraEvent = latestCameraEvent && !latestCameraEvent.end ? latestCameraEvent : null;
 
@@ -40,7 +40,7 @@ async function createEvent(device, now) {
 
   if (!activeCameraEvent) {
     activeCameraEvent = await Event.create({
-      start: now,
+      start: now.toDate(),
       deviceId: device.id,
       type: 'motion'
     });
@@ -49,7 +49,7 @@ async function createEvent(device, now) {
   return activeCameraEvent;
 }
 
-async function captureRecording(event, providerId, startOfRecording, endOfRecording) {
+async function captureRecording(event: Event, providerId: string, startOfRecording: Moment, endOfRecording: Moment) {
   const existingRecording = await event.getRecording();
   let attempts = 10;
   let cameraRecording;
@@ -64,7 +64,7 @@ async function captureRecording(event, providerId, startOfRecording, endOfRecord
       toTime: endOfRecording.format('X')
     }, true, 5);
 
-    cameraRecording = synologyRecordings.data.events.find((recording) => {
+    cameraRecording = synologyRecordings.data.events.find((recording: { cameraId: number, startTime: number, stopTime: number }) => {
       return String(recording.cameraId) === providerId
         && moment.unix(recording.startTime).isBefore(startOfRecording)
         && moment.unix(recording.stopTime).isAfter(endOfRecording);
@@ -89,14 +89,14 @@ async function captureRecording(event, providerId, startOfRecording, endOfRecord
     await s3.store(recordingToSave.recording, video);
 
     recordingToSave.size = video.length;
-    recordingToSave.end = endOfRecording;
+    recordingToSave.end = endOfRecording.toDate();
 
     await recordingToSave.save();
   }
 }
 
-export async function onMotionDetected(cameraId, startOfDetectedMotion) {
-  const device = await Device.findByProviderId('synology', cameraId);
+export async function onMotionDetected(cameraId: string, startOfDetectedMotion: Moment) {
+  const device = await Device.findByProviderIdOrError('synology', cameraId);
   const event = await createEvent(device, startOfDetectedMotion);
 
   latestCameraEvents.set(device.id, startOfDetectedMotion);
@@ -113,7 +113,7 @@ export async function onMotionDetected(cameraId, startOfDetectedMotion) {
   }, config.synology.length_of_motion_event_in_seconds * 1000);
 }
 
-export async function onDoorbellRing(cameraId) {
+export async function onDoorbellRing(cameraId: string) {
   writeFile(__dirname + '/' + Date.now() + '.jpeg', await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
     id: 6
   }, false), (err) => {
@@ -151,7 +151,7 @@ Device.registerProvider('synology', {
     throw new Error(`Unable to handle setting '${key}' for ${device.type}`);
   },
 
-  async getProperty(device, key) {
+  async getProperty(device: Device, key: string): Promise<unknown> {
     switch (key) {
       case 'connected':
         return true;

@@ -2,7 +2,7 @@ import config from '../../config';
 import fetch from 'node-fetch';
 import { stringify } from 'querystring';
 import { saveConfig } from '../../helpers/config';
-import uuid from 'uuid/v4';
+import { v4 as uuid } from 'uuid';
 
 export async function exchangeAuthenticationToken(grantType, exchangeToken) {
   const response = await fetch('https://api.amazon.com/auth/o2/token', {

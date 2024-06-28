@@ -1,11 +1,11 @@
-import Sequelize from 'sequelize';
+import { Sequelize } from 'sequelize';
 import config from '../config';
 import userFactory from './user';
 import stayFactory from './stay';
 import tokenFactory from './token';
-import eventFactory from './event';
-import recordingFactory from './recording';
-import deviceFactory from './device';
+import eventFactory, { Event } from './event';
+import recordingFactory, { Recording } from './recording';
+import deviceFactory, { Device } from './device';
 import armingFactoring from './arming';
 import alarmActivationFactory from './alarm_activation';
 
@@ -22,11 +22,16 @@ const instance = new Sequelize(config.database.name, config.database.user, confi
 export const User = userFactory(instance);
 export const Stay = stayFactory(instance);
 export const Token = tokenFactory(instance);
-export const Event = eventFactory(instance);
-export const Recording = recordingFactory(instance);
-export const Device = deviceFactory(instance);
 export const Arming = armingFactoring(instance);
 export const AlarmActivation = alarmActivationFactory(instance);
+
+export { Device } from './device';
+export { Event } from './event';
+export { Recording } from './recording';
+
+deviceFactory(instance);
+eventFactory(instance);
+recordingFactory(instance);
 
 Recording.belongsTo(Event);
 Stay.belongsTo(User);
@@ -44,4 +49,4 @@ AlarmActivation.belongsTo(User, {
   foreignKey: 'suppressedBy'
 });
 
-export const Op = Sequelize.Op;
+export { Op } from 'sequelize';

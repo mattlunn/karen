@@ -1,6 +1,6 @@
 import ws from 'ws';
 import config from '../../../config';
-import uuid from 'uuid/v4';
+import { v4 as uuid } from 'uuid';
 import { EventEmitter } from 'events';
 import newrelic from 'newrelic';
 
