@@ -171,7 +171,8 @@ export default function (sequelize: Sequelize): typeof Device {
       type: DataTypes.NUMBER,
       allowNull: false,
       unique: true,
-      primaryKey: true
+      primaryKey: true,
+      autoIncrement: true
     },
 
     type: {
