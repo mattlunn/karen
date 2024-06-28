@@ -18,7 +18,8 @@ export default function (sequelize: Sequelize) {
       type: DataTypes.NUMBER,
       allowNull: false,
       unique: true,
-      primaryKey: true
+      primaryKey: true,
+      autoIncrement: true
     },
 
     eventId: {
