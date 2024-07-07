@@ -50,6 +50,10 @@ declare namespace _default {
     const length_of_motion_event_in_seconds: number;
     const maximum_length_of_event_in_seconds: number;
   }
+  export namespace new_relic {
+    const app_name: string;
+    const license_key: string;
+  }
   const port: number;
   const trust_proxy: boolean;
   const days_to_keep_recordings_while_home: number;
