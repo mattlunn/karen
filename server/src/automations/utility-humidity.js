@@ -8,6 +8,10 @@ export default function ({ thermostatName, lightName, sensorName, maximumHumidit
     if (event.type === 'humidity') {
       const thermostat = await event.getDevice();
 
+      if (thermostat === null) {
+        throw new Error(`Event ${event.id} does not have a matching event`);
+      }
+
       if (thermostat.name === thermostatName) {
         const [
           light,
