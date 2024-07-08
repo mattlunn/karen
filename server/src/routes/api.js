@@ -4,11 +4,8 @@ import { Event, Recording } from '../models';
 import { makeSynologyRequest } from '../services/synology';
 import moment from 'moment';
 import s3 from '../services/s3';
-import auth from '../middleware/auth';
 
 const router = express.Router();
-
-router.use(auth);
 
 router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
   res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {

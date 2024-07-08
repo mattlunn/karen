@@ -51,7 +51,7 @@ api.applyMiddleware({
 api.installSubscriptionHandlers(server);
 
 app.use('/alexa', alexaRoutes);
-app.use('/api', apiRoutes);
+app.use('/api', auth, apiRoutes);
 app.use('/authentication', authenticationRoutes);
 app.use('/location', locationRoutes);
 app.use('/synology', synologyRoutes);
