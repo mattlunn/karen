@@ -212,5 +212,3 @@ export default function (sequelize: Sequelize): typeof Device {
 
   return Device;
 }
-
-export type { Device as DeviceType }
