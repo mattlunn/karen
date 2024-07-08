@@ -55,6 +55,4 @@ export default function (sequelize: Sequelize): typeof Event {
     bus.emit(event.end ? EVENT_END : EVENT_START, event);
     console.log(`${event.end ? EVENT_END : EVENT_START} called on Event ${event.id}`);
   });
-
-  return Event;
 }

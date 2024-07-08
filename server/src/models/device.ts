@@ -165,7 +165,7 @@ type ProviderHandler = {
   synchronize(): void;
 };
 
-export default function (sequelize: Sequelize): typeof Device {
+export default function (sequelize: Sequelize) {
   Device.init({
     id: {
       type: DataTypes.NUMBER,
@@ -209,6 +209,4 @@ export default function (sequelize: Sequelize): typeof Device {
   Device.addHook('beforeSave', (instance: Device) => {
     instance.metaStringified = JSON.stringify(instance.meta);
   });
-
-  return Device;
 }

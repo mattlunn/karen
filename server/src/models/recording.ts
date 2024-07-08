@@ -49,6 +49,4 @@ export default function (sequelize: Sequelize) {
     sequelize,
     modelName: 'recording'
   });
-
-  return Recording;
 }
