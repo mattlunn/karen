@@ -32,10 +32,6 @@ export default function ({ motionSensorNames, humiditySensorName, lightName, max
         Device.findByName(lightName)
       ]);
 
-      if (sensor === null) {
-        throw new Error(`Event ${event.id} does not have a matching event`);
-      }
-
       if (motionSensorNames.includes(sensor.name)) {
         if (event.type === 'motion') {
           if (eventEvent === EVENT_START) {
