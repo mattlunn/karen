@@ -203,7 +203,7 @@ export default function (sequelize: Sequelize): typeof Device {
   }, {
     sequelize,
     paranoid: true,
-    tableName: 'devices'
+    modelName: 'device'
   });
 
   Device.addHook('beforeSave', (instance: Device) => {

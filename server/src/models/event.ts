@@ -48,7 +48,7 @@ export default function (sequelize: Sequelize): typeof Event {
     }
   }, {
     sequelize: sequelize,
-    tableName: 'events'
+    modelName: 'event'
   });
 
   Event.addHook('afterSave',  (event: Event) => {

@@ -47,7 +47,7 @@ export default function (sequelize: Sequelize) {
     }
   }, {
     sequelize,
-    tableName: 'recordings'
+    modelName: 'recording'
   });
 
   return Recording;
