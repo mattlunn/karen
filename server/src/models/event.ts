@@ -13,7 +13,7 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
   declare getRecording: HasOneGetAssociationMixin<Recording>;
 }
 
-export default function (sequelize: Sequelize): typeof Event {
+export default function (sequelize: Sequelize) {
   Event.init({
     id: {
       type: DataTypes.INTEGER,
