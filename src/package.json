@@ -46,7 +46,7 @@
     "rc-align": "2.3.5",
     "rc-slider": "^8.7.1",
     "react": "^16.14.0",
-    "react-calendar": "^2.19.2",
+    "react-calendar": "^5.0.0",
     "react-dom": "^16.14.0",
     "react-redux": "^5.1.2",
     "react-router": "^4.3.1",
