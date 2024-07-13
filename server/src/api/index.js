@@ -1,6 +1,6 @@
 import { ApolloServer } from 'apollo-server-express';
 import * as db from '../models';
-import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording, AlarmArmingEvent } from './models';
+import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording, AlarmArmingEvent, DoorbellRingEvent } from './models';
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
 import makeSynologyRequest from '../services/synology/instance';
@@ -110,10 +110,35 @@ const resolvers = {
             start: {
               [db.Op.lt]: since
             },
-            type: 'motion'
+            type: {
+              [db.Op.in]: ['motion', 'on', 'ring']
+            }
           },
           limit
-        }).then((events) => events.map((event) => new MotionEvent(event))),
+        }).then((events) => {
+          return events.map((event) => {
+            switch (event.type) {
+              case 'motion':
+                return [
+                  new MotionEvent(event)
+                ];
+              case 'on': {
+                const ret = [new LightOnEvent(event)];
+    
+                if (event.end) {
+                  ret.push(new LightOffEvent(event));
+                }
+    
+                return ret;
+              }
+              case 'ring': {
+                return [
+                  new DoorbellRingEvent(event)
+                ];
+              }
+            }
+          }).flat();
+        }),
 
         db.Stay.findAll({
           where: {
@@ -136,27 +161,6 @@ const resolvers = {
           limit,
           order: [['departure', 'DESC']],
         }).then((stays) => stays.map((stay) => new DepartureEvent(stay))),
-
-        db.Event.findAll({
-          order: [['start', 'DESC']],
-          where: {
-            start: {
-              [db.Op.lt]: since
-            },
-            type: 'on'
-          },
-          limit
-        }).then((events) => {
-          return events.map((event) => {
-            const ret = [new LightOnEvent(event)];
-
-            if (event.end) {
-              ret.push(new LightOffEvent(event));
-            }
-
-            return ret;
-          }).flat();
-        }),
 
         db.Arming.findAll({
           order: [['start', 'DESC']],

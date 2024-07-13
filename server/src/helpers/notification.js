@@ -23,5 +23,18 @@ export function sendNotification(message) {
   do the needful to get the data.
 
 - BUT HOW DO YOU ABSTRACT THE PUSHOVER API FROM THE AUTOMATION?
+- You don't, as in some cases the source needs to pass data; e.g. for Doorbell, need to pass the image to use.
+- So each relevant automation just does a;
 
+notification.send({
+  message:
+  title:
+  sound:
+  device:
+  priority:
+});
+
+(or can emit a notifiction object on the bus)
+
+... then the notification service (or automation) gets users with a pushover_token, and sends to them.
 */

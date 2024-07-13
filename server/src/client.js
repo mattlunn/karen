@@ -23,6 +23,7 @@ import { faLightbulb } from '@fortawesome/free-regular-svg-icons/faLightbulb';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
+import { faBell } from '@fortawesome/free-solid-svg-icons/faBell';
 
 import { ApolloClient } from 'apollo-client';
 import { InMemoryCache } from 'apollo-cache-inmemory';
@@ -36,7 +37,7 @@ import { getMainDefinition } from 'apollo-utilities';
 import { IntrospectionFragmentMatcher } from 'apollo-cache-inmemory';
 import introspectionQueryResultData from './fragment-types.json';
 
-library.add(faLightbulb, faVideo, faHome, faWalking);
+library.add(faLightbulb, faVideo, faHome, faWalking, faBell);
 
 import './styles/app.less';
 import 'react-vis/dist/style.css';

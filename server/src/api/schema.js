@@ -72,11 +72,16 @@ export default gql`
     mode: AlarmMode
   }
 
+  type DoorbellRingEvent implements Event {
+    id: ID!
+    timestamp: Float!
+  }
+
   type Recording {
     id: ID!
   }
 
-  union TimelineEvent = MotionEvent | ArrivalEvent | DepartureEvent | LightOnEvent | LightOffEvent | AlarmArmingEvent
+  union TimelineEvent = MotionEvent | ArrivalEvent | DepartureEvent | LightOnEvent | LightOffEvent | AlarmArmingEvent | DoorbellRingEvent
   union HistoryDatumType = Thermostat | Light
 
   type DeviceWrapper {

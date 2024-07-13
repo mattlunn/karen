@@ -16,3 +16,4 @@ export { default as DepartureEvent } from './departure-event';
 export { default as LightOnEvent } from './light-on-event';
 export { default as LightOffEvent } from './light-off-event';
 export { default as AlarmArmingEvent } from './alarm-arming-event';
+export { default as DoorbellRingEvent } from './doorbell-ring-event';

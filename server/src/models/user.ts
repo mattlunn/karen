@@ -1,4 +1,4 @@
-import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, NonAttribute, CreationOptional } from 'sequelize';
+import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, NonAttribute, CreationOptional, Op } from 'sequelize';
 import bcrypt from 'bcrypt';
 import { createHash } from 'crypto';
 
@@ -7,9 +7,9 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
   declare public handle: string;
   declare public password: string;
   declare public email: string;
-  declare public mobileNumber?: string;
-  declare public device?: string;
-  declare public pushoverToken?: string;
+  declare public mobileNumber: string | null;
+  declare public device: string | null;
+  declare public pushoverToken: string | null;
   declare public createdAt: Date;
   declare public updatedAt: Date;
 
@@ -48,6 +48,16 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
       }
     });
   };
+
+  static getThoseWithPushoverToken() {
+    return this.findAll({
+      where: {
+        pushoverToken: {
+          [Op.not]: null
+        }
+      }
+    });
+  }
 }
 
 export default function (sequelize: Sequelize) {

@@ -9,6 +9,7 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { enqueueWorkItem } from '../../queue';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import { writeFile } from 'fs';
+import bus, { NOTIFICATION } from '../../bus';
 
 export { makeSynologyRequest };
 
@@ -114,10 +115,24 @@ export async function onMotionDetected(cameraId: string, startOfDetectedMotion: 
 }
 
 export async function onDoorbellRing(cameraId: string) {
-  writeFile(__dirname + '/' + Date.now() + '.jpeg', await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
+  const now = new Date();
+  const device = await Device.findByProviderIdOrError('synology', cameraId);
+  const image = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
     id: 6
-  }, false), (err) => {
-    console.log(err);
+  }, false);
+
+  await Event.create({
+    deviceId: device.id,
+    start: now,
+    end: now,
+    type: 'ring',
+    value: 1
+  });
+
+  bus.emit(NOTIFICATION, {
+    message: 'Someone is at the door',
+    image,
+    sound: 'doorbell'
   });
 }
 

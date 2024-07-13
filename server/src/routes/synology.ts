@@ -1,9 +1,18 @@
 import express from 'express';
 import asyncWrapper from "../helpers/express-async-wrapper";
 import moment from 'moment';
+import config from '../config';
 import { onMotionDetected, onDoorbellRing } from '../services/synology';
 
 const router = express.Router();
+
+router.use((req, res, next) => {
+  if (req.query.secret !== config.synology.secret) {
+    return res.sendStatus(401).end();
+  } else {
+    next();
+  }
+});
 
 router.get('/motion', asyncWrapper(async (req, res) => {
   const now = moment();
@@ -21,9 +30,10 @@ router.get('/ring', asyncWrapper(async (req, res) => {
 
   if (typeof camera_id === 'string') {
     await onDoorbellRing(camera_id);
+    res.sendStatus(202);
+  } else {
+    return res.sendStatus(400);
   }
-
-  return res.sendStatus(400);
 }));
 
 export default router;

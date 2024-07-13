@@ -49,6 +49,7 @@ declare namespace _default {
   export namespace synology {
     const length_of_motion_event_in_seconds: number;
     const maximum_length_of_event_in_seconds: number;
+    const secret: string;
   }
   export namespace new_relic {
     const app_name: string;

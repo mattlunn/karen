@@ -106,7 +106,7 @@
   "scripts": {
     "start": "node --unhandled-rejections=warn server.js",
     "start:dev": "NODE_OPTIONS='--unhandled-rejections=warn' nodemon --watch ../dist ../dist/server.js",
-    "start:dev-inspect": "NODE_OPTIONS='--unhandled-rejections=warn' nodemon --inspect-brk -- --watch ../dist ../dist/server.js",
+    "start:dev-inspect": "NODE_OPTIONS='--unhandled-rejections=warn' nodemon --inspect -- --watch ../dist ../dist/server.js",
     "create-user": "babel-node scripts/create-user.js",
     "migrate": "babel-node scripts/migrate.js",
     "build": "npm run build:server && npm run build:browser",

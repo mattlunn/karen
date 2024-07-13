@@ -7,7 +7,7 @@ import DeviceClient from '../services/shelly/client/device';
 const router = express.Router();
 
 router.use((req, res, next) => {
-  if (req.query.auth !== config.shelly.secret) {
+  if (req.query.secret !== config.shelly.secret) {
     return res.sendStatus(401).end();
   } else {
     next();
@@ -67,8 +67,8 @@ router.get('/install', asyncWrapper(async (req, res) => {
   
   await client.setCloudStatus(false);
   await client.setupAuthentication();
-  await client.addAction('out_off_url', `${req.protocol}://${req.hostname}/shelly/event?auth=${config.shelly.secret}&id=${ip}&action=off`);
-  await client.addAction('out_on_url', `${req.protocol}://${req.hostname}/shelly/event?auth=${config.shelly.secret}&id=${ip}&action=on`);
+  await client.addAction('out_off_url', `${req.protocol}://${req.hostname}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=off`);
+  await client.addAction('out_on_url', `${req.protocol}://${req.hostname}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=on`);
   await device.save();
 
   res.sendStatus(201).end();
