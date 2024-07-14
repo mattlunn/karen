@@ -9,7 +9,6 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { enqueueWorkItem } from '../../queue';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import bus, { NOTIFICATION_TO_ALL } from '../../bus';
-import { writeFile } from 'fs';
 
 export { makeSynologyRequest };
 
