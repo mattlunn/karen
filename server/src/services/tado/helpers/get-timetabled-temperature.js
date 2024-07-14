@@ -21,8 +21,7 @@ export default function getTimetabledTemperature(timetable, time) {
   }
 
   const dayTypes = getDayTypes();
-
-  return timetable.find(block => {
+  const matchingBlock = timetable.find(block => {
     if (!dayTypes.includes(block.dayType)) {
       return false;
     }
@@ -35,4 +34,10 @@ export default function getTimetabledTemperature(timetable, time) {
 
     return moment(block.start, 'HH:mm').isSameOrBefore(time) && blockEnd.isAfter(time);
   });
+
+  if (matchingBlock.setting.power === 'ON') {
+    return matchingBlock.setting.temperature.celsius;
+  }
+
+  return null;
 }

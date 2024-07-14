@@ -2,11 +2,11 @@ import { Device, Event, Stay } from '../../models';
 import TadoClient, { getAccessToken } from './client';
 import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
-import { sendNotification } from '../../helpers/notification';
-import moment from 'moment';
+import moment, { Moment } from 'moment';
 import getTimetabledTemperature from './helpers/get-timetabled-temperature';
 import getWarmupRatePerHour from './helpers/get-warmup-rate-per-hour';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
+import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 
 Device.registerProvider('tado', {
   async setProperty(device, key, value) {
@@ -82,7 +82,7 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);
   const devices = await Device.findByProvider('tado');
 
-  async function updateState(device, type, currentValue, timestamp) {
+  async function updateState(device: Device, type: string, currentValue: number | boolean, timestamp: Date) {
     const lastEvent = await device.getLatestEvent(type);
     const valueHasChanged = !lastEvent
       || typeof currentValue === 'number' && currentValue !== lastEvent.value
@@ -132,29 +132,36 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
     isSomeoneAtHome, 
     nextEta
   ] = await Promise.all([
-    Stay.checkIfSomeoneHomeAt(Date.now()),
+    Stay.checkIfSomeoneHomeAt(new Date()),
     Stay.findNextUpcomingEta()
   ]);
 
   const devices = await Device.findByProvider('tado');
-  const getNextTargetForThermostat = async (device, zoneState, activeTimetable) => {
+  const getNextTargetForThermostat = async (device: Device, zoneState: any, activeTimetable: any): Promise<{
+    nextTargetTime: Moment,
+    nextTargetTemperature: number
+  } | null> => {
     if (isSomeoneAtHome) {
       const { nextScheduleChange } = zoneState;
 
-      return {
-        nextTargetTime: moment(nextScheduleChange.start),
-        nextTargetTemperature: nextScheduleChange.setting.power === 'ON' ? nextScheduleChange.setting.temperature.celsius : null
-      };
+      if (nextScheduleChange.setting.power === 'ON') {
+        return {
+          nextTargetTime: moment(nextScheduleChange.start),
+          nextTargetTemperature: nextScheduleChange.setting.temperature.celsius
+        };
+      }
     } else if (nextEta) {
-      const { setting: timetabledTemperature } = getTimetabledTemperature(await client.getTimetableBlocks(device.providerId, activeTimetable), moment(nextEta.eta));
+      const temperature = getTimetabledTemperature(await client.getTimetableBlocks(device.providerId, activeTimetable), moment(nextEta.eta));
 
-      return {
-        nextTargetTime: moment(nextEta.eta),
-        nextTargetTemperature: timetabledTemperature.temperature.celsius
-      };
+      if (temperature !== null) {
+        return {
+          nextTargetTime: moment(nextEta.eta),
+          nextTargetTemperature: temperature
+        };
+      }
     }
 
-    return {};
+    return null;
   };
 
   for (const device of devices) {
@@ -164,25 +171,29 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
         zoneState,
         activeTimetable
       ] = await Promise.all([
-        device.getProperty('temperature'),
+        device.getProperty<number>('temperature'),
         client.getZoneState(device.providerId),
         client.getActiveTimetable(device.providerId)
       ]);
 
-      const { nextTargetTime, nextTargetTemperature } = await getNextTargetForThermostat(device, zoneState, activeTimetable);
+      const nextTarget = await getNextTargetForThermostat(device, zoneState, activeTimetable);
 
-      console.log(`For ${device.name}, nextTargetTime: ${nextTargetTime}, nextTargetTemperature: ${nextTargetTemperature}`);
+      if (nextTarget !== null) {
+        const { nextTargetTemperature, nextTargetTime }  = nextTarget;
 
-      // Unless manual override with a end time
-      if (nextTargetTemperature > currentTemperature && (zoneState.overlayType !== 'MANUAL' || zoneState.overlay.termination.type === 'MANUAL')) {
-        const difference = nextTargetTemperature - currentTemperature;
-        const warmupRatePerHour = await getWarmupRatePerHour(device);
-        const hoursNeededToWarmUp = difference / warmupRatePerHour;
+        // Unless manual override with a end time
+        if (nextTargetTemperature > currentTemperature && (zoneState.overlayType !== 'MANUAL' || zoneState.overlay.termination.type === 'MANUAL')) {
+          const difference = nextTargetTemperature - currentTemperature;
+          const warmupRatePerHour = await getWarmupRatePerHour(device);
+          const hoursNeededToWarmUp = difference / warmupRatePerHour;
 
-        if (moment().add(hoursNeededToWarmUp, 'h').isAfter(nextTargetTime)) {
-          sendNotification(`Setting "${device.name}" to ${nextTargetTemperature.toFixed(1)}, so hopefully we'll heat up by ${warmupRatePerHour.toFixed(1)}°/hr to reach the target temperature by ${nextTargetTime.format('HH:mm')}!`);
+          if (moment().add(hoursNeededToWarmUp, 'h').isAfter(nextTargetTime)) {
+            bus.emit(NOTIFICATION_TO_ADMINS, {
+              message: `Setting "${device.name}" to ${nextTargetTemperature.toFixed(1)}, so hopefully we'll heat up by ${warmupRatePerHour.toFixed(1)}°/hr to reach the target temperature by ${nextTargetTime.format('HH:mm')}!`
+            });
 
-          await client.setHeatingPowerForZone(device.providerId, nextTargetTemperature, true);
+            await client.setHeatingPowerForZone(device.providerId, nextTargetTemperature, true);
+          }
         }
       }
     }

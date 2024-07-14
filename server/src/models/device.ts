@@ -48,8 +48,8 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     });
   };
 
-  getProperty(property: string): Promise<unknown> {
-    return Device._providers.get(this.provider)!.getProperty(this, property);
+  async getProperty<T>(property: string): Promise<T> {
+    return (await Device._providers.get(this.provider)!.getProperty(this, property)) as T;
   };
 
   async getLatestEvent(type: string) {

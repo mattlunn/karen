@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import config from '../../config.json';
+import config from '../../config';
 import { stringify } from 'querystring';
 
 let token;

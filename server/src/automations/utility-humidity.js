@@ -1,6 +1,5 @@
 import bus, { EVENT_START } from '../bus';
 import { Device } from '../models';
-import { sendNotification } from '../helpers/notification';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 
 export default function ({ thermostatName, lightName, sensorName, maximumHumidity }) {
@@ -22,8 +21,6 @@ export default function ({ thermostatName, lightName, sensorName, maximumHumidit
         const isTooHumid = event.value > maximumHumidity;
 
         if (!hasMotion && isTooHumid !== isLightOn) {
-          sendNotification(`Turning ${lightName} ${isTooHumid ? 'on' : 'off'} as humidity is ${event.value}%`);
-
           await light.setProperty('on', isTooHumid);
         }
       }

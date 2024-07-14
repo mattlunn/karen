@@ -1,6 +1,5 @@
-import bus, { LAST_USER_LEAVES, FIRST_USER_HOME } from '../bus';
-import { Device, Arming } from '../models';
-import { sendNotification } from '../helpers/notification';
+import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, NOTIFICATION_TO_ADMINS } from '../bus';
+import { Device, Arming, Stay } from '../models';
 import { joinWithAnd, pluralise } from '../helpers/array';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 
@@ -19,7 +18,7 @@ async function turnOnThermostats() {
 
 async function turnOffLights() {
   const lights = await Device.findByType('light');
-  const lightsTurnedOff = [];
+  const lightsTurnedOff: Device[] = [];
 
   await Promise.all(lights.map(async (light) => {
     if (await light.getProperty('on')) {
@@ -57,16 +56,20 @@ export default function () {
         activeArming.mode === Arming.MODE_AWAY ? 'The alarm is also on' : 'The alarm is on, but in Night Mode'
       ].join(' ');
 
-      sendNotification(notification);
+      bus.emit(NOTIFICATION_TO_ADMINS, {
+        message: notification
+      });
     } catch (e) {
-      console.error(e);
+      bus.emit(NOTIFICATION_TO_ADMINS, {
+        message: `No-one is home, but there was a problem turning off the heating and lights, or turning on the alarm!`
+      });
 
-      sendNotification(`No-one is home, but there was a problem turning off the heating and lights, or turning on the alarm!`);
+      throw e;
     }
   }));
 
-  bus.on(FIRST_USER_HOME, createBackgroundTransaction('automations:occupancy:first-user-home', async (stay) => {
-    const activeArming = await Arming.getActiveArming(stay.start);
+  bus.on(FIRST_USER_HOME, createBackgroundTransaction('automations:occupancy:first-user-home', async (stay: Stay) => {
+    const activeArming = await Arming.getActiveArming(stay.arrival);
 
     if (activeArming?.mode === Arming.MODE_AWAY) {
       activeArming.end = stay.arrival;

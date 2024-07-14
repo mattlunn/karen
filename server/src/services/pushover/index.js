@@ -1,6 +1,6 @@
 import Push from 'pushover-notifications';
 import config from '../../config';
-import bus, { NOTIFICATION } from '../../bus';
+import bus, { NOTIFICATION_TO_ADMINS, NOTIFICATION_TO_ALL } from '../../bus';
 import { User } from '../../models';
  
 const push = new Push({
@@ -8,24 +8,10 @@ const push = new Push({
   onerror: console.error.bind(console)
 });
 
-export function sendPushNotification(message) {
-  push.send({
-    message: message,
-  }, function(err, result) {
-    if (err) {
-      throw err;
-    }
-
-    console.log('Result');
-    console.log(result);
-  });
-}
-
-bus.on(NOTIFICATION, async (e) => {
-  const users = await User.getThoseWithPushoverToken();
+function sendNotificationToUsers(ids, e) {
   const event = {
     ...e,
-    user: users.map(x => x.pushoverToken).join(', ')
+    user: ids.join(', ')
   };
 
   if (event.image) {
@@ -37,11 +23,21 @@ bus.on(NOTIFICATION, async (e) => {
     delete event.image;
   }
 
-  console.log(`Sending a notification to ${users.length} user(s)`);
+  console.log(`Sending a notification to ${ids.length} user(s)`);
 
   push.send(event, (err) => {
     if (err) {
       console.error(err);
     }
   });
+}
+
+bus.on(NOTIFICATION_TO_ADMINS, (e) => {
+  sendNotificationToUsers([config.pushover.admin_token], e);
+});
+
+bus.on(NOTIFICATION_TO_ALL, async (e) => {
+  const users = await User.getThoseWithPushoverToken();
+  
+  sendNotificationToUsers(users.map(x => x.pushoverToken), e);
 });

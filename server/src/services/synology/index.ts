@@ -8,8 +8,7 @@ import sleep from '../../helpers/sleep';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { enqueueWorkItem } from '../../queue';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
-import { writeFile } from 'fs';
-import bus, { NOTIFICATION } from '../../bus';
+import bus, { NOTIFICATION_TO_ALL } from '../../bus';
 
 export { makeSynologyRequest };
 
@@ -129,7 +128,7 @@ export async function onDoorbellRing(cameraId: string) {
     value: 1
   });
 
-  bus.emit(NOTIFICATION, {
+  bus.emit(NOTIFICATION_TO_ALL, {
     message: 'Someone is at the door',
     image,
     sound: 'doorbell'

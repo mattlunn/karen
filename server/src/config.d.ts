@@ -27,7 +27,7 @@ declare namespace _default {
     const longitude: number;
   }
   export namespace pushover {
-    const user_token: string;
+    const admin_token: string;
     const application_token: string;
   }
   export namespace database {
@@ -40,6 +40,13 @@ declare namespace _default {
     const host: string;
     const user: string;
     const password: string;
+  }
+  export namespace tado {
+    const home_id: number;
+    const username: string;
+    const password: string;
+    const sync_interval_seconds: number;
+    const eta_check_interval_minutes: number;
   }
   export namespace shelly {
     const user: string;

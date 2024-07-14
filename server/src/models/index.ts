@@ -1,7 +1,7 @@
 import { Sequelize } from 'sequelize';
 import config from '../config';
 import userFactory, { User } from './user';
-import stayFactory from './stay';
+import stayFactory, { Stay } from './stay';
 import tokenFactory from './token';
 import eventFactory, { Event } from './event';
 import recordingFactory, { Recording } from './recording';
@@ -19,7 +19,6 @@ const instance = new Sequelize(config.database.name, config.database.user, confi
   },
 });
 
-export const Stay = stayFactory(instance);
 export const Token = tokenFactory(instance);
 export const Arming = armingFactoring(instance);
 export const AlarmActivation = alarmActivationFactory(instance);
@@ -28,11 +27,13 @@ export { Device } from './device';
 export { Event } from './event';
 export { Recording } from './recording';
 export { User } from './user';
+export { Stay } from './stay';
 
 deviceFactory(instance);
 eventFactory(instance);
 recordingFactory(instance);
 userFactory(instance);
+stayFactory(instance);
 
 Recording.belongsTo(Event);
 Stay.belongsTo(User);
