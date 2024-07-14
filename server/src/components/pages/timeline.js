@@ -64,7 +64,7 @@ class Timeline extends Component {
                   e.preventDefault();
                   togglePanel('view');
                 }} href="#" className="card-link">view</a>,
-                <a key={1} href={`/recording/${event.recording.id}?download=true`} className="card-link">download</a>
+                <a key={1} href={`/api/recording/${event.recording.id}?download=true`} className="card-link">download</a>
               ] : [];
             }}
             panels={{
@@ -72,7 +72,7 @@ class Timeline extends Component {
                 <video
                   width="100%"
                   controls
-                  src={`/recording/${event.recording?.id}`}
+                  src={`/api/recording/${event.recording?.id}`}
                 />
               )
             }}
@@ -125,6 +125,22 @@ class Timeline extends Component {
             timestamp={event.timestamp}
             icon={faBell}
             title={`Someone rang the doorbell`}
+            controls={({ togglePanel }) => {
+              return [
+                <a key={0} onClick={(e) => {
+                  e.preventDefault();
+                  togglePanel('view');
+                }} href="#" className="card-link">view</a>
+              ];
+            }}
+            panels={{
+              view: (
+                <img
+                  width="100%"
+                  src={`/api/event/${event.id}/thumbnail`}
+                />
+              )
+            }}
           />
         );
       }
@@ -228,6 +244,7 @@ export default graphql(gql`
       }
 
       ...on DoorbellRingEvent {
+        id
         timestamp
       }
     }

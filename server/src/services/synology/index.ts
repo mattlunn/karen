@@ -9,6 +9,7 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { enqueueWorkItem } from '../../queue';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import bus, { NOTIFICATION_TO_ALL } from '../../bus';
+import { writeFile } from 'fs';
 
 export { makeSynologyRequest };
 
@@ -86,7 +87,7 @@ async function captureRecording(event: Event, providerId: string, startOfRecordi
       playTimeMs: endOfRecording.diff(startOfRecording)
     }, false);
 
-    await s3.store(recordingToSave.recording, video);
+    await s3.store(recordingToSave.recording, video, 'video/mp4');
 
     recordingToSave.size = video.length;
     recordingToSave.end = endOfRecording.toDate();
@@ -116,11 +117,17 @@ export async function onMotionDetected(cameraId: string, startOfDetectedMotion: 
 export async function onDoorbellRing(cameraId: string) {
   const now = new Date();
   const device = await Device.findByProviderIdOrError('synology', cameraId);
-  const image = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
+  const image: Buffer = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
     id: 6
   }, false);
 
-  await Event.create({
+  bus.emit(NOTIFICATION_TO_ALL, {
+    message: 'Someone is at the door',
+    image,
+    sound: 'doorbell'
+  });
+
+  const event = await Event.create({
     deviceId: device.id,
     start: now,
     end: now,
@@ -128,11 +135,7 @@ export async function onDoorbellRing(cameraId: string) {
     value: 1
   });
 
-  bus.emit(NOTIFICATION_TO_ALL, {
-    message: 'Someone is at the door',
-    image,
-    sound: 'doorbell'
-  });
+  await s3.store(event.id.toString(), image, 'image/jpeg');
 }
 
 nowAndSetInterval(createBackgroundTransaction('synology:clear-old-recordings', async () => {

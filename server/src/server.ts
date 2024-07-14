@@ -9,7 +9,6 @@ import apiRoutes from './routes/api';
 import locationRoutes from './routes/location';
 import authenticationRoutes from './routes/authentication';
 import synologyRoutes from './routes/synology';
-import recordingRoutes from './routes/recording';
 import shellyRoutes from './routes/shelly';
 import auth from './middleware/auth';
 import { Device } from './models';
@@ -56,7 +55,6 @@ app.use('/authentication', authenticationRoutes);
 app.use('/location', locationRoutes);
 app.use('/synology', synologyRoutes);
 app.use('/shelly', shellyRoutes);
-app.use('/recording', auth, recordingRoutes);
 app.use('/', express.static(__dirname + '/static'));
 app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
   maxAge: moment.duration(1, 'year').asMilliseconds()

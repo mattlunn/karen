@@ -13,6 +13,17 @@ router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
   }, false, 8));
 }));
 
+router.get('/event/:id/thumbnail', asyncWrapper(async (req, res) => {
+  try {
+    const file = await s3.serve(req.params.id);
+
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.send(file).end();
+  } catch (e) {
+    res.sendStatus(404);
+  }
+}));
+
 router.get('/recording/:id', asyncWrapper(async function (req, res) {
   const recording = await Recording.findOne({
     where: {
@@ -28,6 +39,11 @@ router.get('/recording/:id', asyncWrapper(async function (req, res) {
   let status;
   let range;
 
+  if (!Array.isArray(ranges)) {
+    res.sendStatus(416);
+    return;
+  }
+
   if (ranges && ranges.length === 1) {
     range = ranges[0];
     status = 206;
@@ -42,7 +58,7 @@ router.get('/recording/:id', asyncWrapper(async function (req, res) {
   const chunk = range.end - range.start;
 
   if (req.query.download === 'true') {
-    res.set('Content-disposition', 'attachment; filename=' + moment(recording.event.timestamp).format('YYYY-MM-DD HH:mm:ss') + '.mp4');
+    res.set('Content-disposition', 'attachment; filename=' + moment(recording.event.start).format('YYYY-MM-DD HH:mm:ss') + '.mp4');
   }
 
   res.writeHead(status, {

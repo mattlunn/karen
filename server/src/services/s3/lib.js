@@ -27,11 +27,11 @@ S3.prototype.remove = function (handle) {
   });
 };
 
-S3.prototype.store = function (id, buffer) {
+S3.prototype.store = function (id, buffer, contentType) {
   return new Promise((resolve, reject) => {
     this.client.upload({
       Body: buffer,
-      ContentType: 'video/mp4',
+      ContentType: contentType,
       Key: id
     }, (err) => {
       if (err) {
