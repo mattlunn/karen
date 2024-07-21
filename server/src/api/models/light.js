@@ -7,8 +7,8 @@ export default class Light {
     return this.data.id;
   }
 
-  isOn() {
-    return this.data.getProperty('on');
+  async isOn() {
+    return await this.data.getProperty('on') ?? false;
   }
 
   brightness() {

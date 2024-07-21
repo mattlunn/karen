@@ -53,6 +53,10 @@ declare namespace _default {
     const password: string;
     const secret: string;
   }
+  export namespace tplink {
+    const discovery_duration_seconds: number;
+    const connect_timeout_milliseconds: number;
+  }
   export namespace synology {
     const length_of_motion_event_in_seconds: number;
     const maximum_length_of_event_in_seconds: number;

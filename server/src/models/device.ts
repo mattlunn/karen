@@ -7,7 +7,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare id: CreationOptional<number>;
   declare provider: string;
   declare providerId: string;
-  declare type: string;
+  declare type: CreationOptional<string>;
   declare name: CreationOptional<string>;
   declare metaStringified: CreationOptional<string>;
 

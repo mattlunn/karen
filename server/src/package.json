@@ -61,7 +61,7 @@
     "sequelize": "^6.25.8",
     "subscriptions-transport-ws": "^0.9.18",
     "suncalc": "^1.8.0",
-    "tplink-cloud-api": "^0.3.9",
+    "tplink-smarthome-api": "^5.0.0",
     "twilio": "^5.2.2",
     "umzug": "^2.3.0",
     "uuid": "^10.0.0",
