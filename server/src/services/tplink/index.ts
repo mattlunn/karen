@@ -2,7 +2,7 @@ import { Bulb, Client, Plug } from 'tplink-smarthome-api';
 import { Device } from '../../models';
 import config from '../../config';
 import sleep from '../../helpers/sleep';
-import { noticeError } from 'newrelic';
+import newrelic from 'newrelic';
 
 const client = new Client();
 
@@ -11,8 +11,8 @@ function getTpLinkDeviceFromDevice(device: Device): Promise<Bulb | Plug | null> 
     client.getDevice({ host: device.providerId }),
     sleep(Math.max(config.tplink.connect_timeout_milliseconds, 1)).then(() => null)
   ]).catch(e => {
-    noticeError(e);
-    
+    newrelic.noticeError(e);
+
     return null;
   });
 }
