@@ -64,6 +64,7 @@ router.get('/install', asyncWrapper(async (req, res) => {
 
   device.name = ip;
   device.type = 'light';
+  device.meta.endpoint = ip;
   
   await client.setCloudStatus(false);
   await client.setupAuthentication();
