@@ -24,17 +24,13 @@ Device.registerProvider('shelly', {
     switch (key) {
       case 'connected':
         return true;
-      case 'target':
-      case 'temperature':
-      case 'humidity':
-      case 'power':
-        return (await device.getLatestEvent(key)).value;
-      case 'heating': {
-        const latestEvent = await device.getLatestEvent(key);
-        return !!latestEvent && !latestEvent.end;
+      case 'on':
+        return (await device.getLatestEvent(key))?.value ?? false;
+      case 'brightness': {
+        return (await device.getLatestEvent(key))?.value ?? 100;
       }
       default:
-        throw new Error(`Unable to handle retrieving '${key}' for ${device.type}`);
+        throw new Error(`"${key}" is not a recognised property for Shelly`);
     }
   },
 
