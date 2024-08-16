@@ -52,6 +52,7 @@ declare namespace _default {
     const user: string;
     const password: string;
     const secret: string;
+    const webhook_host: string;
   }
   export namespace tplink {
     const discovery_duration_seconds: number;
