@@ -24,8 +24,10 @@ Device.registerProvider('shelly', {
     switch (key) {
       case 'connected':
         return true;
-      case 'on':
-        return (await device.getLatestEvent(key))?.value ?? false;
+      case 'on': {
+        const latestEvent = await device.getLatestEvent(key);
+        return !!(latestEvent && !latestEvent.end);
+      }
       case 'brightness': {
         return (await device.getLatestEvent(key))?.value ?? 100;
       }
