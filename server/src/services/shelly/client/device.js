@@ -34,6 +34,14 @@ export default class DeviceClient {
     });
   }
 
+  async reboot() {
+    const res = await this._request('/reboot');
+
+    if (!res.ok) {
+      throw new Error('Restart was not successful');
+    }
+  }
+
   async setIsOn(isOn) {
     return await this._request('/light/0', {
       turn: isOn ? 'on' : 'off'

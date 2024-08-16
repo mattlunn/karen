@@ -70,6 +70,7 @@ router.get('/install', asyncWrapper(async (req, res) => {
   await client.setupAuthentication();
   await client.addAction('out_off_url', `http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=off`);
   await client.addAction('out_on_url', `http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=on`);
+  await client.reboot();
   await device.save();
 
   res.sendStatus(201).end();
