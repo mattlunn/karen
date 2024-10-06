@@ -159,7 +159,7 @@ nowAndSetInterval(createBackgroundTransaction('synology:clear-old-recordings', a
       }
     }
 
-    console.log('Old recordings removed. See you again tomorrow...');
+    logger.info('Old recordings removed. See you again tomorrow...');
   }
 }), moment.duration(1, 'day').as('milliseconds'));
 
