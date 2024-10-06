@@ -1,5 +1,6 @@
 import { Controller } from 'node-unifi';
 import config from '../../../config.json';
+import logger from '../../../logger';
 
 const controller = new Controller(config.unifi.host, config.unifi.port);
 
@@ -10,13 +11,13 @@ function ensureSession(name, factory) {
         if (!err) {
           res(data);
         } else if (retryCount === 0) {
-          console.error(`UniFi ${name} call failed after multiple retries. Giving up`);
+          logger.error(`UniFi ${name} call failed after multiple retries. Giving up`);
           rej(err);
         } else if (err === 'api.err.LoginRequired') {
-          console.error(`UniFi ${name} call failed because authentication required. Logging in and retrying...`);
+          logger.error(`UniFi ${name} call failed because authentication required. Logging in and retrying...`);
           controller.login(config.unifi.username, config.unifi.password, () => tryRunFactory(retryCount - 1));
         } else {
-          console.error(`UniFi ${name} call failed because of an error. Retrying`, err);
+          logger.error(`UniFi ${name} call failed because of an error. Retrying`, err);
           tryRunFactory(retryCount - 1);
         }
       });

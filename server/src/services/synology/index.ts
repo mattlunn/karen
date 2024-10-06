@@ -1,5 +1,6 @@
 import moment, { Moment } from 'moment';
 import config from '../../config';
+import logger from '../../logger';
 import { Event, Recording, Stay, Device, Op } from '../../models';
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
@@ -57,7 +58,7 @@ async function captureRecording(event: Event, providerId: string, startOfRecordi
   do {
     await sleep(2000);
 
-    console.log(`Trying to load recording showing ${startOfRecording} - ${endOfRecording}, with ${attempts} remaining`);
+    logger.debug(`Trying to load recording showing ${startOfRecording} - ${endOfRecording}, with ${attempts} remaining`);
 
     const synologyRecordings = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'List', {
       fromTime: moment(startOfRecording).startOf('day').format('X'),
@@ -72,7 +73,7 @@ async function captureRecording(event: Event, providerId: string, startOfRecordi
   } while (!cameraRecording && --attempts);
 
   if (!cameraRecording) {
-    console.error(`No recording could be found after multiple attempts`);
+    logger.warn(`No recording could be found after multiple attempts`);
   } else {
     const recordingToSave = existingRecording || Recording.build({
       eventId: event.id,

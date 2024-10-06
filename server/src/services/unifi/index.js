@@ -4,6 +4,7 @@ import { User, Stay } from '../../models';
 import { markUserAsAway, markUserAsHome } from '../../helpers/presence';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
+import logger from '../../logger';
 
 const TEN_MINUTES_IN_MS = 1000 * 60 * 10;
 
@@ -118,11 +119,11 @@ nowAndSetInterval(createBackgroundTransaction('unifi:check-presence', async () =
           const userIsHome = stay && stay.departure === null;
 
           if (deviceIsHome && !userIsHome) {
-            console.log(`Forcing ${user.handle} to home, as their device is at home`);
+            logger.info(`Forcing ${user.handle} to home, as their device is at home`);
 
             await markUserAsHome(user);
           } else if (!deviceIsHome && userIsHome) {
-            console.log(`Forcing ${user.handle} to away, as their device has not been seen recently`);
+            logger.info(`Forcing ${user.handle} to away, as their device has not been seen recently`);
 
             await markUserAsAway(user);
           }

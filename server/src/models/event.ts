@@ -1,6 +1,7 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, HasOneGetAssociationMixin, CreationOptional } from 'sequelize';
 import { Recording } from './recording';
 import bus, { EVENT_START, EVENT_END } from '../bus';
+import logger from '../logger';
 
 export class Event extends Model<InferAttributes<Event>, InferCreationAttributes<Event>> {
   declare public id: CreationOptional<number>;
@@ -53,6 +54,6 @@ export default function (sequelize: Sequelize) {
 
   Event.addHook('afterSave',  (event: Event) => {
     bus.emit(event.end ? EVENT_END : EVENT_START, event);
-    console.log(`${event.end ? EVENT_END : EVENT_START} called on Event ${event.id}`);
+    logger.info(`${event.end ? EVENT_END : EVENT_START} called on Event ${event.id} (${event.type})`);
   });
 }

@@ -1,4 +1,4 @@
-import { newrelic } from './config';
+const { newrelic } = require('./config');
 
 /**
  * New Relic agent configuration.
@@ -25,6 +25,11 @@ exports.config = {
      * @env NEW_RELIC_DISTRIBUTED_TRACING_ENABLED
      */
     enabled: true
+  },
+  application_logging: {
+    forwarding: {
+      enabled: true
+    }
   },
   logging: {
     /**

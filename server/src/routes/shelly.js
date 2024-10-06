@@ -1,4 +1,5 @@
 import express from 'express';
+import logger from '../logger';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import config from '../config';
 import { Device, Event } from '../models';
@@ -22,7 +23,7 @@ router.get('/event', asyncWrapper(async (req, res) => {
 
   if (isOn) {
     if (lastEvent && !lastEvent.end) {
-      console.error(`"${device.id}" has been turned on, but is already turned on...`);
+      logger.error(`"${device.id}" has been turned on, but is already turned on...`);
     } else {
       await Event.create({
         deviceId: device.id,
@@ -33,7 +34,7 @@ router.get('/event', asyncWrapper(async (req, res) => {
     }
   } else {
     if (!lastEvent || lastEvent.end) {
-      console.error(`"${device.id}" has been turned off, but has no active event...`);
+      logger.error(`"${device.id}" has been turned off, but has no active event...`);
     } else {
       lastEvent.end = time;
       await lastEvent.save();

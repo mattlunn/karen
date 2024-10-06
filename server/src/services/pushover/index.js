@@ -1,11 +1,12 @@
 import Push from 'pushover-notifications';
 import config from '../../config';
+import logger from '../../logger';
 import bus, { NOTIFICATION_TO_ADMINS, NOTIFICATION_TO_ALL } from '../../bus';
 import { User } from '../../models';
  
 const push = new Push({
   token: config.pushover.application_token,
-  onerror: console.error.bind(console)
+  onerror: logger.error.bind(logger)
 });
 
 function sendNotificationToUsers(ids, e) {
@@ -23,11 +24,11 @@ function sendNotificationToUsers(ids, e) {
     delete event.image;
   }
 
-  console.log(`Sending a notification to ${ids.length} user(s)`);
+  logger.info(`Sending a notification to ${ids.length} user(s)`);
 
   push.send(event, (err) => {
     if (err) {
-      console.error(err);
+      logger.error(err);
     }
   });
 }

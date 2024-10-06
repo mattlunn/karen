@@ -1,7 +1,6 @@
 import 'newrelic';
 
-require('console-stamp')(console);
-
+import logger from './logger';
 import moment from './moment';
 import express from 'express';
 import alexaRoutes from './routes/alexa';
@@ -63,6 +62,6 @@ app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
 setInterval(createBackgroundTransaction('device:synchronize', () => Device.synchronize()), moment.duration(1, 'day').as('milliseconds'));
 
 server.listen(config.port, () => {
-  console.log(`Listening on ${config.port}`);
-  console.log(`Subscriptions listening on ws://localhost:80${api.subscriptionsPath}`);
+  logger.error(`Listening on ${config.port}`);
+  logger.error(`Subscriptions listening on ws://localhost:80${api.subscriptionsPath}`);
 });

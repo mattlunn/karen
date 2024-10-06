@@ -1,5 +1,6 @@
 import ws from 'ws';
 import config from '../../../config';
+import logger from '../../../logger';
 import { v4 as uuid } from 'uuid';
 import { EventEmitter } from 'events';
 import newrelic from 'newrelic';
@@ -63,7 +64,7 @@ let alwaysAPromiseOfAClient = (function getClient(retryCount = 0) {
         const message = JSON.parse(dataAsString);
     
         if (process.env.NODE_ENV === 'development') {
-          console.log(message);
+          logger.debug(message);
         }
     
         switch (message.type) {
@@ -103,8 +104,8 @@ let alwaysAPromiseOfAClient = (function getClient(retryCount = 0) {
           }
           
           default: {
-            console.error(`Did not understand the following message from zwave-js-server`);
-            console.error(JSON.stringify(message));
+            logger.error(`Did not understand the following message from zwave-js-server`);
+            logger.error(JSON.stringify(message));
           }
         }
       });

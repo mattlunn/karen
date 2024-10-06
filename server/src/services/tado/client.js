@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import config from '../../config';
+import logger from '../../logger';
 import { stringify } from 'querystring';
 
 let token;
@@ -28,7 +29,7 @@ export async function getAccessToken() {
     const { access_token, expires_in } = await response.json();
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Tado access_token is '${access_token}'`);
+      logger.debug(`Tado access_token is '${access_token}'`);
     }
 
     token = {

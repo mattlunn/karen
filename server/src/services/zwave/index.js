@@ -1,5 +1,6 @@
 import { Device, Event } from '../../models';
 import getClient from './lib/client';
+import logger from '../../logger';
 
 const deviceMap = new Map([
   ['Fibargroup FGMS001', 'motion_sensor'],
@@ -258,7 +259,7 @@ Device.registerProvider('zwave', {
         const deviceType = deviceMap.get(deviceName);
 
         if (typeof deviceType === 'undefined') {
-          console.warn(`ZWave does not know how to handle a device of type "${deviceName}" (Device Id ${deviceId})`);
+          logger.warn(`ZWave does not know how to handle a device of type "${deviceName}" (Device Id ${deviceId})`);
         } else {
           let knownDevice = await Device.findByProviderId('zwave', deviceId);
   
