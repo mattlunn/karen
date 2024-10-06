@@ -41,8 +41,11 @@ Device.registerProvider('shelly', {
 
     for (const device of devices) {
       const shellyDevice = new DeviceClient(device.meta.endpoint, config.shelly.user, config.shelly.password);
+      const newName = await shellyDevice.getDeviceName();
 
-      device.name = await shellyDevice.getDeviceName();
+      if (newName !== null) {
+        device.name = newName;
+      }
 
       await device.save();
     }
