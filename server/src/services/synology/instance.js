@@ -3,6 +3,7 @@ import config from '../../config.json';
 
 function synologyFactory() {
   return createSynologyInstance(
+    config.synology.protocol,
     config.synology.host,
     config.synology.port,
     config.synology.account,

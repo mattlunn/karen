@@ -1,6 +1,7 @@
 import request from 'request-promise-native';
 
-function Synology(host, port, account, password, session) {
+function Synology(protocol, host, port, account, password, session) {
+  this._protocol = protocol;
   this._host = host;
   this._port = port;
   this._account = account;
@@ -45,7 +46,7 @@ Synology.prototype._request = async function (endpoint, api, method, version, pa
     params._sid = this._sid;
 
   const query = Object.keys(params).map((key) => key + '=' + encodeURIComponent(params[key])).join('&');
-  const url = 'http://' + this._host + ':' + this._port + '/webapi/' + endpoint + '?' + query;
+  const url = `${this._protocol}://${this._host}:${this._port}/webapi/${endpoint}?${query}`;
   const response = await request(url, {
     encoding: (json ? 'utf8' : null)
   });
@@ -66,8 +67,8 @@ Synology.prototype._request = async function (endpoint, api, method, version, pa
   return parsed;
 };
 
-export default async function (host, port, account, password, session) {
-  const synology = new Synology(host, port, account, password, session);
+export default async function (protocol, host, port, account, password, session) {
+  const synology = new Synology(protocol, host, port, account, password, session);
   await synology.init();
 
   return synology;
