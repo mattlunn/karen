@@ -1,11 +1,12 @@
 import { messages } from '../index';
+import logger from '../../../logger';
 
 export default async function ({ slots: { device }}) {
   const deviceName = device.resolutions.resolutionsPerAuthority[0]?.values[0]?.value.name;
   const message = messages.get(deviceName)?.getMessageToSend();
 
   if (!message) {
-    console.log(`"${deviceName}" asked for messages, but there was none.`);
+    logger.error(`"${deviceName}" asked for messages, but there was none.`);
     return;
   }
 

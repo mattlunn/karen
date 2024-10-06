@@ -1,5 +1,6 @@
 import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional, NonAttribute } from 'sequelize';
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
+import logger from '../logger';
 
 const latestEventCache = new Map();
 
@@ -144,7 +145,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   static async synchronize() {
     for (const [name, { synchronize }] of Device._providers) {
-      console.log(`Synchronizing ${name}`);
+      logger.info(`Synchronizing ${name}`);
 
       await synchronize();
     }

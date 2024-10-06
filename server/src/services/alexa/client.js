@@ -1,5 +1,6 @@
 import config from '../../config';
 import fetch from 'node-fetch';
+import logger from '../../logger';
 import { stringify } from 'querystring';
 import { saveConfig } from '../../helpers/config';
 import { v4 as uuid } from 'uuid';
@@ -19,7 +20,7 @@ export async function exchangeAuthenticationToken(grantType, exchangeToken) {
   });
 
   if (!response.ok) {
-    console.log(await response.text());
+    logger.error(await response.text());
 
     throw new Error(`Received a ${response.status} while exchanging auth tokens`);
   } else {
@@ -29,7 +30,7 @@ export async function exchangeAuthenticationToken(grantType, exchangeToken) {
     config.alexa.refresh_token = json.refresh_token;
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Setting Alexa access token to '${json.access_token}' and refresh token to '${json.refresh_token}'`);
+      logger.debug(`Setting Alexa access token to '${json.access_token}' and refresh token to '${json.refresh_token}'`);
     }
 
     saveConfig();

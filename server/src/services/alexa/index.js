@@ -2,6 +2,7 @@ import config from '../../config';
 import { Device } from '../../models';
 import { sendChangeReport } from './client';
 import sleep from '../../helpers/sleep';
+import logger from '../../logger';
 
 export const messages = new Map();
 
@@ -36,8 +37,8 @@ export async function say(device, message, ttlInSeconds = 30) {
     throw new Error('Amazon only allow a maximum of 5 speech segments');
   }
 
-  console.log('Say called with...');
-  console.log(message);
+  logger.info('Say called with...');
+  logger.info(message);
 
   let fulfilled = false;
   let resolve, reject;
@@ -72,7 +73,7 @@ export async function say(device, message, ttlInSeconds = 30) {
       if (!fulfilled) {
         const error = 'Message was not picked up by Alexa within the TTL';
 
-        console.error(error);
+        logger.error(error);
         reject(new Error(error));
       }
     }
@@ -82,7 +83,7 @@ export async function say(device, message, ttlInSeconds = 30) {
     if (!fulfilled) {
       const error = 'Message was not picked up by Alexa within the TTL';
 
-      console.error(error);
+      logger.error(error);
       reject(new Error(error));
     }
   }, ttlInSeconds * 1000);

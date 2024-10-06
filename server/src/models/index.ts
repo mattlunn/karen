@@ -8,13 +8,14 @@ import recordingFactory, { Recording } from './recording';
 import deviceFactory, { Device } from './device';
 import armingFactoring from './arming';
 import alarmActivationFactory from './alarm_activation';
+import logger from '../logger';
 
 const instance = new Sequelize(config.database.name, config.database.user, config.database.password, {
   host: config.database.host,
   dialect: 'mysql',
   logging(query) {
     if (process.env.SEQUELIZE_LOGGING === 'true') {
-      console.log(query);
+      logger.debug(query);
     }
   },
 });
