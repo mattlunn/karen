@@ -40,7 +40,6 @@ createGraphQLServer().then((api) => {
   app.use(bodyParser.json());
   app.use(bodyParser.text());
   app.use(cookieParser());
-  app.use('/graphql', auth);
 
   app.use('/alexa', alexaRoutes);
   app.use('/api', auth, apiRoutes);
@@ -50,10 +49,10 @@ createGraphQLServer().then((api) => {
   app.use('/shelly', shellyRoutes);
   app.use('/', express.static(__dirname + '/static'));
 
-  api.applyMiddleware({
-    app,
-    path: '/graphql'
-  });
+  app.use('/graphql',
+    auth,
+    api
+  );
 
   app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
     maxAge: moment.duration(1, 'year').asMilliseconds()

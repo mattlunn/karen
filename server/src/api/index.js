@@ -1,4 +1,5 @@
-import { ApolloServer } from 'apollo-server-express';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@apollo/server/express4';
 import * as db from '../models';
 import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording, AlarmArmingEvent, DoorbellRingEvent } from './models';
 import { HOME, AWAY } from '../constants/status';
@@ -9,6 +10,7 @@ import DataLoaderWithNoIdParam from './lib/dataloader-with-no-id-param';
 import schema from './schema';
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import createNewRelicPlugin from '@newrelic/apollo-server-plugin';
+import logger from '../logger';
 
 function createSubscriptionForDeviceType(deviceType, mapper, properties) {
   return {
@@ -338,12 +340,22 @@ const resolvers = {
 
 export default async function() {
   const server = new ApolloServer({
-    debug: true,
+    includeStacktraceInErrorResponses: true,
     typeDefs: schema,
     resolvers,
     plugins: [createNewRelicPlugin],
-    context: ({ req }) => {
-      const context = {
+    formatError(error) {
+      logger.error(`${error.message}: ${error.extensions.stacktrace.join('\n')}`);
+
+      return error;
+    }
+  });
+
+  await server.start();
+  
+  return expressMiddleware(server, {
+    async context({ req }) {
+      return {
         req: req,
         userByHandle: new UnorderedDataLoader(db.User.findByHandles.bind(db.User), ({ handle }) => handle, user => new User(user)),
         upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
@@ -364,17 +376,6 @@ export default async function() {
         devicesById: new UnorderedDataLoader((ids) => db.Device.findAll({ where: { id: ids }}), device => device.id, device => Device.create(device)),
         recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording))
       };
-
-      return context;
-    },
-    formatError(error) {
-      console.error(`${error.message}: ${error.extensions.exception.stacktrace.join('\n')}`);
-
-      return error;
     }
   });
-
-  await server.start();
-  
-  return server;
 }
