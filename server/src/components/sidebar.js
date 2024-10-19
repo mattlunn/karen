@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import UserStatus from './user-status';
 import classnames from 'classnames';
 import gql from 'graphql-tag';
-import { graphql } from '@apollo/react-hoc';
+import { graphql } from '@apollo/client/react/hoc';
 import { HOME, AWAY } from '../constants/status';
 
 class SideBar extends Component {

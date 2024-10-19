@@ -10,7 +10,7 @@ import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
 import { faShieldAlt } from '@fortawesome/free-solid-svg-icons/faShieldAlt';
 import { faBell } from '@fortawesome/free-solid-svg-icons/faBell';
-import { graphql } from '@apollo/react-hoc';
+import { graphql } from '@apollo/client/react/hoc';
 import gql from 'graphql-tag';
 
 class Timeline extends Component {

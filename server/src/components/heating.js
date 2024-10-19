@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import Thermostat from './thermostat';
 import gql from 'graphql-tag';
-import { useQuery } from '@apollo/react-hooks';
+import { useQuery } from '@apollo/client';
 
 export default function Heating() {
   const { data, subscribeToMore } = useQuery(gql`

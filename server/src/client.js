@@ -24,24 +24,24 @@ import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
 import { faBell } from '@fortawesome/free-solid-svg-icons/faBell';
-
-import { ApolloClient } from 'apollo-client';
-import { InMemoryCache } from 'apollo-cache-inmemory';
-import { onError } from 'apollo-link-error';
-import { ApolloLink } from 'apollo-link';
-import { ApolloProvider } from '@apollo/react-components';
-import { split } from 'apollo-link';
-import { HttpLink } from 'apollo-link-http';
-import { WebSocketLink } from 'apollo-link-ws';
-import { getMainDefinition } from 'apollo-utilities';
-import { IntrospectionFragmentMatcher } from 'apollo-cache-inmemory';
-import introspectionQueryResultData from './fragment-types.json';
+import { onError } from '@apollo/client/link/error';
+import { getMainDefinition } from '@apollo/client/utilities';
+import { 
+  ApolloClient, 
+  ApolloLink, 
+  ApolloProvider, 
+  HttpLink, 
+  InMemoryCache, 
+  split
+} from '@apollo/client';
+import possibleTypes from './possible-types.json';
 
 library.add(faLightbulb, faVideo, faHome, faWalking, faBell);
 
 import './styles/app.less';
 import 'react-vis/dist/style.css';
 
+/*
 const wsLink = new WebSocketLink({
   uri: `ws${location.protocol.slice(4)}//${location.hostname}/graphql`,
   options: {
@@ -49,6 +49,7 @@ const wsLink = new WebSocketLink({
   },
   credentials: 'same-origin'
 });
+*/
 
 const httpLink = new HttpLink({
   uri: '/graphql',
@@ -62,6 +63,7 @@ const client = new ApolloClient({
         store.dispatch(push('/login'));
       }
     }),
+    /*
     split(
       ({ query }) => {
         const definition = getMainDefinition(query);
@@ -73,11 +75,11 @@ const client = new ApolloClient({
       wsLink,
       httpLink
     )
+    */
+    httpLink
   ]),
   cache: new InMemoryCache({
-    fragmentMatcher: new IntrospectionFragmentMatcher({
-      introspectionQueryResultData
-    })
+    possibleTypes
   })
 });
 

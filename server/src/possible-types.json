@@ -1,0 +1,1 @@
+{"Event":["MotionEvent","LightOnEvent","LightOffEvent","ArrivalEvent","DepartureEvent","AlarmArmingEvent","DoorbellRingEvent"],"Device":["BasicDevice","Light","Camera","Thermostat"],"TimelineEvent":["MotionEvent","ArrivalEvent","DepartureEvent","LightOnEvent","LightOffEvent","AlarmArmingEvent","DoorbellRingEvent"],"HistoryDatumType":["Thermostat","Light"]}

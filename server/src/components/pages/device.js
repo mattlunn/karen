@@ -2,7 +2,7 @@ import React from 'react';
 import SideBar from '../sidebar';
 import Modals from '../modals';
 import Header from '../header';
-import { useQuery } from '@apollo/react-hooks';
+import { useQuery } from '@apollo/client';
 import gql from 'graphql-tag';
 
 const QUERY = gql`

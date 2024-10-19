@@ -8,7 +8,7 @@ import pad from 'left-pad';
 import Calendar from 'react-calendar';
 import moment from 'moment';
 import gql from 'graphql-tag';
-import { graphql } from '@apollo/react-hoc';
+import { graphql } from '@apollo/client/react/hoc';
 
 function mapStateToProps(state) {
   return getActiveModalProps(state);

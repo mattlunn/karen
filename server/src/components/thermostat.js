@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import Slider, { createSliderWithTooltip } from 'rc-slider';
 import classnames from 'classnames';
 import ThermostatHeatMap from './thermostat-heat-map';
-import { graphql } from '@apollo/react-hoc';
+import { graphql } from '@apollo/client/react/hoc';
 import gql from 'graphql-tag';
 import moment from 'moment';
 import 'rc-slider/assets/index.css';

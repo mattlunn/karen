@@ -6,7 +6,7 @@ import { humanDate } from '../helpers/date';
 import { connect } from 'react-redux';
 import { showModal } from '../actions/modal';
 import { ETA_PICKER } from '../constants/modals';
-import { graphql } from '@apollo/react-hoc';
+import { graphql } from '@apollo/client/react/hoc';
 import gql from 'graphql-tag';
 
 function mapDispatchToProps(dispatch, ownProps) {

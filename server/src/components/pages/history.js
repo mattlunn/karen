@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import SideBar from '../sidebar';
 import Modals from '../modals';
 import Header from '../header';
-import { graphql } from '@apollo/react-hoc';
+import { graphql } from '@apollo/client/react/hoc';
 import gql from 'graphql-tag';
 import { Link } from 'react-router-dom';
 import classnames from 'classnames';

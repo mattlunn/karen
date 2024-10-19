@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import LightingTile from './lighting-tile';
 import gql from 'graphql-tag';
-import { useQuery } from '@apollo/react-hooks';
+import { useQuery } from '@apollo/client';
 
 export default function Lighting() {
   const { data, subscribeToMore } = useQuery(

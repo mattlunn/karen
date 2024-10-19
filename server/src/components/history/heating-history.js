@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { graphql } from '@apollo/react-hoc';
+import { graphql } from '@apollo/client/react/hoc';
 import gql from 'graphql-tag';
 import moment from 'moment';
 import { FlexibleWidthXYPlot, XAxis, YAxis, HeatmapSeries } from 'react-vis';

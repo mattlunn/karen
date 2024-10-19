@@ -326,47 +326,55 @@ const resolvers = {
     __resolveType(obj, context, info) {
       return obj._device.type[0].toUpperCase() + obj._device.type.slice(1);
     }
-  },
+  }
 
+  /*
   Subscription: {
     onThermostatChanged: createSubscriptionForDeviceType('thermostat', device => ({ onThermostatChanged: new Thermostat(device) })),
     onLightChanged: createSubscriptionForDeviceType('light', device => ({ onLightChanged: new Light(device) }), ['on', 'brightness'])
   }
+  */
 };
 
-export default new ApolloServer({
-  debug: true,
-  typeDefs: schema,
-  resolvers,
-  plugins: [createNewRelicPlugin],
-  context: ({ req }) => {
-    const context = {
-      req: req,
-      userByHandle: new UnorderedDataLoader(db.User.findByHandles.bind(db.User), ({ handle }) => handle, user => new User(user)),
-      upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
-      currentOrLastStayByUserId: new UnorderedDataLoader(db.Stay.findCurrentOrLastStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
-      cameras: new DataLoaderWithNoIdParam(async () => {
-        const response = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
+export default async function() {
+  const server = new ApolloServer({
+    debug: true,
+    typeDefs: schema,
+    resolvers,
+    plugins: [createNewRelicPlugin],
+    context: ({ req }) => {
+      const context = {
+        req: req,
+        userByHandle: new UnorderedDataLoader(db.User.findByHandles.bind(db.User), ({ handle }) => handle, user => new User(user)),
+        upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
+        currentOrLastStayByUserId: new UnorderedDataLoader(db.Stay.findCurrentOrLastStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
+        cameras: new DataLoaderWithNoIdParam(async () => {
+          const response = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
 
-        return response.data.cameras;
-      }, (cameras) => cameras.map(data => new Camera(data))),
-      lights: new DataLoaderWithNoIdParam(() => db.Device.findByType('light'), (lights) => lights.map(light => new Light(light))),
-      thermostats: new DataLoaderWithNoIdParam(() => db.Device.findByType('thermostat'), (thermostats) => thermostats.map(data => new Thermostat(data))),
-      usersById: new UnorderedDataLoader((ids) => db.User.findAll({ where: { id: ids }}), ({ id }) => id, user => {
-        const userModel = new User(user);
+          return response.data.cameras;
+        }, (cameras) => cameras.map(data => new Camera(data))),
+        lights: new DataLoaderWithNoIdParam(() => db.Device.findByType('light'), (lights) => lights.map(light => new Light(light))),
+        thermostats: new DataLoaderWithNoIdParam(() => db.Device.findByType('thermostat'), (thermostats) => thermostats.map(data => new Thermostat(data))),
+        usersById: new UnorderedDataLoader((ids) => db.User.findAll({ where: { id: ids }}), ({ id }) => id, user => {
+          const userModel = new User(user);
 
-        context.userByHandle.prime(user.handle, userModel);
-        return userModel;
-      }),
-      devicesById: new UnorderedDataLoader((ids) => db.Device.findAll({ where: { id: ids }}), device => device.id, device => Device.create(device)),
-      recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording))
-    };
+          context.userByHandle.prime(user.handle, userModel);
+          return userModel;
+        }),
+        devicesById: new UnorderedDataLoader((ids) => db.Device.findAll({ where: { id: ids }}), device => device.id, device => Device.create(device)),
+        recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording))
+      };
 
-    return context;
-  },
-  formatError(error) {
-    console.error(`${error.message}: ${error.extensions.exception.stacktrace.join('\n')}`);
+      return context;
+    },
+    formatError(error) {
+      console.error(`${error.message}: ${error.extensions.exception.stacktrace.join('\n')}`);
 
-    return error;
-  }
-});
+      return error;
+    }
+  });
+
+  await server.start();
+  
+  return server;
+}

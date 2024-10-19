@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLightbulb } from '@fortawesome/free-regular-svg-icons';
 import gql from 'graphql-tag';
-import { useMutation, useSubscription } from '@apollo/react-hooks';
+import { useMutation, useSubscription } from '@apollo/client';
 
 export default function LightingTile({ id, name, isOn, brightness }) {
   const [setLightSwitchStatus] = useMutation(gql`
