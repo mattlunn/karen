@@ -7,10 +7,12 @@ import moment from 'moment-timezone';
 import makeSynologyRequest from '../services/synology/instance';
 import UnorderedDataLoader from './lib/unordered-dataloader';
 import DataLoaderWithNoIdParam from './lib/dataloader-with-no-id-param';
-import schema from './schema';
+import typeDefs from './type-defs';
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import createNewRelicPlugin from '@newrelic/apollo-server-plugin';
 import logger from '../logger';
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import { useServer } from 'graphql-ws/lib/use/ws';
 
 function createSubscriptionForDeviceType(deviceType, mapper, properties) {
   return {
@@ -328,21 +330,19 @@ const resolvers = {
     __resolveType(obj, context, info) {
       return obj._device.type[0].toUpperCase() + obj._device.type.slice(1);
     }
-  }
+  },
 
-  /*
   Subscription: {
     onThermostatChanged: createSubscriptionForDeviceType('thermostat', device => ({ onThermostatChanged: new Thermostat(device) })),
     onLightChanged: createSubscriptionForDeviceType('light', device => ({ onLightChanged: new Light(device) }), ['on', 'brightness'])
   }
-  */
 };
 
-export default async function() {
+export default async function(wsServer) {
+  const schema = makeExecutableSchema({ typeDefs, resolvers });
   const server = new ApolloServer({
     includeStacktraceInErrorResponses: true,
-    typeDefs: schema,
-    resolvers,
+    schema,
     plugins: [createNewRelicPlugin],
     formatError(error) {
       logger.error(`${error.message}: ${error.extensions.stacktrace.join('\n')}`);
@@ -351,6 +351,7 @@ export default async function() {
     }
   });
 
+  useServer({ schema }, wsServer);
   await server.start();
   
   return expressMiddleware(server, {

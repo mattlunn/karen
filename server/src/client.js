@@ -27,29 +27,25 @@ import { faBell } from '@fortawesome/free-solid-svg-icons/faBell';
 import { onError } from '@apollo/client/link/error';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { 
-  ApolloClient, 
-  ApolloLink, 
-  ApolloProvider, 
-  HttpLink, 
-  InMemoryCache, 
+  ApolloClient,
+  ApolloLink,
+  ApolloProvider,
+  HttpLink,
+  InMemoryCache,
   split
 } from '@apollo/client';
 import possibleTypes from './possible-types.json';
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+import { createClient } from 'graphql-ws';
 
 library.add(faLightbulb, faVideo, faHome, faWalking, faBell);
 
 import './styles/app.less';
 import 'react-vis/dist/style.css';
 
-/*
-const wsLink = new WebSocketLink({
-  uri: `ws${location.protocol.slice(4)}//${location.hostname}/graphql`,
-  options: {
-    reconnect: true
-  },
-  credentials: 'same-origin'
-});
-*/
+const wsLink = new GraphQLWsLink(createClient({
+  url: `ws${location.protocol.slice(4)}//${location.host}/graphql`,
+}));
 
 const httpLink = new HttpLink({
   uri: '/graphql',
@@ -63,7 +59,6 @@ const client = new ApolloClient({
         store.dispatch(push('/login'));
       }
     }),
-    /*
     split(
       ({ query }) => {
         const definition = getMainDefinition(query);
@@ -75,8 +70,6 @@ const client = new ApolloClient({
       wsLink,
       httpLink
     )
-    */
-    httpLink
   ]),
   cache: new InMemoryCache({
     possibleTypes

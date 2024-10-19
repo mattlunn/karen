@@ -17,6 +17,7 @@ import cookieParser from 'cookie-parser';
 import createGraphQLServer from './api';
 import { createServer } from 'http';
 import compression from 'compression';
+import { WebSocketServer } from 'ws';
 import { createBackgroundTransaction } from './helpers/newrelic';
 
 require('./services/synology');
@@ -31,9 +32,14 @@ require('./services/shelly');
 require('./automations');
 
 const app = express();
-const server = createServer(app);
 
-createGraphQLServer().then((api) => {
+const httpServer = createServer(app);
+const wsServer = new WebSocketServer({
+  server: httpServer,
+  path: '/graphql',
+});
+
+createGraphQLServer(wsServer).then((api) => {
   app.set('trust proxy', config.trust_proxy);
   app.use(compression());
   app.use(bodyParser.urlencoded());
@@ -58,8 +64,8 @@ createGraphQLServer().then((api) => {
     maxAge: moment.duration(1, 'year').asMilliseconds()
   }));
 
-  server.listen(config.port, () => {
-    logger.error(`Listening on ${config.port}`);
+  httpServer.listen(config.port, () => {
+    logger.info(`Listening on ${config.port}`);
   });
 })
 
