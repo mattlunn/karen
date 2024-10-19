@@ -356,7 +356,7 @@ export default async function(wsServer) {
   
   return expressMiddleware(server, {
     async context({ req }) {
-      return {
+      const context = {
         req: req,
         userByHandle: new UnorderedDataLoader(db.User.findByHandles.bind(db.User), ({ handle }) => handle, user => new User(user)),
         upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
@@ -377,6 +377,8 @@ export default async function(wsServer) {
         devicesById: new UnorderedDataLoader((ids) => db.Device.findAll({ where: { id: ids }}), device => device.id, device => Device.create(device)),
         recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording))
       };
+      
+      return context;
     }
   });
 }
