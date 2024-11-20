@@ -15,9 +15,6 @@ class History extends Component {
     const params = new URLSearchParams(this.props.location.search);
     const tab = params.get('tab') || 'heating';
 
-    lights.sort((a, b) => a.name.localeCompare(b.name));
-    thermostats.sort((a, b) => a.name.localeCompare(b.name));
-
     return (
       <div>
         <Header />
@@ -55,5 +52,16 @@ export default graphql(gql`{
     }
   }
 }`, {
-  props: ({ data: { getLighting, getHeating }}) => ({ ...getLighting, ...getHeating })
+  props({ data }) {
+    const sort = (arr) => arr.toSorted((a, b) => a.name.localeCompare(b.name));
+
+    if (data.loading) {
+      return {};
+    }
+
+    return {
+      lights: sort(data.getLighting.lights),
+      thermostats: sort(data.getHeating.thermostats)
+    };
+  }
 })(History);
