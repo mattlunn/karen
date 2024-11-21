@@ -2,7 +2,7 @@ import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, NOTIFICATION_TO_ADMINS } from '
 import { Device, Arming, Stay } from '../models';
 import { joinWithAnd, pluralise } from '../helpers/array';
 import { createBackgroundTransaction } from '../helpers/newrelic';
-import { setThermostatsToAway } from '../services/tado';
+import { setCentralHeatingMode } from '../services/tado';
 
 async function turnOffLights() {
   const lights = await Device.findByType('light');
@@ -28,7 +28,7 @@ export default function () {
       ] = await Promise.all([
         Arming.getActiveArming(stay.end),
         turnOffLights(),
-        setThermostatsToAway(true)
+        setCentralHeatingMode('SETBACK')
       ]);
 
       if (!activeArming) {
@@ -64,6 +64,6 @@ export default function () {
       await activeArming.save();
     }
 
-    await setThermostatsToAway(false);
+    await setCentralHeatingMode('ON');
   }));
 }

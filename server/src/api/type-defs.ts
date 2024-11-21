@@ -12,6 +12,17 @@ export default gql`
     OFF
   }
 
+  enum CentralHeatingMode {
+    ON
+    OFF
+    SETBACK
+  }
+
+  enum DHWHeatingMode {
+    ON
+    OFF
+  }
+
   enum DeviceStatus {
     OK
     OFFLINE
@@ -138,6 +149,8 @@ export default gql`
   }
 
   type Heating {
+    centralHeatingMode: CentralHeatingMode
+    dhwHeatingMode: DHWHeatingMode
     thermostats: [Thermostat]
   }
 
@@ -166,6 +179,8 @@ export default gql`
     updateLight(id: ID!, isOn: Boolean, brightness: Int): Light
     updateThermostat(id: ID!, targetTemperature: Float): Thermostat
     updateAlarm(mode: AlarmMode): Security
+    updateCentralHeatingMode(mode: CentralHeatingMode): Heating
+    updateDHWHeatingMode(mode: DHWHeatingMode): Heating
   }
 
   type Subscription {
