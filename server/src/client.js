@@ -18,12 +18,6 @@ import { Provider } from 'react-redux';
 import user from './reducers/user';
 import modal from './reducers/modal';
 
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faLightbulb } from '@fortawesome/free-regular-svg-icons/faLightbulb';
-import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
-import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
-import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
-import { faBell } from '@fortawesome/free-solid-svg-icons/faBell';
 import { onError } from '@apollo/client/link/error';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { 
@@ -37,8 +31,6 @@ import {
 import possibleTypes from './possible-types.json';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
-
-library.add(faLightbulb, faVideo, faHome, faWalking, faBell);
 
 import './styles/app.less';
 import 'react-vis/dist/style.css';
