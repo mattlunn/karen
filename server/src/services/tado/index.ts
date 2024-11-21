@@ -13,7 +13,7 @@ Device.registerProvider('tado', {
     switch (key) {
       case 'target': {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
-        await client.setHeatingPowerForZone(device.providerId, value === null ? false : value);
+        await client.setHeatingPowerForZone(device.providerId, value === null ? false : value, false);
 
         break;
       }
@@ -77,6 +77,33 @@ Device.registerProvider('tado', {
     }
   }
 });
+
+export async function setThermostatsToAway(isAway: boolean) {
+  // There are two ways of doing this; first, we could just set the whole House in Tado to 
+  // "away" using the /presenceLock endpoint. On the face of it this seems the easiest. 
+  // However you then have to worry about all the thermostats that are in manual mode (either
+  // because we ourselves have set them for scheduled warm ups, or because a user has manually).
+  //
+  // So you'd have to iterate over all the thermostats anyway, and remove any manual overlays.
+  // You could also argue we should display the "Tado House Away" mode somewhere in the UI.
+  //
+  // Second option is to just manually set each thermostat to it's away temperature, which is what
+  // we've ended up doing.
+  const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+  const devices = await Device.findByProvider('tado');
+
+  for (const device of devices) {
+    const zoneId = device.providerId;
+    
+    if (isAway) {
+      const awayTemperature = await client.getMinimumAwayTemperatureForZone(zoneId);
+
+      await device.setProperty('target', awayTemperature);
+    } else {
+      await client.endManualHeatingForZone(zoneId);
+    }
+  }
+}
 
 nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);
