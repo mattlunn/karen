@@ -10,7 +10,6 @@ import { faDroplet, faFire, faShieldHalved } from '@fortawesome/free-solid-svg-i
 class SideBar extends Component {
   render() {
     const { stays, alarmMode, centralHeatingMode, dhwHeatingMode, setAlarmMode, setCentralHeatingMode } = this.props;
-    const isArmed = alarmMode !== 'OFF';
 
     return (
       <div className={classnames('sidebar', {
@@ -28,26 +27,34 @@ class SideBar extends Component {
           </div>
         </div>
 
-        {stays && stays.map((stay) => <UserStatus key={stay.id} {...stay} />)}
-
-        <div className="sidebar__icon" style={{ marginTop: '50px' }}><FontAwesomeIcon icon={faShieldHalved} /></div>
-        <div className="sidebar__alarm-status">
-          <button disabled={alarmMode === 'OFF'} onClick={() => setAlarmMode('OFF')}>Home</button>
-          <button disabled={alarmMode === 'AWAY'} onClick={() => setAlarmMode('AWAY')}>Away</button>
-          <button disabled={alarmMode === 'NIGHT'} onClick={() => setAlarmMode('NIGHT')}>Night</button>
+        <div className="sidebar__stays">
+          {stays && stays.map((stay) => <UserStatus key={stay.id} {...stay} />)}
         </div>
 
-        <div className="sidebar__icon"><FontAwesomeIcon icon={faFire} /></div>
-        <div className="sidebar__alarm-status">
-          <button disabled={centralHeatingMode === 'ON'} onClick={() => setCentralHeatingMode('ON')}>On</button>
-          <button disabled={centralHeatingMode === 'SETBACK'} onClick={() => setCentralHeatingMode('SETBACK')}>Setback</button>
-          <button disabled={centralHeatingMode === 'OFF'} onClick={() => setCentralHeatingMode('OFF')}>Off</button>
+        <div className="sidebar__home-controls">
+          <h3 className="home-controls__title"><FontAwesomeIcon icon={faShieldHalved} /></h3>
+          <div>
+            <button disabled={alarmMode === 'OFF'} onClick={() => setAlarmMode('OFF')}>Home</button>
+            <button disabled={alarmMode === 'AWAY'} onClick={() => setAlarmMode('AWAY')}>Away</button>
+            <button disabled={alarmMode === 'NIGHT'} onClick={() => setAlarmMode('NIGHT')}>Night</button>
+          </div>
         </div>
 
-        <div className="sidebar__icon"><FontAwesomeIcon icon={faDroplet} /></div>
-        <div className="sidebar__alarm-status">
-          <button disabled={dhwHeatingMode === 'ON'} onClick={() => setAlarmMode('ON')}>On</button>
-          <button disabled={dhwHeatingMode === 'OFF'} onClick={() => setAlarmMode('OFF')}>Off</button>
+        <div className="sidebar__home-controls">
+          <h3 className="home-controls__title"><FontAwesomeIcon icon={faFire} /></h3>
+          <div>
+            <button disabled={centralHeatingMode === 'ON'} onClick={() => setCentralHeatingMode('ON')}>On</button>
+            <button disabled={centralHeatingMode === 'SETBACK'} onClick={() => setCentralHeatingMode('SETBACK')}>Setback</button>
+            <button disabled={centralHeatingMode === 'OFF'} onClick={() => setCentralHeatingMode('OFF')}>Off</button>
+          </div>
+        </div>
+
+        <div className="sidebar__home-controls">
+          <h3 className="home-controls__title"><FontAwesomeIcon icon={faDroplet} /></h3>
+          <div>
+            <button disabled={dhwHeatingMode === 'ON'} onClick={() => setAlarmMode('ON')}>On</button>
+            <button disabled={dhwHeatingMode === 'OFF'} onClick={() => setAlarmMode('OFF')}>Off</button>
+          </div>
         </div>
       </div>
     );
