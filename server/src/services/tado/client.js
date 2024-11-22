@@ -88,6 +88,12 @@ export default class TadoClient {
     return this._request(`/zones/${zone}/schedule/timetables/${timetable}/blocks`);
   }
 
+  async getMinimumAwayTemperatureForZone(zone) {
+    const data = await this._request(`/zones/${zone}/awayConfiguration`);
+
+    return data.minimumAwayTemperature.celsius;
+  }
+
   setHeatingPowerForZone(zone, value, endAtNextTimeBlock) {
     return this._request(`/zones/${zone}/overlay`, {
       setting: {

@@ -5,6 +5,7 @@ import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, His
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
 import makeSynologyRequest from '../services/synology/instance';
+import { setCentralHeatingMode, getCentralHeatingMode } from '../services/tado';
 import UnorderedDataLoader from './lib/unordered-dataloader';
 import DataLoaderWithNoIdParam from './lib/dataloader-with-no-id-param';
 import typeDefs from './type-defs';
@@ -311,6 +312,18 @@ const resolvers = {
       context.currentOrLastStayByUserId.prime(user.id, current);
 
       return new User(user, context);
+    },
+    
+    async updateCentralHeatingMode(parent, args, context, info) {
+      await setCentralHeatingMode(args.mode);
+
+      return new Heating();
+    },
+
+    async updateDHWHeatingMode(parent, args, context, info) {
+      // TODO
+
+      return new Heating();
     }
   },
 
@@ -375,7 +388,9 @@ export default async function(wsServer) {
           return userModel;
         }),
         devicesById: new UnorderedDataLoader((ids) => db.Device.findAll({ where: { id: ids }}), device => device.id, device => Device.create(device)),
-        recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording))
+        recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording)),
+        centralHeatingMode: () => getCentralHeatingMode(),
+        dhwHeatingMode: () => 'ON'
       };
       
       return context;

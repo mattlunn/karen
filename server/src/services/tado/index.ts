@@ -8,12 +8,18 @@ import getWarmupRatePerHour from './helpers/get-warmup-rate-per-hour';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 
+const CENTRAL_HEATING_MODES = {
+  ON: 1,
+  OFF: 2,
+  SETBACK: 3
+};
+
 Device.registerProvider('tado', {
   async setProperty(device, key, value) {
     switch (key) {
       case 'target': {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
-        await client.setHeatingPowerForZone(device.providerId, value === null ? false : value);
+        await client.setHeatingPowerForZone(device.providerId, value === null ? false : value, false);
 
         break;
       }
@@ -75,8 +81,91 @@ Device.registerProvider('tado', {
         await knownDevice.save();
       }
     }
+
+    {
+      let controller = await Device.findByProviderId('tado', 'controller');
+
+      if (!controller) {
+        await Device.create({
+          provider: 'tado',
+          type: 'controller',
+          providerId: 'controller',
+          name: 'Controller'
+        });
+      }
+    }
   }
 });
+
+export async function setCentralHeatingMode(mode: keyof typeof CENTRAL_HEATING_MODES) {
+  // There are two ways of doing this; first, we could just set the whole House in Tado to 
+  // "away" using the /presenceLock endpoint. On the face of it this seems the easiest. 
+  // However you then have to worry about all the thermostats that are in manual mode (either
+  // because we ourselves have set them for scheduled warm ups, or because a user has manually).
+  //
+  // So you'd have to iterate over all the thermostats anyway, and remove any manual overlays.
+  // You could also argue we should display the "Tado House Away" mode somewhere in the UI.
+  //
+  // Second option is to just manually set each thermostat to it's away temperature, which is what
+  // we've ended up doing.
+  const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+  const devices = await Device.findByProvider('tado');
+  const controller = devices.find(x => x.providerId === 'controller')!;
+
+  for (const device of devices) {
+    if (device.type === 'thermostat') {
+      const zoneId = device.providerId;
+      
+      if (mode === 'ON') {
+        await client.endManualHeatingForZone(zoneId);
+      } else if (mode === 'OFF') {
+        await device.setProperty('target', false);
+      } else if (mode === 'SETBACK') {
+        const awayTemperature = await client.getMinimumAwayTemperatureForZone(zoneId);
+
+        await device.setProperty('target', awayTemperature);
+      }
+    }
+  }
+
+  const lastEvent = await controller.getLatestEvent('central_heating_mode');
+
+  if (lastEvent === null || lastEvent.value !== mode) {
+    const now = new Date();
+
+    if (lastEvent) {
+      lastEvent.end = now;
+      await lastEvent.save();
+    }
+
+    await Event.create({
+      deviceId: controller.id,
+      start: now,
+      type: 'central_heating_mode',
+      value: CENTRAL_HEATING_MODES[mode]
+    })
+  }
+}
+
+export async function getCentralHeatingMode(): Promise<keyof typeof CENTRAL_HEATING_MODES> {
+  const controller = await Device.findByProviderIdOrError('tado', 'controller');
+  const lastEvent = await controller.getLatestEvent('central_heating_mode');
+
+  if (lastEvent === null) {
+    return 'ON';
+  }
+
+  switch (lastEvent.value) {
+    case CENTRAL_HEATING_MODES.OFF:
+      return 'OFF';
+    case CENTRAL_HEATING_MODES.ON:
+      return 'ON';
+    case CENTRAL_HEATING_MODES.SETBACK:
+      return 'SETBACK';
+  }
+  
+  throw new Error();
+}
 
 nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);
