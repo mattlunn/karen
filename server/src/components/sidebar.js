@@ -62,7 +62,7 @@ function HomeControlButton({ onClick, value, currentValue, label }) {
   );
 }
 
-export default function({ hideOnMobile}) {
+export default function Sidebar({ hideOnMobile}) {
   const { loading, data } = useQuery(GET_HOUSE_STATE);
   const [updateCentralHeatingMode] = useMutation(SET_CENTRAL_HEATING_MODE);
   const [updateDHWHeatingMode] = useMutation(SET_DHW_HEATING_MODE);
