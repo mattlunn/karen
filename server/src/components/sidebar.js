@@ -6,59 +6,94 @@ import { graphql } from '@apollo/client/react/hoc';
 import { HOME, AWAY } from '../constants/status';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDroplet, faFire, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
+import { useMutation } from '@apollo/client';
 
-class SideBar extends Component {
-  render() {
-    const { stays, alarmMode, centralHeatingMode, dhwHeatingMode, setAlarmMode, setCentralHeatingMode } = this.props;
+const SET_CENTRAL_HEATING_MODE = gql`
+  mutation updateCentralHeatingMode($mode: CentralHeatingMode) {
+    updateCentralHeatingMode(mode: $mode) {
+      centralHeatingMode
+    }
+  }
+`;
 
-    return (
-      <div className={classnames('sidebar', {
-        'sidebar--hidden-on-mobile': this.props.hideOnMobile
-      })}>
-        <div className="sidebar__house">
-          <div className={classnames('sidebar__house-border', {
-            'sidebar__house-border--away': stays && stays.every(x => x.status === AWAY),
-            'sidebar__house-border--home': stays && stays.some(x => x.status === HOME),
-          })}>
-            <div className={classnames('house', {
-              'house--away': stays && stays.every(x => x.status === AWAY),
-              'house--home': stays && stays.some(x => x.status === HOME)
-            })} />
-          </div>
-        </div>
+const SET_DHW_HEATING_MODE = gql`
+  mutation updateDHWHeatingMode($mode: DHWHeatingMode) {
+    updateDHWHeatingMode(mode: $mode) {
+      dhwHeatingMode
+    }
+  }
+`;
 
-        <div className="sidebar__stays">
-          {stays && stays.map((stay) => <UserStatus key={stay.id} {...stay} />)}
-        </div>
+const SET_ALARM_MODE = gql`
+  mutation updateAlarm($mode: AlarmMode) {
+    updateAlarm(mode: $mode) {
+      alarmMode
+    }
+  }
+`;
 
-        <div className="sidebar__home-controls">
-          <h3 className="home-controls__title"><FontAwesomeIcon icon={faShieldHalved} /></h3>
-          <div>
-            <button disabled={alarmMode === 'OFF'} onClick={() => setAlarmMode('OFF')}>Home</button>
-            <button disabled={alarmMode === 'AWAY'} onClick={() => setAlarmMode('AWAY')}>Away</button>
-            <button disabled={alarmMode === 'NIGHT'} onClick={() => setAlarmMode('NIGHT')}>Night</button>
-          </div>
-        </div>
+function HomeControlButton({ onClick, value, currentValue, label }) {
+  return (
+    <button disabled={currentValue === value} onClick={() => onClick({
+      variables: {
+        mode: value
+      }
+    })}>{label}</button>
+  );
+}
 
-        <div className="sidebar__home-controls">
-          <h3 className="home-controls__title"><FontAwesomeIcon icon={faFire} /></h3>
-          <div>
-            <button disabled={centralHeatingMode === 'ON'} onClick={() => setCentralHeatingMode('ON')}>On</button>
-            <button disabled={centralHeatingMode === 'SETBACK'} onClick={() => setCentralHeatingMode('SETBACK')}>Setback</button>
-            <button disabled={centralHeatingMode === 'OFF'} onClick={() => setCentralHeatingMode('OFF')}>Off</button>
-          </div>
-        </div>
+function SideBar({ stays, alarmMode, centralHeatingMode, dhwHeatingMode, hideOnMobile}) {
+  const [updateCentralHeatingMode] = useMutation(SET_CENTRAL_HEATING_MODE);
+  const [updateDHWHeatingMode] = useMutation(SET_DHW_HEATING_MODE);
+  const [updateAlarmMode] = useMutation(SET_ALARM_MODE);
 
-        <div className="sidebar__home-controls">
-          <h3 className="home-controls__title"><FontAwesomeIcon icon={faDroplet} /></h3>
-          <div>
-            <button disabled={dhwHeatingMode === 'ON'} onClick={() => setAlarmMode('ON')}>On</button>
-            <button disabled={dhwHeatingMode === 'OFF'} onClick={() => setAlarmMode('OFF')}>Off</button>
-          </div>
+  return (
+    <div className={classnames('sidebar', {
+      'sidebar--hidden-on-mobile': hideOnMobile
+    })}>
+      <div className="sidebar__house">
+        <div className={classnames('sidebar__house-border', {
+          'sidebar__house-border--away': stays && stays.every(x => x.status === AWAY),
+          'sidebar__house-border--home': stays && stays.some(x => x.status === HOME),
+        })}>
+          <div className={classnames('house', {
+            'house--away': stays && stays.every(x => x.status === AWAY),
+            'house--home': stays && stays.some(x => x.status === HOME)
+          })} />
         </div>
       </div>
-    );
-  }
+
+      <div className="sidebar__stays">
+        {stays && stays.map((stay) => <UserStatus key={stay.id} {...stay} />)}
+      </div>
+
+      <div className="sidebar__home-controls">
+        <h3 className="home-controls__title"><FontAwesomeIcon icon={faShieldHalved} /></h3>
+        <div>
+          <HomeControlButton currentValue={alarmMode} label="Home" onClick={updateAlarmMode} value="OFF" />
+          <HomeControlButton currentValue={alarmMode} label="Away" onClick={updateAlarmMode} value="AWAY" />
+          <HomeControlButton currentValue={alarmMode} label="Night" onClick={updateAlarmMode} value="NIGHT" />
+        </div>
+      </div>
+
+      <div className="sidebar__home-controls">
+        <h3 className="home-controls__title"><FontAwesomeIcon icon={faFire} /></h3>
+        <div>
+          <HomeControlButton currentValue={centralHeatingMode} label="On" onClick={updateCentralHeatingMode} value="ON" />
+          <HomeControlButton currentValue={centralHeatingMode} label="Setback" onClick={updateCentralHeatingMode} value="SETBACK" />
+          <HomeControlButton currentValue={centralHeatingMode} label="Off" onClick={updateCentralHeatingMode} value="OFF" />
+        </div>
+      </div>
+
+      <div className="sidebar__home-controls">
+        <h3 className="home-controls__title"><FontAwesomeIcon icon={faDroplet} /></h3>
+        <div>
+          <HomeControlButton currentValue={dhwHeatingMode} label="On" onClick={updateDHWHeatingMode} value="ON" />
+          <HomeControlButton currentValue={dhwHeatingMode} label="Off" onClick={updateDHWHeatingMode} value="OFF" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const withData = graphql(gql`{
@@ -88,39 +123,4 @@ const withData = graphql(gql`{
   }
 });
 
-const withSetAlarmStatus = graphql(gql`
-  mutation updateAlarm($mode: AlarmMode) {
-    updateAlarm(mode: $mode) {
-      alarmMode
-    }
-  }
-`, {
-  props: ({ mutate, ownProps }) => ({
-    ...ownProps,
-    setAlarmMode(mode) {
-      mutate({
-        variables: { mode }
-      });
-    }
-  }),
-
-  options: {
-    update(proxy, { data: { updateAlarm: { alarmMode }}}) {
-      proxy.writeQuery({
-        query: gql`{
-          getSecurityStatus {
-            alarmMode
-          }
-        }`,
-
-        data: {
-          getSecurityStatus: {
-            alarmMode
-          }
-        }
-      });
-    }
-  }
-});
-
-export default withData(withSetAlarmStatus(SideBar));
+export default withData(SideBar);

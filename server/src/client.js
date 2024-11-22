@@ -64,7 +64,15 @@ const client = new ApolloClient({
     )
   ]),
   cache: new InMemoryCache({
-    possibleTypes
+    possibleTypes,
+    typePolicies: {
+      Security: {
+        keyFields: []
+      },
+      Heating: {
+        keyFields: []
+      }
+    }
   })
 });
 
