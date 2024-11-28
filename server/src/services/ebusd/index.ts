@@ -56,10 +56,10 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
 
     if (typeof currentValue === 'number') {
       eventValue = Math.round(currentValue * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces);
-      valueHasChanged = eventValue !== lastEvent.value;
+      valueHasChanged = !lastEvent || eventValue !== lastEvent.value;
     } else { // currentValue === 'boolean'
       eventValue = Number(currentValue);
-      valueHasChanged = !lastEvent.end !== currentValue
+      valueHasChanged = !lastEvent || !lastEvent.end !== currentValue
     }
 
     if (valueHasChanged) {
