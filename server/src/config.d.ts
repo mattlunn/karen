@@ -67,6 +67,11 @@ declare namespace _default {
     const app_name: string;
     const license_key: string;
   }
+  export namespace ebusd {
+    const host: string;
+    const port: number;
+    const poll_interval_minutes: number;
+  }
   const port: number;
   const trust_proxy: boolean;
   const days_to_keep_recordings_while_home: number;

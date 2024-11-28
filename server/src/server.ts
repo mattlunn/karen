@@ -28,6 +28,7 @@ require('./services/alexa');
 require('./services/zwave');
 require('./services/pushover');
 require('./services/shelly');
+require('./services/ebusd');
 
 require('./automations');
 
