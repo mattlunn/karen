@@ -30,23 +30,23 @@ export default class EbusClient {
   }
 
   async getOutsideTemperature(): Promise<number> {
-    return Number(this.#read<number>('OutsideTemp'));
+    return Number(await this.#read<number>('OutsideTemp'));
   }
 
   async getActualFlowTemperature(): Promise<number> {
-    return Number(this.#read<number>('FlowTemp', 'hmu'));
+    return Number(await this.#read<number>('FlowTemp', 'hmu'));
   }
 
   async getDesiredFlowTemperature(): Promise<number> {
-    return Number(this.#read<number>('State01', 'hmu', 'temp1.0'));
+    return Number(await this.#read<number>('State01', 'hmu', 'temp1.0'));
   }
 
   async getSystemPressure(): Promise<number> {
-    return Number(this.#read<number>('State07', 'hmu', 'DisplaySystemPressure'));
+    return Number(await this.#read<number>('State07', 'hmu', 'DisplaySystemPressure'));
   }
 
   async getCompressorPower(): Promise<number> {
-    return Number(this.#read<number>('State07', 'hmu', 'power'));
+    return Number(await this.#read<number>('State07', 'hmu', 'power'));
   }
 
   async getIsActive(): Promise<boolean> {
