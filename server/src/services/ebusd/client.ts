@@ -41,6 +41,14 @@ export default class EbusClient {
     return Number(await this.#read<number>('State01', 'hmu', 'temp1.0'));
   }
 
+  async getReturnTemperature(): Promise<number> {
+    return Number(await this.#read<number>('ReturnTemp', 'hmu'));
+  }
+
+  async getHotWaterCylinderTemperature(): Promise<number> {
+    return Number(await this.#read<number>('HwcStorageTemp', 'ctlv3'));
+  }
+
   async getSystemPressure(): Promise<number> {
     return Number(await this.#read<number>('State07', 'hmu', 'DisplaySystemPressure'));
   }

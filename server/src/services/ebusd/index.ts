@@ -48,9 +48,10 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
 
-  async function updateState(device: Device, type: string, currentValue: number | boolean, decimalPlaces: number = 1) {
+  async function updateState(device: Device, type: string, currentValuePromise: Promise<number | boolean>, decimalPlaces: number = 1) {
     const timestamp = new Date();
     const lastEvent = await device.getLatestEvent(type);
+    const currentValue = await currentValuePromise;
     let valueHasChanged;
     let eventValue;
 
@@ -85,10 +86,14 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     }
   }
 
-  await updateState(device, 'outside_temperature', await client.getOutsideTemperature());
-  await updateState(device, 'actual_flow_temperature', await client.getActualFlowTemperature());
-  await updateState(device, 'desired_flow_temperature', await client.getDesiredFlowTemperature());
-  await updateState(device, 'system_pressure', await client.getSystemPressure());
-  await updateState(device, 'compressor_power', await client.getCompressorPower());
-  await updateState(device, 'is_active', await client.getIsActive());
+  await Promise.all([
+    updateState(device, 'outside_temperature', client.getOutsideTemperature()),
+    updateState(device, 'actual_flow_temperature', client.getActualFlowTemperature()),
+    updateState(device, 'desired_flow_temperature', client.getDesiredFlowTemperature()),
+    updateState(device, 'return_temperature', client.getReturnTemperature()),
+    updateState(device, 'hwc_temperature', client.getHotWaterCylinderTemperature()),
+    updateState(device, 'system_pressure', client.getSystemPressure()),
+    updateState(device, 'compressor_power', client.getCompressorPower()),
+    updateState(device, 'is_active', client.getIsActive())
+  ]);
 }), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);
