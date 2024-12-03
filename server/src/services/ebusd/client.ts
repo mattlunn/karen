@@ -24,7 +24,7 @@ export default class EbusClient {
           }
         });
 
-        socket.write(`read${circuit ? ' -c ' + circuit : ''} ${value} ${field}\n`);
+        socket.write(`read${circuit ? ' -f -c ' + circuit : ''} ${value} ${field}\n`);
       });
     });
   }
