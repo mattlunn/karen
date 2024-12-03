@@ -6,6 +6,7 @@ import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
 import makeSynologyRequest from '../services/synology/instance';
 import { setCentralHeatingMode, getCentralHeatingMode } from '../services/tado';
+import { setDHWMode, getDHWMode } from '../services/ebusd';
 import UnorderedDataLoader from './lib/unordered-dataloader';
 import DataLoaderWithNoIdParam from './lib/dataloader-with-no-id-param';
 import typeDefs from './type-defs';
@@ -321,7 +322,16 @@ const resolvers = {
     },
 
     async updateDHWHeatingMode(parent, args, context, info) {
-      // TODO
+      switch (args.mode) {
+        case 'ON':
+          await setDHWMode(true);
+          break;
+        case 'OFF':
+          await setDHWMode(false);
+          break;
+        default:
+          throw new Error(`${args.mode} is not a valid mode`);
+      }
 
       return new Heating();
     }
@@ -390,7 +400,7 @@ export default async function(wsServer) {
         devicesById: new UnorderedDataLoader((ids) => db.Device.findAll({ where: { id: ids }}), device => device.id, device => Device.create(device)),
         recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording)),
         centralHeatingMode: () => getCentralHeatingMode(),
-        dhwHeatingMode: () => 'ON'
+        dhwHeatingMode: async () => await getDHWMode() ? 'ON' : 'OFF'
       };
       
       return context;

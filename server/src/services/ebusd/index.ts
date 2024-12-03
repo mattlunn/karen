@@ -44,6 +44,45 @@ Device.registerProvider('ebusd', {
   }
 });
 
+export async function setDHWMode(isOn: true) {
+  const client = new EbusClient(config.ebusd.host, config.ebusd.port);
+  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
+  const lastEvent = await device.getLatestEvent('dhw_mode');
+
+  if (isOn) {
+    await client.disableDHWAwayMode();
+  } else {
+    await client.enableDHWAwayMode();
+  }
+
+  if (lastEvent === null || lastEvent.value !== Number(isOn)) {
+    const now = new Date();
+
+    if (lastEvent) {
+      lastEvent.end = now;
+      await lastEvent.save();
+    }
+
+    await Event.create({
+      deviceId: device.id,
+      start: now,
+      type: 'dhw_mode',
+      value: Number(isOn)
+    })
+  }
+}
+
+export async function getDHWMode(): Promise<boolean> {
+  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
+  const latestEvent = await device.getLatestEvent('dhw_mode');
+  
+  if (latestEvent) { 
+    return latestEvent.value === 1;
+  }
+
+  return true;
+}
+
 nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');

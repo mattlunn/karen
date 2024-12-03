@@ -1,4 +1,5 @@
 import { createConnection } from 'net';
+import moment from 'moment';
 import logger from '../../logger';
 
 export default class EbusClient {
@@ -10,7 +11,7 @@ export default class EbusClient {
     this.#port = port;
   }
 
-  #read<T>(value: string, circuit?: string, field: string = ''): Promise<T> {
+  #command<T>(command: string): Promise<T> {
     return new Promise((res, rej) => {
       const socket = createConnection(this.#port, this.#host, () => {
         let data = [];
@@ -24,9 +25,24 @@ export default class EbusClient {
           }
         });
 
-        socket.write(`read${circuit ? ' -f -c ' + circuit : ''} ${value} ${field}\n`);
+        logger.debug(`${command}`);
+        socket.write(`${command}\n`);
       });
     });
+  }
+
+  async #write<T>(circuit: string, key: string, value: string = ''): Promise<T> {
+    const result = await this.#command<T>(`write -c ${circuit} ${key} ${value}`);
+
+    if (result !== value) {
+      throw new Error(`Unable to write '${value}' to ${key}. Result was ${result}`);
+    }
+    
+    return result;
+  }
+
+  #read<T>(value: string, circuit?: string, field: string = ''): Promise<T> {
+    return this.#command<T>(`read${circuit ? ' -f -c ' + circuit : ''} ${value} ${field}`);
   }
 
   async getOutsideTemperature(): Promise<number> {
@@ -63,5 +79,25 @@ export default class EbusClient {
     logger.debug(`ebusd Statuscode for hmu is "${value}"`);
 
     return value !== 'Standby';
+  }
+
+  async enableDHWAwayMode() {
+    return await Promise.all([
+      this.#write('ctlv3', 'HwcHolidayStartDate', moment().format('DD.MM.YYYY')),
+      this.#write('ctlv3', 'HwcHolidayStartTime', '00:00:00'),
+
+      this.#write('ctlv3', 'HwcHolidayEndDate', moment().add('1', 'y').format('DD.MM.yyyy')),
+      this.#write('ctlv3', 'HwcHolidayEndTime', '00:00:00')
+    ]);
+  }
+
+  async disableDHWAwayMode() {
+    return await Promise.all([
+      this.#write('ctlv3', 'HwcHolidayStartDate', '01.01.2019'),
+      this.#write('ctlv3', 'HwcHolidayStartTime', '00:00:00'),
+
+      this.#write('ctlv3', 'HwcHolidayEndDate', '01.01.2019'),
+      this.#write('ctlv3', 'HwcHolidayEndTime', '00:00:00')
+    ]);
   }
 }
