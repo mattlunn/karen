@@ -76,7 +76,7 @@ export default class EbusClient {
   async getIsActive(): Promise<boolean> {
     const value = await this.#read<string>('Statuscode', 'hmu');
 
-    logger.debug(`ebusd Statuscode for hmu is "${value}"`);
+    logger.info(`ebusd Statuscode for hmu is "${value}"`);
 
     return value !== 'Standby';
   }
