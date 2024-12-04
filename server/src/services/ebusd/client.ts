@@ -2,6 +2,14 @@ import { createConnection } from 'net';
 import moment from 'moment';
 import logger from '../../logger';
 
+export const MODES = {
+  UNKNOWN: 0,
+  STANDBY: 1,
+  HEATING: 2,
+  DHW: 3,
+  DEICING: 4,
+};
+
 export default class EbusClient {
   #host: string;
   #port: number;
@@ -11,17 +19,17 @@ export default class EbusClient {
     this.#port = port;
   }
 
-  #command<T>(command: string): Promise<T> {
+  #command(command: string): Promise<string> {
     return new Promise((res, rej) => {
       const socket = createConnection(this.#port, this.#host, () => {
-        let data = [];
+        let data: string[] = [];
 
         socket.setEncoding('utf-8');
         socket.on('data', (response: string) => {
           data.push(...response.split('\n'));
 
           if (data.at(-1) === '' && data.at(-2) === '') {
-            res(data.at(0) as T);
+            res(data[0]);
           }
         });
 
@@ -31,8 +39,8 @@ export default class EbusClient {
     });
   }
 
-  async #write<T>(circuit: string, key: string, value: string = ''): Promise<T> {
-    const result = await this.#command<T>(`write -c ${circuit} ${key} ${value}`);
+  async #write(circuit: string, key: string, value: string = ''): Promise<string> {
+    const result = await this.#command(`write -c ${circuit} ${key} ${value}`);
 
     if (result !== value) {
       throw new Error(`Unable to write '${value}' to ${key}. Result was ${result}`);
@@ -41,44 +49,67 @@ export default class EbusClient {
     return result;
   }
 
-  #read<T>(value: string, circuit?: string, field: string = ''): Promise<T> {
-    return this.#command<T>(`read${circuit ? ' -f -c ' + circuit : ''} ${value} ${field}`);
+  #read(value: string, circuit?: string, field: string = ''): Promise<string> {
+    return this.#command(`read${circuit ? ' -f -c ' + circuit : ''} ${value} ${field}`);
   }
 
   async getOutsideTemperature(): Promise<number> {
-    return Number(await this.#read<number>('OutsideTemp'));
+    return Number(await this.#read('OutsideTemp'));
   }
 
   async getActualFlowTemperature(): Promise<number> {
-    return Number(await this.#read<number>('FlowTemp', 'hmu'));
+    return Number(await this.#read('FlowTemp', 'hmu'));
   }
 
   async getDesiredFlowTemperature(): Promise<number> {
-    return Number(await this.#read<number>('State01', 'hmu', 'temp1.0'));
+    return Number(await this.#read('State01', 'hmu', 'temp1.0'));
   }
 
   async getReturnTemperature(): Promise<number> {
-    return Number(await this.#read<number>('ReturnTemp', 'hmu'));
+    return Number(await this.#read('ReturnTemp', 'hmu'));
   }
 
   async getHotWaterCylinderTemperature(): Promise<number> {
-    return Number(await this.#read<number>('HwcStorageTemp', 'ctlv3'));
+    return Number(await this.#read('HwcStorageTemp', 'ctlv3'));
   }
 
   async getSystemPressure(): Promise<number> {
-    return Number(await this.#read<number>('State07', 'hmu', 'DisplaySystemPressure'));
+    return Number(await this.#read('State07', 'hmu', 'DisplaySystemPressure'));
   }
 
   async getCompressorPower(): Promise<number> {
-    return Number(await this.#read<number>('State07', 'hmu', 'power'));
+    return Number(await this.#read('State07', 'hmu', 'power'));
   }
 
-  async getIsActive(): Promise<boolean> {
-    const value = await this.#read<string>('Statuscode', 'hmu');
+  async getEnergyDaily(): Promise<number> {
+    return Number(await this.#read('State07', 'hmu', 'energy'));
+  }
 
-    logger.info(`ebusd Statuscode for hmu is "${value}"`);
+  async getCurrentYield(): Promise<number> {
+    return Number(await this.#read('CurrentYieldPower', 'hmu'));
+  }
 
-    return value !== 'Standby';
+  async getCurrentPower(): Promise<number> {
+    return Number(await this.#read('CurrentConsumedPower', 'hmu'));
+  }
+
+  async getMode(): Promise<typeof MODES[keyof typeof MODES]> {
+    const value = await this.#read('Statuscode', 'hmu');
+
+    switch (value.split(':')[0]) {
+      case 'Heating':
+        return MODES.HEATING;
+      case 'Warm Water':
+        return MODES.DHW;
+      case 'Standby':
+        return MODES.STANDBY;
+      case 'Deicing active':
+        return MODES.DEICING;
+      default:
+        logger.error(`ebusd Statuscode for hmu is unknown value of "${value}"`);
+
+        return MODES.UNKNOWN;
+    }
   }
 
   async enableDHWAwayMode() {

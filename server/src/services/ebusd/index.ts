@@ -133,6 +133,9 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     updateState(device, 'hwc_temperature', client.getHotWaterCylinderTemperature()),
     updateState(device, 'system_pressure', client.getSystemPressure()),
     updateState(device, 'compressor_power', client.getCompressorPower()),
-    updateState(device, 'is_active', client.getIsActive())
+    updateState(device, 'energy_daily', client.getEnergyDaily()),
+    updateState(device, 'current_yield', client.getCurrentYield()),
+    updateState(device, 'current_power', client.getCurrentPower()),
+    updateState(device, 'mode', client.getMode())
   ]);
 }), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);
