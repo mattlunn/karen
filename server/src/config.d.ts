@@ -47,6 +47,7 @@ declare namespace _default {
     const password: string;
     const sync_interval_seconds: number;
     const eta_check_interval_minutes: number;
+    const linked_zones: string[][];
   }
   export namespace shelly {
     const user: string;

@@ -14,6 +14,25 @@ const CENTRAL_HEATING_MODES = {
   SETBACK: 3
 };
 
+type NextTarget = {
+  nextTargetTime: Moment,
+  nextTargetTemperature: number
+};
+
+type DeviceState = {
+  device: Device,
+  linkedZoneDevices: DeviceState[],
+  hasManualOverride: boolean,
+} & ({
+  shouldScheduleForEarlyStart: true,
+  nextTarget: NextTarget,
+  warmupRatePerHour: number
+} | {
+  shouldScheduleForEarlyStart: false,
+  nextTarget: NextTarget | null
+  warmupRatePerHour: number | null
+});
+
 Device.registerProvider('tado', {
   async setProperty(device, key, value) {
     switch (key) {
@@ -215,6 +234,31 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
   }
 }), Math.max(config.tado.sync_interval_seconds, 10) * 1000);
 
+
+const getNextTargetForThermostatGenerator = (isSomeoneAtHome: boolean, client: TadoClient, nextEta: Stay | null) => async (device: Device, zoneState: any, activeTimetable: any): Promise<NextTarget | null> => {
+  if (isSomeoneAtHome) {
+    const { nextScheduleChange } = zoneState;
+
+    if (nextScheduleChange.setting.power === 'ON') {
+      return {
+        nextTargetTime: moment(nextScheduleChange.start),
+        nextTargetTemperature: nextScheduleChange.setting.temperature.celsius
+      };
+    }
+  } else if (nextEta) {
+    const temperature = getTimetabledTemperature(await client.getTimetableBlocks(device.providerId, activeTimetable), moment(nextEta.eta));
+
+    if (temperature !== null) {
+      return {
+        nextTargetTime: moment(nextEta.eta),
+        nextTargetTemperature: temperature
+      };
+    }
+  }
+
+  return null;
+};
+
 nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);
   const [
@@ -225,35 +269,10 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
     Stay.findNextUpcomingEta()
   ]);
 
-  const devices = await Device.findByProvider('tado');
-  const getNextTargetForThermostat = async (device: Device, zoneState: any, activeTimetable: any): Promise<{
-    nextTargetTime: Moment,
-    nextTargetTemperature: number
-  } | null> => {
-    if (isSomeoneAtHome) {
-      const { nextScheduleChange } = zoneState;
+  const getNextTargetForThermostat = getNextTargetForThermostatGenerator(isSomeoneAtHome, client, nextEta);
+  const deviceStates: DeviceState[] = [];
 
-      if (nextScheduleChange.setting.power === 'ON') {
-        return {
-          nextTargetTime: moment(nextScheduleChange.start),
-          nextTargetTemperature: nextScheduleChange.setting.temperature.celsius
-        };
-      }
-    } else if (nextEta) {
-      const temperature = getTimetabledTemperature(await client.getTimetableBlocks(device.providerId, activeTimetable), moment(nextEta.eta));
-
-      if (temperature !== null) {
-        return {
-          nextTargetTime: moment(nextEta.eta),
-          nextTargetTemperature: temperature
-        };
-      }
-    }
-
-    return null;
-  };
-
-  for (const device of devices) {
+  for (const device of await Device.findByProvider('tado')) {
     if (device.type === 'thermostat') {
       const [
         currentTemperature,
@@ -265,26 +284,80 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
         client.getActiveTimetable(device.providerId)
       ]);
 
+      let warmupRatePerHour = null;
+  
       const nextTarget = await getNextTargetForThermostat(device, zoneState, activeTimetable);
-
+      const hasManualOverride = zoneState.overlayType === 'MANUAL';
+  
       if (nextTarget !== null) {
         const { nextTargetTemperature, nextTargetTime }  = nextTarget;
-
+  
         // Unless manual override with a end time
-        if (nextTargetTemperature > currentTemperature && (zoneState.overlayType !== 'MANUAL' || zoneState.overlay.termination.type === 'MANUAL')) {
+        if (nextTargetTemperature > currentTemperature && (!hasManualOverride || zoneState.overlay.termination.type === 'MANUAL')) {
+          warmupRatePerHour = await getWarmupRatePerHour(device);
+
           const difference = nextTargetTemperature - currentTemperature;
-          const warmupRatePerHour = await getWarmupRatePerHour(device);
           const hoursNeededToWarmUp = difference / warmupRatePerHour;
 
           if (moment().add(hoursNeededToWarmUp, 'h').isAfter(nextTargetTime)) {
-            bus.emit(NOTIFICATION_TO_ADMINS, {
-              message: `Setting "${device.name}" to ${nextTargetTemperature.toFixed(1)}, so hopefully we'll heat up by ${warmupRatePerHour.toFixed(1)}°/hr to reach the target temperature by ${nextTargetTime.format('HH:mm')}!`
+            deviceStates.push({
+              device,
+              linkedZoneDevices: [],
+              shouldScheduleForEarlyStart: true,
+              hasManualOverride,
+              nextTarget,
+              warmupRatePerHour
             });
-
-            await client.setHeatingPowerForZone(device.providerId, nextTargetTemperature, true);
+            
+            continue;
           }
         }
+
+        deviceStates.push({
+          device,
+          linkedZoneDevices: [],
+          shouldScheduleForEarlyStart: false,
+          hasManualOverride,
+          nextTarget,
+          warmupRatePerHour
+        });
       }
     }
   }
-}), Math.max(config.tado.eta_check_interval_minutes, 10) * 60 * 1000);
+
+  // Figure out linked zones, so that if a certain thermostat should be turned "on", we can also
+  // turn on linked zones as well.
+  for (const linkedZones of config.tado.linked_zones) {
+    const matchingDeviceStates = deviceStates.filter(x => linkedZones.includes(x.device.name));
+
+    if (linkedZones.length !== matchingDeviceStates.length) {
+      throw new Error(`One of ${linkedZones} does not map to a known thermostat`);
+    }
+
+    for (const matchingDeviceState of matchingDeviceStates) {
+      matchingDeviceState.linkedZoneDevices.push(...matchingDeviceStates.filter(x => x !== matchingDeviceState));
+    }
+  }
+
+  for (const deviceState of deviceStates) {
+    if (deviceState.shouldScheduleForEarlyStart) {
+      // We don't change a linked zone if it itself is scheduled for switch on, or if it's already got a 
+      // manual configuration (either on from a previous job run, or human override, or if doesn't have a next target)
+      const devicesToEnable = [deviceState, ...deviceState.linkedZoneDevices.filter(x => {
+        return !x.shouldScheduleForEarlyStart && !x.hasManualOverride && x.nextTarget !== null
+      })];
+
+      for (const deviceToEnable of devicesToEnable) {
+        await client.setHeatingPowerForZone(deviceToEnable.device.providerId, deviceToEnable.nextTarget!.nextTargetTemperature, true);
+      }
+
+      const zoneMessage = deviceState.linkedZoneDevices.length > 0 
+        ? ` (+${devicesToEnable.length - 1} of ${deviceState.linkedZoneDevices.length} linked zones)`
+        : ``;
+
+      bus.emit(NOTIFICATION_TO_ADMINS, {
+        message: `Setting "${deviceState.device.name}" to ${deviceState.nextTarget.nextTargetTemperature.toFixed(1)}°${zoneMessage}, so hopefully we'll heat up by ${deviceState.warmupRatePerHour.toFixed(1)}°/hr to reach the target temperature by ${deviceState.nextTarget.nextTargetTime.format('HH:mm')}!`
+      });
+    }
+  }
+}), Math.max(config.tado.eta_check_interval_minutes, 1) * 60 * 1000);
