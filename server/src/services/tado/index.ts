@@ -292,8 +292,8 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
       if (nextTarget !== null) {
         const { nextTargetTemperature, nextTargetTime }  = nextTarget;
   
-        // Unless manual override with a end time
-        if (nextTargetTemperature > currentTemperature && (!hasManualOverride || zoneState.overlay.termination.type === 'MANUAL')) {
+        // Don't make any changes if we have a manual override
+        if (nextTargetTemperature > currentTemperature && !hasManualOverride) {
           warmupRatePerHour = await getWarmupRatePerHour(device);
 
           const difference = nextTargetTemperature - currentTemperature;
