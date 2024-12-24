@@ -2,7 +2,7 @@ import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, NOTIFICATION_TO_ADMINS } from '
 import { Device, Arming, Stay } from '../models';
 import { joinWithAnd, pluralise } from '../helpers/array';
 import { createBackgroundTransaction } from '../helpers/newrelic';
-import { setCentralHeatingMode } from '../services/tado';
+import { getCentralHeatingMode, setCentralHeatingMode } from '../services/tado';
 
 async function turnOffLights() {
   const lights = await Device.findByType('light');
@@ -21,27 +21,47 @@ async function turnOffLights() {
 
 export default function () {
   bus.on(LAST_USER_LEAVES, createBackgroundTransaction('automations:occupancy:last-user-leaves', async (stay) => {
-    try {
-      let [
-        activeArming,
-        lightsTurnedOff,
-      ] = await Promise.all([
-        Arming.getActiveArming(stay.end),
-        turnOffLights(),
-        setCentralHeatingMode('SETBACK')
-      ]);
+    async function ensureActiveArming() {
+      let activeArming = await Arming.getActiveArming(stay.end);
 
       if (!activeArming) {
-        activeArming = await Arming.create({
+        activeArming = Arming.create({
           start: stay.departure,
           mode: Arming.MODE_AWAY
         });
       }
 
+      return activeArming;
+    }
+  
+    async function ensureHeatingOff() {
+      const currentHeatingMode = await getCentralHeatingMode();
+
+      if (currentHeatingMode === 'ON') {
+        await setCentralHeatingMode('SETBACK');
+
+        return true;
+      }
+
+      return false;
+    }
+    
+    try {
+      let [
+        activeArming,
+        centralHeatingModeChanged,
+        lightsTurnedOff
+      ] = await Promise.all([
+        ensureActiveArming(),
+        ensureHeatingOff(),
+        turnOffLights()
+      ]);
+
       const notification = [
         `No-one is home.`,
-        `The heating has been turned off, as well as ${lightsTurnedOff.length ? `the ${joinWithAnd(lightsTurnedOff.map(x => x.name))} light${pluralise(lightsTurnedOff)}` : `all the lights`}.`,
-        activeArming.mode === Arming.MODE_AWAY ? 'The alarm is also on' : 'The alarm is on, but in Night Mode'
+        lightsTurnedOff.length ? `${joinWithAnd(lightsTurnedOff.map(x => x.name))} light${pluralise(lightsTurnedOff)} have been turned off,` : `All the lights are off,`,
+        `the heating ${centralHeatingModeChanged ? 'has been turned off' : 'was already off'}, and`,
+        activeArming.mode === Arming.MODE_AWAY ? 'the alarm is on.' : 'the alarm is already set to Night Mode.'
       ].join(' ');
 
       bus.emit(NOTIFICATION_TO_ADMINS, {
