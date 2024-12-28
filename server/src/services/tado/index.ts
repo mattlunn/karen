@@ -312,16 +312,16 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
             continue;
           }
         }
-
-        deviceStates.push({
-          device,
-          linkedZoneDevices: [],
-          shouldScheduleForEarlyStart: false,
-          hasManualOverride,
-          nextTarget,
-          warmupRatePerHour
-        });
       }
+
+      deviceStates.push({
+        device,
+        linkedZoneDevices: [],
+        shouldScheduleForEarlyStart: false,
+        hasManualOverride,
+        nextTarget,
+        warmupRatePerHour
+      });
     }
   }
 
