@@ -8,6 +8,7 @@ export const MODES = {
   HEATING: 2,
   DHW: 3,
   DEICING: 4,
+  FROST_PROTECTION: 5
 };
 
 export default class EbusClient {
@@ -105,6 +106,8 @@ export default class EbusClient {
         return MODES.STANDBY;
       case 'Deicing active':
         return MODES.DEICING;
+      case 'Frost protection':
+        return MODES.FROST_PROTECTION;
       default:
         logger.error(`ebusd Statuscode for hmu is unknown value of "${value}"`);
 
