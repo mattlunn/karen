@@ -3,9 +3,111 @@ import config from '../../config';
 import logger from '../../logger';
 import { stringify } from 'querystring';
 
-let token;
+export type Token = {
+  accessToken: string,
+  expiresAt: number
+};
 
-export async function getAccessToken() {
+export type ISODateTime = string;
+
+export type ZoneActiveTimetable = {
+  id: 0,
+  type: "ONE_DAY"
+} | {
+  id: 1,
+  type: "THREE_DAY"
+} | {
+  id: 2,
+  type: "SEVEN_DAY"
+};
+
+export type ZoneSetting = {
+  type: "HEATING",
+  power: "ON" | "OFF",
+} & ({ 
+  power: "ON"
+  temperature: {
+    celsius: 17.00,
+    fahrenheit: 62.60
+  }
+} | {
+  power: "OFF"
+  temperature: null
+});
+
+export type ZoneTimetableBlock = {
+  dayType: "MONDAY_TO_SUNDAY" | "MONDAY_TO_FRIDAY",
+  start: string,
+  end: string,
+  geolocationOverride: boolean,
+  setting: ZoneSetting
+};
+
+export type ZoneState = {
+  tadoMode: "HOME",
+  setting: ZoneSetting,
+  openWindow: null,
+  nextScheduleChange: {
+    start: ISODateTime,
+    setting: ZoneSetting
+  },
+  nextTimeBlock: {
+    start: ISODateTime
+  },
+  link: {
+    state: "ONLINE"
+  },
+  runningOfflineSchedule: false,
+  activityDataPoints: {
+    heatingPower: {
+      type: "PERCENTAGE",
+      percentage: number,
+      timestamp: ISODateTime
+    }
+  },
+  sensorDataPoints: {
+    insideTemperature: {
+      celsius: number,
+      fahrenheit: number,
+      timestamp: ISODateTime,
+      type: "TEMPERATURE",
+      precision: {
+        celsius: number,
+        fahrenheit: number
+      }
+    },
+    humidity: {
+      type: "PERCENTAGE",
+      percentage: number,
+      timestamp: ISODateTime
+    }
+  }
+ } & ({
+  overlayType: "MANUAL",
+  overlay: {
+    type: "MANUAL",
+    setting: ZoneSetting,
+    termination: {
+      type: "TIMER",
+      typeSkillBasedApp: "NEXT_TIME_BLOCK" | "TIMER",
+      durationInSeconds: number,
+      expiry: ISODateTime,
+      remainingTimeInSeconds: number,
+      projectedExpiry: ISODateTime
+    } | {
+      type: "MANUAL",
+      typeSkillBasedApp: "MANUAL",
+      projectedExpiry: null
+    }
+  }
+} | {
+  overlayType: null,
+  overlay: null
+});
+
+let token: Token | undefined;
+
+export async function getAccessToken(): Promise<string> {
   if (!token || token.expiresAt < Date.now() + 1000 * 60) {
     const response = await fetch('https://auth.tado.com/oauth/token', {
       method: 'POST',
@@ -42,12 +144,15 @@ export async function getAccessToken() {
 }
 
 export default class TadoClient {
-  constructor(accessToken, homeId) {
+  private accessToken: string;
+  private homeId: number;
+
+  constructor(accessToken: string, homeId: number) {
     this.accessToken = accessToken;
     this.homeId = homeId;
   }
 
-  async _request(url, body, verb) {
+  async _request(url: string, body?: object | null, verb?: 'PUT' | 'GET' | 'DELETE') {
     const response = await fetch(`https://my.tado.com/api/v2/homes/${this.homeId}${url}`, {
       method: verb || (body ? 'PUT' : 'GET'),
       body: body ? JSON.stringify(body) : undefined,
@@ -74,27 +179,27 @@ export default class TadoClient {
     return this._request('/zones');
   }
 
-  getZoneState(zone) {
+  getZoneState(zone: string): Promise<ZoneState> {
     return this._request(`/zones/${zone}/state`);
   }
 
-  async getActiveTimetable(zone) {
+  async getActiveTimetable(zone: string): Promise<ZoneActiveTimetable> {
     const data = await this._request(`/zones/${zone}/schedule/activeTimetable`);
 
     return data.id;
   }
 
-  getTimetableBlocks(zone, timetable) {
+  getTimetableBlocks(zone: string, timetable: ZoneActiveTimetable["id"]): Promise<ZoneTimetableBlock> {
     return this._request(`/zones/${zone}/schedule/timetables/${timetable}/blocks`);
   }
 
-  async getMinimumAwayTemperatureForZone(zone) {
+  async getMinimumAwayTemperatureForZone(zone: string): Promise<number> {
     const data = await this._request(`/zones/${zone}/awayConfiguration`);
 
     return data.minimumAwayTemperature.celsius;
   }
 
-  setHeatingPowerForZone(zone, value, endAtNextTimeBlock) {
+  setHeatingPowerForZone(zone: string, value: number | false, endAtNextTimeBlock: boolean) {
     return this._request(`/zones/${zone}/overlay`, {
       setting: {
         type: 'HEATING',
@@ -109,7 +214,7 @@ export default class TadoClient {
     });
   }
 
-  endManualHeatingForZone(zone) {
+  endManualHeatingForZone(zone: string) {
     return this._request(`/zones/${zone}/overlay`, null, 'DELETE');
   }
 }

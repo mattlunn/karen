@@ -38,6 +38,11 @@ Device.registerProvider('tado', {
     switch (key) {
       case 'target': {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+
+        if (value !== null && typeof value !== "number") {
+          throw new Error(`For setting 'target', value must be a number of null, not a ${typeof value}`);
+        }
+
         await client.setHeatingPowerForZone(device.providerId, value === null ? false : value, false);
 
         break;
@@ -52,7 +57,7 @@ Device.registerProvider('tado', {
             await client.endManualHeatingForZone(device.providerId);
           }
         } else /* value === false */ {
-          await client.setHeatingPowerForZone(device.providerId, false);
+          await client.setHeatingPowerForZone(device.providerId, false, false);
         }
 
         break;
@@ -276,10 +281,12 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
     if (device.type === 'thermostat') {
       const [
         currentTemperature,
+        targetTemperature,
         zoneState,
         activeTimetable
       ] = await Promise.all([
         device.getProperty<number>('temperature'),
+        device.getProperty<number>('target'),
         client.getZoneState(device.providerId),
         client.getActiveTimetable(device.providerId)
       ]);
@@ -292,8 +299,9 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
       if (nextTarget !== null) {
         const { nextTargetTemperature, nextTargetTime }  = nextTarget;
   
-        // Don't make any changes if we have a manual override
-        if (nextTargetTemperature > currentTemperature && !hasManualOverride) {
+        // Don't make any changes if we have a manual override, or if the current target is more than the 
+        // next target.
+        if (nextTargetTemperature > targetTemperature && !hasManualOverride) {
           warmupRatePerHour = await getWarmupRatePerHour(device);
 
           const difference = nextTargetTemperature - currentTemperature;
