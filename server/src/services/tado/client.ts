@@ -27,8 +27,8 @@ export type ZoneSetting = {
 } & ({ 
   power: "ON"
   temperature: {
-    celsius: 17.00,
-    fahrenheit: 62.60
+    celsius: number,
+    fahrenheit: number
   }
 } | {
   power: "OFF"

@@ -1,5 +1,4 @@
 import { createConnection } from 'net';
-import moment from 'moment';
 import logger from '../../logger';
 
 export const MODES = {
@@ -115,23 +114,17 @@ export default class EbusClient {
     }
   }
 
-  async enableDHWAwayMode() {
-    return await Promise.all([
-      this.#write('ctlv3', 'HwcHolidayStartDate', moment().format('DD.MM.YYYY')),
-      this.#write('ctlv3', 'HwcHolidayStartTime', '00:00:00'),
+  async getDHWIsOn(): Promise<boolean> {
+    const mode = await this.#read('ctlv3', 'HwcOpMode');
 
-      this.#write('ctlv3', 'HwcHolidayEndDate', moment().add('1', 'y').format('DD.MM.yyyy')),
-      this.#write('ctlv3', 'HwcHolidayEndTime', '00:00:00')
-    ]);
+    if (mode === 'off') {
+      return false;
+    }
+
+    return true;
   }
 
-  async disableDHWAwayMode() {
-    return await Promise.all([
-      this.#write('ctlv3', 'HwcHolidayStartDate', '01.01.2019'),
-      this.#write('ctlv3', 'HwcHolidayStartTime', '00:00:00'),
-
-      this.#write('ctlv3', 'HwcHolidayEndDate', '01.01.2019'),
-      this.#write('ctlv3', 'HwcHolidayEndTime', '00:00:00')
-    ]);
+  async setIsDHWOn(isOn: boolean) {
+    await this.#write('ctlv3', 'HwcOpMode', isOn ? 'manual' : 'off');
   }
 }
