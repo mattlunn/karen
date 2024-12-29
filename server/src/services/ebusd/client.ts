@@ -115,7 +115,7 @@ export default class EbusClient {
   }
 
   async getDHWIsOn(): Promise<boolean> {
-    const mode = await this.#read('ctlv3', 'HwcOpMode');
+    const mode = await this.#read('HwcOpMode', 'ctlv3');
 
     if (mode === 'off') {
       return false;
