@@ -54,12 +54,12 @@ export async function setDHWMode(isOn: true) {
 export async function getDHWMode(): Promise<boolean> {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const latestEvent = await device.getLatestEvent('dhw_mode');
-  
-  if (latestEvent) { 
-    return latestEvent.value === 1;
+
+  if (!latestEvent) {
+    return true;
   }
 
-  return true;
+  return !latestEvent.end;
 }
 
 nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
