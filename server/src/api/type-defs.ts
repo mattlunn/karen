@@ -178,7 +178,7 @@ export default gql`
 
   type Query {
     getDevice(id: ID!): DeviceWrapper
-    getDevices: [DeviceWrapper]
+    getDevices: [Device]
     getUsers: [User]
     getSecurityStatus: Security
     getLighting: Lighting,

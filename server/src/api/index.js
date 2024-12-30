@@ -104,13 +104,8 @@ const resolvers = {
       };
     },
     
-    async getDevices(parent, args, context, info) {
-      const devices = await db.Device.findAll();
-
-      return devices.map((device) => ({
-        type: device.type,
-        device: Device.create(device)
-      }));
+    async getDevices(parent, args, { devices }, info) {
+      return devices.findAll();
     },
 
     async getTimeline(parent, { since, limit }, context, info) {
