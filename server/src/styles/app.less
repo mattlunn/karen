@@ -194,6 +194,7 @@ button.secondary {
 .body {
   width: calc(100vw ~"-" @sidebar-width);
   margin-left: @sidebar-width;
+  background: #fafafa;
 
   &--with-padding {
     padding: 20px;
@@ -502,7 +503,6 @@ button.secondary {
   }
 
   &__rest-of-day {
-    background: #ceee;
     height: 10px;
     float: left;
     border-left: 1px solid #6cb5b5ee;
@@ -808,5 +808,88 @@ button.secondary {
     display: inline-block;
     text-align: center;
     margin-right: 10px;
+  }
+}
+
+.room-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.room {
+  padding: 12px;
+  color: #212121;
+  display: inline-block;
+
+  &__title {
+    font-size: 16px;
+    margin-bottom: 8px;
+    margin-left: 5px;
+
+    &-icon {
+      margin-right: 5px;
+    }
+  }
+
+  &__device-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-column-gap: 8px;
+    grid-row-gap: 8px;
+  }
+
+  &__device-control {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 6px;
+    background: #ffffff;
+    padding: 10px;
+  }
+}
+
+.device-control {
+  &__icon-container {
+    height: 36px;
+    line-height: 36px;
+    width: 36px;
+    text-align: center;
+    border-radius: 100px;
+  }
+
+  &__header {
+    display: grid;
+    grid-template-columns: auto 100%;
+    grid-column-gap: 10px;
+  }
+
+  &__footer {
+    margin-top: 10px;
+
+    & .heating-heat-map {
+      margin: 0;
+    }
+
+    & .heating-heat-map__map {
+      margin-bottom: 0;
+    }
+  }
+
+  &__name {
+    color: #212121;
+    font-weight: 500;
+    font-size: 14px;
+    margin-bottom: 5px;
+  }
+
+  &__value {
+    &::before {
+      content: " ⸱ "
+    }
+
+    &:first-child::before {
+      content: ""
+    }
+
+    display: inline;
+    font-size: 12px;
   }
 }
