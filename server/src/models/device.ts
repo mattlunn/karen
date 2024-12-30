@@ -1,6 +1,7 @@
 import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional, NonAttribute } from 'sequelize';
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import logger from '../logger';
+import { Event } from './event';
 
 const latestEventCache = new Map();
 
@@ -10,6 +11,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare providerId: string;
   declare type: CreationOptional<string>;
   declare name: CreationOptional<string>;
+  declare roomId: CreationOptional<number>;
   declare metaStringified: CreationOptional<string>;
 
   #metaParsed: Record<string, unknown>;
@@ -53,7 +55,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     return (await Device._providers.get(this.provider)!.getProperty(this, property)) as T;
   };
 
-  async getLatestEvent(type: string) {
+  async getLatestEvent(type: string): Promise<Event | null> {
     // We have this caching because MySQL's chosen query execution plan seems to suite EITHER
     // IDs + types which never change (e.g. the brightness of a non-dimmable light), OR a type
     // which changes often (e.g. the temperature). The bad query plans resulted in >500ms queries.
@@ -194,6 +196,11 @@ export default function (sequelize: Sequelize) {
 
     providerId: {
       type: DataTypes.STRING,
+      allowNull: true
+    },
+
+    roomId: {
+      type: DataTypes.NUMBER,
       allowNull: true
     },
 

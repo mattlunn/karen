@@ -1,5 +1,5 @@
 export default class Lighting {
-  async lights(_, { lights }) {
-    return lights.load();
+  async lights(_, { devices }) {
+    return devices.findByType('light');
   }
 }

@@ -11,7 +11,7 @@ export default class DoorbellRingEvent {
     return +this.data.start;
   }
 
-  device(_, { devicesById }) {
-    return devicesById.load(+this.data.deviceId);
+  device(_, { devices }) {
+    return devices.findById(+this.data.deviceId);
   }
 }

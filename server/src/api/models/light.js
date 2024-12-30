@@ -22,4 +22,12 @@ export default class Light {
   async status() {
     return await this.data.getProperty('connected') ? 'OK' : 'OFFLINE';
   }
+
+  async room(_, { rooms }) {
+    if (!this.data.roomId) {
+      return null;
+    }
+
+    return rooms.findById(this.data.roomId);
+  }
 }

@@ -34,4 +34,12 @@ export default class Thermostat {
   async status() {
     return await this.device.getProperty('connected') ? 'OK' : 'OFFLINE';
   }
+
+  room(_, { rooms }) {
+    if (!this.device.roomId) {
+      return null;
+    }
+
+    return rooms.findById(this.device.roomId);
+  }
 }

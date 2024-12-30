@@ -14,4 +14,12 @@ export default class BasicDevice {
   async status() {
     return await this.data.getProperty('connected') ? 'OK' : 'OFFLINE';
   }
+
+  room(_, { rooms }) {
+    if (!this.data.roomId) {
+      return null;
+    }
+
+    return rooms.findById(this.data.roomId);
+  }
 }

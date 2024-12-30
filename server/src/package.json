@@ -6,6 +6,8 @@
   "dependencies": {
     "@apollo/client": "^3.11.8",
     "@apollo/server": "^4.11.0",
+    "@aws-sdk/client-rekognition": "^3.716.0",
+    "@exadel/compreface-js-sdk": "^1.0.0",
     "@fortawesome/fontawesome-svg-core": "^6.7.1",
     "@fortawesome/free-regular-svg-icons": "^6.7.1",
     "@fortawesome/free-solid-svg-icons": "^6.7.1",

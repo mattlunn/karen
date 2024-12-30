@@ -7,7 +7,7 @@ export default class Heating {
     return dhwHeatingMode();
   }
 
-  thermostats(_, { thermostats }) {
-    return thermostats.load();
+  thermostats(_, { devices }) {
+    return devices.findByType('thermostat');
   }
 }

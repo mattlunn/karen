@@ -43,7 +43,7 @@ class Device extends Component {
 
   render() {
     const { active, old } = (this.props.devices || [])
-      .sort((a, b) => a.device.name.localeCompare(b.device.name))
+      .toSorted((a, b) => a.device.name.localeCompare(b.device.name))
       .reduce((acc, device) => {
         acc[device.device.status === 'OK' ? 'active' : 'old'].push(device);
 
