@@ -194,6 +194,7 @@ button.secondary {
 .body {
   width: calc(100vw ~"-" @sidebar-width);
   margin-left: @sidebar-width;
+  background: #fafafa;
 
   &--with-padding {
     padding: 20px;
@@ -402,84 +403,6 @@ button.secondary {
   }
 }
 
-@heating-color: #eb6d00;
-@heating-text-color: #000;
-@heating-off-text-color: #ddd;
-
-.heating {
-  background: #373f48;
-  color: @heating-off-text-color;
-
-  & .rc-slider-mark-text {
-    color: @heating-off-text-color;
-  }
-
-  &--is-heating {
-    background: @heating-color;
-    color: @heating-text-color;
-
-    & .rc-slider-mark-text {
-      color: @heating-text-color;
-    }
-  }
-
-  &__title {
-    color: #ddd;
-    background: #1d2126;
-    padding: 10px 20px;
-    font-size: 0.8em;
-  }
-
-  &__container {
-    display: flex;
-  }
-
-  &__slider {
-    margin-bottom: 30px;
-    padding: 0 10px;
-    overflow: hidden;
-  }
-
-  &__side {
-    width: 100%;
-    padding: 20px;
-  }
-
-  &__details {
-    display: flex;
-    text-align: center;
-
-    dl {
-      flex-grow: 1;
-    }
-
-    dt {
-      text-transform: uppercase;
-      font-size: 0.6em;
-      vertical-align: top;
-      padding-right: 5px;
-    }
-
-    dd {
-      font-size: 1.6em;
-    }
-  }
-}
-
-@media (max-width: 1100px) {
-  .heating {
-    display: block;
-  }
-}
-
-@media (max-width: 1024px) {
-  .heating {
-    &__container {
-      flex-direction: column;
-    }
-  }
-}
-
 .heating-heat-map {
   margin: 3px 0 31px 0;
 
@@ -497,12 +420,11 @@ button.secondary {
     float: left;
 
     &--heating {
-      background: @heating-color;
+      background: #eb6d00;
     }
   }
 
   &__rest-of-day {
-    background: #ceee;
     height: 10px;
     float: left;
     border-left: 1px solid #6cb5b5ee;
@@ -673,66 +595,6 @@ button.secondary {
   }
 }
 
-.lighting {
-  display: inline-block;
-  width: 50%;
-  line-height: 24px;
-
-  &--is-on {
-    color: orange;
-  }
-
-  &__container {
-    border: 1px solid #ccc;
-    margin: 10px 5px;
-    padding: 30px 15px;
-    cursor: pointer;
-    position: relative;
-
-    &--is-on {
-      border-color: orange;
-    }
-  }
-
-  &__name {
-    display: inline-block;
-    width: 75%;
-  }
-
-  &__meta {
-    display: inline-block;
-    width: 25%;
-    text-align: right;
-  }
-
-  &__light {
-    font-size: 24px;
-    padding-left: 20px;
-  }
-
-  &__loading-overlay {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    background-size: 40px;
-    background-color: rgba(232, 232, 232, 0.5);
-    cursor: wait;
-    display: none;
-
-    &--visible {
-      display: block;
-    }
-  }
-}
-
-@media (max-width: 1100px) {
-  .lighting {
-    width: 100%;
-  }
-}
-
 .tabs {
   margin-bottom: 20px;
   border-bottom: 1px solid #ddd;
@@ -808,5 +670,102 @@ button.secondary {
     display: inline-block;
     text-align: center;
     margin-right: 10px;
+  }
+}
+
+.group-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  padding: 5px;
+}
+
+.group {
+  padding: 12px;
+  color: #212121;
+  display: inline-block;
+
+  &__title {
+    font-size: 16px;
+    margin-bottom: 8px;
+    margin-left: 5px;
+
+    &-icon {
+      margin-right: 5px;
+    }
+  }
+
+  &__device-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-column-gap: 8px;
+    grid-row-gap: 8px;
+  }
+
+  &__device-control {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 6px;
+    background: #ffffff;
+    padding: 10px;
+  }
+
+  &--full-width {
+    grid-column: span 2;
+
+    & .group__device-controls {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+  }
+}
+
+.device-control {
+  &__icon-container {
+    display: block;
+    height: 36px;
+    line-height: 36px;
+    width: 36px;
+    text-align: center;
+    border-radius: 100px;
+
+    &--disabled {
+      cursor: not-allowed
+    }
+  }
+
+  &__header {
+    display: grid;
+    grid-template-columns: auto 100%;
+    grid-column-gap: 10px;
+  }
+
+  &__footer {
+    margin-top: 10px;
+
+    & .heating-heat-map {
+      margin: 0;
+    }
+
+    & .heating-heat-map__map {
+      margin-bottom: 0;
+    }
+  }
+
+  &__name {
+    color: #212121;
+    font-weight: 500;
+    font-size: 14px;
+    margin-bottom: 5px;
+  }
+
+  &__value {
+    &::before {
+      content: " ⸱ "
+    }
+
+    &:first-child::before {
+      content: ""
+    }
+
+    display: inline;
+    font-size: 12px;
   }
 }

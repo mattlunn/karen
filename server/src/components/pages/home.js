@@ -3,8 +3,7 @@ import SideBar from '../sidebar';
 import Modals from '../modals';
 import Header from '../header';
 import Security from '../security';
-import Heating from '../heating';
-import Lighting from '../lighting';
+import Groups from '../groups';
 
 export default class Home extends Component {
   render() {
@@ -15,8 +14,7 @@ export default class Home extends Component {
           <SideBar/>
           <div className='body'>
             <Security />
-            <Heating />
-            <Lighting />
+            <Groups />
           </div>
         </div>
 

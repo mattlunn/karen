@@ -75,7 +75,7 @@ Device.registerProvider('tado', {
       case 'temperature':
       case 'humidity':
       case 'power':
-        return (await device.getLatestEvent(key)).value;
+        return (await device.getLatestEvent(key))?.value ?? 0;
       case 'heating': {
         const latestEvent = await device.getLatestEvent(key);
         return !!latestEvent && !latestEvent.end;
@@ -154,7 +154,7 @@ export async function setCentralHeatingMode(mode: keyof typeof CENTRAL_HEATING_M
 
   const lastEvent = await controller.getLatestEvent('central_heating_mode');
 
-  if (lastEvent === null || lastEvent.value !== mode) {
+  if (lastEvent === null || lastEvent.value !== CENTRAL_HEATING_MODES[mode]) {
     const now = new Date();
 
     if (lastEvent) {

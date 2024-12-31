@@ -32,7 +32,8 @@ export default class HeatingHeatMap extends Component {
                 key={index}
                 className={classnames('heating-heat-map__segment', { 'heating-heat-map__segment--heating': isHeating })}
                 style={{
-                  width: ((INTERVAL_SIZE_MINS * 100) / MINUTES_IN_A_DAY) + '%'
+                  width: ((INTERVAL_SIZE_MINS * 100) / MINUTES_IN_A_DAY) + '%',
+                  backgroundColor: isHeating ? this.props.colorMask : ''
                 }}
               />
             );
@@ -45,7 +46,7 @@ export default class HeatingHeatMap extends Component {
             }}
           />
         </div>
-        <div className="heating-heat-map__markers">{hours}</div>
+        {this.props.withHours === false ? '' : <div className="heating-heat-map__markers">{hours}</div>}
       </div>
     );
   }

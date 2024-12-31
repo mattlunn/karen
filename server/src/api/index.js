@@ -1,14 +1,15 @@
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import * as db from '../models';
-import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording, AlarmArmingEvent, DoorbellRingEvent } from './models';
+import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording, AlarmArmingEvent, DoorbellRingEvent, Room } from './models';
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
-import makeSynologyRequest from '../services/synology/instance';
 import { setCentralHeatingMode, getCentralHeatingMode } from '../services/tado';
 import { setDHWMode, getDHWMode } from '../services/ebusd';
-import UnorderedDataLoader from './lib/unordered-dataloader';
-import DataLoaderWithNoIdParam from './lib/dataloader-with-no-id-param';
+import UnorderedDataLoader from './loaders/unordered-dataloader';
+import DataLoaderWithNoIdParam from './loaders/dataloader-with-no-id-param';
+import DeviceLoader from './loaders/device-loader';
+import RoomLoader from './loaders/room-loader';
 import typeDefs from './type-defs';
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import createNewRelicPlugin from '@newrelic/apollo-server-plugin';
@@ -16,9 +17,9 @@ import logger from '../logger';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { useServer } from 'graphql-ws/lib/use/ws';
 
-function createSubscriptionForDeviceType(deviceType, mapper, properties) {
+function createSubscriptionForDevice() {
   return {
-    subscribe(_, { id }) {
+    subscribe() {
       let ended = false;
 
       return {
@@ -26,23 +27,11 @@ function createSubscriptionForDeviceType(deviceType, mapper, properties) {
           return {
             next() {
               return new Promise((res) => {
-                bus.once(DEVICE_PROPERTY_CHANGED, ({ device, property }) => {
+                bus.once(DEVICE_PROPERTY_CHANGED, ({ device }) => {
                   if (ended) {
                     res({ done: true });
                   } else {
-                    if (device.type !== deviceType) {
-                      return;
-                    }
-
-                    if (id && device.id !== Number(id)) {
-                      return;
-                    }
-
-                    if (Array.isArray(properties) && !properties.includes(property)) {
-                      return;
-                    }
-
-                    res({ done: false, value: mapper(device) });
+                    res({ done: false, value: { onDeviceChanged: Device.create(device) }});
                   }
                 });
               });
@@ -64,6 +53,10 @@ function createSubscriptionForDeviceType(deviceType, mapper, properties) {
 
 const resolvers = {
   Query: {
+    async getRooms(parent, args, context, info) {
+      return context.rooms.findAll();
+    },
+
     async getUsers(parent, args, context, info) {
       const users = await db.User.findAll();
 
@@ -72,10 +65,6 @@ const resolvers = {
 
     async getSecurityStatus(parent, args, context, info) {
       return new Security(context);
-    },
-
-    async getLighting(parent, args, context, info) {
-      return new Lighting(context);
     },
 
     async getHeating(parent, args, context, info) {
@@ -99,13 +88,8 @@ const resolvers = {
       };
     },
     
-    async getDevices(parent, args, context, info) {
-      const devices = await db.Device.findAll();
-
-      return devices.map((device) => ({
-        type: device.type,
-        device: Device.create(device)
-      }));
+    async getDevices(parent, args, { devices }, info) {
+      return devices.findAll();
     },
 
     async getTimeline(parent, { since, limit }, context, info) {
@@ -356,8 +340,7 @@ const resolvers = {
   },
 
   Subscription: {
-    onThermostatChanged: createSubscriptionForDeviceType('thermostat', device => ({ onThermostatChanged: new Thermostat(device) })),
-    onLightChanged: createSubscriptionForDeviceType('light', device => ({ onLightChanged: new Light(device) }), ['on', 'brightness'])
+    onDeviceChanged: createSubscriptionForDevice()
   }
 };
 
@@ -374,36 +357,29 @@ export default async function(wsServer) {
     }
   });
 
-  useServer({ schema }, wsServer);
+  function makeContext() {
+    return {
+      upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
+      currentOrLastStayByUserId: new UnorderedDataLoader(db.Stay.findCurrentOrLastStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
+      cameras: new DataLoaderWithNoIdParam(() => db.Device.findByType('camera'), (cameras) => cameras.map(camera => new Camera(camera))),
+      usersById: new UnorderedDataLoader((ids) => db.User.findAll({ where: { id: ids }}), ({ id }) => id, user => new User(user)),
+      devices: new DeviceLoader(),
+      rooms: new RoomLoader(),
+      recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording)),
+      centralHeatingMode: () => getCentralHeatingMode(),
+      dhwHeatingMode: async () => await getDHWMode() ? 'ON' : 'OFF'
+    };
+  }
+
+  useServer({ schema, context: makeContext() }, wsServer);
   await server.start();
   
   return expressMiddleware(server, {
     async context({ req }) {
-      const context = {
+      return {
         req: req,
-        userByHandle: new UnorderedDataLoader(db.User.findByHandles.bind(db.User), ({ handle }) => handle, user => new User(user)),
-        upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
-        currentOrLastStayByUserId: new UnorderedDataLoader(db.Stay.findCurrentOrLastStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
-        cameras: new DataLoaderWithNoIdParam(async () => {
-          const response = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
-
-          return response.data.cameras;
-        }, (cameras) => cameras.map(data => new Camera(data))),
-        lights: new DataLoaderWithNoIdParam(() => db.Device.findByType('light'), (lights) => lights.map(light => new Light(light))),
-        thermostats: new DataLoaderWithNoIdParam(() => db.Device.findByType('thermostat'), (thermostats) => thermostats.map(data => new Thermostat(data))),
-        usersById: new UnorderedDataLoader((ids) => db.User.findAll({ where: { id: ids }}), ({ id }) => id, user => {
-          const userModel = new User(user);
-
-          context.userByHandle.prime(user.handle, userModel);
-          return userModel;
-        }),
-        devicesById: new UnorderedDataLoader((ids) => db.Device.findAll({ where: { id: ids }}), device => device.id, device => Device.create(device)),
-        recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording)),
-        centralHeatingMode: () => getCentralHeatingMode(),
-        dhwHeatingMode: async () => await getDHWMode() ? 'ON' : 'OFF'
+        ...makeContext()
       };
-      
-      return context;
     }
   });
 }

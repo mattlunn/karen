@@ -37,12 +37,14 @@ export default gql`
     id: ID!
     name: String!
     status: DeviceStatus
+    room: Room
   }
 
   type BasicDevice implements Device {
     id: ID!
     name: String!
     status: DeviceStatus
+    room: Room
   }
 
   type MotionEvent implements Event {
@@ -123,6 +125,7 @@ export default gql`
     isOn: Boolean!
     brightness: Int
     status: DeviceStatus
+    room: Room
   }
 
   type Camera implements Device {
@@ -130,6 +133,7 @@ export default gql`
     name: String!
     snapshot: String
     status: DeviceStatus
+    room: Room
   }
 
   type TimePeriod {
@@ -146,6 +150,7 @@ export default gql`
     humidity: Float!
     power: Float!
     status: DeviceStatus
+    room: Room
   }
 
   type Heating {
@@ -163,15 +168,23 @@ export default gql`
     datum: HistoryDatumType!
   }
 
+  type Room {
+    id: ID!
+    name: String!
+    displayIconName: String
+    displayWeight: String
+    devices: [Device]
+  }
+
   type Query {
     getDevice(id: ID!): DeviceWrapper
-    getDevices: [DeviceWrapper]
+    getDevices: [Device]
     getUsers: [User]
     getSecurityStatus: Security
-    getLighting: Lighting,
     getHeating: Heating,
     getHistory(ids: [ID!], type: String, from: Float!, to: Float!, interval: Float!): History
     getTimeline(since: Float!, limit: Int!): [TimelineEvent!]
+    getRooms: [Room]
   }
 
   type Mutation {
@@ -184,7 +197,6 @@ export default gql`
   }
 
   type Subscription {
-    onLightChanged(id: ID): Light
-    onThermostatChanged: Thermostat
+    onDeviceChanged: Device
   }
 `;
