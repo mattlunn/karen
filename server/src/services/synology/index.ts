@@ -32,7 +32,7 @@ async function createEvent(device: Device, now: Moment) {
     const canExtendActiveCameraEvent = cutoffForExtension.isBefore(activeCameraEvent.start);
 
     if (!canExtendActiveCameraEvent) {
-      activeCameraEvent.end = now;
+      activeCameraEvent.end = now.toDate();
       await activeCameraEvent.save();
 
       activeCameraEvent = null;
@@ -103,7 +103,7 @@ export async function onMotionDetected(cameraId: string, startOfDetectedMotion: 
   latestCameraEvents.set(device.id, startOfDetectedMotion);
 
   setTimeout(async () => {
-    const now = Date.now();
+    const now = new Date();
 
     if (latestCameraEvents.get(device.id) === startOfDetectedMotion) {
       event.end = now;
