@@ -4,7 +4,7 @@ import ThermostatHeatMap from './thermostat-heat-map';
 import { useMutation } from '@apollo/client';
 import gql from 'graphql-tag';
 import classNames from 'classnames';
-import { faSync } from '@fortawesome/free-solid-svg-icons'
+import { faSync } from '@fortawesome/free-solid-svg-icons';
 
 export default function DeviceControl({ icon, color, device, values = () => [], showMap }) {
   const [setLightSwitchStatus, { loading }] = useMutation(gql`
@@ -40,13 +40,15 @@ export default function DeviceControl({ icon, color, device, values = () => [], 
         <div className="device-control__body">
           <h4 className="device-control__name">{device.name}</h4>
           <ul className="device-control__values">
-            {values(device).map(value => <li className="device-control__value">{value}</li>)}
+            {values(device).map((value, idx) => <li className="device-control__value" key={idx}>{value}</li>)}
           </ul>
         </div>
       </div>
-      <div className="device-control__footer">
-        {showMap && <ThermostatHeatMap activity={activity} withHours={false} colorMask={color} />}
-      </div>
+      {false && (
+        <div className="device-control__footer">
+          {showMap && <ThermostatHeatMap activity={[]} withHours={false} colorMask={color} />}
+        </div>
+      )}
     </>
   );
 }

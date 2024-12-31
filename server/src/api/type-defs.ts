@@ -197,7 +197,6 @@ export default gql`
   }
 
   type Subscription {
-    onLightChanged(id: ID): Light
-    onThermostatChanged: Thermostat
+    onDeviceChanged: Device
   }
 `;

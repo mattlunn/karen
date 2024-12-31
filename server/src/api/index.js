@@ -17,9 +17,9 @@ import logger from '../logger';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { useServer } from 'graphql-ws/lib/use/ws';
 
-function createSubscriptionForDeviceType(deviceType, mapper, properties) {
+function createSubscriptionForDevice() {
   return {
-    subscribe(_, { id }) {
+    subscribe() {
       let ended = false;
 
       return {
@@ -27,23 +27,11 @@ function createSubscriptionForDeviceType(deviceType, mapper, properties) {
           return {
             next() {
               return new Promise((res) => {
-                bus.once(DEVICE_PROPERTY_CHANGED, ({ device, property }) => {
+                bus.once(DEVICE_PROPERTY_CHANGED, ({ device }) => {
                   if (ended) {
                     res({ done: true });
                   } else {
-                    if (device.type !== deviceType) {
-                      return;
-                    }
-
-                    if (id && device.id !== Number(id)) {
-                      return;
-                    }
-
-                    if (Array.isArray(properties) && !properties.includes(property)) {
-                      return;
-                    }
-
-                    res({ done: false, value: mapper(device) });
+                    res({ done: false, value: { onDeviceChanged: Device.create(device) }});
                   }
                 });
               });
@@ -352,8 +340,7 @@ const resolvers = {
   },
 
   Subscription: {
-    onThermostatChanged: createSubscriptionForDeviceType('thermostat', device => ({ onThermostatChanged: new Thermostat(device) })),
-    onLightChanged: createSubscriptionForDeviceType('light', device => ({ onLightChanged: new Light(device) }), ['on', 'brightness'])
+    onDeviceChanged: createSubscriptionForDevice()
   }
 };
 
@@ -370,25 +357,29 @@ export default async function(wsServer) {
     }
   });
 
-  useServer({ schema }, wsServer);
+  function makeContext() {
+    return {
+      upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
+      currentOrLastStayByUserId: new UnorderedDataLoader(db.Stay.findCurrentOrLastStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
+      cameras: new DataLoaderWithNoIdParam(() => db.Device.findByType('camera'), (cameras) => cameras.map(camera => new Camera(camera))),
+      usersById: new UnorderedDataLoader((ids) => db.User.findAll({ where: { id: ids }}), ({ id }) => id, user => new User(user)),
+      devices: new DeviceLoader(),
+      rooms: new RoomLoader(),
+      recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording)),
+      centralHeatingMode: () => getCentralHeatingMode(),
+      dhwHeatingMode: async () => await getDHWMode() ? 'ON' : 'OFF'
+    };
+  }
+
+  useServer({ schema, context: makeContext() }, wsServer);
   await server.start();
   
   return expressMiddleware(server, {
     async context({ req }) {
-      const context = {
+      return {
         req: req,
-        upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
-        currentOrLastStayByUserId: new UnorderedDataLoader(db.Stay.findCurrentOrLastStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
-        cameras: new DataLoaderWithNoIdParam(() => db.Device.findByType('camera'), (cameras) => cameras.map(camera => new Camera(camera))),
-        usersById: new UnorderedDataLoader((ids) => db.User.findAll({ where: { id: ids }}), ({ id }) => id, user => new User(user)),
-        devices: new DeviceLoader(),
-        rooms: new RoomLoader(),
-        recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording)),
-        centralHeatingMode: () => getCentralHeatingMode(),
-        dhwHeatingMode: async () => await getDHWMode() ? 'ON' : 'OFF'
+        ...makeContext()
       };
-      
-      return context;
     }
   });
 }

@@ -12,7 +12,7 @@ import { Route } from 'react-router';
 import { Switch } from 'react-router-dom';
 import { createStore, combineReducers, applyMiddleware } from 'redux';
 import { ConnectedRouter, routerReducer, routerMiddleware, push } from 'react-router-redux';
-import createHistory from 'history/createBrowserHistory';
+import { createBrowserHistory } from 'history';
 import { Provider } from 'react-redux';
 
 import user from './reducers/user';
@@ -76,7 +76,7 @@ const client = new ApolloClient({
   })
 });
 
-const history = createHistory();
+const history = createBrowserHistory();
 const store = createStore(combineReducers({
   router: routerReducer,
   user,
