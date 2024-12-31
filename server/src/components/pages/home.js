@@ -3,7 +3,7 @@ import SideBar from '../sidebar';
 import Modals from '../modals';
 import Header from '../header';
 import Security from '../security';
-import Rooms from '../rooms';
+import Groups from '../groups';
 
 export default class Home extends Component {
   render() {
@@ -14,7 +14,7 @@ export default class Home extends Component {
           <SideBar/>
           <div className='body'>
             <Security />
-            <Rooms />
+            <Groups />
           </div>
         </div>
 

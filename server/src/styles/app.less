@@ -811,12 +811,13 @@ button.secondary {
   }
 }
 
-.room-list {
+.group-list {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  padding: 5px;
 }
 
-.room {
+.group {
   padding: 12px;
   color: #212121;
   display: inline-block;
@@ -844,15 +845,28 @@ button.secondary {
     background: #ffffff;
     padding: 10px;
   }
+
+  &--full-width {
+    grid-column: span 2;
+
+    & .group__device-controls {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+  }
 }
 
 .device-control {
   &__icon-container {
+    display: block;
     height: 36px;
     line-height: 36px;
     width: 36px;
     text-align: center;
     border-radius: 100px;
+
+    &--disabled {
+      cursor: not-allowed
+    }
   }
 
   &__header {
