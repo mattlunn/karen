@@ -675,7 +675,7 @@ button.secondary {
 
 .group-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   padding: 5px;
 }
 
@@ -709,10 +709,22 @@ button.secondary {
   }
 
   &--full-width {
-    grid-column: span 2;
+    grid-column: 1;
+  }
+}
 
-    & .group__device-controls {
-      grid-template-columns: 1fr 1fr 1fr 1fr;
+@media (min-width: 1024px) {
+  .group-list {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .group {
+    &--full-width {
+      grid-column: span 2;
+
+      & .group__device-controls {
+        grid-template-columns: repeat(4, 1fr);
+      }
     }
   }
 }
@@ -733,7 +745,7 @@ button.secondary {
 
   &__header {
     display: grid;
-    grid-template-columns: auto 100%;
+    grid-template-columns: 36px auto;
     grid-column-gap: 10px;
   }
 
