@@ -181,7 +181,6 @@ export default gql`
     getDevices: [Device]
     getUsers: [User]
     getSecurityStatus: Security
-    getLighting: Lighting,
     getHeating: Heating,
     getHistory(ids: [ID!], type: String, from: Float!, to: Float!, interval: Float!): History
     getTimeline(since: Float!, limit: Int!): [TimelineEvent!]

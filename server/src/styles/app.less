@@ -403,84 +403,6 @@ button.secondary {
   }
 }
 
-@heating-color: #eb6d00;
-@heating-text-color: #000;
-@heating-off-text-color: #ddd;
-
-.heating {
-  background: #373f48;
-  color: @heating-off-text-color;
-
-  & .rc-slider-mark-text {
-    color: @heating-off-text-color;
-  }
-
-  &--is-heating {
-    background: @heating-color;
-    color: @heating-text-color;
-
-    & .rc-slider-mark-text {
-      color: @heating-text-color;
-    }
-  }
-
-  &__title {
-    color: #ddd;
-    background: #1d2126;
-    padding: 10px 20px;
-    font-size: 0.8em;
-  }
-
-  &__container {
-    display: flex;
-  }
-
-  &__slider {
-    margin-bottom: 30px;
-    padding: 0 10px;
-    overflow: hidden;
-  }
-
-  &__side {
-    width: 100%;
-    padding: 20px;
-  }
-
-  &__details {
-    display: flex;
-    text-align: center;
-
-    dl {
-      flex-grow: 1;
-    }
-
-    dt {
-      text-transform: uppercase;
-      font-size: 0.6em;
-      vertical-align: top;
-      padding-right: 5px;
-    }
-
-    dd {
-      font-size: 1.6em;
-    }
-  }
-}
-
-@media (max-width: 1100px) {
-  .heating {
-    display: block;
-  }
-}
-
-@media (max-width: 1024px) {
-  .heating {
-    &__container {
-      flex-direction: column;
-    }
-  }
-}
-
 .heating-heat-map {
   margin: 3px 0 31px 0;
 
@@ -498,7 +420,7 @@ button.secondary {
     float: left;
 
     &--heating {
-      background: @heating-color;
+      background: #eb6d00;
     }
   }
 
@@ -670,66 +592,6 @@ button.secondary {
     &__timestamp {
       margin-right: 15px;
     }
-  }
-}
-
-.lighting {
-  display: inline-block;
-  width: 50%;
-  line-height: 24px;
-
-  &--is-on {
-    color: orange;
-  }
-
-  &__container {
-    border: 1px solid #ccc;
-    margin: 10px 5px;
-    padding: 30px 15px;
-    cursor: pointer;
-    position: relative;
-
-    &--is-on {
-      border-color: orange;
-    }
-  }
-
-  &__name {
-    display: inline-block;
-    width: 75%;
-  }
-
-  &__meta {
-    display: inline-block;
-    width: 25%;
-    text-align: right;
-  }
-
-  &__light {
-    font-size: 24px;
-    padding-left: 20px;
-  }
-
-  &__loading-overlay {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    background-size: 40px;
-    background-color: rgba(232, 232, 232, 0.5);
-    cursor: wait;
-    display: none;
-
-    &--visible {
-      display: block;
-    }
-  }
-}
-
-@media (max-width: 1100px) {
-  .lighting {
-    width: 100%;
   }
 }
 

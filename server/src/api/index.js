@@ -79,10 +79,6 @@ const resolvers = {
       return new Security(context);
     },
 
-    async getLighting(parent, args, context, info) {
-      return new Lighting(context);
-    },
-
     async getHeating(parent, args, context, info) {
       return new Heating(context);
     },
