@@ -8,24 +8,25 @@ library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, fa
 
 const deviceControlsSettings = new Map();
 
-function DeviceControlSettings(icon, color, values) {
+function DeviceControlSettings(icon, colorIconBackground, color, values) {
   this.icon = icon;
+  this.colorIconBackground = colorIconBackground;
   this.color = color;
   this.values = values;
 }
 
-deviceControlsSettings.set('Thermostat', new DeviceControlSettings(faThermometerFull, '#ff6f22', (thermostat) => [
+deviceControlsSettings.set('Thermostat', new DeviceControlSettings(faThermometerFull, ({ isHeating }) => isHeating, '#ff6f22', (thermostat) => [
   `${thermostat.currentTemperature.toFixed(1)}°`,
   `${thermostat.targetTemperature.toFixed(1)}°`,
   `${thermostat.power}%`
 ]));
 
-deviceControlsSettings.set('Light', new DeviceControlSettings(faLightbulb, '#ffa24d', (light) => [
+deviceControlsSettings.set('Light', new DeviceControlSettings(faLightbulb, ({ isOn }) => isOn, '#ffa24d', (light) => [
   light.isOn ? 'On' : 'Off',
   `${light.brightness}%`
 ]));
 
-deviceControlsSettings.set('BasicDevice', new DeviceControlSettings(faPlug, '#00a8f4'));
+deviceControlsSettings.set('BasicDevice', new DeviceControlSettings(faPlug, () => true, '#00a8f4'));
 
 export default function Group({ displayIconName, name, devices }) {
   return (
