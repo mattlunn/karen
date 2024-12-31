@@ -16,6 +16,7 @@ function DeviceControlSettings(icon, color, values) {
 
 deviceControlsSettings.set('Thermostat', new DeviceControlSettings(faThermometerFull, '#ff6f22', (thermostat) => [
   `${thermostat.currentTemperature.toFixed(1)}°`,
+  `${thermostat.targetTemperature.toFixed(1)}°`,
   `${thermostat.power}%`
 ]));
 
