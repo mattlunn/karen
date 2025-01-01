@@ -6,16 +6,28 @@ import { faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, 
 
 library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer);
 
+function createIfCapabilitySatisfied(device, condition, creator) {
+  const matchedCapability = device.capability.find(condition);
+
+  if (matchedCapability) {
+    return creator(device, matchedCapability);
+  }
+
+  return null;
+}
+
 function buildDeviceControlForDevice(device) {
+  createIfCapabilitySatisfied(device, x => x.__typename === 'Thermostat', (device, capability) => (
+    <DeviceControl device={device} icon={faThermometerFull} color="#ff6f22" colorIconBackground={capability.isHeating} values={[
+      `${capability.currentTemperature.toFixed(1)}°`,
+      `${capability.targetTemperature.toFixed(1)}°`,
+      `${capability.power}%`
+    ]} />
+  ));
+
   switch (device.__typename) {
     case 'Thermostat':
-      return (
-        <DeviceControl device={device} icon={faThermometerFull} color="#ff6f22" colorIconBackground={device.isHeating} values={[
-          `${device.currentTemperature.toFixed(1)}°`,
-          `${device.targetTemperature.toFixed(1)}°`,
-          `${device.power}%`
-        ]} />
-      );
+      
     case 'Light':
       return (
         <DeviceControl device={device} icon={faLightbulb} color="#ffa24d" colorIconBackground={device.isOn} values={[

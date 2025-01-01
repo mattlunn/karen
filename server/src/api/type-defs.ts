@@ -33,22 +33,16 @@ export default gql`
     timestamp: Float!
   }
 
-  interface Device {
+  type Device {
     id: ID!
     name: String!
     status: DeviceStatus
     room: Room
+
+    capabilities: [Capability]
   }
 
-  union Sensor = MotionSensor | TemperatureSensor | LightSensor
-
-  type BasicDevice implements Device {
-    id: ID!
-    name: String!
-    status: DeviceStatus
-    sensors: [Sensor]
-    room: Room
-  }
+  union Capability = MotionSensor | TemperatureSensor | LightSensor | Light | Thermostat | Camera
 
   type MotionSensor {
     motionDetected: Boolean!
@@ -60,6 +54,23 @@ export default gql`
 
   type LightSensor {
     illuminance: Float!
+  }
+
+  type Light {
+    isOn: Boolean!
+    brightness: Int
+  }
+
+  type Camera {
+    snapshot: String
+  }
+
+  type Thermostat {
+    targetTemperature: Float
+    currentTemperature: Float!
+    isHeating: Boolean!
+    humidity: Float!
+    power: Float!
   }
 
   type MotionEvent implements Event {
@@ -126,29 +137,12 @@ export default gql`
   }
 
   type Security {
-    cameras: [Camera]
+    cameras: [Device]
     alarmMode: AlarmMode
   }
 
   type Lighting {
-    lights: [Light]
-  }
-
-  type Light implements Device {
-    id: ID!
-    name: String!
-    isOn: Boolean!
-    brightness: Int
-    status: DeviceStatus
-    room: Room
-  }
-
-  type Camera implements Device {
-    id: ID!
-    name: String!
-    snapshot: String
-    status: DeviceStatus
-    room: Room
+    lights: [Device]
   }
 
   type TimePeriod {
@@ -156,22 +150,10 @@ export default gql`
     end: Float!
   }
 
-  type Thermostat implements Device {
-    id: ID!
-    name: String!
-    targetTemperature: Float
-    currentTemperature: Float!
-    isHeating: Boolean!
-    humidity: Float!
-    power: Float!
-    status: DeviceStatus
-    room: Room
-  }
-
   type Heating {
     centralHeatingMode: CentralHeatingMode
     dhwHeatingMode: DHWHeatingMode
-    thermostats: [Thermostat]
+    thermostats: [Device]
   }
 
   type History {
@@ -204,8 +186,8 @@ export default gql`
 
   type Mutation {
     updateUser(id: ID!, eta: Float, status: Occupancy): User
-    updateLight(id: ID!, isOn: Boolean, brightness: Int): Light
-    updateThermostat(id: ID!, targetTemperature: Float): Thermostat
+    updateLight(id: ID!, isOn: Boolean, brightness: Int): Device
+    updateThermostat(id: ID!, targetTemperature: Float): Device
     updateAlarm(mode: AlarmMode): Security
     updateCentralHeatingMode(mode: CentralHeatingMode): Heating
     updateDHWHeatingMode(mode: DHWHeatingMode): Heating

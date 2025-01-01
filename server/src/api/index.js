@@ -31,7 +31,7 @@ function createSubscriptionForDevice() {
                   if (ended) {
                     res({ done: true });
                   } else {
-                    res({ done: false, value: { onDeviceChanged: Device.create(device) }});
+                    res({ done: false, value: { onDeviceChanged: new Device(device) }});
                   }
                 });
               });
@@ -84,7 +84,7 @@ const resolvers = {
 
       return {
         type: device.type,
-        device: Device.create(device)
+        device: new Device(device)
       };
     },
     
@@ -327,7 +327,7 @@ const resolvers = {
     }
   },
 
-  Sensor: {
+  Capability: {
     __resolveType(obj, context, info) {
       return obj.__typename;
     }

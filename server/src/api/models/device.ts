@@ -1,10 +1,13 @@
-import { Device } from '../../models';
+import { Device as DeviceModel } from '../../models';
 import RoomLoader from '../loaders/room-loader';
+import Thermostat from './thermostat';
+import Light from './light';
+import Camera from './camera';
 
-export default class BasicDevice {
-  #data: Device;
+export default class Device {
+  #data: DeviceModel;
 
-  constructor(data: Device) {
+  constructor(data: DeviceModel) {
     this.#data = data;
   }
 
@@ -28,9 +31,21 @@ export default class BasicDevice {
     return rooms.findById(this.#data.roomId);
   }
 
-  async sensors(): Promise<Promise<unknown>[]> {
+  async capabilities(): Promise<Promise<unknown>[]> {
     const sensors = await this.#data.getPropertyKeys();
     const loaders : Promise<unknown>[] = [];
+
+    switch (this.#data.type) {
+      case 'thermostat':
+        loaders.push(Promise.resolve(new Thermostat(this.#data)));
+        break;
+      case 'light':
+        loaders.push(Promise.resolve(new Light(this.#data)));
+        break;
+      case 'camera':
+        loaders.push(Promise.resolve(new Camera(this.#data)));
+        break;
+    }
 
     for (const sensor of sensors) {
       switch (sensor) {
