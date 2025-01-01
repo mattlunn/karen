@@ -50,7 +50,8 @@ export default class DeviceClient {
 
   async setBrightness(brightness) {
     return await this._request('/light/0', {
-      brightness
+      brightness,
+      turn: brightness > 0 ? 'on' : 'off'
     });
   }
 
