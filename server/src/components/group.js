@@ -42,9 +42,9 @@ function buildDeviceControlForDevice(device) {
           device.sensors.map((sensor) => {
             switch (sensor.__typename) {
               case 'TemperatureSensor':
-                return `${sensor.currentTemperature.toFixed(1)}°`
+                return `${sensor.currentTemperature.toFixed(1)}°`;
               case 'LightSensor':
-                return `${sensor.illuminance}lx`
+                return `${sensor.illuminance}lx`;
             }
           }).filter(x => x)
         } />

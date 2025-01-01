@@ -20,7 +20,7 @@ export default class RoomLoader {
     }
   }
 
-  async findAll(): Promise<IteratorObject<Room>> {
+  async findAll(): Promise<Iterable<Room>> {
     await this.load();
 
     return this.#map.values();
