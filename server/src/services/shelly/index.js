@@ -12,7 +12,11 @@ Device.registerProvider('shelly', {
         break;
       }
       case 'brightness': {
-        await shellyDevice.setBrightness(value);
+        await Promise.all([
+          shellyDevice.setBrightness(value),
+          shellyDevice.setIsOn(value > 0)
+        ]);
+
         break;
       }
       default:
