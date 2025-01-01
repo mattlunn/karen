@@ -35,6 +35,10 @@ Device.registerProvider('shelly', {
         throw new Error(`"${key}" is not a recognised property for Shelly`);
     }
   },
+  
+  async getPropertyKeys(device) {
+    return ['brightness', 'connected', 'on'];
+  },
 
   async synchronize() {
     const devices = await Device.findByProvider('shelly');

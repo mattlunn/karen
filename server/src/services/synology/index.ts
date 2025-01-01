@@ -177,6 +177,10 @@ Device.registerProvider('synology', {
     }
   },
 
+  async getPropertyKeys(device: Device): Promise<string[]> {
+    return [];
+  },
+
   async synchronize() {
     const { data: { cameras }} = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
 

@@ -2,31 +2,56 @@ import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DeviceControl from './device-control';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug } from '@fortawesome/free-solid-svg-icons';
+import { faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking } from '@fortawesome/free-solid-svg-icons';
 
-library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer );
+library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer);
 
-const deviceControlsSettings = new Map();
+function buildDeviceControlForDevice(device) {
+  switch (device.__typename) {
+    case 'Thermostat':
+      return (
+        <DeviceControl device={device} icon={faThermometerFull} color="#ff6f22" colorIconBackground={device.isHeating} values={[
+          `${device.currentTemperature.toFixed(1)}°`,
+          `${device.targetTemperature.toFixed(1)}°`,
+          `${device.power}%`
+        ]} />
+      );
+    case 'Light':
+      return (
+        <DeviceControl device={device} icon={faLightbulb} color="#ffa24d" colorIconBackground={device.isOn} values={[
+          device.isOn ? 'On' : 'Off',
+          `${device.brightness}%`
+        ]} />
+      );
+    case 'BasicDevice': {
+      const motionSensor = device.sensors.find(x => x.__typename === 'MotionSensor');
 
-function DeviceControlSettings(icon, colorIconBackground, color, values) {
-  this.icon = icon;
-  this.colorIconBackground = colorIconBackground;
-  this.color = color;
-  this.values = values;
+      let icon;
+      let colorIconBackground;
+
+      if (motionSensor === undefined) {
+        icon = faPlug;
+        colorIconBackground = false;
+      } else {
+        icon = faPersonWalking;
+        colorIconBackground = motionSensor.motionDetected;
+      }
+
+      return (
+        <DeviceControl device={device} icon={icon} color="#04A7F4" colorIconBackground={colorIconBackground} values={
+          device.sensors.map((sensor) => {
+            switch (sensor.__typename) {
+              case 'TemperatureSensor':
+                return `${sensor.currentTemperature.toFixed(1)}°`
+              case 'LightSensor':
+                return `${sensor.illuminance}lx`
+            }
+          }).filter(x => x)
+        } />
+      ); 
+    }
+  }
 }
-
-deviceControlsSettings.set('Thermostat', new DeviceControlSettings(faThermometerFull, ({ isHeating }) => isHeating, '#ff6f22', (thermostat) => [
-  `${thermostat.currentTemperature.toFixed(1)}°`,
-  `${thermostat.targetTemperature.toFixed(1)}°`,
-  `${thermostat.power}%`
-]));
-
-deviceControlsSettings.set('Light', new DeviceControlSettings(faLightbulb, ({ isOn }) => isOn, '#ffa24d', (light) => [
-  light.isOn ? 'On' : 'Off',
-  `${light.brightness}%`
-]));
-
-deviceControlsSettings.set('BasicDevice', new DeviceControlSettings(faPlug, () => true, '#00a8f4'));
 
 export default function Group({ displayIconName, name, devices }) {
   return (
@@ -39,7 +64,7 @@ export default function Group({ displayIconName, name, devices }) {
         <ul className="group__device-controls">
           {devices.map(device => (
             <li className="group__device-control" key={device.id}>
-              <DeviceControl device={device} {...deviceControlsSettings.get(device.__typename)} />
+              {buildDeviceControlForDevice(device)}
             </li>
           ))}
         </ul>

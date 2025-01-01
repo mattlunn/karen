@@ -181,12 +181,24 @@ Device.registerProvider('zwave', {
         return !!(latestEvent && !latestEvent.end);
       }
       case 'humidity':
+      case 'temperature':
       case 'illuminance':
       case 'brightness': {
         return (await device.getLatestEvent(key)).value;
       }
       default:
         throw new Error(`"${key}" is not a recognised property for ZWave`);
+    }
+  },
+
+  async getPropertyKeys(device) {
+    switch (device.type) {
+      case 'light': 
+        return ['power', 'brightness', 'on'];
+      case 'multi_sensor': 
+        return ['motion', 'illuminance', 'temperature', 'battery'];
+      default:
+        return [];
     }
   },
 

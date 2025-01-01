@@ -55,6 +55,10 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     return (await Device._providers.get(this.provider)!.getProperty(this, property)) as T;
   };
 
+  async getPropertyKeys(): Promise<string[]> {
+    return await Device._providers.get(this.provider)!.getPropertyKeys(this);
+  };
+
   async getLatestEvent(type: string): Promise<Event | null> {
     // We have this caching because MySQL's chosen query execution plan seems to suite EITHER
     // IDs + types which never change (e.g. the brightness of a non-dimmable light), OR a type
@@ -165,6 +169,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 type ProviderHandler = {
   setProperty(device: Device, key: string, value: unknown): void;
   getProperty(device: Device, key: string): Promise<unknown>;
+  getPropertyKeys(device: Device): Promise<string[]>;
   synchronize(): void;
 };
 

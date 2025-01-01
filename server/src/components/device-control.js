@@ -6,7 +6,7 @@ import gql from 'graphql-tag';
 import classNames from 'classnames';
 import { faSync } from '@fortawesome/free-solid-svg-icons';
 
-export default function DeviceControl({ icon, colorIconBackground, color, device, values = () => [], showMap }) {
+export default function DeviceControl({ icon, colorIconBackground, color, device, values = [], showMap }) {
   const [setLightSwitchStatus, { loading }] = useMutation(gql`
     mutation updateLight($id: ID!, $isOn: Boolean) {
       updateLight(id: $id, isOn: $isOn) {
@@ -20,7 +20,7 @@ export default function DeviceControl({ icon, colorIconBackground, color, device
   return (
     <>
       <div className="device-control__header">
-        <a className={classNames('device-control__icon-container', loading && 'device-control__icon-container--disabled')} style={{ backgroundColor: colorIconBackground(device) ? color + '50' : 'none' }} onClick={(e) => {
+        <a className={classNames('device-control__icon-container', loading && 'device-control__icon-container--disabled')} style={{ backgroundColor: colorIconBackground ? color + '50' : 'none' }} onClick={(e) => {
           e.preventDefault();
 
           if (loading) return;
@@ -40,7 +40,7 @@ export default function DeviceControl({ icon, colorIconBackground, color, device
         <div className="device-control__body">
           <h4 className="device-control__name">{device.name}</h4>
           <ul className="device-control__values">
-            {values(device).map((value, idx) => <li className="device-control__value" key={idx}>{value}</li>)}
+            {values.map((value, idx) => <li className="device-control__value" key={idx}>{value}</li>)}
           </ul>
         </div>
       </div>

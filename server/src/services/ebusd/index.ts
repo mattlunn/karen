@@ -19,6 +19,10 @@ Device.registerProvider('ebusd', {
     }
   },
 
+  async getPropertyKeys(device) {
+    return [];
+  },
+
   async synchronize() {
     const device = await Device.findByProviderId('ebusd', 'heatpump');
 

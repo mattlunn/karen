@@ -85,6 +85,22 @@ Device.registerProvider('tado', {
     }
   },
 
+  async getPropertyKeys(device: Device): Promise<string[]> {
+    switch (device.type) {
+      case 'thermostat':
+        return [
+          'connected',
+          'target',
+          'temperature',
+          'humdity',
+          'power',
+          'heating'
+        ];
+      default: 
+        return [];
+    }
+  },
+
   async synchronize() {
     const client = new TadoClient(await getAccessToken(), config.tado.home_id);
     const zones = await client.getZones();

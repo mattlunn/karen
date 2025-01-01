@@ -40,11 +40,26 @@ export default gql`
     room: Room
   }
 
+  union Sensor = MotionSensor | TemperatureSensor | LightSensor
+
   type BasicDevice implements Device {
     id: ID!
     name: String!
     status: DeviceStatus
+    sensors: [Sensor]
     room: Room
+  }
+
+  type MotionSensor {
+    motionDetected: Boolean!
+  }
+
+  type TemperatureSensor {
+    currentTemperature: Float!
+  }
+
+  type LightSensor {
+    illuminance: Float!
   }
 
   type MotionEvent implements Event {

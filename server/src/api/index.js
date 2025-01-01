@@ -327,6 +327,12 @@ const resolvers = {
     }
   },
 
+  Sensor: {
+    __resolveType(obj, context, info) {
+      return obj.__typename;
+    }
+  },
+
   Device: {
     __resolveType(obj, context, info) {
       return obj.constructor.name;

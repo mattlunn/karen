@@ -30,6 +30,24 @@ const DEVICE_FRAGMENT = gql`
       brightness
       isOn
     }
+
+    ...on BasicDevice {
+      sensors {
+        __typename
+        
+        ...on MotionSensor {
+          motionDetected
+        }
+
+        ...on TemperatureSensor {
+          currentTemperature
+        }
+
+        ...on LightSensor {
+          illuminance
+        }
+      }
+    }
   }
 `;
 

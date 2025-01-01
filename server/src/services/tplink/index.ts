@@ -40,6 +40,10 @@ Device.registerProvider('tplink', {
     }
   },
 
+  async getPropertyKeys(device: Device): Promise<string[]> {
+    return ['connected', 'brightness', 'on'];
+  },
+
   async synchronize() {
     const discoveryDuration = Math.max(5, config.tplink.discovery_duration_seconds) * 1000;
     const newDevices: (Bulb | Plug)[] = [];

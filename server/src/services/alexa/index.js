@@ -126,6 +126,10 @@ Device.registerProvider('alexa', {
     }
   },
 
+  async getPropertyKeys(device) {
+    return [];
+  },
+
   async synchronize() {
     for (const { id, name } of config.alexa.devices) {
       let knownDevice = await Device.findByProviderId('alexa', id);
