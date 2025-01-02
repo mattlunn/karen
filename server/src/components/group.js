@@ -4,9 +4,9 @@ import gql from 'graphql-tag';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DeviceControl from './device-control';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking } from '@fortawesome/free-solid-svg-icons';
+import { faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking, faVideo } from '@fortawesome/free-solid-svg-icons';
 
-library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer);
+library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer, faVideo);
 
 function createIfCapabilitySatisfied(device, ...creators) {
   for (let i=0;i<creators.length-1;i+=2) {
@@ -66,6 +66,11 @@ function buildDeviceControlForDevice(device) {
         }} />
       );
     },
+
+    x => x.__typename === 'Camera', 
+    (device, capability) => (
+        <DeviceControl device={device} icon={faVideo} color="#04A7F4" colorIconBackground={false} values={[]} />
+    ),
 
     (device) => {
       const motionSensor = device.capabilities.find(x => x.__typename === 'MotionSensor');
