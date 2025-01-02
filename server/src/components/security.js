@@ -1,94 +1,113 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
+import React, { useEffect, useState } from 'react';
 import gql from 'graphql-tag';
-import { graphql } from '@apollo/client/react/hoc';
+import { useQuery } from '@apollo/client';
 
-function mapStateToProps() {
-  return {
-    loadSnapshot: async (snapshot) => {
-      const response = await fetch(snapshot, {
-        credentials: 'same-origin'
-      });
+async function loadSnapshot(camera) {
+  const url = camera.capabilities.find(x => x.__typename === 'Camera').snapshot;
+  const response = await fetch(url, {
+    credentials: 'same-origin'
+  });
 
-      return URL.createObjectURL(await response.blob());
+  return URL.createObjectURL(await response.blob());
+};
+
+const SECURITY_QUERY = gql`
+  query GetSecurityStatus {
+    getSecurityStatus {
+      cameras {
+        id,
+        name
+
+        capabilities {
+          ...on Camera {
+            snapshot
+          }
+        }
+      }
     }
-  };
-}
+  }
+`;
 
-class Security extends Component {
-  constructor() {
-    super();
+function useSnapshotData(cameras) {
+  const [ snapshots, setSnapshots ] = useState({});
+  const updatedSnapshots = { ...snapshots };
 
-    this.loading = {};
-    this.state = {
-      snapshots: {}
-    };
+  for (const { id } of cameras) {
+    if (!(id in updatedSnapshots)) {
+      updatedSnapshots[id] = {
+        loading: false,
+        snapshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAJCAQAAACRI2S5AAAAEElEQVR42mNkIAAYRxWAAQAG9gAKqv6+AwAAAABJRU5ErkJggg=='
+      };
+
+      setSnapshots(updatedSnapshots);
+    }
   }
 
-  loadCameraImages = () => {
-    if (this.props.cameras) {
-      this.props.cameras.forEach(async (camera) => {
-        if (this.loading[camera.id]) {
+  useEffect(() => {
+    function loadSnapshots() {
+      const updatedSnapshots = { ...snapshots };
+
+      cameras.forEach(async (camera) => {
+        const updatedSnapshot = updatedSnapshots[camera.id];
+
+        if (updatedSnapshot.loading === true) {
           return;
+        } else {
+          updatedSnapshot.loading = true
         }
-
-        this.loading[camera.id] = true;
-
+  
         try {
-          const snapshot = await this.props.loadSnapshot(camera.snapshot);
-
-          this.setState({
-            snapshots: {
-              ...this.state.snapshots,
-
-              [camera.id]: snapshot
-            }
-          });
+          const snapshot = await loadSnapshot(camera);
+  
+          updatedSnapshot.loading = false;
+          updatedSnapshot.snapshot = snapshot;
         } finally {
-          this.loading[camera.id] = false;
+          updatedSnapshot.loading = false;
         }
+
+        updatedSnapshots[camera.id] = updatedSnapshot;
+
+        setSnapshots(updatedSnapshots);
       });
     }
-  };
 
-  componentDidMount() {
-    this.interval = setInterval(this.loadCameraImages, 5000);
-    this.loadCameraImages();
-  }
+    const interval = setInterval(loadSnapshots, 5000);
 
-  componentWillUnmount() {
-    clearInterval(this.interval);
-  }
+    loadSnapshots();
 
-  render() {
-    return (
-      <div className="security">
-        <ul className="security__camera-list">
-          {this.props.cameras && this.props.cameras.map((camera) => {
-            return (
-              <li className="security__camera" key={camera.id}>
-                <h3>{camera.name}</h3>
-                <img
-                  className="loading-spinner"
-                  src={this.state.snapshots[camera.id] || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAJCAQAAACRI2S5AAAAEElEQVR42mNkIAAYRxWAAQAG9gAKqv6+AwAAAABJRU5ErkJggg=='}
-                />
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    );
-  }
+    return () => {
+      clearInterval(interval);
+    };
+  }, [ cameras ]);
+
+  return updatedSnapshots;
 }
 
-export default graphql(gql`{
-  getSecurityStatus {
-    cameras {
-      id,
-      snapshot,
-      name
-    }
+export default function Security() {
+  const { data, loading } = useQuery(SECURITY_QUERY);
+  const [ cameras, setCameras ] = useState([]);
+  const snapshots = useSnapshotData(cameras);
+
+  if (!loading && data.getSecurityStatus.cameras !== cameras) {
+    setCameras(data.getSecurityStatus.cameras);
+    return <></>;
   }
-}`, {
-  props: ({ data: { getSecurityStatus }}) => ({ ...getSecurityStatus })
-})(connect(mapStateToProps)(Security));
+  
+  return (
+    <div className="security">
+      <ul className="security__camera-list">
+        {cameras.map((camera) => {
+          return (
+            <li className="security__camera" key={camera.id}>
+              <h3>{camera.name}</h3>
+              <img
+                className="loading-spinner"
+                src={snapshots[camera.id].snapshot}
+              />
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  )
+}

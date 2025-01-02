@@ -196,14 +196,14 @@ const resolvers = {
         await light.setProperty('on', args.isOn);
       }
 
-      return new Light(light);
+      return new Device(light);
     },
 
     async updateThermostat(parent, args, context, info) {
       const thermostat = await db.Device.findById(args.id);
       await thermostat.setProperty('target', args.targetTemperature);
 
-      return new Thermostat(thermostat);
+      return new Device(thermostat);
     },
 
     async updateAlarm(parent, args, context, info) {
@@ -367,7 +367,6 @@ export default async function(wsServer) {
     return {
       upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
       currentOrLastStayByUserId: new UnorderedDataLoader(db.Stay.findCurrentOrLastStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
-      cameras: new DataLoaderWithNoIdParam(() => db.Device.findByType('camera'), (cameras) => cameras.map(camera => new Camera(camera))),
       usersById: new UnorderedDataLoader((ids) => db.User.findAll({ where: { id: ids }}), ({ id }) => id, user => new User(user)),
       devices: new DeviceLoader(),
       rooms: new RoomLoader(),
