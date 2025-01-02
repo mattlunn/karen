@@ -12,40 +12,33 @@ const DEVICE_FRAGMENT = gql`
       id
     }
 
-    ...on Thermostat {
-      id
-      name
+    __typename
 
-      isHeating
-      power
-      status
-      targetTemperature
-      currentTemperature
-    }
+    capabilities {
+      __typename
 
-    ...on Light {
-      id
-      name
+      ...on Thermostat {
+        isHeating
+        power
+        targetTemperature
+        currentTemperature
+      }
 
-      brightness
-      isOn
-    }
+      ...on Light {
+        brightness
+        isOn
+      }
+      
+      ...on MotionSensor {
+        motionDetected
+      }
 
-    ...on BasicDevice {
-      sensors {
-        __typename
-        
-        ...on MotionSensor {
-          motionDetected
-        }
+      ...on TemperatureSensor {
+        currentTemperature
+      }
 
-        ...on TemperatureSensor {
-          currentTemperature
-        }
-
-        ...on LightSensor {
-          illuminance
-        }
+      ...on LightSensor {
+        illuminance
       }
     }
   }

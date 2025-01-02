@@ -7,7 +7,7 @@ export default class Security {
     return activeArming ? activeArming.mode : 'OFF';
   }
 
-  cameras(_, { cameras }) {
-    return cameras.load();
+  cameras(_, { devices }) {
+    return devices.findByType('camera');
   }
 }

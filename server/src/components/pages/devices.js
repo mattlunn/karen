@@ -10,32 +10,33 @@ import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
 import { faQuestion } from '@fortawesome/free-solid-svg-icons/faQuestion';
 import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermometerQuarter';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
-import { faVolumeUp } from '@fortawesome/free-solid-svg-icons/faVolumeUp';
 import { Link } from 'react-router-dom';
 
 class Device extends Component {
-  _renderDeviceIcon(type) {
-    switch (type) {
-      case 'camera':
-        return faVideo;
-      case 'motion_sensor':
-      case 'multi_sensor':
-          return faEye;
-      case 'alexa':
-        return faVolumeUp;
-      case 'light':
-        return faLightbulb;
-      case 'thermostat':
-        return faThermometerQuarter;
-      default: 
-        return faQuestion;
+  _renderDeviceIcon(capabilities) {
+    if (capabilities.some(x => x.__typename === 'Camera')) {
+      return faVideo;
     }
+
+    if (capabilities.some(x => x.__typename === 'Thermostat')) {
+      return faThermometerQuarter;
+    }
+
+    if (capabilities.some(x => x.__typename === 'Light')) {
+      return faLightbulb;
+    }
+
+    if (capabilities.some(x => x.__typename === 'MotionSensor')) {
+      return faEye;
+    }
+    
+    return faQuestion;
   }
 
-  _renderDevice({ type, device: { id, name, status }}) {
+  _renderDevice({ id, name, status, capabilities }) {
     return (
       <Link to={`/device/${id}`}>
-        <span className="device-icon"><FontAwesomeIcon icon={this._renderDeviceIcon(type)} /></span>
+        <span className="device-icon"><FontAwesomeIcon icon={this._renderDeviceIcon(capabilities)} /></span>
         {name}
       </Link>
     );
@@ -43,9 +44,9 @@ class Device extends Component {
 
   render() {
     const { active, old } = (this.props.devices || [])
-      .toSorted((a, b) => a.device.name.localeCompare(b.device.name))
+      .toSorted((a, b) => a.name.localeCompare(b.name))
       .reduce((acc, device) => {
-        acc[device.device.status === 'OK' ? 'active' : 'old'].push(device);
+        acc[device.status === 'OK' ? 'active' : 'old'].push(device);
 
         return acc;
       }, { active: [], old: [] });
@@ -60,7 +61,7 @@ class Device extends Component {
 
             <ul className="device-list">
               {active.map((device) => (
-                <li key={device.device.id}>
+                <li key={device.id}>
                   {this._renderDevice(device)}
                 </li>
               ))}
@@ -72,7 +73,7 @@ class Device extends Component {
 
               <ul className="device-list">
                 {active.map((device) => (
-                  <li key={device.device.id}>
+                  <li key={device.id}>
                     {this._renderDevice(device)}
                   </li>
                 ))}
@@ -93,13 +94,14 @@ class Device extends Component {
 export default graphql(gql`
   query GetDevices {
     devices: getDevices {
-      type
-      device {
-        id
-        name
-        status
+      id
+      name
+      status
+
+      capabilities {
+        __typename
       }
-    }
+    } 
   }
 `, {
   props: ({ data: { devices }}) => ({ devices }),

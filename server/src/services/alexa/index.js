@@ -110,23 +110,7 @@ export async function say(device, message, ttlInSeconds = 30) {
 }
 
 Device.registerProvider('alexa', {
-  async setProperty(device, key, value) {
-    switch (key) {
-      default:
-        throw new Error(`"${key}" is not a recognised property for Alexa`);
-    }
-  },
-
-  async getProperty(device, key) {
-    switch (key) {
-      case 'connected':
-        return true;
-      default:
-        throw new Error(`"${key}" is not a recognised property for Alexa`);
-    }
-  },
-
-  async getPropertyKeys(device) {
+  getCapabilities() {
     return [];
   },
 

@@ -17,10 +17,10 @@ export default function ({ switchNames, morningStart, morningEnd, eveningStart, 
       const device = await Device.findByName(switchName);
 
       if (device) {
-        const isOn = await device.getProperty('on');
+        const isOn = await device.getLightCapability().getIsOn();
 
         if (isOn !== onStatus) {
-          await device.setProperty('on', onStatus);
+          await device.getLightCapability().setIsOn(onStatus);
         }
       }
     }));

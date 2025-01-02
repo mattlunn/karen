@@ -10,7 +10,7 @@ export default class DeviceLoader {
   async load() {
     if (!this.resolved) {
       for (const device of await db.Device.findAll()) {
-        this.map.set(device, Device.create(device));
+        this.map.set(device, new Device(device));
       }
 
       this.resolved = true;

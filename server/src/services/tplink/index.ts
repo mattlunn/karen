@@ -18,30 +18,28 @@ function getTpLinkDeviceFromDevice(device: Device): Promise<Bulb | Plug | null> 
 }
 
 Device.registerProvider('tplink', {
-  async setProperty(device, key, value) {
-    switch (key) {
-      case 'on':
-        return getTpLinkDeviceFromDevice(device).then(x => x?.setPowerState(value as boolean));
-      default:
-        throw new Error(`"${key}" is not a recognised property for tplink`);
-    }
+  getCapabilities() {
+    return ['LIGHT']
   },
 
-  async getProperty(device, key) {
-    switch (key) {
-      case 'connected':
-        return (await getTpLinkDeviceFromDevice(device)) === null;
-      case 'brightness':
-        return 100;
-      case 'on':
-        return getTpLinkDeviceFromDevice(device).then(x => x?.getPowerState());
-      default:
-        throw new Error(`"${key}" is not a recognised property for tplink`);
-    }
-  },
+  getLightCapability(device) {
+    return {
+      getBrightness() {
+        return Promise.resolve(100);
+      },
 
-  async getPropertyKeys(device: Device): Promise<string[]> {
-    return ['connected', 'brightness', 'on'];
+      async getIsOn() {
+        return (await getTpLinkDeviceFromDevice(device).then(x => x?.getPowerState())) ?? false;
+      },
+
+      setBrightness() {
+        throw new Error('TPLink does not allow changing of brightness');
+      },
+
+      async setIsOn(isOn: boolean) {
+        await getTpLinkDeviceFromDevice(device).then(x => x?.setPowerState(isOn));
+      }
+    }; 
   },
 
   async synchronize() {

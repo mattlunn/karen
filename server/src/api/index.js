@@ -31,7 +31,7 @@ function createSubscriptionForDevice() {
                   if (ended) {
                     res({ done: true });
                   } else {
-                    res({ done: false, value: { onDeviceChanged: Device.create(device) }});
+                    res({ done: false, value: { onDeviceChanged: new Device(device) }});
                   }
                 });
               });
@@ -82,10 +82,7 @@ const resolvers = {
         throw new Error(`Device '${args.id}' does not exist.`);
       }
 
-      return {
-        type: device.type,
-        device: Device.create(device)
-      };
+      return new Device(device);
     },
     
     async getDevices(parent, args, { devices }, info) {
@@ -191,19 +188,19 @@ const resolvers = {
       const light = await db.Device.findById(args.id);
 
       if ('brightness' in args) {
-        await light.setProperty('brightness', args.brightness);
+        await light.getLightCapability().setBrightness(args.brightness);
       } else if ('isOn' in args) {
-        await light.setProperty('on', args.isOn);
+        await light.getLightCapability().setIsOn(args.isOn);
       }
 
-      return new Light(light);
+      return new Device(light);
     },
 
     async updateThermostat(parent, args, context, info) {
       const thermostat = await db.Device.findById(args.id);
-      await thermostat.setProperty('target', args.targetTemperature);
+      await thermostat.getThermostatCapability().setTargetTemperature(args.targetTemperature);
 
-      return new Thermostat(thermostat);
+      return new Device(thermostat);
     },
 
     async updateAlarm(parent, args, context, info) {
@@ -327,7 +324,7 @@ const resolvers = {
     }
   },
 
-  Sensor: {
+  Capability: {
     __resolveType(obj, context, info) {
       return obj.__typename;
     }
@@ -367,7 +364,6 @@ export default async function(wsServer) {
     return {
       upcomingStayByUserId: new UnorderedDataLoader(db.Stay.findUpcomingStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
       currentOrLastStayByUserId: new UnorderedDataLoader(db.Stay.findCurrentOrLastStays.bind(db.Stay), ({ userId }) => userId, stay => new Stay(stay)),
-      cameras: new DataLoaderWithNoIdParam(() => db.Device.findByType('camera'), (cameras) => cameras.map(camera => new Camera(camera))),
       usersById: new UnorderedDataLoader((ids) => db.User.findAll({ where: { id: ids }}), ({ id }) => id, user => new User(user)),
       devices: new DeviceLoader(),
       rooms: new RoomLoader(),

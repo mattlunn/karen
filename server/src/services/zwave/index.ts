@@ -7,7 +7,13 @@ const deviceMap = new Map([
   ['Fibargroup FGD212', 'light']
 ]);
 
-const deviceHandlers = new Map();
+type DeviceHandler = {
+  propertyKey: string,
+  typeMapper: () => string,
+  valueMapper: (value: any) => unknown
+};
+
+const deviceHandlers = new Map<string, DeviceHandler[]>();
 
 deviceHandlers.set('Fibargroup FGMS001', [
   // Some of the sensors trigger the first event for motion, others trigger the 2nd.
@@ -80,19 +86,19 @@ deviceHandlers.set('Fibargroup FGD212', [
 ]);
 
 getClient().then(({ on, getNodes }) => {
-  on('event', async (data) => {
+  on('event', async (data: any) => {
     if (data.source === 'node' && data.event === 'value updated') {
       const deviceId = data.nodeId;
-      const device = await Device.findByProviderId('zwave', deviceId);
-      const node = Array.from(getNodes()).find(x => x.nodeId === deviceId);
+      const device = await Device.findByProviderIdOrError('zwave', deviceId);
+      const node = Array.from(getNodes()).find((x: any) => x.nodeId === deviceId) as any;
       const nodeType = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
-      const eventHandlers = deviceHandlers.get(nodeType).filter(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
+      const eventHandlers = deviceHandlers.get(nodeType)!.filter(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
     
       for (const { typeMapper, valueMapper } of eventHandlers) {
-        const eventType = typeMapper(data.args);
+        const eventType = typeMapper();
         const eventValue = valueMapper(data.args);
         const lastEvent = await device.getLatestEvent(eventType);
-        const now = Date.now();
+        const now = new Date();
 
         if (eventValue === true) {
           if (lastEvent && lastEvent.end === null) {
@@ -106,7 +112,7 @@ getClient().then(({ on, getNodes }) => {
             start: now
           });
         } else if (eventValue === false) {
-          if (lastEvent && lastEvent.end !== null) {
+          if (lastEvent === null || lastEvent.end) {
             continue;
           }
 
@@ -121,7 +127,7 @@ getClient().then(({ on, getNodes }) => {
           await Event.create({
             deviceId: device.id,
             type: eventType,
-            value: eventValue,
+            value: eventValue as number,
             start: now
           });
         }
@@ -133,72 +139,90 @@ getClient().then(({ on, getNodes }) => {
 });
 
 Device.registerProvider('zwave', {
-  async setProperty(device, key, value) {
-    const { makeRequest } = await getClient();
-
-    switch (key) {
-      case 'on': {
-        await makeRequest('node.set_value', {
-          nodeId: Number(device.providerId),
-          valueId: {
-            commandClass: 38,
-            endpoint: 1,
-            property: "targetValue",
-          },
-          value: value ? 99 : 0
-        });
-
-        break;
-      }
-
-      case 'brightness': {
-        await makeRequest('node.set_value', {
-          nodeId: Number(device.providerId),
-          valueId: {
-            commandClass: 38,
-            endpoint: 1,
-            property: "targetValue",
-          },
-          value: Math.min(value, 99)
-        });
-
-        break;
-      }
-      default:
-        throw new Error(`"${key}" is not a recognised property for ZWave`);
-    }
-  },
-
-  async getProperty(device, key) {
-    switch (key) {
-      case 'connected':
-        return true;
-      case 'motion':
-      case 'on':
-      case 'open': {
-        const latestEvent = await device.getLatestEvent(key);
+  getMotionSensorCapability(device) {
+    return {
+      async getHasMotion() {
+        const latestEvent = await device.getLatestEvent('motion');
 
         return !!(latestEvent && !latestEvent.end);
       }
-      case 'humidity':
-      case 'temperature':
-      case 'illuminance':
-      case 'brightness': {
-        return (await device.getLatestEvent(key)).value;
-      }
-      default:
-        throw new Error(`"${key}" is not a recognised property for ZWave`);
+    };
+  },
+
+  getLightCapability(device) {
+    return {
+      async getBrightness() {
+        return (await device.getLatestEvent('brightness'))?.value ?? 0;
+      },
+
+      async setBrightness(brightness) {
+        const { makeRequest } = await getClient();
+
+        await makeRequest('node.set_value', {
+          nodeId: Number(device.providerId),
+          valueId: {
+            commandClass: 38,
+            endpoint: 1,
+            property: "targetValue",
+          },
+          value: Math.min(brightness, 99)
+        });
+      },
+
+      async getIsOn() {
+        const latestEvent = await device.getLatestEvent('on');
+
+        return !!(latestEvent && !latestEvent.end);
+      },
+
+      async setIsOn(isOn) {
+        const { makeRequest } = await getClient();
+
+        await makeRequest('node.set_value', {
+          nodeId: Number(device.providerId),
+          valueId: {
+            commandClass: 38,
+            endpoint: 1,
+            property: "targetValue",
+          },
+          value: isOn ? 99 : 0
+        });
+      },
     }
   },
 
-  async getPropertyKeys(device) {
+  getTemperatureSensorCapability(device) {
+    return {
+      async getCurrentTemperature(): Promise<number> {
+        return (await device.getLatestEvent('temperature'))?.value ?? 0;
+      }
+    };
+  },
+
+  getHumiditySensorCapability(device) {
+    return {
+      async getHumidity(): Promise<number> {
+        return (await device.getLatestEvent('humidity'))?.value ?? 0;
+      }
+    };
+  },
+
+  getLightSensorCapability(device) {
+    return {
+      async getIlluminance() {
+        return (await device.getLatestEvent('illuminance'))?.value ?? 0;
+      }
+    };
+  },
+
+  getCapabilities(device) {
     switch (device.type) {
-      case 'light': 
-        return ['power', 'brightness', 'on'];
-      case 'multi_sensor': 
-        return ['motion', 'illuminance', 'temperature', 'battery'];
+      case 'light':
+        return ['LIGHT'];
+      case 'multi_sensor':
+        return ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR'];
       default:
-        return [];
+        throw new Error(`${device.type} is unrecognised`);
     }
   },
 

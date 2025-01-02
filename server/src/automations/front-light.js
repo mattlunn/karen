@@ -17,7 +17,7 @@ function turnOffAfter(device, delayInMs) {
 
   offExecutionTime = turnOffTime;
   offTimeout = setTimeout(() => {
-    device.setProperty('on', false);
+    device.getLightCapability().setIsOn(false);
   }, delayInMs);
 }
 
@@ -26,8 +26,8 @@ export default function ({ offDelayInMinutes, start, end, lightName }) {
     if (isWithinTime(start, end)) {
       const device = await Device.findByName(lightName);
 
-      if (!await device.getProperty('on')) {
-        device.setProperty('on', true);
+      if (!await device.getLightCapability().getIsOn()) {
+        device.getLightCapability().setIsOn(true);
 
         turnOffAfter(device, offDelayInMinutes * 60000);
       }
