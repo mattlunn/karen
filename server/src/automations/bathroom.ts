@@ -3,7 +3,7 @@ import { Device, Event } from '../models';
 import { isWithinTime } from '../helpers/time';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 
-let timeoutToTurnOff: number | undefined = undefined;
+let timeoutToTurnOff: undefined | ReturnType<typeof setTimeout> = undefined;
 
 // Motion starts; immediately turn light on. Cancel any scheduled timeouts
 // Motion ends; schedule possible turnoff for light.
@@ -38,7 +38,7 @@ export default function ({ motionSensorNames, humiditySensorName, lightName, max
     return humiditySensor.getHumiditySensorCapability().getHumidity();
   }
 
-  [EVENT_START, EVENT_END].forEach((eventEvent) => {
+  ([EVENT_START, EVENT_END] as ('EVENT_START' | 'EVENT_END')[]).forEach((eventEvent) => {
     bus.on(eventEvent, createBackgroundTransaction(`automations:bathroom:${eventEvent.toLowerCase()}`, async (event: Event) => {
       const [sensor, light] = await Promise.all([
         event.getDevice(),
@@ -55,8 +55,10 @@ export default function ({ motionSensorNames, humiditySensorName, lightName, max
 
             const { brightness: desiredBrightness = 100 } = between.find(({ start, end }) => isWithinTime(start, end)) || {};
 
-            clearTimeout(timeoutToTurnOff);
-            timeoutToTurnOff = undefined;
+            if (timeoutToTurnOff !== undefined) {
+              clearTimeout(timeoutToTurnOff);
+              timeoutToTurnOff = undefined;
+            }
 
             if (!isLightOn || desiredBrightness !== currentBrightness) {
               await light.getLightCapability().setBrightness(desiredBrightness);
