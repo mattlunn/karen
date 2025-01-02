@@ -81,18 +81,20 @@ function buildDeviceControlForDevice(device) {
         colorIconBackground = motionSensor.motionDetected;
       }
 
-      return <DeviceControl device={device} icon={icon} color="#04A7F4" colorIconBackground={colorIconBackground} values={
-        device.capabilities.map((capability) => {
-          switch (capability.__typename) {
-            case 'TemperatureSensor':
-              return `${capability.currentTemperature.toFixed(1)}°`;
-            case 'LightSensor':
-              return `${capability.illuminance}lx`;
-          }
-        }).filter(x => x)
-      } />
+      return (
+        <DeviceControl device={device} icon={icon} color="#04A7F4" colorIconBackground={colorIconBackground} values={
+          device.capabilities.map((capability) => {
+            switch (capability.__typename) {
+              case 'TemperatureSensor':
+                return `${capability.currentTemperature.toFixed(1)}°`;
+              case 'LightSensor':
+                return `${capability.illuminance}lx`;
+            }
+          }).filter(x => x)
+        } />
+      );
     },
-  )
+  );
 }
 
 export default function Group({ displayIconName, name, devices }) {

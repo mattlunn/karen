@@ -2,6 +2,7 @@ import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttribut
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import logger from '../logger';
 import { Event } from './event';
+import { Capability, HumiditySensorCapability, LightCapability, MotionSensorCapability, ThermostatCapability, TemperatureSensorCapability, CameraCapability, LightSensorCapability } from './capabilities';
 
 const latestEventCache = new Map();
 
@@ -30,20 +31,6 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     return this.#metaParsed;
   }
 
-  /**
-   * This method triggers the update of the property at the service level. It does
-   * not wait for the property to update before returning.
-   *
-   * In other words, by awaiting this method, you are subscribing to "I have successfully
-   * told (e.g. Tado) to change the temperature". It does NOT mean "The temperature has changed."
-   *
-   * In part, this is due to some APIs (TP Link, Tado, I'm looking at you), where we have
-   * to poll for updates, rather than subscribe to updates.
-   */
-  setProperty<T>(property: string, value: T) {
-    return Device._providers.get(this.provider)!.setProperty(this, property, value);
-  };
-
   onPropertyChanged(property: string) {
     bus.emit(DEVICE_PROPERTY_CHANGED, {
       device: this,
@@ -51,13 +38,64 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     });
   };
 
-  async getProperty<T>(property: string): Promise<T> {
-    return (await Device._providers.get(this.provider)!.getProperty(this, property)) as T;
+  #getCapabilityOrThrow<T>(handler: (provider: ProviderHandler) => (undefined | ((device: Device) => T))): T {
+    const provider = Device._providers.get(this.provider);
+
+    if (provider === undefined) {
+      throw new Error(`Provider ${this.provider} does not exist for device ${this.id} (${this.name})`);
+    }
+
+    const capabilityProvider = handler(provider);
+
+    if (typeof capabilityProvider !== 'function') {
+      throw new Error(`Provider ${this.provider} does not provide support the requested capability (${handler.toString()})`);
+    }
+
+    return capabilityProvider(this);
   };
 
-  async getPropertyKeys(): Promise<string[]> {
-    return await Device._providers.get(this.provider)!.getPropertyKeys(this);
+  async getIsConnected(): Promise<boolean> {
+    // TODO
+    return true;
+  }
+
+  getLightCapability(): LightCapability {
+    return this.#getCapabilityOrThrow((provider) => provider.getLightCapability);
   };
+
+  getThermostatCapability(): ThermostatCapability {
+    return this.#getCapabilityOrThrow((provider) => provider.getThermostatCapability);
+  };
+
+  getMotionSensorCapability(): MotionSensorCapability {
+    return this.#getCapabilityOrThrow((provider) => provider.getMotionSensorCapability);
+  };
+
+  getTemperatureSensorCapability(): TemperatureSensorCapability {
+    return this.#getCapabilityOrThrow((provider) => provider.getTemperatureSensorCapability);
+  };
+
+  getLightSensorCapability(): LightSensorCapability {
+    return this.#getCapabilityOrThrow((provider) => provider.getLightSensorCapability);
+  };
+
+  getHumiditySensorCapability(): HumiditySensorCapability {
+    return this.#getCapabilityOrThrow((provider) => provider.getHumiditySensorCapability);
+  };
+
+  getCapabilities(): Capability[] {
+    const provider = Device._providers.get(this.provider);
+
+    if (provider === undefined) {
+      throw new Error(`Provider ${this.provider} does not exist for device ${this.id} (${this.name})`);
+    }
+
+    return provider.getCapabilities(this);
+  }
+
+  hasCapability(capability: Capability): boolean {
+    return this.getCapabilities().includes(capability);
+  }
 
   async getLatestEvent(type: string): Promise<Event | null> {
     // We have this caching because MySQL's chosen query execution plan seems to suite EITHER
@@ -93,12 +131,22 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     return lastLatestEvent;
   };
 
-  static findByName(name: string) {
+  static findByName(name: string): Promise<Device | null> {
     return this.findOne({
       where: {
         name
       }
     });
+  };
+
+  static async findByNameOrError(name: string): Promise<Device> {
+    const device = await this.findByName(name);
+
+    if (device === null) {
+      throw new Error(`Device with name ${name} could not be found`);
+    }
+
+    return device;
   };
 
   static findById(id: string) {
@@ -167,9 +215,15 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 };
 
 type ProviderHandler = {
-  setProperty(device: Device, key: string, value: unknown): void;
-  getProperty(device: Device, key: string): Promise<unknown>;
-  getPropertyKeys(device: Device): Promise<string[]>;
+  getLightCapability?(device: Device): LightCapability;
+  getThermostatCapability?(device: Device): ThermostatCapability;
+  getHumiditySensorCapability?(device: Device): HumiditySensorCapability;
+  getTemperatureSensorCapability?(device: Device): TemperatureSensorCapability;
+  getMotionSensorCapability?(device: Device): MotionSensorCapability;
+  getCameraCapability?(device: Device): CameraCapability;
+  getLightSensorCapability?(device: Device): LightSensorCapability;
+  getCapabilities(device: Device): Capability[];
+
   synchronize(): void;
 };
 

@@ -34,23 +34,56 @@ type DeviceState = {
 });
 
 Device.registerProvider('tado', {
-  async setProperty(device, key, value) {
-    switch (key) {
-      case 'target': {
-        const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+  getCapabilities(device) {
+    if (device.type === 'thermostat') {
+      return [
+        'HUMIDITY_SENSOR',
+        'TEMPERATURE_SENSOR',
+        'THERMOSTAT'
+      ];
+    }
 
-        if (value !== null && typeof value !== "number") {
-          throw new Error(`For setting 'target', value must be a number of null, not a ${typeof value}`);
-        }
+    return [];
+  },
+
+  getTemperatureSensorCapability(device: Device) {
+    return {
+      async getCurrentTemperature(): Promise<number> {
+        return (await device.getLatestEvent('temperature'))?.value ?? 0;
+      }
+    }
+  },
+
+  getThermostatCapability(device: Device) {
+    return {
+      async getCurrentTemperature(): Promise<number> {
+        return (await device.getLatestEvent('temperature'))?.value ?? 0;
+      },
+
+      async getPower() {
+        return (await device.getLatestEvent('power'))?.value ?? 0;
+        
+      },
+
+      async getTargetTemperature() {
+        return (await device.getLatestEvent('target'))?.value ?? 0;
+      },
+
+      async getIsHeating() {
+        const latestEvent = await device.getLatestEvent('heating');
+        return !!latestEvent && !latestEvent.end;
+      },
+
+      async setTargetTemperature(value: number | null) {
+        const client = new TadoClient(await getAccessToken(), config.tado.home_id);
 
         await client.setHeatingPowerForZone(device.providerId, value === null ? false : value, false);
+      },
 
-        break;
-      }
-      case 'on': {
+      async setIsOn(isOn: boolean) {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
 
-        if (value === true) {
+        if (isOn === true) {
           const data = await client.getZoneState(device.providerId);
 
           if (data.overlayType === 'MANUAL' && data.overlay.setting.power === 'OFF') {
@@ -59,45 +92,15 @@ Device.registerProvider('tado', {
         } else /* value === false */ {
           await client.setHeatingPowerForZone(device.providerId, false, false);
         }
-
-        break;
       }
-      default:
-        throw new Error(`Unable to handle setting '${key}' for ${device.type}`);
     }
   },
 
-  async getProperty(device, key) {
-    switch (key) {
-      case 'connected':
-        return true;
-      case 'target':
-      case 'temperature':
-      case 'humidity':
-      case 'power':
-        return (await device.getLatestEvent(key))?.value ?? 0;
-      case 'heating': {
-        const latestEvent = await device.getLatestEvent(key);
-        return !!latestEvent && !latestEvent.end;
+  getHumiditySensorCapability(device: Device) {
+    return {
+      async getHumidity() {
+        return (await device.getLatestEvent('humidity'))?.value ?? 0;
       }
-      default:
-        throw new Error(`Unable to handle retrieving '${key}' for ${device.type}`);
-    }
-  },
-
-  async getPropertyKeys(device: Device): Promise<string[]> {
-    switch (device.type) {
-      case 'thermostat':
-        return [
-          'connected',
-          'target',
-          'temperature',
-          'humdity',
-          'power',
-          'heating'
-        ];
-      default: 
-        return [];
     }
   },
 
@@ -159,11 +162,11 @@ export async function setCentralHeatingMode(mode: keyof typeof CENTRAL_HEATING_M
       if (mode === 'ON') {
         await client.endManualHeatingForZone(zoneId);
       } else if (mode === 'OFF') {
-        await device.setProperty('target', false);
+        await device.getThermostatCapability().setIsOn(false);
       } else if (mode === 'SETBACK') {
         const awayTemperature = await client.getMinimumAwayTemperatureForZone(zoneId);
 
-        await device.setProperty('target', awayTemperature);
+        await device.getThermostatCapability().setTargetTemperature(awayTemperature);
       }
     }
   }
@@ -301,8 +304,8 @@ nowAndSetInterval(createBackgroundTransaction('tado:warm-up', async () => {
         zoneState,
         activeTimetable
       ] = await Promise.all([
-        device.getProperty<number>('temperature'),
-        device.getProperty<number>('target'),
+        device.getThermostatCapability().getCurrentTemperature(),
+        device.getThermostatCapability().getTargetTemperature(),
         client.getZoneState(device.providerId),
         client.getActiveTimetable(device.providerId)
       ]);

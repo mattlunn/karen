@@ -164,21 +164,12 @@ nowAndSetInterval(createBackgroundTransaction('synology:clear-old-recordings', a
 }), moment.duration(1, 'day').as('milliseconds'));
 
 Device.registerProvider('synology', {
-  async setProperty(device, key, value) {
-    throw new Error(`Unable to handle setting '${key}' for ${device.type}`);
+  getCameraCapability(device) {
+    return {};
   },
 
-  async getProperty(device: Device, key: string): Promise<unknown> {
-    switch (key) {
-      case 'connected':
-        return true;
-      default:
-        throw new Error(`Unable to handle retrieving '${key}' for ${device.type}`);
-    }
-  },
-
-  async getPropertyKeys(device: Device): Promise<string[]> {
-    return [];
+  getCapabilities(device) {
+    return ['CAMERA'];
   },
 
   async synchronize() {

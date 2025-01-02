@@ -12,7 +12,7 @@ async function turnOnAllTheLights() {
   const lights = await Device.findByType('light');
 
   for (const light of lights) {
-    light.setProperty('on', true);
+    light.getLightCapability().setIsOn(true);
   }
 }
 

@@ -82,10 +82,7 @@ const resolvers = {
         throw new Error(`Device '${args.id}' does not exist.`);
       }
 
-      return {
-        type: device.type,
-        device: new Device(device)
-      };
+      return new Device(device);
     },
     
     async getDevices(parent, args, { devices }, info) {
@@ -191,9 +188,9 @@ const resolvers = {
       const light = await db.Device.findById(args.id);
 
       if ('brightness' in args) {
-        await light.setProperty('brightness', args.brightness);
+        await light.getLightCapability().setBrightness(args.brightness);
       } else if ('isOn' in args) {
-        await light.setProperty('on', args.isOn);
+        await light.getLightCapability().setIsOn(args.isOn);
       }
 
       return new Device(light);
@@ -201,7 +198,7 @@ const resolvers = {
 
     async updateThermostat(parent, args, context, info) {
       const thermostat = await db.Device.findById(args.id);
-      await thermostat.setProperty('target', args.targetTemperature);
+      await thermostat.getThermostatCapability().setTargetTemperature(args.targetTemperature);
 
       return new Device(thermostat);
     },

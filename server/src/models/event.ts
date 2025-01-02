@@ -2,6 +2,7 @@ import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, 
 import { Recording } from './recording';
 import bus, { EVENT_START, EVENT_END } from '../bus';
 import logger from '../logger';
+import { Device } from './device';
 
 export class Event extends Model<InferAttributes<Event>, InferCreationAttributes<Event>> {
   declare public id: CreationOptional<number>;
@@ -12,6 +13,7 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
   declare public value: CreationOptional<number>;
 
   declare getRecording: HasOneGetAssociationMixin<Recording>;
+  declare getDevice: HasOneGetAssociationMixin<Device>;
 }
 
 export default function (sequelize: Sequelize) {

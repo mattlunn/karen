@@ -5,21 +5,7 @@ import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 
 Device.registerProvider('ebusd', {
-  async setProperty(device, key, value) {
-    switch (key) {
-      default:
-        throw new Error(`Unable to handle setting '${key}' for ${device.type}`);
-    }
-  },
-
-  async getProperty(device, key) {
-    switch (key) {
-      default:
-        throw new Error(`Unable to handle retrieving '${key}' for ${device.type}`);
-    }
-  },
-
-  async getPropertyKeys(device) {
+  getCapabilities(device) {
     return [];
   },
 

@@ -9,7 +9,7 @@ async function loadSnapshot(camera) {
   });
 
   return URL.createObjectURL(await response.blob());
-};
+}
 
 const SECURITY_QUERY = gql`
   query GetSecurityStatus {
@@ -53,7 +53,7 @@ function useSnapshotData(cameras) {
         if (updatedSnapshot.loading === true) {
           return;
         } else {
-          updatedSnapshot.loading = true
+          updatedSnapshot.loading = true;
         }
   
         try {
@@ -78,7 +78,7 @@ function useSnapshotData(cameras) {
     return () => {
       clearInterval(interval);
     };
-  }, [ cameras ]);
+  }, [ cameras, snapshots ]);
 
   return updatedSnapshots;
 }
@@ -109,5 +109,5 @@ export default function Security() {
         })}
       </ul>
     </div>
-  )
+  );
 }

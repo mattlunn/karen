@@ -9,8 +9,8 @@ async function turnOffLights() {
   const lightsTurnedOff: Device[] = [];
 
   await Promise.all(lights.map(async (light) => {
-    if (await light.getProperty('on')) {
-      await light.setProperty('on', false);
+    if (await light.getLightCapability().getIsOn()) {
+      await light.getLightCapability().setIsOn(false);
 
       lightsTurnedOff.push(light);
     }

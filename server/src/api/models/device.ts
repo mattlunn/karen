@@ -20,7 +20,7 @@ export default class Device {
   }
 
   async status(): Promise<'OK' | 'OFFLINE'> {
-    return await this.#data.getProperty('connected') ? 'OK' : 'OFFLINE';
+    return await this.#data.getIsConnected() ? 'OK' : 'OFFLINE';
   }
 
   room(_: never, { rooms }: { rooms: RoomLoader }) {
@@ -32,36 +32,18 @@ export default class Device {
   }
 
   async capabilities(): Promise<Promise<unknown>[]> {
-    const sensors = await this.#data.getPropertyKeys();
+    const capabilities = this.#data.getCapabilities();
     const loaders : Promise<unknown>[] = [];
+    
+    for (const capability of capabilities) {
+      switch (capability) {
+        case 'CAMERA':
+          loaders.push(Promise.resolve(new Camera(this.#data)));
+        break;
 
-    switch (this.#data.type) {
-      case 'thermostat':
-        loaders.push(Promise.resolve(new Thermostat(this.#data)));
-        break;
-      case 'light':
-        loaders.push(Promise.resolve(new Light(this.#data)));
-        break;
-      case 'camera':
-        loaders.push(Promise.resolve(new Camera(this.#data)));
-        break;
-    }
-
-    for (const sensor of sensors) {
-      switch (sensor) {
-        case 'motion': 
+        case 'LIGHT_SENSOR':
           loaders.push((async () => {
-            const hasMotion = await this.#data.getProperty('motion');
-
-            return {
-              __typename: 'MotionSensor',
-              motionDetected: hasMotion
-            };
-          })());
-        break;
-        case 'illuminance': 
-          loaders.push((async () => {
-            const illuminance = await this.#data.getProperty('illuminance');
+            const illuminance = await this.#data.getLightSensorCapability().getIlluminance();
 
             return {
               __typename: 'LightSensor',
@@ -69,15 +51,46 @@ export default class Device {
             };
           })());
         break;
-        case 'temperature': 
+
+        case 'HUMIDITY_SENSOR':
           loaders.push((async () => {
-            const temperature = await this.#data.getProperty('temperature');
+            const humidity = await this.#data.getHumiditySensorCapability().getHumidity();
+
+            return {
+              __typename: 'HumiditySensor',
+              humidity
+            };
+          })());
+        break;
+
+        case 'LIGHT':
+          loaders.push(Promise.resolve(new Light(this.#data)));
+        break;
+
+        case 'MOTION_SENSOR':
+          loaders.push((async () => {
+            const hasMotion = await this.#data.getMotionSensorCapability().getHasMotion();
+
+            return {
+              __typename: 'MotionSensor',
+              motionDetected: hasMotion
+            };
+          })());
+        break;
+
+        case 'TEMPERATURE_SENSOR':
+          loaders.push((async () => {
+            const temperature = await this.#data.getTemperatureSensorCapability().getCurrentTemperature();
 
             return {
               __typename: 'TemperatureSensor',
               currentTemperature: temperature
             };
           })());
+        break;
+
+        case 'THERMOSTAT':
+          loaders.push(Promise.resolve(new Thermostat(this.#data)));
         break;
       }
     }

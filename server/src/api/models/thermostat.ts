@@ -10,22 +10,22 @@ export default class Thermostat {
   }
 
   targetTemperature(): Promise<number> {
-    return this.#device.getProperty<number>('target');
+    return this.#device.getThermostatCapability().getTargetTemperature();
   }
 
   currentTemperature(): Promise<number> {
-    return this.#device.getProperty<number>('temperature');
+    return this.#device.getThermostatCapability().getCurrentTemperature();
   }
 
   isHeating(): Promise<boolean> {
-    return this.#device.getProperty<boolean>('heating');
+    return this.#device.getThermostatCapability().getIsHeating();
   }
 
   humidity(): Promise<number> {
-    return this.#device.getProperty<number>('humidity');
+    return this.#device.getHumiditySensorCapability().getHumidity();
   }
 
   power(): Promise<number> {
-    return this.#device.getProperty<number>('power');
+    return this.#device.getThermostatCapability().getPower();
   }
 }

@@ -9,11 +9,11 @@ export default class Light {
     this.#data = data;
   }
 
-  async isOn(): Promise<boolean> {
-    return await this.#data.getProperty('on') ?? false;
+  isOn(): Promise<boolean> {
+    return this.#data.getLightCapability().getIsOn();
   }
 
   brightness(): Promise<number> {
-    return this.#data.getProperty('brightness');
+    return this.#data.getLightCapability().getBrightness();
   }
 }

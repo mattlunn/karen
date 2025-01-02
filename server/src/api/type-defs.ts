@@ -42,7 +42,7 @@ export default gql`
     capabilities: [Capability]
   }
 
-  union Capability = MotionSensor | TemperatureSensor | LightSensor | Light | Thermostat | Camera
+  union Capability = MotionSensor | TemperatureSensor | LightSensor | Light | Thermostat | Camera | HumiditySensor
 
   type MotionSensor {
     motionDetected: Boolean!
@@ -65,11 +65,14 @@ export default gql`
     snapshot: String
   }
 
+  type HumiditySensor {
+    humidity: Float!
+  }
+
   type Thermostat {
-    targetTemperature: Float
+    targetTemperature: Float!
     currentTemperature: Float!
     isHeating: Boolean!
-    humidity: Float!
     power: Float!
   }
 
@@ -123,11 +126,6 @@ export default gql`
   union TimelineEvent = MotionEvent | ArrivalEvent | DepartureEvent | LightOnEvent | LightOffEvent | AlarmArmingEvent | DoorbellRingEvent
   union HistoryDatumType = Thermostat | Light
 
-  type DeviceWrapper {
-    type: String!
-    device: Device!
-  }
-
   type User {
     id: ID!
     avatar: String!
@@ -174,7 +172,7 @@ export default gql`
   }
 
   type Query {
-    getDevice(id: ID!): DeviceWrapper
+    getDevice(id: ID!): Device
     getDevices: [Device]
     getUsers: [User]
     getSecurityStatus: Security
