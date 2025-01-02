@@ -16,6 +16,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare metaStringified: CreationOptional<string>;
 
   #metaParsed: Record<string, unknown>;
+  #capabilityCache: Map<(device: Device) => unknown, unknown> = new Map();
 
   declare getEvents: HasManyGetAssociationsMixin<{ start: Date; }>;
 
@@ -51,7 +52,11 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
       throw new Error(`Provider ${this.provider} does not provide support the requested capability (${handler.toString()})`);
     }
 
-    return capabilityProvider(this);
+    if (!this.#capabilityCache.has(capabilityProvider)) {
+      this.#capabilityCache.set(capabilityProvider, capabilityProvider(this));
+    }
+
+    return this.#capabilityCache.get(capabilityProvider) as T;
   };
 
   async getIsConnected(): Promise<boolean> {
