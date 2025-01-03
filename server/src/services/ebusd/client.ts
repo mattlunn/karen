@@ -124,6 +124,14 @@ export default class EbusClient {
     return true;
   }
 
+  async getCopHc(): Promise<number> {
+    return Number(await this.#read('CopHc', 'hmu'));
+  }
+
+  async getCopHwc(): Promise<number> {
+    return Number(await this.#read('CopHwc', 'hmu'));
+  }
+
   async setIsDHWOn(isOn: boolean) {
     await this.#write('ctlv3', 'HwcOpMode', isOn ? 'manual' : 'off');
   }

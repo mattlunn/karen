@@ -95,6 +95,8 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     updateState(device, 'current_yield', client.getCurrentYield()),
     updateState(device, 'current_power', client.getCurrentPower()),
     updateState(device, 'mode', client.getMode()),
-    updateState(device, 'dhw_mode', client.getDHWIsOn())
+    updateState(device, 'dhw_mode', client.getDHWIsOn()),
+    updateState(device, 'cop_hc', client.getCopHc()),
+    updateState(device, 'cop_hwc', client.getCopHwc())
   ]);
 }), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);
