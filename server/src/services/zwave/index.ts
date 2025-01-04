@@ -90,12 +90,12 @@ deviceHandlers.set('Zooz ZSE44', [
   {
     propertyKey: 'Multilevel Sensor.Humidity',
     valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'motion'
+    typeMapper: () => 'humidity'
   },
   {
     propertyKey: 'Multilevel Sensor.Air temperature',
     valueMapper: ({ newValue }) => newValue !== 0,
-    typeMapper: () => 'motion'
+    typeMapper: () => 'temperature'
   },
   { 
     propertyKey: 'Battery.level',
