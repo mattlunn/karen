@@ -215,7 +215,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   static registerProvider(name: string, handlers: ProviderHandler) {
     this._providers.set(name, handlers);
 
-    handlers.synchronize();
+    handlers.synchronize().catch(e => logger.error(e));
   };
 };
 
@@ -229,7 +229,7 @@ type ProviderHandler = {
   getLightSensorCapability?(device: Device): LightSensorCapability;
   getCapabilities(device: Device): Capability[];
 
-  synchronize(): void;
+  synchronize(): Promise<void>;
 };
 
 export default function (sequelize: Sequelize) {
