@@ -94,7 +94,7 @@ deviceHandlers.set('Zooz ZSE44', [
   },
   {
     propertyKey: 'Multilevel Sensor.Air temperature',
-    valueMapper: ({ newValue }) => newValue !== 0,
+    valueMapper: ({ newValue }) => newValue,
     typeMapper: () => 'temperature'
   },
   { 
