@@ -4,7 +4,8 @@ import logger from '../../logger';
 
 const deviceMap = new Map([
   ['Fibargroup FGMS001', 'motion_sensor'],
-  ['Fibargroup FGD212', 'light']
+  ['Fibargroup FGD212', 'light'],
+  ['Zooz ZSE44', 'humidity_sensor']
 ]);
 
 type DeviceHandler = {
@@ -82,6 +83,24 @@ deviceHandlers.set('Fibargroup FGD212', [
     propertyKey: 'Multilevel Switch.currentValue',
     valueMapper: ({ newValue }) => newValue !== 0,
     typeMapper: () => 'on'
+  }
+]);
+
+deviceHandlers.set('Zooz ZSE44', [
+  {
+    propertyKey: 'Multilevel Sensor.Humidity',
+    valueMapper: ({ newValue }) => newValue,
+    typeMapper: () => 'motion'
+  },
+  {
+    propertyKey: 'Multilevel Sensor.Air temperature',
+    valueMapper: ({ newValue }) => newValue !== 0,
+    typeMapper: () => 'motion'
+  },
+  { 
+    propertyKey: 'Battery.level',
+    valueMapper: ({ newValue }) => newValue,
+    typeMapper: () => 'battery'
   }
 ]);
 
@@ -221,6 +240,8 @@ Device.registerProvider('zwave', {
         return ['LIGHT'];
       case 'multi_sensor':
         return ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR'];
+      case 'humidity_sensor':
+          return ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR'];
       default:
         throw new Error(`${device.type} is unrecognised`);
     }

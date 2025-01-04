@@ -4,9 +4,9 @@ import gql from 'graphql-tag';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DeviceControl from './device-control';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking, faVideo } from '@fortawesome/free-solid-svg-icons';
+import { faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking, faVideo, faDroplet } from '@fortawesome/free-solid-svg-icons';
 
-library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer, faVideo);
+library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer);
 
 function createIfCapabilitySatisfied(device, ...creators) {
   for (let i=0;i<creators.length-1;i+=2) {
@@ -69,7 +69,15 @@ function buildDeviceControlForDevice(device) {
 
     x => x.__typename === 'Camera', 
     (device, capability) => (
-        <DeviceControl device={device} icon={faVideo} color="#04A7F4" colorIconBackground={false} values={[]} />
+      <DeviceControl device={device} icon={faVideo} color="#04A7F4" colorIconBackground={false} values={[]} />
+    ),
+
+    x => x.__typename === 'HumiditySensor', 
+    (device, capability) => (
+      <DeviceControl device={device} icon={faDroplet} color="#04A7F4" colorIconBackground={false} values={[
+        `${capability.humidity}%`,
+        `${device.capabilities.find(x => x.__typename === 'TemperatureSensor').currentTemperature.toFixed(1)}°`
+      ]} />
     ),
 
     (device) => {

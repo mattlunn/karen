@@ -40,6 +40,10 @@ const DEVICE_FRAGMENT = gql`
       ...on LightSensor {
         illuminance
       }
+
+      ...on HumiditySensor {
+        humidity
+      }
     }
   }
 `;
