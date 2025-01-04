@@ -81,6 +81,10 @@ export default class EbusClient {
     return Number(await this.#read('State07', 'hmu', 'power'));
   }
 
+  async getCompressorModulation(): Promise<number> {
+    return Number(await this.#read('State00', 'hmu', 'S00_CompressorModulation'));
+  }
+
   async getEnergyDaily(): Promise<number> {
     return Number(await this.#read('State07', 'hmu', 'energy'));
   }

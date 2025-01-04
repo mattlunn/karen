@@ -91,6 +91,7 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     updateState(device, 'hwc_temperature', client.getHotWaterCylinderTemperature()),
     updateState(device, 'system_pressure', client.getSystemPressure()),
     updateState(device, 'compressor_power', client.getCompressorPower()),
+    updateState(device, 'compressor_modulation', client.getCompressorModulation()),
     updateState(device, 'energy_daily', client.getEnergyDaily()),
     updateState(device, 'current_yield', client.getCurrentYield()),
     updateState(device, 'current_power', client.getCurrentPower()),
