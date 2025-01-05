@@ -12,7 +12,7 @@ const push = new Push({
 function sendNotificationToUsers(ids, e) {
   const event = {
     ...e,
-    user: ids.join(', ')
+    user: ids.join(',')
   };
 
   if (event.image) {
