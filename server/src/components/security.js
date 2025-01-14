@@ -45,29 +45,31 @@ function useSnapshotData(cameras) {
 
   useEffect(() => {
     function loadSnapshots() {
-      const updatedSnapshots = { ...snapshots };
+      setSnapshots(snapshots => {
+        const updatedSnapshots = { ...snapshots };
 
-      cameras.forEach(async (camera) => {
-        const updatedSnapshot = updatedSnapshots[camera.id];
+        cameras.forEach(async (camera) => {
+          const updatedSnapshot = updatedSnapshots[camera.id];
 
-        if (updatedSnapshot.loading === true) {
-          return;
-        } else {
-          updatedSnapshot.loading = true;
-        }
-  
-        try {
-          const snapshot = await loadSnapshot(camera);
-  
-          updatedSnapshot.loading = false;
-          updatedSnapshot.snapshot = snapshot;
-        } finally {
-          updatedSnapshot.loading = false;
-        }
+          if (updatedSnapshot.loading === true) {
+            return;
+          } else {
+            updatedSnapshot.loading = true;
+          }
+    
+          try {
+            const snapshot = await loadSnapshot(camera);
+    
+            updatedSnapshot.loading = false;
+            updatedSnapshot.snapshot = snapshot;
+          } finally {
+            updatedSnapshot.loading = false;
+          }
 
-        updatedSnapshots[camera.id] = updatedSnapshot;
-
-        setSnapshots(updatedSnapshots);
+          updatedSnapshots[camera.id] = updatedSnapshot;
+        });
+        
+        return updatedSnapshots;
       });
     }
 
@@ -78,7 +80,7 @@ function useSnapshotData(cameras) {
     return () => {
       clearInterval(interval);
     };
-  }, [ cameras, snapshots ]);
+  }, [ cameras ]);
 
   return updatedSnapshots;
 }
