@@ -16,7 +16,7 @@ export async function AcceptGrant(request: SmartHomeRequest<{ grant: { code: str
     if (!res.ok) {
       throw new Error(`Karen returned a ${res.status} during grant acceptance`);
     }
-  } catch (e) {
+  } catch (e: any) {
     return {
       event: {
         header: {

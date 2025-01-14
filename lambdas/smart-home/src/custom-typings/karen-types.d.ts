@@ -1,38 +1,25 @@
-export interface Light {
-  id: string;
-  name: string;
+type LightCapability = {
+  __typename: 'Light';
   isOn: boolean;
   brightness: number;
-  status: DeviceStatus;
-}
+};
 
-export interface Thermostat {
-  id: string;
-  name: string;
+type ThermostatCapability = {
+  __typename: 'Thermostat';
   targetTemperature: number;
   currentTemperature: number;
-  humidity: number;
   power: number;
   isHeating: boolean;
-  status: DeviceStatus;
-}
+};
 
-export interface BasicDevice {
+type Capability = LightCapability | ThermostatCapability;
+
+export type Device = {
   id: string;
   name: string;
   status: DeviceStatus;
+  capabilities: Capability[];
 }
-
-export type Device = {
-  type: 'light'
-  device: Light 
-} | { 
-  type: 'thermostat'
-  device: Thermostat
-} | {
-  type: 'alexa'
-  device: BasicDevice
-};
 
 export type DeviceStatus = 'OK' | 'OFFLINE';
 export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';

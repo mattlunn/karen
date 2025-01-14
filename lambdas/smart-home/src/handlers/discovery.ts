@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client/core';
 import { Context } from 'aws-lambda';
-import { Light, Thermostat, BasicDevice, Device } from '../custom-typings/karen-types';
+import { Device } from '../custom-typings/karen-types';
 import { SmartHomeRequest, SmartHomeResponse } from '../custom-typings/lambda';
 import client from '../client';
 import { ALARM_ENDPOINT_ID } from '../constants';
@@ -8,16 +8,14 @@ import { ALARM_ENDPOINT_ID } from '../constants';
 const GET_DEVICES = gql`
 query getDevices {
   getDevices {
-    type
-    device {
-      id
-      name
+    id
+    name
 
+    capabilities {
       ...on Thermostat {
         targetTemperature
         currentTemperature
         isHeating
-        humidity
         power
       }
 
@@ -71,10 +69,10 @@ type SmartHomeDiscoveryResponse = SmartHomeResponse<{
   endpoints: SmartHomeEndpoint[]
 }>
 
-function mapThermostatToEndpoints(thermostat: Thermostat): SmartHomeEndpoint {
+function mapThermostatToEndpoints(device: Device): SmartHomeEndpoint {
   return {
-    friendlyName: thermostat.name,
-    endpointId: thermostat.id,
+    friendlyName: device.name,
+    endpointId: device.id,
     displayCategories: ['THERMOSTAT', 'TEMPERATURE_SENSOR'],
     manufacturerName: 'Tado',
     description: 'Tado Thermostat',
@@ -123,13 +121,13 @@ function mapThermostatToEndpoints(thermostat: Thermostat): SmartHomeEndpoint {
   };
 }
 
-function mapLightToEndpoints(light: Light): SmartHomeEndpoint {
+function mapLightToEndpoints(device: Device): SmartHomeEndpoint {
   return {
-    friendlyName: light.name,
-    endpointId: light.id,
+    friendlyName: device.name,
+    endpointId: device.id,
     displayCategories: ['LIGHT'],
     manufacturerName: 'Karen',
-    description: `${light.name} light`,
+    description: `${device.name} light`,
     capabilities: [{
       type: 'AlexaInterface',
       interface: 'Alexa.BrightnessController',
@@ -160,6 +158,7 @@ function mapLightToEndpoints(light: Light): SmartHomeEndpoint {
   };
 }
 
+/*
 function mapAlexaToEndpoints(device: BasicDevice): SmartHomeEndpoint {
   return {
     friendlyName: device.name,
@@ -196,6 +195,7 @@ function mapAlexaToEndpoints(device: BasicDevice): SmartHomeEndpoint {
     }]
   };
 }
+*/
 
 function createAlarmEndpoint(): SmartHomeEndpoint {
   return {
@@ -261,16 +261,24 @@ export async function Discover(request: SmartHomeRequest, context: Context): Pro
       },
       payload: {
         endpoints: devices.reduce((allDevices, device) => {
-          switch (device.type) {
-            case 'thermostat':
-              allDevices.push(mapThermostatToEndpoints(device.device));
-              break;
-            case 'light':
-              allDevices.push(mapLightToEndpoints(device.device));
-              break;
-            case 'alexa':
-              allDevices.push(mapAlexaToEndpoints(device.device));
-              break;
+          const capabilityThatDefinesType = device.capabilities.find(({ __typename: type }) => type === 'Light' || type === 'Thermostat');
+
+          if (capabilityThatDefinesType !== undefined) {
+            switch (capabilityThatDefinesType.__typename) {
+              case 'Thermostat':
+                allDevices.push(mapThermostatToEndpoints(device));
+                break;
+              case 'Light':
+                allDevices.push(mapLightToEndpoints(device));
+                break;
+                
+              // TODO: NEED TO FIX THIS
+              /*
+              case 'alexa':
+                allDevices.push(mapAlexaToEndpoints(device.device));
+                break;
+              */
+            }
           }
 
           return allDevices;

@@ -1,5 +1,5 @@
 import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { Light } from '../custom-typings/karen-types';
+import { Device } from '../custom-typings/karen-types';
 import { gql } from '@apollo/client/core';
 import client from '../client';
 
@@ -7,16 +7,22 @@ const MODIFY_LIGHT = gql`
   mutation ModifyLight($id: ID!, $isOn: Boolean, $brightness: Int) {
     updateLight(id: $id, isOn: $isOn, brightness: $brightness) {
       id
-      isOn
-      brightness
+
       status
+
+      capabilities {
+        ...on Light {
+          isOn
+          brightness
+        }
+      }
     }
   }
 `;
 
 export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { id: string, isOn?: boolean, brightness?: number }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
-  const response = await client.mutate<{ updateLight: Light }>({
+  const response = await client.mutate<{ updateLight: Device }>({
     mutation: MODIFY_LIGHT,
     variables
   });
@@ -62,7 +68,13 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
   }
 }
 
-export function createResponseProperties(light: Light, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+  const light = device.capabilities.find(x => x.__typename === 'Light');
+
+  if (!light) {
+    throw new Error();
+  }
+
   return [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
@@ -79,7 +91,7 @@ export function createResponseProperties(light: Light, sampleTime: Date, uncerta
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
     value: {
-      value: light.status === 'OK' ? 'OK' : 'UNREACHABLE'
+      value: device.status === 'OK' ? 'OK' : 'UNREACHABLE'
     },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds

@@ -12,6 +12,7 @@
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@graphql-tools/schema": "^10.0.7",
     "@newrelic/apollo-server-plugin": "^5.2.0",
+    "@tuyapi/cli": "^1.18.3",
     "aws-sdk": "^2.779.0",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.19.0",

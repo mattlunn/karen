@@ -1,5 +1,5 @@
 import { SmartHomeEndpointRequest, SmartHomeResponse, Context } from "../custom-typings/lambda";
-import { Device, Light } from "../custom-typings/karen-types";
+import { Device } from "../custom-typings/karen-types";
 import { modifyAndCreateResponseObject } from '../devices/light';
 import { gql } from '@apollo/client/core';
 import client from '../client';
@@ -7,9 +7,10 @@ import client from '../client';
 const GET_LIGHT = gql`
   query GetLight($id: ID!) {
     getDevice(id: $id) {
-      type
-      device {
-        ... on Light {
+      id
+
+      capabilities {
+        ...on Light {
           brightness
         }
       }
@@ -33,12 +34,14 @@ export async function AdjustBrightness(request: SmartHomeEndpointRequest<{ brigh
     }
   });
 
-  if (getDevice === null || getDevice.type !== 'light') {
-    throw new Error(`Light ${id} not found`);
+  const lightCapability = getDevice.capabilities.find(x => x.__typename === 'Light');
+
+  if (lightCapability === undefined) {
+    throw new Error(`Device ${id} does not have 'Light' capability`);
   }
 
   return modifyAndCreateResponseObject(request, {
     id: request.directive.endpoint.endpointId,
-    brightness: Math.max(0, Math.min(100, (getDevice.device as Light).brightness + request.directive.payload.brightnessDelta))
+    brightness: Math.max(0, Math.min(100, lightCapability.brightness + request.directive.payload.brightnessDelta))
   });
 }

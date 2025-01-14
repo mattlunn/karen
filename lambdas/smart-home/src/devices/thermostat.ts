@@ -1,7 +1,13 @@
 import { SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { Thermostat } from '../custom-typings/karen-types';
+import { Device } from '../custom-typings/karen-types';
 
-export function createResponseProperties(thermostat: Thermostat, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+  const thermostat = device.capabilities.find(x => x.__typename === 'Thermostat');
+
+  if (!thermostat) {
+    throw new Error();
+  }
+
   return [{
     namespace: 'Alexa.TemperatureSensor',
     name: 'temperature',
@@ -32,7 +38,7 @@ export function createResponseProperties(thermostat: Thermostat, sampleTime: Dat
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
     value: {
-      value: thermostat.status === 'OK' ? 'OK' : 'UNREACHABLE'
+      value: device.status === 'OK' ? 'OK' : 'UNREACHABLE'
     },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
