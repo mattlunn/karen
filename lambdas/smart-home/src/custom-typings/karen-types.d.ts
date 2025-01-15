@@ -4,6 +4,10 @@ type LightCapability = {
   brightness: number;
 };
 
+type SpeakerCapability = {
+  __typename: 'Speaker';
+};
+
 type ThermostatCapability = {
   __typename: 'Thermostat';
   targetTemperature: number;
@@ -12,7 +16,7 @@ type ThermostatCapability = {
   isHeating: boolean;
 };
 
-type Capability = LightCapability | ThermostatCapability;
+type Capability = LightCapability | ThermostatCapability | SpeakerCapability;
 
 export type Device = {
   id: string;

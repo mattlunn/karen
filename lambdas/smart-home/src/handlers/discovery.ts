@@ -158,8 +158,7 @@ function mapLightToEndpoints(device: Device): SmartHomeEndpoint {
   };
 }
 
-/*
-function mapAlexaToEndpoints(device: BasicDevice): SmartHomeEndpoint {
+function mapAlexaToEndpoints(device: Device): SmartHomeEndpoint {
   return {
     friendlyName: device.name,
     endpointId: device.name,
@@ -195,7 +194,6 @@ function mapAlexaToEndpoints(device: BasicDevice): SmartHomeEndpoint {
     }]
   };
 }
-*/
 
 function createAlarmEndpoint(): SmartHomeEndpoint {
   return {
@@ -261,23 +259,20 @@ export async function Discover(request: SmartHomeRequest, context: Context): Pro
       },
       payload: {
         endpoints: devices.reduce((allDevices, device) => {
-          const capabilityThatDefinesType = device.capabilities.find(({ __typename: type }) => type === 'Light' || type === 'Thermostat');
+          for (const { __typename: capability } of device.capabilities) {
+            if (capability === 'Thermostat') {
+              allDevices.push(mapThermostatToEndpoints(device));
+              break;
+            }
 
-          if (capabilityThatDefinesType !== undefined) {
-            switch (capabilityThatDefinesType.__typename) {
-              case 'Thermostat':
-                allDevices.push(mapThermostatToEndpoints(device));
-                break;
-              case 'Light':
-                allDevices.push(mapLightToEndpoints(device));
-                break;
-                
-              // TODO: NEED TO FIX THIS
-              /*
-              case 'alexa':
-                allDevices.push(mapAlexaToEndpoints(device.device));
-                break;
-              */
+            if (capability === 'Light') {
+              allDevices.push(mapLightToEndpoints(device));
+              break;
+            }
+
+            if (capability === 'Speaker') {
+              allDevices.push(mapAlexaToEndpoints(device));
+              break;
             }
           }
 
