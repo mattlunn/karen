@@ -1,12 +1,19 @@
 import { Device, Arming, Stay, User, AlarmActivation, Event } from '../models';
 import { call } from '../services/twilio';
-import { say } from '../services/alexa';
 import bus, { EVENT_START } from '../bus';
 import moment from 'moment';
 import sleep from '../helpers/sleep';
 import { createBackgroundTransaction } from '../helpers/newrelic';
+import { ArmingMode } from '../models/arming';
 
-const successAsBoolean = (promise) => promise.then(() => true, () => false);
+const successAsBoolean = (promise: Promise<void>) => promise.then(() => true, () => false);
+
+type SecurityAutomationConfiguration = {
+  night_mode_alexa: string;
+  alarm_alexa: string;
+  night_excluded_devices: string[];
+  excluded_devices: string[];
+};
 
 async function turnOnAllTheLights() {
   const lights = await Device.findByType('light');
@@ -28,7 +35,7 @@ async function getAbsentUsersWithMobileNumbers() {
   return allUsers.filter(user => !!user.mobileNumber && !currentStays.some(stay => stay.userId === user.id));
 }
 
-async function notifyAbsentUsersOfEvent(event) {
+async function notifyAbsentUsersOfEvent(event: Event) {
   const usersWithNumber = await getAbsentUsersWithMobileNumbers();
   const device = await event.getDevice();
   const message = `Motion was detected by the ${device.name} at ${moment(event.start).format('HH:mm:ss')}`;
@@ -38,8 +45,8 @@ async function notifyAbsentUsersOfEvent(event) {
   }
 }
 
-async function notifyNightModeAlexa(name, event) {
-  const alexa = await Device.findByName(name);
+async function notifyNightModeAlexa(name: string, event: Event) {
+  const alexa = await Device.findByNameOrError(name);
   const device = await event.getDevice();
   const message = [
     '<audio src="soundbank://soundlibrary/alarms/back_up_beeps/back_up_beeps_09"/>',
@@ -47,18 +54,18 @@ async function notifyNightModeAlexa(name, event) {
   ];
 
   for (let i=0;i<3;i++) {
-    if (await successAsBoolean(say(alexa, [...message, ...message]))) {
+    if (await successAsBoolean(alexa.getSpeakerCapability().emitSound([...message, ...message]))) {
       await sleep(8000);
     }
   }
 }
 
-async function soundTheAlarm(alarmAlexa, activation) {
+async function soundTheAlarm(alarmAlexa: string, activation: AlarmActivation) {
   const [
     device,
     arming
   ] = await Promise.all([
-    Device.findByName(alarmAlexa),
+    Device.findByNameOrError(alarmAlexa),
     activation.getArming()
   ]);
 
@@ -75,7 +82,7 @@ async function soundTheAlarm(alarmAlexa, activation) {
   }());
 
   while (!arming.end && !activation.isSuppressed) {
-    if (await successAsBoolean(say(device, [
+    if (await successAsBoolean(device.getSpeakerCapability().emitSound([
       sounds.next().value,
       sounds.next().value,
       sounds.next().value,
@@ -92,12 +99,12 @@ async function soundTheAlarm(alarmAlexa, activation) {
   }
 }
 
-function isExcludedDevice(mode, deviceName, excludedDevices, nightExcludedDevices) {
+function isExcludedDevice(mode: ArmingMode, deviceName: string, excludedDevices: string[], nightExcludedDevices: string[]): boolean {
   if (excludedDevices.includes(deviceName)) {
     return true;
   }
 
-  if (mode === Arming.MODE_NIGHT && nightExcludedDevices.includes(deviceName)) {
+  if (mode === ArmingMode.NIGHT && nightExcludedDevices.includes(deviceName)) {
     return true;
   }
 
@@ -109,7 +116,7 @@ export default async function ({
   alarm_alexa: alarmAlexa,
   night_excluded_devices: nightExcludedDevices = [],
   excluded_devices: excludedDevices = []
-}) {
+}: SecurityAutomationConfiguration) {
   bus.on(EVENT_START, createBackgroundTransaction('automations:security:event-start', async (event) => {
     if (event.type === 'motion') {
       const [
@@ -132,7 +139,7 @@ export default async function ({
           notifyAbsentUsersOfEvent(event);
           turnOnAllTheLights();
 
-          if (arming.mode === Arming.MODE_NIGHT) {
+          if (arming.mode === ArmingMode.NIGHT) {
             notifyNightModeAlexa(nightModeAlexa, event);
           } else {
             soundTheAlarm(alarmAlexa, mostRecentActivation);

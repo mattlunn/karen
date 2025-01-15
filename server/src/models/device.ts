@@ -2,7 +2,7 @@ import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttribut
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import logger from '../logger';
 import { Event } from './event';
-import { Capability, HumiditySensorCapability, LightCapability, MotionSensorCapability, ThermostatCapability, TemperatureSensorCapability, CameraCapability, LightSensorCapability } from './capabilities';
+import { Capability, SpeakerCapability, HumiditySensorCapability, LightCapability, MotionSensorCapability, ThermostatCapability, TemperatureSensorCapability, CameraCapability, LightSensorCapability } from './capabilities';
 
 const latestEventCache = new Map();
 
@@ -86,6 +86,10 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   getHumiditySensorCapability(): HumiditySensorCapability {
     return this.#getCapabilityOrThrow((provider) => provider.getHumiditySensorCapability);
+  };
+
+  getSpeakerCapability(): SpeakerCapability {
+    return this.#getCapabilityOrThrow((provider) => provider.getSpeakerCapability);
   };
 
   getCapabilities(): Capability[] {
@@ -224,6 +228,7 @@ type ProviderHandler = {
   getThermostatCapability?(device: Device): ThermostatCapability;
   getHumiditySensorCapability?(device: Device): HumiditySensorCapability;
   getTemperatureSensorCapability?(device: Device): TemperatureSensorCapability;
+  getSpeakerCapability?(device: Device): SpeakerCapability;
   getMotionSensorCapability?(device: Device): MotionSensorCapability;
   getCameraCapability?(device: Device): CameraCapability;
   getLightSensorCapability?(device: Device): LightSensorCapability;

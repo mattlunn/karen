@@ -42,7 +42,7 @@ export default gql`
     capabilities: [Capability]
   }
 
-  union Capability = MotionSensor | TemperatureSensor | LightSensor | Light | Thermostat | Camera | HumiditySensor
+  union Capability = MotionSensor | TemperatureSensor | LightSensor | Light | Thermostat | Camera | HumiditySensor | Speaker
 
   type MotionSensor {
     motionDetected: Boolean!
@@ -67,6 +67,10 @@ export default gql`
 
   type HumiditySensor {
     humidity: Float!
+  }
+
+  type Speaker {
+    randomPropertyAsGraphQlDoesNotAllowTypesWithNoProperties: Int
   }
 
   type Thermostat {

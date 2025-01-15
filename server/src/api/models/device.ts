@@ -92,6 +92,10 @@ export default class Device {
         case 'THERMOSTAT':
           loaders.push(Promise.resolve(new Thermostat(this.#data)));
         break;
+
+        case 'SPEAKER':
+          loaders.push(Promise.resolve({ __typename: 'Speaker' }));
+        break;
       }
     }
 

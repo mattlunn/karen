@@ -1,5 +1,6 @@
 import bus, { FIRST_USER_HOME, LAST_USER_LEAVES, STAY_START, STAY_END } from '../bus';
-import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, Op, CreationOptional } from 'sequelize';
+import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, Op, CreationOptional, HasOneGetAssociationMixin } from 'sequelize';
+import { User } from './user';
 
 export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<Stay>> {
   declare public id: CreationOptional<Number>;
@@ -9,6 +10,8 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
   declare public userId: CreationOptional<Number | null>;
   declare public createdAt: CreationOptional<Date>;
   declare public updatedAt: CreationOptional<Date>;
+
+  declare getUser: HasOneGetAssociationMixin<User>;
 
   static async findUpcomingStays(userIds: Number[]) {
     const stays = await Promise.all(userIds.map(userId => this.findOne({

@@ -3,6 +3,7 @@ import { Device, Arming, Stay } from '../models';
 import { joinWithAnd, pluralise } from '../helpers/array';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { getCentralHeatingMode, setCentralHeatingMode } from '../services/tado';
+import { ArmingMode } from '../models/arming';
 
 async function turnOffLights() {
   const lights = await Device.findByType('light');
@@ -21,13 +22,13 @@ async function turnOffLights() {
 
 export default function () {
   bus.on(LAST_USER_LEAVES, createBackgroundTransaction('automations:occupancy:last-user-leaves', async (stay) => {
-    async function ensureActiveArming() {
+    async function ensureActiveArming(): Promise<Arming> {
       let activeArming = await Arming.getActiveArming(stay.end);
 
-      if (!activeArming) {
-        activeArming = Arming.create({
+      if (activeArming === null) {
+        return Arming.create({
           start: stay.departure,
-          mode: Arming.MODE_AWAY
+          mode: ArmingMode.AWAY
         });
       }
 
@@ -61,7 +62,7 @@ export default function () {
         `No-one is home.`,
         lightsTurnedOff.length ? `${joinWithAnd(lightsTurnedOff.map(x => x.name))} light${pluralise(lightsTurnedOff)} have been turned off,` : `All the lights are off,`,
         `the heating ${centralHeatingModeChanged ? 'has been turned off' : 'was already off'}, and`,
-        activeArming.mode === Arming.MODE_AWAY ? 'the alarm is on.' : 'the alarm is already set to Night Mode.'
+        activeArming.mode === ArmingMode.AWAY ? 'the alarm is on.' : 'the alarm is already set to Night Mode.'
       ].join(' ');
 
       bus.emit(NOTIFICATION_TO_ADMINS, {
@@ -77,9 +78,9 @@ export default function () {
   }));
 
   bus.on(FIRST_USER_HOME, createBackgroundTransaction('automations:occupancy:first-user-home', async (stay: Stay) => {
-    const activeArming = await Arming.getActiveArming(stay.arrival);
+    const activeArming = await Arming.getActiveArming(stay.arrival!);
 
-    if (activeArming?.mode === Arming.MODE_AWAY) {
+    if (activeArming?.mode === ArmingMode.AWAY) {
       activeArming.end = stay.arrival;
       await activeArming.save();
     }

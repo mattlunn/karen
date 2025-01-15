@@ -1,9 +1,8 @@
 import bus, { FIRST_USER_HOME, EVENT_START } from '../bus';
-import { say } from '../services/alexa';
 import { Device } from '../models';
 import { startBackgroundTransaction } from '../helpers/newrelic';
 
-const greetings = [
+const greetings: ((name: string) => string)[] = [
   (name) => `<voice name="Mizuki"><lang xml:lang="ja-JP">こんにちは ${name}</lang></voice>. That's hello, in Japanese!'`,
   (name) => `<voice name="Nicole"><lang xml:lang="en-AU">G'day ${name}. Pop a shrimp on the barbi and lets crack open a Fosters</lang></voice>. That's how Australians say Hello!`,
   (name) => `<voice name="Marlene"><lang xml:lang="de-DE">Hallo ${name}</lang></voice>. That's how ze Germans say hello!`,
@@ -12,7 +11,7 @@ const greetings = [
   (name) => `<voice name="Lucia"><lang xml:lang="es-ES">Hola ${name}</lang></voice>. That's how the Spanish say hi!`
 ];
 
-export default async function ({ alexa_name: alexaName }) {
+export default async function ({ alexa_name: alexaName }: { alexa_name: string }) {
   bus.on(FIRST_USER_HOME, (stay) => {
     bus.on(EVENT_START, function listener(event) {
       return startBackgroundTransaction('automations:greeting', async function() {
@@ -21,12 +20,12 @@ export default async function ({ alexa_name: alexaName }) {
             device,
             user
           ] = await Promise.all([
-            Device.findByName(alexaName),
+            Device.findByNameOrError(alexaName),
             stay.getUser()
           ]);
 
           bus.off(EVENT_START, listener);
-          say(device, greetings[Math.floor(Math.random() * greetings.length)](user.handle));
+          device.getSpeakerCapability().emitSound(greetings[Math.floor(Math.random() * greetings.length)](user.handle));
         }
       });
     });

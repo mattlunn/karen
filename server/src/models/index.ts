@@ -3,12 +3,12 @@ import config from '../config';
 import userFactory, { User } from './user';
 import stayFactory, { Stay } from './stay';
 import roomFactory, { Room } from './room';
+import alarmActivationFactory, { AlarmActivation } from './alarm_activation';
+import armingFactory, { Arming } from './arming';
 import tokenFactory from './token';
 import eventFactory, { Event } from './event';
 import recordingFactory, { Recording } from './recording';
 import deviceFactory, { Device } from './device';
-import armingFactoring from './arming';
-import alarmActivationFactory from './alarm_activation';
 import logger from '../logger';
 
 const instance = new Sequelize(config.database.name, config.database.user, config.database.password, {
@@ -22,8 +22,6 @@ const instance = new Sequelize(config.database.name, config.database.user, confi
 });
 
 export const Token = tokenFactory(instance);
-export const Arming = armingFactoring(instance);
-export const AlarmActivation = alarmActivationFactory(instance);
 
 export { Device } from './device';
 export { Event } from './event';
@@ -31,6 +29,8 @@ export { Recording } from './recording';
 export { User } from './user';
 export { Stay } from './stay';
 export { Room } from './room';
+export { AlarmActivation } from './alarm_activation';
+export { Arming } from './arming';
 
 deviceFactory(instance);
 eventFactory(instance);
@@ -38,6 +38,8 @@ recordingFactory(instance);
 userFactory(instance);
 stayFactory(instance);
 roomFactory(instance);
+alarmActivationFactory(instance)
+armingFactory(instance);
 
 Recording.belongsTo(Event);
 Stay.belongsTo(User);
