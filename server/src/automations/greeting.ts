@@ -8,7 +8,8 @@ const greetings: ((name: string) => string)[] = [
   (name) => `<voice name="Marlene"><lang xml:lang="de-DE">Hallo ${name}</lang></voice>. That's how ze Germans say hello!`,
   (name) => `<voice name="Carla"><lang xml:lang="it-IT">Ciao ${name}</lang></voice>. That's how Italian's say hi!`,
   (name) => `<voice name="Camila"><lang xml:lang="pt-BR">Olá ${name}</lang></voice>. That's how the Portugese say hi!`,
-  (name) => `<voice name="Lucia"><lang xml:lang="es-ES">Hola ${name}</lang></voice>. That's how the Spanish say hi!`
+  (name) => `<voice name="Lucia"><lang xml:lang="es-ES">Hola ${name}</lang></voice>. That's how the Spanish say hi!`,
+  (name) => `<voice name="Geraint"><amazon:emotion name="excited" intensity="high">Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch ${name}</amazon:emotion></voice>. That's G, saying hello!`
 ];
 
 export default async function ({ alexa_name: alexaName }: { alexa_name: string }) {
