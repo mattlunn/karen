@@ -9,8 +9,6 @@ export default class Gen3DeviceClient {
   }
 
   async _request(path) {
-    logger.info(`http://${this._ip}${path}`);
-    
     const res = await fetch(`http://${this._ip}${path}`);
     const body = await res.text();
 

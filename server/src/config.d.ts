@@ -74,6 +74,12 @@ declare namespace _default {
     const port: number;
     const poll_interval_minutes: number;
   }
+  export namespace homeconnect {
+    const client_id: string;
+    const client_secret: string;
+    const secret: string;
+    const access_token: string;
+  }
   const port: number;
   const trust_proxy: boolean;
   const days_to_keep_recordings_while_home: number;

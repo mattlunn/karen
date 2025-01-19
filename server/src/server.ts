@@ -8,6 +8,7 @@ import apiRoutes from './routes/api';
 import locationRoutes from './routes/location';
 import authenticationRoutes from './routes/authentication';
 import synologyRoutes from './routes/synology';
+import homeConnectRoutes from './routes/homeconnect';
 import shellyRoutes from './routes/shelly';
 import auth from './middleware/auth';
 import { Device } from './models';
@@ -29,6 +30,7 @@ require('./services/zwave');
 require('./services/pushover');
 require('./services/shelly');
 require('./services/ebusd');
+require('./services/homeconnect');
 
 require('./automations');
 
@@ -54,6 +56,7 @@ createGraphQLServer(wsServer).then((api) => {
   app.use('/location', locationRoutes);
   app.use('/synology', synologyRoutes);
   app.use('/shelly', shellyRoutes);
+  app.use('/homeconnect', homeConnectRoutes);
   app.use('/', express.static(__dirname + '/static'));
 
   app.use('/graphql',

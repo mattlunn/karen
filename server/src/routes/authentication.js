@@ -4,6 +4,7 @@ import { Router } from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import moment from 'moment';
 import config from '../config';
+import logger from '../logger';
 
 const router = Router();
 
@@ -41,6 +42,8 @@ router.post('/logout', auth, asyncWrapper(async (req, res) => {
 }));
 
 router.get('/authorize', asyncWrapper(async (req, res) => {
+  logger.info(config.authentication);
+
   const client = config.authentication.clients.find(x => x.client_id === req.query.client_id);
 
   if (!client) {
