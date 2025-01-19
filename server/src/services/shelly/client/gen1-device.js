@@ -1,7 +1,8 @@
 import { stringify } from 'querystring';
 import fetch from 'node-fetch';
+import logger from '../../../logger';
 
-export default class DeviceClient {
+export default class Gen1DeviceClient {
   constructor(ip, username, password) {
     this._ip = ip;
     this._username = username;
@@ -63,20 +64,29 @@ export default class DeviceClient {
     });
   }
 
-  async getBasic() {
-    return await this._request('/shelly');
-  }
-
-  async addAction(name, endpoint) {
+  async setOutputOnWebhook(endpoint) {
     return await this._request('/settings/actions/', {
       index: 0,
       enabled: true,
-      name,
+      name: 'out_on_url',
+      'urls[]': encodeURIComponent(endpoint)
+    });
+  }
+
+  async setOutputOffWebhook(endpoint) {
+    return await this._request('/settings/actions/', {
+      index: 0,
+      enabled: true,
+      name: 'out_off_url',
       'urls[]': encodeURIComponent(endpoint)
     });
   }
 
   async getDeviceName() {
     return (await this._request('/settings')).name;
+  }
+
+  getGeneration() {
+    return 1;
   }
 }

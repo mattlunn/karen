@@ -4,11 +4,18 @@ import config from '../../config';
 
 Device.registerProvider('shelly', {
   getCapabilities(device) {
-    return ['LIGHT'];
+    switch (device.meta.generation) {
+      case 1:
+        return ['LIGHT'];
+      case 3:
+        return ['SWITCH'];
+      default:
+        throw new Error(`Cannot infer capabilities for device ${device.id}`);
+    }
   },
 
   getLightCapability(device) {
-    const shellyDevice = new DeviceClient(device.meta.endpoint, config.shelly.user, config.shelly.password);
+    const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
 
     return {
       async getBrightness() {
@@ -30,11 +37,26 @@ Device.registerProvider('shelly', {
     };
   },
 
+  getSwitchCapability(device) {
+    const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
+
+    return {
+      async getIsOn() {
+        const latestEvent = await device.getLatestEvent('on');
+        return !!(latestEvent && !latestEvent.end);
+      },
+
+      async setIsOn(isOn) {
+        return await shellyDevice.setIsOn(isOn);
+      },
+    };
+  },
+
   async synchronize() {
     const devices = await Device.findByProvider('shelly');
 
     for (const device of devices) {
-      const shellyDevice = new DeviceClient(device.meta.endpoint, config.shelly.user, config.shelly.password);
+      const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
       const newName = await shellyDevice.getDeviceName();
 
       if (newName !== null) {

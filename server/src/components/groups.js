@@ -44,6 +44,10 @@ const DEVICE_FRAGMENT = gql`
       ...on HumiditySensor {
         humidity
       }
+
+      ...on Switch {
+        isOn
+      }
     }
   }
 `;

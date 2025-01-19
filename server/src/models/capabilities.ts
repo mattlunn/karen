@@ -22,6 +22,11 @@ export type LightSensorCapability = {
   getIlluminance(): Promise<number>;
 }
 
+export type SwitchCapability = {
+  getIsOn(): Promise<boolean>;
+  setIsOn(isOn: boolean): Promise<void>;
+}
+
 export type TemperatureSensorCapability = {
   getCurrentTemperature(): Promise<number>;
 }
@@ -37,4 +42,4 @@ export type SpeakerCapability = {
 
 export type CameraCapability = {}
 
-export type Capability = 'LIGHT' | 'THERMOSTAT' | 'HUMIDITY_SENSOR' | 'TEMPERATURE_SENSOR' | 'MOTION_SENSOR' | 'LIGHT_SENSOR' | 'CAMERA' | 'SPEAKER';
+export type Capability = 'LIGHT' | 'THERMOSTAT' | 'HUMIDITY_SENSOR' | 'TEMPERATURE_SENSOR' | 'MOTION_SENSOR' | 'LIGHT_SENSOR' | 'CAMERA' | 'SPEAKER' | 'SWITCH';

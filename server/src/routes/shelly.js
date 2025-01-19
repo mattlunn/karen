@@ -53,7 +53,7 @@ router.get('/install', asyncWrapper(async (req, res) => {
     return res.end('Pass IP in query string');
   }
 
-  const client = new DeviceClient(ip, config.shelly.user, config.shelly.password);
+  const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
   let device = await Device.findByProviderId('shelly', ip);
 
   if (!device) {
@@ -66,11 +66,12 @@ router.get('/install', asyncWrapper(async (req, res) => {
   device.name = ip;
   device.type = 'light';
   device.meta.endpoint = ip;
+  device.meta.generation = client.getGeneration();
   
   await client.setCloudStatus(false);
   await client.setupAuthentication();
-  await client.addAction('out_off_url', `http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=off`);
-  await client.addAction('out_on_url', `http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=on`);
+  await client.setOutputOffWebhook(`http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=off`);
+  await client.setOutputOnWebhook(`http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=on`);
   await client.reboot();
   await device.save();
 

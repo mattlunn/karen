@@ -96,6 +96,17 @@ export default class Device {
         case 'SPEAKER':
           loaders.push(Promise.resolve({ __typename: 'Speaker' }));
         break;
+
+        case 'SWITCH':
+          loaders.push((async () => {
+            const isOn = await this.#data.getSwitchCapability().getIsOn();
+
+            return {
+              __typename: 'Switch',
+              isOn
+            };
+          })());
+        break;
       }
     }
 

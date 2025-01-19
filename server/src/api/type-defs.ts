@@ -42,7 +42,7 @@ export default gql`
     capabilities: [Capability]
   }
 
-  union Capability = MotionSensor | TemperatureSensor | LightSensor | Light | Thermostat | Camera | HumiditySensor | Speaker
+  union Capability = MotionSensor | TemperatureSensor | LightSensor | Light | Thermostat | Camera | HumiditySensor | Speaker | Switch
 
   type MotionSensor {
     motionDetected: Boolean!
@@ -50,6 +50,10 @@ export default gql`
 
   type TemperatureSensor {
     currentTemperature: Float!
+  }
+
+  type Switch {
+    isOn: Boolean!
   }
 
   type LightSensor {
