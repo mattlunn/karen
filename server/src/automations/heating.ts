@@ -34,12 +34,12 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchoffThreshold
           return await thermostat.getThermostatCapability().getTargetTemperature() - await thermostat.getThermostatCapability().getCurrentTemperature();
         }));
         
-        const maximumTemperatureDelta = Math.max(...temperatureDeltas);
+        const maximumTemperatureDelta = Math.min(...temperatureDeltas);
 
         if (maximumTemperatureDelta > temperatureDeltaSwitchoffThreshold && heatingIsOn) {
           await heatingDevice.getSwitchCapability().setIsOn(false);
-          
-          bus.emit(NOTIFICATION_TO_ADMINS, {
+
+          bus.emit(NOTIFICATION_TO_ADMINS, { 
             message: `Turning heating off, as no thermostats are within ${temperatureDeltaSwitchoffThreshold}° of their target temperature`
           });
         }
