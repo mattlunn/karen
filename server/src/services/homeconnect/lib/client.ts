@@ -1,8 +1,17 @@
 import logger from "../../../logger";
+import { EventEmitter } from 'events';
 import EventSource from 'eventsource';
+
+enum Events {
+  PROGRAM_START = 'PROGRAM_START',
+}
 
 type ApiClientConfig = {
   access_token: string;
+}
+
+type OnProgramStartPayload = {
+  deviceId: string;
 }
 
 type Appliance = {
@@ -14,9 +23,11 @@ type Appliance = {
 
 export default class ApiClient {
   #accessToken: string;
+  #eventEmitter: EventEmitter;
 
   constructor(config: ApiClientConfig) {
     this.#accessToken = config.access_token
+    this.#eventEmitter = new EventEmitter();
   }
 
   async #request(path: string) {
@@ -57,8 +68,20 @@ export default class ApiClient {
       });
     });
 
+    sse.addEventListener('STATUS', (message) => {
+      const data = JSON.parse(message.data);
+
+      this.#eventEmitter.emit(Events.PROGRAM_START, {
+        deviceId: data.haId
+      });
+    });
+
     sse.onmessage = logger.info;
 
     sse.onerror = logger.info;
+  }
+
+  onProgramStart(listener: (payload: OnProgramStartPayload) => void) {
+    this.#eventEmitter.addListener(Events.PROGRAM_START, listener);
   }
 }
