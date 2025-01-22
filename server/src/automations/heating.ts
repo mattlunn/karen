@@ -6,9 +6,33 @@ type HeatingAutomationParameters = {
   heatingSwitchName: string;
   temperatureDeltaSwitchoffThreshold: number;
   heatPumpDeviceName: string;
+  compressorCooldownPeriodInMinutes: number;
 };
 
-export default function ({ heatingSwitchName, temperatureDeltaSwitchoffThreshold, heatPumpDeviceName }: HeatingAutomationParameters) {
+let compressorLockedOutForCooldown = false;
+
+export default function ({ heatingSwitchName, temperatureDeltaSwitchoffThreshold, heatPumpDeviceName, compressorCooldownPeriodInMinutes }: HeatingAutomationParameters) {
+  function lockoutCompressor() {
+    compressorLockedOutForCooldown = true;
+
+    setTimeout(async () => {
+      const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
+      const thermostats = await Device.findByType('thermostat');
+      const thermostatsHeatDemand = await Promise.all(thermostats.map((thermostat) => thermostat.getThermostatCapability().getIsHeating()));
+      const thermostatsAreRequestingHeat = thermostatsHeatDemand.some(x => x);
+
+      compressorLockedOutForCooldown = false;
+
+      if (thermostatsAreRequestingHeat) {
+        await heatingDevice.getSwitchCapability().setIsOn(true);
+      }
+
+      bus.emit(NOTIFICATION_TO_ADMINS, {
+        message: `Heat pump lockout ended.${thermostatsAreRequestingHeat ? ' Turning heating on as thermostats are requesting heat' : ''}`
+      });
+    }, compressorCooldownPeriodInMinutes * 60 * 1000);
+  }
+
   bus.on(EVENT_START, createBackgroundTransaction(`automations:heating`, async (event: Event) => {
     const eventDevice = await event.getDevice();
     const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
@@ -19,7 +43,7 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchoffThreshold
 
       // On power change, if any heating demand, then turn on.
       if (thermostatIsOn) {
-        if (!heatingIsOn) {
+        if (!heatingIsOn && !compressorLockedOutForCooldown) {
           await heatingDevice.getSwitchCapability().setIsOn(true);
 
           bus.emit(NOTIFICATION_TO_ADMINS, {
@@ -51,9 +75,11 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchoffThreshold
         // Either because we have already turned heat demand off from above, or there is not enough heat demand to keep
         // the heat pump on, so turn it off.
         await heatingDevice.getSwitchCapability().setIsOn(false);
+        
+        lockoutCompressor();
 
         bus.emit(NOTIFICATION_TO_ADMINS, {
-          message: `Turning heating off, as heat pump compressor has modulated down to 0`
+          message: `Turning heating off, and locking out for ${compressorCooldownPeriodInMinutes} minutes as heat pump compressor has modulated down to 0`
         });
       }
     }
