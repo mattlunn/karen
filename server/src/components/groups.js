@@ -48,6 +48,14 @@ const DEVICE_FRAGMENT = gql`
       ...on Switch {
         isOn
       }
+
+      ... on HeatPump {
+        compressorModulation
+        dailyConsumedEnergy
+        dhwTemperature
+        heatingCoP
+        mode
+      }
     }
   }
 `;
@@ -102,7 +110,7 @@ export default function Groups() {
   return (
     <ul className="group-list">
       {data.getRooms.map((room) => <li className="group" key={room.id}><Group name={room.name} displayIconName={room.displayIconName} devices={data.getDevices.filter(x => x.room?.id === room.id)} /></li>)}
-      
+
       <li className="group group--full-width"><Group name="Others" devices={data.getDevices.filter(x => x.room === null)} /></li>
     </ul>
   );

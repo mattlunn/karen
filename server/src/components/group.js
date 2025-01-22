@@ -4,9 +4,9 @@ import gql from 'graphql-tag';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DeviceControl from './device-control';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking, faVideo, faDroplet, faToggleOff } from '@fortawesome/free-solid-svg-icons';
+import { faCouch, faHouseFire, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking, faVideo, faDroplet, faToggleOff, faFire } from '@fortawesome/free-solid-svg-icons';
 
-library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer);
+library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer, faHouseFire);
 
 function createIfCapabilitySatisfied(device, ...creators) {
   for (let i=0;i<creators.length-1;i+=2) {
@@ -83,6 +83,16 @@ function buildDeviceControlForDevice(device) {
     x => x.__typename === 'Switch', 
     (device, capability) => (
       <DeviceControl device={device} icon={faToggleOff} color="#04A7F4" colorIconBackground={capability.isOn} values={[]} />
+    ),
+
+    x => x.__typename === 'HeatPump', 
+    (device, capability) => (
+      <DeviceControl device={device} icon={faFire} color="#04A7F4" colorIconBackground={capability.mode !== 'STANDBY'} values={[
+        `${capability.mode[0]}${capability.mode.slice(1).toLowerCase()}`,
+        `${capability.dailyConsumedEnergy}kW`,
+        `${capability.heatingCoP} CoP`,
+        `${capability.compressorModulation}%`
+      ]} />
     ),
 
     (device) => {

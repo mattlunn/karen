@@ -2,6 +2,7 @@ import { Device as DeviceModel } from '../../models';
 import RoomLoader from '../loaders/room-loader';
 import Thermostat from './thermostat';
 import Light from './light';
+import HeatPump from './heat-pump';
 import Camera from './camera';
 
 export default class Device {
@@ -65,6 +66,10 @@ export default class Device {
 
         case 'LIGHT':
           loaders.push(Promise.resolve(new Light(this.#data)));
+        break;
+
+        case 'HEAT_PUMP':
+          loaders.push(Promise.resolve(new HeatPump(this.#data)));
         break;
 
         case 'MOTION_SENSOR':

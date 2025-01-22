@@ -3,10 +3,35 @@ import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
+import { HeatPumpMode } from '../../models/capabilities';
 
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
-    return [];
+    return ['HEAT_PUMP'];
+  },
+
+  getHeatPumpCapability(device) {
+    return {
+      async getCompressorModulation(): Promise<number> {
+        return (await device.getLatestEvent('compressor_modulation'))?.value ?? 0;
+      },
+
+      async getDailyConsumedEnergy(): Promise<number> {
+        return (await device.getLatestEvent('energy_daily'))?.value ?? 0;
+      },
+
+      async getDHWTemperature(): Promise<number> {
+        return (await device.getLatestEvent('hwc_temperature'))?.value ?? 0;
+      },
+
+      async getHeatingCoP(): Promise<number> {
+        return (await device.getLatestEvent('cop_hc'))?.value ?? 0;
+      },
+
+      async getMode(): Promise<HeatPumpMode> {
+        return (await device.getLatestEvent('mode'))?.value ?? 0;
+      }
+    };
   },
 
   async synchronize() {

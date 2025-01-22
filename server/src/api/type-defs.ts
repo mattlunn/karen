@@ -42,7 +42,7 @@ export default gql`
     capabilities: [Capability]
   }
 
-  union Capability = MotionSensor | TemperatureSensor | LightSensor | Light | Thermostat | Camera | HumiditySensor | Speaker | Switch
+  union Capability = MotionSensor | TemperatureSensor | LightSensor | Light | Thermostat | Camera | HumiditySensor | Speaker | Switch | HeatPump
 
   type MotionSensor {
     motionDetected: Boolean!
@@ -82,6 +82,14 @@ export default gql`
     currentTemperature: Float!
     isHeating: Boolean!
     power: Float!
+  }
+
+  type HeatPump {
+    compressorModulation: Float!
+    dailyConsumedEnergy: Float!
+    dhwTemperature: Float!
+    heatingCoP: Float!
+    mode: String!
   }
 
   type MotionEvent implements Event {
