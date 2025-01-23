@@ -8,14 +8,14 @@ import gql from 'graphql-tag';
 const QUERY = gql`
 query($id: ID!) {
   getDevice(id: $id) {
-    device {
-      id
-      name
-      status
-      
+    id
+    name
+    status
+
+    capabilities {
+      __typename
+
       ...on Thermostat {
-        id
-        name
         targetTemperature
         currentTemperature
       }
@@ -34,9 +34,7 @@ export default function Device({ match: { params: { id }}}) {
   if (loading) return <></>;
 
   const {
-    device: {
-      name
-    }
+    name
   } = data.getDevice;
 
   return (
