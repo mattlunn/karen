@@ -4,32 +4,35 @@ import { createBackgroundTransaction } from '../helpers/newrelic';
 
 type HeatingAutomationParameters = {
   heatingSwitchName: string;
-  temperatureDeltaSwitchoffThreshold: number;
+  temperatureDeltaSwitchOnThreshold: number;
+  temperatureDeltaSwitchOffThreshold: number;
   heatPumpDeviceName: string;
   compressorCooldownPeriodInMinutes: number;
 };
 
 let compressorLockedOutForCooldown = false;
 
-export default function ({ heatingSwitchName, temperatureDeltaSwitchoffThreshold, heatPumpDeviceName, compressorCooldownPeriodInMinutes }: HeatingAutomationParameters) {
+export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold, temperatureDeltaSwitchOnThreshold, heatPumpDeviceName, compressorCooldownPeriodInMinutes }: HeatingAutomationParameters) {
   function lockoutCompressor() {
     compressorLockedOutForCooldown = true;
 
     setTimeout(async () => {
-      const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
-      const thermostats = await Device.findByType('thermostat');
-      const thermostatsHeatDemand = await Promise.all(thermostats.map((thermostat) => thermostat.getThermostatCapability().getIsHeating()));
-      const thermostatsAreRequestingHeat = thermostatsHeatDemand.some(x => x);
+      if (compressorLockedOutForCooldown === true) {
+        const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
+        const thermostats = await Device.findByType('thermostat');
+        const thermostatsHeatDemand = await Promise.all(thermostats.map((thermostat) => thermostat.getThermostatCapability().getIsHeating()));
+        const thermostatsAreRequestingHeat = thermostatsHeatDemand.some(x => x);
 
-      compressorLockedOutForCooldown = false;
+        compressorLockedOutForCooldown = false;
 
-      if (thermostatsAreRequestingHeat) {
-        await heatingDevice.getSwitchCapability().setIsOn(true);
+        if (thermostatsAreRequestingHeat) {
+          await heatingDevice.getSwitchCapability().setIsOn(true);
+        }
+
+        bus.emit(NOTIFICATION_TO_ADMINS, {
+          message: `Heat pump lockout ended.${thermostatsAreRequestingHeat ? ' Turning heating on as thermostats are requesting heat' : ''}`
+        });
       }
-
-      bus.emit(NOTIFICATION_TO_ADMINS, {
-        message: `Heat pump lockout ended.${thermostatsAreRequestingHeat ? ' Turning heating on as thermostats are requesting heat' : ''}`
-      });
     }, compressorCooldownPeriodInMinutes * 60 * 1000);
   }
 
@@ -60,13 +63,28 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchoffThreshold
         
         const maximumTemperatureDelta = Math.min(...temperatureDeltas);
 
-        if (maximumTemperatureDelta > temperatureDeltaSwitchoffThreshold && heatingIsOn) {
+        if (maximumTemperatureDelta > temperatureDeltaSwitchOffThreshold && heatingIsOn) {
           await heatingDevice.getSwitchCapability().setIsOn(false);
 
           bus.emit(NOTIFICATION_TO_ADMINS, { 
-            message: `Turning heating off, as no thermostats are within ${temperatureDeltaSwitchoffThreshold}° of their target temperature`
+            message: `Turning heating off, as no thermostats are within ${temperatureDeltaSwitchOffThreshold}° of their target temperature`
           });
         }
+      }
+    }
+
+    if (eventDevice.hasCapability('THERMOSTAT') && event.type === 'temperature') {
+      const target = await eventDevice.getThermostatCapability().getTargetTemperature(); 
+      const temperatureDelta = target - event.value;
+
+      if (temperatureDelta > temperatureDeltaSwitchOnThreshold && compressorLockedOutForCooldown) {
+        await heatingDevice.getSwitchCapability().setIsOn(true);
+
+        compressorLockedOutForCooldown = false;
+
+        bus.emit(NOTIFICATION_TO_ADMINS, { 
+          message: `Ending lockout and turning heating on, as ${eventDevice.name} is ${temperatureDelta}° below target of ${target}°C`
+        });
       }
     }
 
@@ -79,7 +97,7 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchoffThreshold
         lockoutCompressor();
 
         bus.emit(NOTIFICATION_TO_ADMINS, {
-          message: `Turning heating off, and locking out for ${compressorCooldownPeriodInMinutes} minutes as heat pump compressor has modulated down to 0`
+          message: `Turning heating off, and locking out for max ${compressorCooldownPeriodInMinutes} minutes as heat pump compressor has modulated down to 0`
         });
       }
     }
