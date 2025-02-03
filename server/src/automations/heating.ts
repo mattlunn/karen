@@ -36,6 +36,18 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold
     }, compressorCooldownPeriodInMinutes * 60 * 1000);
   }
 
+  /**
+   * @returns < 0 === How many degrees below target temperature. > 0 === How many degrees above target temperature
+   */
+  async function getLargestTemperatureDelta() {
+    const thermostats = await Device.findByType('thermostat');
+    const temperatureDeltas = await Promise.all(thermostats.map(async (thermostat) => {
+      return await thermostat.getThermostatCapability().getCurrentTemperature() - await thermostat.getThermostatCapability().getTargetTemperature();
+    }));
+    
+    return Math.min(...temperatureDeltas);
+  }
+
   bus.on(EVENT_START, createBackgroundTransaction(`automations:heating`, async (event: Event) => {
     const eventDevice = await event.getDevice();
     const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
@@ -56,12 +68,7 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold
 
       // On power change to 0, if no thermostats within X degrees, then turn off
       } else {
-        const thermostats = await Device.findByType('thermostat');
-        const temperatureDeltas = await Promise.all(thermostats.map(async (thermostat) => {
-          return await thermostat.getThermostatCapability().getTargetTemperature() - await thermostat.getThermostatCapability().getCurrentTemperature();
-        }));
-        
-        const maximumTemperatureDelta = Math.min(...temperatureDeltas);
+        const maximumTemperatureDelta = await getLargestTemperatureDelta();
 
         if (maximumTemperatureDelta > temperatureDeltaSwitchOffThreshold && heatingIsOn) {
           await heatingDevice.getSwitchCapability().setIsOn(false);
@@ -88,10 +95,13 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold
       }
     }
 
-    if (eventDevice.name === heatPumpDeviceName && event.type === 'compressor_modulation') {
-      if (event.value === 0 && heatingIsOn) {
-        // Either because we have already turned heat demand off from above, or there is not enough heat demand to keep
-        // the heat pump on, so turn it off.
+    // Either because we have already turned heat demand off from above, or there is not enough heat demand to keep
+    // the heat pump on, so turn it off.
+    if (eventDevice.name === heatPumpDeviceName && event.type === 'compressor_modulation' && event.value === 0 && heatingIsOn) {
+      const maximumTemperatureDelta = await getLargestTemperatureDelta();
+
+      // ... but only if all rooms are warm enough, otherwise the above condition will just switch the heating on again.
+      if (maximumTemperatureDelta > temperatureDeltaSwitchOnThreshold) {
         await heatingDevice.getSwitchCapability().setIsOn(false);
         
         lockoutCompressor();
