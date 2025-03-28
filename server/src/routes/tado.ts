@@ -50,11 +50,15 @@ async function tryGetRefreshToken(deviceCode: string) {
     }
   });
 
-  if (!response.ok) {
-    throw new Error(`Got ${response.status} trying to exchange refresh token`);
-  }
+  const json = await response.json();
 
-  return (await response.json()).refresh_token;
+  if (json.error === 'authorization_pending') {
+    return null;
+  } else if (json.error) {
+    throw new Error(`${json.error_description} (${json.error})`);
+  } else {
+    return json.refresh_token;
+  }
 }
 
 router.use((req, res, next) => {
@@ -71,24 +75,27 @@ router.get('/auth', asyncWrapper(async (req, res) => {
 
   res.redirect(initialData.verification_uri_complete);
 
-  for (let i=interval; i<=60; i+=interval) {
-    logger.info('Trying to exchange device code for refresh_token');
+  try {
+    for (let i=interval; i<=60; i+=interval) {
+      logger.info('Trying to exchange device code for refresh_token');
 
-    try {
       const token = await tryGetRefreshToken(initialData.device_code);
 
-      config.tado.refresh_token = token;
-      saveConfig();
+      if (token === null) {
+        logger.warn(`Authorization is still pending user confirmation. Will retry in ${interval} seconds`);
+        await sleep(interval * 1000);
+      } else {
+        config.tado.refresh_token = token;
+        saveConfig();
 
-      return logger.info('Successfully exchanged device code for refresh_token');
-    } catch (e) {
-      logger.warn(`Got an error exchanging device code for refresh_token; will retry in ${interval} seconds`);
-
-      await sleep(interval * 1000);
+        return logger.info('Successfully exchanged device code for refresh_token');
+      }
     }
-  };
+  } catch (e: any) {
+    logger.error(`Got an error exchanging device code for refresh_token; ${e.message}`);
+  }
 
-  logger.error(`Failed to exchange adevice code for refresh_token.`);
+  logger.error(`Failed to exchange a device code for refresh_token.`);
 }));
 
 export default router;
