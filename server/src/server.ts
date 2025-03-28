@@ -10,6 +10,7 @@ import authenticationRoutes from './routes/authentication';
 import synologyRoutes from './routes/synology';
 import homeConnectRoutes from './routes/homeconnect';
 import shellyRoutes from './routes/shelly';
+import tadoRoutes from './routes/tado';
 import auth from './middleware/auth';
 import { Device } from './models';
 import bodyParser from 'body-parser';
@@ -57,6 +58,7 @@ createGraphQLServer(wsServer).then((api) => {
   app.use('/synology', synologyRoutes);
   app.use('/shelly', shellyRoutes);
   app.use('/homeconnect', homeConnectRoutes);
+  app.use('/tado', tadoRoutes);
   app.use('/', express.static(__dirname + '/static'));
 
   app.use('/graphql',

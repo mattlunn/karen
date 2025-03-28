@@ -43,8 +43,8 @@ declare namespace _default {
   }
   export namespace tado {
     const home_id: number;
-    const username: string;
-    const password: string;
+    let refresh_token: string;
+    const secret: string;
     const sync_interval_seconds: number;
     const enable_warm_up: number;
     const eta_check_interval_minutes: number;

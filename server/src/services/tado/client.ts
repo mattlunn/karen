@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import config from '../../config';
+import { saveConfig } from '../../helpers/config';
 import logger from '../../logger';
 import { stringify } from 'querystring';
 
@@ -109,15 +110,12 @@ let token: Token | undefined;
 
 export async function getAccessToken(): Promise<string> {
   if (!token || token.expiresAt < Date.now() + 1000 * 60) {
-    const response = await fetch('https://auth.tado.com/oauth/token', {
+    const response = await fetch('https://login.tado.com/oauth2/token', {
       method: 'POST',
       body: stringify({
-        client_id: 'tado-web-app',
-        client_secret: 'wZaRN7rpjn3FoNyF5IFuxg9uMzYJcvOoQ8QWiIqS3hfk6gLhVlG57j5YNoZL2Rtc',
-        grant_type: 'password',
-        username: config.tado.username,
-        password: config.tado.password,
-        scope: 'home.user'
+        client_id: '1bb50063-6b0c-4d11-bd99-387f4a91cc46',
+        grant_type: 'refresh_token',
+        refresh_token: config.tado.refresh_token
       }),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
@@ -128,7 +126,7 @@ export async function getAccessToken(): Promise<string> {
       throw new Error(`Unable to get Access Token: HTTP status code was '${response.status}'`);
     }
 
-    const { access_token, expires_in } = await response.json();
+    const { access_token, expires_in, refresh_token } = await response.json();
 
     if (process.env.NODE_ENV === 'development') {
       logger.debug(`Tado access_token is '${access_token}'`);
@@ -138,6 +136,9 @@ export async function getAccessToken(): Promise<string> {
       accessToken: access_token,
       expiresAt: Date.now() + (expires_in * 1000)
     };
+
+    config.tado.refresh_token = refresh_token;
+    saveConfig();
   }
 
   return token.accessToken;
