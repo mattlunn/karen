@@ -56,6 +56,18 @@ const DEVICE_FRAGMENT = gql`
         heatingCoP
         mode
       }
+
+      ... on Lock {
+        isLocked
+      }
+
+      ... on BatteryLowIndicator {
+        isLow
+      }
+      
+      ... on BatteryLevelIndicator {
+        batteryPercentage
+      }
     }
   }
 `;

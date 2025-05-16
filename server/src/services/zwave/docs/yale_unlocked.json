@@ -1,0 +1,2817 @@
+{
+  "id": 30,
+  "name": "",
+  "loc": "",
+  "values": [
+    {
+      "id": "30-98-0-doorStatus",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "doorStatus",
+      "propertyName": "doorStatus",
+      "type": "any",
+      "readable": true,
+      "writeable": false,
+      "label": "Current status of the door",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "list": false,
+      "value": "open",
+      "lastUpdate": 1747387019917,
+      "newValue": "open"
+    },
+    {
+      "id": "30-98-0-latchStatus",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "latchStatus",
+      "propertyName": "latchStatus",
+      "type": "any",
+      "readable": true,
+      "writeable": false,
+      "label": "Current status of the latch",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "list": false,
+      "value": "open",
+      "lastUpdate": 1747387019923,
+      "newValue": "open"
+    },
+    {
+      "id": "30-98-0-boltStatus",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "boltStatus",
+      "propertyName": "boltStatus",
+      "type": "any",
+      "readable": true,
+      "writeable": false,
+      "label": "Current status of the bolt",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "list": false,
+      "value": "unlocked",
+      "lastUpdate": 1747387019920,
+      "newValue": "unlocked"
+    },
+    {
+      "id": "30-98-0-insideHandlesCanOpenDoor",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "insideHandlesCanOpenDoor",
+      "propertyName": "insideHandlesCanOpenDoor",
+      "type": "any",
+      "readable": true,
+      "writeable": false,
+      "label": "Which inside handles can open the door (actual status)",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "list": false,
+      "value": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "lastUpdate": 1747387019906,
+      "newValue": [
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "30-98-0-outsideHandlesCanOpenDoor",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "outsideHandlesCanOpenDoor",
+      "propertyName": "outsideHandlesCanOpenDoor",
+      "type": "any",
+      "readable": true,
+      "writeable": false,
+      "label": "Which outside handles can open the door (actual status)",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "list": false,
+      "value": [
+        true,
+        false,
+        false,
+        false
+      ],
+      "lastUpdate": 1747387019910,
+      "newValue": [
+        true,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "id": "30-98-0-currentMode",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "currentMode",
+      "propertyName": "currentMode",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Current lock mode",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "min": 0,
+      "max": 255,
+      "list": true,
+      "states": [
+        {
+          "text": "Unsecured",
+          "value": 0
+        },
+        {
+          "text": "UnsecuredWithTimeout",
+          "value": 1
+        },
+        {
+          "text": "InsideUnsecured",
+          "value": 16
+        },
+        {
+          "text": "InsideUnsecuredWithTimeout",
+          "value": 17
+        },
+        {
+          "text": "OutsideUnsecured",
+          "value": 32
+        },
+        {
+          "text": "OutsideUnsecuredWithTimeout",
+          "value": 33
+        },
+        {
+          "text": "Unknown",
+          "value": 254
+        },
+        {
+          "text": "Secured",
+          "value": 255
+        }
+      ],
+      "value": 0,
+      "isCurrentValue": true,
+      "targetValue": "98-0-targetMode",
+      "lastUpdate": 1747387020901,
+      "newValue": 0
+    },
+    {
+      "id": "30-98-0-lockTimeout",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "lockTimeout",
+      "propertyName": "lockTimeout",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Seconds until lock mode times out",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "min": 0,
+      "max": 65535,
+      "list": false,
+      "value": 0,
+      "lastUpdate": 1747387003803,
+      "newValue": 0
+    },
+    {
+      "id": "30-98-0-targetMode",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "targetMode",
+      "propertyName": "targetMode",
+      "type": "number",
+      "readable": true,
+      "writeable": true,
+      "label": "Target lock mode",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "min": 0,
+      "max": 255,
+      "list": true,
+      "states": [
+        {
+          "text": "Unsecured",
+          "value": 0
+        },
+        {
+          "text": "UnsecuredWithTimeout",
+          "value": 1
+        },
+        {
+          "text": "InsideUnsecured",
+          "value": 16
+        },
+        {
+          "text": "InsideUnsecuredWithTimeout",
+          "value": 17
+        },
+        {
+          "text": "OutsideUnsecured",
+          "value": 32
+        },
+        {
+          "text": "OutsideUnsecuredWithTimeout",
+          "value": 33
+        },
+        {
+          "text": "Unknown",
+          "value": 254
+        },
+        {
+          "text": "Secured",
+          "value": 255
+        }
+      ],
+      "value": 255,
+      "lastUpdate": 1747385841496,
+      "newValue": 255
+    },
+    {
+      "id": "30-98-0-outsideHandlesCanOpenDoorConfiguration",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "outsideHandlesCanOpenDoorConfiguration",
+      "propertyName": "outsideHandlesCanOpenDoorConfiguration",
+      "type": "any",
+      "readable": true,
+      "writeable": true,
+      "label": "Which outside handles can open the door (configuration)",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "list": false,
+      "lastUpdate": 1747383626293
+    },
+    {
+      "id": "30-98-0-insideHandlesCanOpenDoorConfiguration",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "insideHandlesCanOpenDoorConfiguration",
+      "propertyName": "insideHandlesCanOpenDoorConfiguration",
+      "type": "any",
+      "readable": true,
+      "writeable": true,
+      "label": "Which inside handles can open the door (configuration)",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "list": false,
+      "lastUpdate": 1747383626293
+    },
+    {
+      "id": "30-98-0-operationType",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "operationType",
+      "propertyName": "operationType",
+      "type": "number",
+      "readable": true,
+      "writeable": true,
+      "label": "Lock operation type",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "min": 0,
+      "max": 255,
+      "list": true,
+      "states": [
+        {
+          "text": "Constant",
+          "value": 1
+        },
+        {
+          "text": "Timed",
+          "value": 2
+        }
+      ],
+      "lastUpdate": 1747383626293
+    },
+    {
+      "id": "30-98-0-lockTimeoutConfiguration",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 98,
+      "commandClassName": "Door Lock",
+      "endpoint": 0,
+      "property": "lockTimeoutConfiguration",
+      "propertyName": "lockTimeoutConfiguration",
+      "type": "number",
+      "readable": true,
+      "writeable": true,
+      "label": "Duration of timed mode in seconds",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "min": 0,
+      "max": 65535,
+      "list": false,
+      "lastUpdate": 1747383626293
+    },
+    {
+      "id": "30-112-0-1",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 112,
+      "commandClassName": "Configuration",
+      "endpoint": 0,
+      "property": 1,
+      "propertyName": "Volume",
+      "type": "number",
+      "readable": true,
+      "writeable": true,
+      "label": "Volume",
+      "default": 2,
+      "stateless": false,
+      "commandClassVersion": 1,
+      "min": 1,
+      "max": 3,
+      "list": true,
+      "allowManualEntry": true,
+      "states": [
+        {
+          "text": "Silent",
+          "value": 1
+        },
+        {
+          "text": "Low",
+          "value": 2
+        },
+        {
+          "text": "High",
+          "value": 3
+        }
+      ],
+      "value": 2,
+      "lastUpdate": 1747383621447,
+      "newValue": 2
+    },
+    {
+      "id": "30-112-0-2",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 112,
+      "commandClassName": "Configuration",
+      "endpoint": 0,
+      "property": 2,
+      "propertyName": "Auto Relock",
+      "type": "number",
+      "readable": true,
+      "writeable": true,
+      "label": "Auto Relock",
+      "default": 0,
+      "stateless": false,
+      "commandClassVersion": 1,
+      "min": 0,
+      "max": 255,
+      "list": true,
+      "allowManualEntry": false,
+      "states": [
+        {
+          "text": "Disable",
+          "value": 0
+        },
+        {
+          "text": "Enable",
+          "value": 255
+        }
+      ],
+      "value": 255,
+      "lastUpdate": 1747383622242,
+      "newValue": 255
+    },
+    {
+      "id": "30-112-0-3",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 112,
+      "commandClassName": "Configuration",
+      "endpoint": 0,
+      "property": 3,
+      "propertyName": "Auto Relock Time",
+      "type": "number",
+      "readable": true,
+      "writeable": true,
+      "label": "Auto Relock Time",
+      "default": 30,
+      "stateless": false,
+      "commandClassVersion": 1,
+      "min": 0,
+      "max": 60,
+      "unit": "seconds",
+      "list": false,
+      "value": 120,
+      "lastUpdate": 1747384983041,
+      "newValue": 120
+    },
+    {
+      "id": "30-112-0-4",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 112,
+      "commandClassName": "Configuration",
+      "endpoint": 0,
+      "property": 4,
+      "propertyName": "Wrong Tag Limit",
+      "type": "number",
+      "readable": true,
+      "writeable": true,
+      "description": "Number of wrong attempts before the lockout a triggered",
+      "label": "Wrong Tag Limit",
+      "default": 5,
+      "stateless": false,
+      "commandClassVersion": 1,
+      "min": 1,
+      "max": 20,
+      "list": false,
+      "value": 5,
+      "lastUpdate": 1747383623799,
+      "newValue": 5
+    },
+    {
+      "id": "30-112-0-7",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 112,
+      "commandClassName": "Configuration",
+      "endpoint": 0,
+      "property": 7,
+      "propertyName": "Wrong Tag Lockout Time",
+      "type": "number",
+      "readable": true,
+      "writeable": true,
+      "label": "Wrong Tag Lockout Time",
+      "default": 180,
+      "stateless": false,
+      "commandClassVersion": 1,
+      "min": 1,
+      "max": 250,
+      "unit": "seconds",
+      "list": false,
+      "value": 180,
+      "lastUpdate": 1747383624601,
+      "newValue": 180
+    },
+    {
+      "id": "30-113-0-Access Control-Lock state",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 113,
+      "commandClassName": "Notification",
+      "endpoint": 0,
+      "property": "Access Control",
+      "propertyName": "Access Control",
+      "propertyKey": "Lock state",
+      "propertyKeyName": "Lock state",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Lock state",
+      "ccSpecific": {
+        "notificationType": 6
+      },
+      "stateless": false,
+      "commandClassVersion": 1,
+      "min": 0,
+      "max": 255,
+      "list": true,
+      "states": [
+        {
+          "text": "idle",
+          "value": 0
+        },
+        {
+          "text": "Lock jammed",
+          "value": 11
+        }
+      ],
+      "value": 0,
+      "lastUpdate": 1747385852352,
+      "newValue": 0
+    },
+    {
+      "id": "30-113-0-Power Management-Battery level status",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 113,
+      "commandClassName": "Notification",
+      "endpoint": 0,
+      "property": "Power Management",
+      "propertyName": "Power Management",
+      "propertyKey": "Battery level status",
+      "propertyKeyName": "Battery level status",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Battery level status",
+      "ccSpecific": {
+        "notificationType": 8
+      },
+      "stateless": false,
+      "commandClassVersion": 1,
+      "min": 0,
+      "max": 255,
+      "list": true,
+      "states": [
+        {
+          "text": "idle",
+          "value": 0
+        },
+        {
+          "text": "Charge battery soon",
+          "value": 14
+        },
+        {
+          "text": "Charge battery now",
+          "value": 15
+        }
+      ],
+      "value": 0,
+      "newValue": 0
+    },
+    {
+      "id": "30-113-0-alarmType",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 113,
+      "commandClassName": "Notification",
+      "endpoint": 0,
+      "property": "alarmType",
+      "propertyName": "alarmType",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Alarm Type",
+      "stateless": false,
+      "commandClassVersion": 1,
+      "min": 0,
+      "max": 255,
+      "list": false,
+      "value": 22,
+      "lastUpdate": 1747387020892,
+      "newValue": 22
+    },
+    {
+      "id": "30-113-0-alarmLevel",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 113,
+      "commandClassName": "Notification",
+      "endpoint": 0,
+      "property": "alarmLevel",
+      "propertyName": "alarmLevel",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Alarm Level",
+      "stateless": false,
+      "commandClassVersion": 1,
+      "min": 0,
+      "max": 255,
+      "list": false,
+      "value": 1,
+      "lastUpdate": 1747387020895,
+      "newValue": 1
+    },
+    {
+      "id": "30-114-0-productId",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 114,
+      "commandClassName": "Manufacturer Specific",
+      "endpoint": 0,
+      "property": "productId",
+      "propertyName": "productId",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Product ID",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "min": 0,
+      "max": 65535,
+      "list": false,
+      "value": 2,
+      "lastUpdate": 1747383599571,
+      "newValue": 2
+    },
+    {
+      "id": "30-114-0-productType",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 114,
+      "commandClassName": "Manufacturer Specific",
+      "endpoint": 0,
+      "property": "productType",
+      "propertyName": "productType",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Product type",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "min": 0,
+      "max": 65535,
+      "list": false,
+      "value": 26112,
+      "lastUpdate": 1747383599576,
+      "newValue": 26112
+    },
+    {
+      "id": "30-114-0-manufacturerId",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 114,
+      "commandClassName": "Manufacturer Specific",
+      "endpoint": 0,
+      "property": "manufacturerId",
+      "propertyName": "manufacturerId",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Manufacturer ID",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "min": 0,
+      "max": 65535,
+      "list": false,
+      "value": 297,
+      "lastUpdate": 1747383599580,
+      "newValue": 297
+    },
+    {
+      "id": "30-128-0-isLow",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 128,
+      "commandClassName": "Battery",
+      "endpoint": 0,
+      "property": "isLow",
+      "propertyName": "isLow",
+      "type": "boolean",
+      "readable": true,
+      "writeable": false,
+      "label": "Low battery level",
+      "stateless": false,
+      "commandClassVersion": 1,
+      "list": false,
+      "value": false,
+      "lastUpdate": 1747383612137,
+      "newValue": false
+    },
+    {
+      "id": "30-128-0-level",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 128,
+      "commandClassName": "Battery",
+      "endpoint": 0,
+      "property": "level",
+      "propertyName": "level",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Battery level",
+      "stateless": false,
+      "commandClassVersion": 1,
+      "min": 0,
+      "max": 100,
+      "unit": "%",
+      "list": false,
+      "value": 78,
+      "lastUpdate": 1747383612141,
+      "newValue": 78
+    },
+    {
+      "id": "30-134-0-hardwareVersion",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 134,
+      "commandClassName": "Version",
+      "endpoint": 0,
+      "property": "hardwareVersion",
+      "propertyName": "hardwareVersion",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Z-Wave chip hardware version",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "list": false,
+      "value": 32,
+      "lastUpdate": 1747383600312,
+      "newValue": 32
+    },
+    {
+      "id": "30-134-0-firmwareVersions",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 134,
+      "commandClassName": "Version",
+      "endpoint": 0,
+      "property": "firmwareVersions",
+      "propertyName": "firmwareVersions",
+      "type": "string[]",
+      "readable": true,
+      "writeable": false,
+      "label": "Z-Wave chip firmware versions",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "list": false,
+      "value": [
+        "33.16",
+        "21.16"
+      ],
+      "lastUpdate": 1747383600316,
+      "newValue": [
+        "33.16",
+        "21.16"
+      ]
+    },
+    {
+      "id": "30-134-0-protocolVersion",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 134,
+      "commandClassName": "Version",
+      "endpoint": 0,
+      "property": "protocolVersion",
+      "propertyName": "protocolVersion",
+      "type": "string",
+      "readable": true,
+      "writeable": false,
+      "label": "Z-Wave protocol version",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "list": false,
+      "value": "4.61",
+      "lastUpdate": 1747383600320,
+      "newValue": "4.61"
+    },
+    {
+      "id": "30-134-0-libraryType",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 134,
+      "commandClassName": "Version",
+      "endpoint": 0,
+      "property": "libraryType",
+      "propertyName": "libraryType",
+      "type": "number",
+      "readable": true,
+      "writeable": false,
+      "label": "Library type",
+      "stateless": false,
+      "commandClassVersion": 2,
+      "list": true,
+      "states": [
+        {
+          "text": "Unknown",
+          "value": 0
+        },
+        {
+          "text": "Static Controller",
+          "value": 1
+        },
+        {
+          "text": "Controller",
+          "value": 2
+        },
+        {
+          "text": "Enhanced Slave",
+          "value": 3
+        },
+        {
+          "text": "Slave",
+          "value": 4
+        },
+        {
+          "text": "Installer",
+          "value": 5
+        },
+        {
+          "text": "Routing Slave",
+          "value": 6
+        },
+        {
+          "text": "Bridge Controller",
+          "value": 7
+        },
+        {
+          "text": "Device under Test",
+          "value": 8
+        },
+        {
+          "text": "N/A",
+          "value": 9
+        },
+        {
+          "text": "AV Remote",
+          "value": 10
+        },
+        {
+          "text": "AV Device",
+          "value": 11
+        }
+      ],
+      "value": 3,
+      "lastUpdate": 1747383600324,
+      "newValue": 3
+    },
+    {
+      "id": "30-139-0-dateAndTime",
+      "nodeId": 30,
+      "toUpdate": false,
+      "commandClass": 139,
+      "commandClassName": "Time Parameters",
+      "endpoint": 0,
+      "property": "dateAndTime",
+      "propertyName": "dateAndTime",
+      "type": "any",
+      "readable": true,
+      "writeable": true,
+      "label": "Date and Time",
+      "stateless": false,
+      "commandClassVersion": 1,
+      "list": false,
+      "lastUpdate": 1747383626295
+    }
+  ],
+  "groups": [
+    {
+      "text": "Lifeline",
+      "endpoint": 0,
+      "value": 1,
+      "maxNodes": 1,
+      "isLifeline": true,
+      "multiChannel": false
+    }
+  ],
+  "neighbors": [],
+  "ready": true,
+  "available": true,
+  "hassDevices": {},
+  "failed": false,
+  "inited": true,
+  "eventsQueue": [
+    {
+      "time": "2025-05-16T09:11:46.431Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "insideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "insideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:11:46.437Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "outsideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            true,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "outsideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:11:46.441Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 255,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:11:46.445Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "doorStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "closed",
+          "propertyName": "doorStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:11:46.449Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "boltStatus",
+          "endpoint": 0,
+          "newValue": "unlocked",
+          "prevValue": "locked",
+          "propertyName": "boltStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:11:46.453Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "latchStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "open",
+          "propertyName": "latchStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:11:47.418Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmType",
+          "endpoint": 0,
+          "newValue": 22,
+          "prevValue": 21,
+          "propertyName": "alarmType"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:11:47.421Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmLevel",
+          "endpoint": 0,
+          "newValue": 1,
+          "prevValue": 1,
+          "propertyName": "alarmLevel"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:11:47.428Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 0,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:11:47.430Z",
+      "event": "notification",
+      "args": [
+        113,
+        {
+          "type": 6,
+          "event": 2,
+          "label": "Access Control",
+          "eventLabel": "Manual unlock operation"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:13:34.387Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "lockTimeout",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 0,
+          "propertyName": "lockTimeout"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:13:34.390Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "insideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "insideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:13:34.395Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "outsideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            true,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "outsideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:13:34.399Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 255,
+          "prevValue": 0,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:13:34.402Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "doorStatus",
+          "endpoint": 0,
+          "newValue": "closed",
+          "prevValue": "open",
+          "propertyName": "doorStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:13:34.407Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "boltStatus",
+          "endpoint": 0,
+          "newValue": "locked",
+          "prevValue": "unlocked",
+          "propertyName": "boltStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:13:34.411Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "latchStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "open",
+          "propertyName": "latchStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:13:35.371Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmType",
+          "endpoint": 0,
+          "newValue": 21,
+          "prevValue": 22,
+          "propertyName": "alarmType"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:13:35.374Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmLevel",
+          "endpoint": 0,
+          "newValue": 1,
+          "prevValue": 1,
+          "propertyName": "alarmLevel"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:13:35.379Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 255,
+          "prevValue": 255,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:13:35.382Z",
+      "event": "notification",
+      "args": [
+        113,
+        {
+          "type": 6,
+          "event": 1,
+          "label": "Access Control",
+          "eventLabel": "Manual lock operation"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:14.703Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "insideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "insideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:14.709Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "outsideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            true,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "outsideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:14.713Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 255,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:14.716Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "doorStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "closed",
+          "propertyName": "doorStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:14.720Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "boltStatus",
+          "endpoint": 0,
+          "newValue": "unlocked",
+          "prevValue": "locked",
+          "propertyName": "boltStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:14.723Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "latchStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "open",
+          "propertyName": "latchStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:15.687Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmType",
+          "endpoint": 0,
+          "newValue": 22,
+          "prevValue": 21,
+          "propertyName": "alarmType"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:15.691Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmLevel",
+          "endpoint": 0,
+          "newValue": 1,
+          "prevValue": 1,
+          "propertyName": "alarmLevel"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:15.698Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 0,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:15.703Z",
+      "event": "notification",
+      "args": [
+        113,
+        {
+          "type": 6,
+          "event": 2,
+          "label": "Access Control",
+          "eventLabel": "Manual unlock operation"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:23.646Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "insideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "insideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:23.650Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "outsideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            true,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            true,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "outsideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:23.654Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 0,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:23.658Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "doorStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "open",
+          "propertyName": "doorStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:23.661Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "boltStatus",
+          "endpoint": 0,
+          "newValue": "unlocked",
+          "prevValue": "unlocked",
+          "propertyName": "boltStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:23.666Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "latchStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "open",
+          "propertyName": "latchStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:24.354Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "lockTimeout",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 0,
+          "propertyName": "lockTimeout"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:24.358Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "insideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "insideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:24.361Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "outsideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            true,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "outsideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:24.365Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 255,
+          "prevValue": 0,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:24.368Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "doorStatus",
+          "endpoint": 0,
+          "newValue": "closed",
+          "prevValue": "open",
+          "propertyName": "doorStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:24.372Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "boltStatus",
+          "endpoint": 0,
+          "newValue": "locked",
+          "prevValue": "unlocked",
+          "propertyName": "boltStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:24.376Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "latchStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "open",
+          "propertyName": "latchStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:25.619Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmType",
+          "endpoint": 0,
+          "newValue": 21,
+          "prevValue": 22,
+          "propertyName": "alarmType"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:25.621Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmLevel",
+          "endpoint": 0,
+          "newValue": 1,
+          "prevValue": 1,
+          "propertyName": "alarmLevel"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:25.626Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 255,
+          "prevValue": 255,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:25.629Z",
+      "event": "notification",
+      "args": [
+        113,
+        {
+          "type": 6,
+          "event": 1,
+          "label": "Access Control",
+          "eventLabel": "Manual lock operation"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:26.572Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "insideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "insideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:26.575Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "outsideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            true,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "outsideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:26.578Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 255,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:26.580Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "doorStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "closed",
+          "propertyName": "doorStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:26.583Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "boltStatus",
+          "endpoint": 0,
+          "newValue": "unlocked",
+          "prevValue": "locked",
+          "propertyName": "boltStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:26.586Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "latchStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "open",
+          "propertyName": "latchStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:27.556Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmType",
+          "endpoint": 0,
+          "newValue": 22,
+          "prevValue": 21,
+          "propertyName": "alarmType"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:27.559Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmLevel",
+          "endpoint": 0,
+          "newValue": 1,
+          "prevValue": 1,
+          "propertyName": "alarmLevel"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:27.564Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 0,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:27.566Z",
+      "event": "notification",
+      "args": [
+        113,
+        {
+          "type": 6,
+          "event": 2,
+          "label": "Access Control",
+          "eventLabel": "Manual unlock operation"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:35.640Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "lockTimeout",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 0,
+          "propertyName": "lockTimeout"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:35.643Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "insideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "insideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:35.645Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "outsideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            true,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "outsideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:35.648Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 255,
+          "prevValue": 0,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:35.651Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "doorStatus",
+          "endpoint": 0,
+          "newValue": "closed",
+          "prevValue": "open",
+          "propertyName": "doorStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:35.654Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "boltStatus",
+          "endpoint": 0,
+          "newValue": "locked",
+          "prevValue": "unlocked",
+          "propertyName": "boltStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:35.657Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "latchStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "open",
+          "propertyName": "latchStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:36.628Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmType",
+          "endpoint": 0,
+          "newValue": 21,
+          "prevValue": 22,
+          "propertyName": "alarmType"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:36.632Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmLevel",
+          "endpoint": 0,
+          "newValue": 1,
+          "prevValue": 1,
+          "propertyName": "alarmLevel"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:36.638Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 255,
+          "prevValue": 255,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:36.642Z",
+      "event": "notification",
+      "args": [
+        113,
+        {
+          "type": 6,
+          "event": 1,
+          "label": "Access Control",
+          "eventLabel": "Manual lock operation"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:37.366Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "insideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "insideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:37.369Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "outsideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            true,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "outsideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:37.373Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 255,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:37.376Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "doorStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "closed",
+          "propertyName": "doorStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:37.382Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "boltStatus",
+          "endpoint": 0,
+          "newValue": "unlocked",
+          "prevValue": "locked",
+          "propertyName": "boltStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:37.386Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "latchStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "open",
+          "propertyName": "latchStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:38.346Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmType",
+          "endpoint": 0,
+          "newValue": 22,
+          "prevValue": 21,
+          "propertyName": "alarmType"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:38.348Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmLevel",
+          "endpoint": 0,
+          "newValue": 1,
+          "prevValue": 1,
+          "propertyName": "alarmLevel"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:38.353Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 0,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:15:38.355Z",
+      "event": "notification",
+      "args": [
+        113,
+        {
+          "type": 6,
+          "event": 2,
+          "label": "Access Control",
+          "eventLabel": "Manual unlock operation"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:43.806Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "lockTimeout",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 0,
+          "propertyName": "lockTimeout"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:43.809Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "insideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "insideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:43.812Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "outsideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            true,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "outsideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:43.816Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 255,
+          "prevValue": 0,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:43.819Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "doorStatus",
+          "endpoint": 0,
+          "newValue": "closed",
+          "prevValue": "open",
+          "propertyName": "doorStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:43.824Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "boltStatus",
+          "endpoint": 0,
+          "newValue": "locked",
+          "prevValue": "unlocked",
+          "propertyName": "boltStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:43.827Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "latchStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "open",
+          "propertyName": "latchStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:44.793Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmType",
+          "endpoint": 0,
+          "newValue": 21,
+          "prevValue": 22,
+          "propertyName": "alarmType"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:44.797Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmLevel",
+          "endpoint": 0,
+          "newValue": 1,
+          "prevValue": 1,
+          "propertyName": "alarmLevel"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:44.804Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 255,
+          "prevValue": 255,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:44.806Z",
+      "event": "notification",
+      "args": [
+        113,
+        {
+          "type": 6,
+          "event": 1,
+          "label": "Access Control",
+          "eventLabel": "Manual lock operation"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:59.909Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "insideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "insideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:59.912Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "outsideHandlesCanOpenDoor",
+          "endpoint": 0,
+          "newValue": [
+            true,
+            false,
+            false,
+            false
+          ],
+          "prevValue": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "propertyName": "outsideHandlesCanOpenDoor"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:59.917Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 255,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:59.919Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "doorStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "closed",
+          "propertyName": "doorStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:59.923Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "boltStatus",
+          "endpoint": 0,
+          "newValue": "unlocked",
+          "prevValue": "locked",
+          "propertyName": "boltStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:16:59.925Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "latchStatus",
+          "endpoint": 0,
+          "newValue": "open",
+          "prevValue": "open",
+          "propertyName": "latchStatus"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:17:00.894Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmType",
+          "endpoint": 0,
+          "newValue": 22,
+          "prevValue": 21,
+          "propertyName": "alarmType"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:17:00.897Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Notification",
+          "commandClass": 113,
+          "property": "alarmLevel",
+          "endpoint": 0,
+          "newValue": 1,
+          "prevValue": 1,
+          "propertyName": "alarmLevel"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:17:00.903Z",
+      "event": "value updated",
+      "args": [
+        {
+          "commandClassName": "Door Lock",
+          "commandClass": 98,
+          "property": "currentMode",
+          "endpoint": 0,
+          "newValue": 0,
+          "prevValue": 0,
+          "propertyName": "currentMode"
+        }
+      ]
+    },
+    {
+      "time": "2025-05-16T09:17:00.905Z",
+      "event": "notification",
+      "args": [
+        113,
+        {
+          "type": 6,
+          "event": 2,
+          "label": "Access Control",
+          "eventLabel": "Manual unlock operation"
+        }
+      ]
+    }
+  ],
+  "status": "Alive",
+  "interviewStage": "Complete",
+  "priorityReturnRoute": {},
+  "customReturnRoute": {},
+  "prioritySUCReturnRoute": false,
+  "customSUCReturnRoutes": [],
+  "hexId": "0x0129 0x6600-0x0002",
+  "dbLink": "https://devices.zwave-js.io/?jumpTo=0x0129:0x6600:0x0002:0.0",
+  "manufacturerId": 297,
+  "productId": 2,
+  "productType": 26112,
+  "deviceConfig": {
+    "filename": "/usr/src/app/store/.config-db/devices/0x0129/sd-l1000-ch.json",
+    "isEmbedded": true,
+    "manufacturer": "Yale",
+    "manufacturerId": 297,
+    "label": "SD-L1000-CH",
+    "description": "Conexis L1",
+    "devices": [
+      {
+        "productType": 102,
+        "productId": 0
+      },
+      {
+        "productType": 26112,
+        "productId": 2
+      }
+    ],
+    "firmwareVersion": {
+      "min": "0.0",
+      "max": "255.255"
+    },
+    "preferred": false,
+    "paramInformation": {
+      "_map": {}
+    },
+    "compat": {
+      "alarmMapping": [
+        {
+          "from": {
+            "alarmType": 161,
+            "alarmLevel": 1
+          },
+          "to": {
+            "notificationType": 6,
+            "notificationEvent": 19
+          }
+        },
+        {
+          "from": {
+            "alarmType": 22,
+            "alarmLevel": 1
+          },
+          "to": {
+            "notificationType": 6,
+            "notificationEvent": 2
+          }
+        },
+        {
+          "from": {
+            "alarmType": 25,
+            "alarmLevel": 1
+          },
+          "to": {
+            "notificationType": 6,
+            "notificationEvent": 4
+          }
+        },
+        {
+          "from": {
+            "alarmType": 19
+          },
+          "to": {
+            "notificationType": 6,
+            "notificationEvent": 6,
+            "eventParameters": {
+              "userId": "alarmLevel"
+            }
+          }
+        },
+        {
+          "from": {
+            "alarmType": 21
+          },
+          "to": {
+            "notificationType": 6,
+            "notificationEvent": 1
+          }
+        },
+        {
+          "from": {
+            "alarmType": 24,
+            "alarmLevel": 1
+          },
+          "to": {
+            "notificationType": 6,
+            "notificationEvent": 3
+          }
+        },
+        {
+          "from": {
+            "alarmType": 18
+          },
+          "to": {
+            "notificationType": 6,
+            "notificationEvent": 5,
+            "eventParameters": {
+              "userId": "alarmLevel"
+            }
+          }
+        },
+        {
+          "from": {
+            "alarmType": 9
+          },
+          "to": {
+            "notificationType": 6,
+            "notificationEvent": 11
+          }
+        },
+        {
+          "from": {
+            "alarmType": 167
+          },
+          "to": {
+            "notificationType": 8,
+            "notificationEvent": 14,
+            "eventParameters": {
+              "batteryLevel": "alarmLevel"
+            }
+          }
+        },
+        {
+          "from": {
+            "alarmType": 168
+          },
+          "to": {
+            "notificationType": 8,
+            "notificationEvent": 15,
+            "eventParameters": {
+              "batteryLevel": "alarmLevel"
+            }
+          }
+        },
+        {
+          "from": {
+            "alarmType": 27,
+            "alarmLevel": 1
+          },
+          "to": {
+            "notificationType": 6,
+            "notificationEvent": 9
+          }
+        },
+        {
+          "from": {
+            "alarmType": 144
+          },
+          "to": {
+            "notificationType": 6,
+            "notificationEvent": 6,
+            "eventParameters": {
+              "userId": "alarmLevel"
+            }
+          }
+        }
+      ]
+    },
+    "metadata": {
+      "inclusion": "Put the Z-Wave controller into add or learn mode\n\nPress the R button on the lock 3 times quickly (within 1.5 seconds)\n\nRefer to the operation manual of the Z-Wave controller to complete the learn in process\n\nFor more information on this please visit:\nwww.yale.co.uk/smart-living",
+      "exclusion": "Put the existing Z-Wave controller into Remove Mode\n\nPress the R button on the lock 3 times quickly (within 1.5 secs)\n\nThe lock is now ready to be added to a new Z-Wave controller\n\nFor more information on this please visit:\nwww.yale.co.uk/smart-living",
+      "reset": "Only use this when the existing Z-Wave controller is missing or inoperable\n\n Lift up the lever handle\n\nWhile holding the handle up, press the R button 3 times within 1.5 seconds",
+      "manual": "https://products.z-wavealliance.org/ProductManual/File?folder=&filename=MarketCertificationFiles/2535/Instruction%20Manual%20V2a.pdf"
+    }
+  },
+  "productLabel": "SD-L1000-CH",
+  "productDescription": "Conexis L1",
+  "manufacturer": "Yale",
+  "firmwareVersion": "33.16",
+  "protocolVersion": 3,
+  "zwavePlusVersion": 1,
+  "zwavePlusNodeType": 0,
+  "zwavePlusRoleType": 7,
+  "nodeType": 1,
+  "endpointsCount": 0,
+  "endpoints": [
+    {
+      "index": 0,
+      "label": "Root Endpoint",
+      "deviceClass": {
+        "basic": 4,
+        "generic": 64,
+        "specific": 3
+      }
+    }
+  ],
+  "isSecure": true,
+  "security": "S2_AccessControl",
+  "supportsSecurity": false,
+  "supportsBeaming": true,
+  "isControllerNode": false,
+  "isListening": false,
+  "isFrequentListening": "1000ms",
+  "isRouting": true,
+  "keepAwake": false,
+  "maxDataRate": 100000,
+  "deviceClass": {
+    "basic": 4,
+    "generic": 64,
+    "specific": 3
+  },
+  "lastActive": 1747387020887,
+  "firmwareCapabilities": {
+    "firmwareUpgradable": false
+  },
+  "protocol": 0,
+  "deviceId": "297-2-26112",
+  "hasDeviceConfigChanged": false,
+  "statistics": {
+    "commandsTX": 73,
+    "commandsRX": 136,
+    "commandsDroppedRX": 11,
+    "commandsDroppedTX": 0,
+    "timeoutResponse": 12,
+    "rtt": 1110.7,
+    "lastSeen": "2025-05-16T09:17:00.887Z",
+    "lwr": {
+      "repeaters": [
+        18
+      ],
+      "protocolDataRate": 2
+    }
+  },
+  "batteryLevels": {
+    "0": 78
+  },
+  "minBatteryLevel": 78,
+  "supportsTime": true,
+  "_name": "NodeID_30",
+  "applicationRoute": false
+}

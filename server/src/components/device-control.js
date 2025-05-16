@@ -8,7 +8,7 @@ export default function DeviceControl({ icon, iconOnClick = (e) => e.preventDefa
   return (
     <>
       <div className="device-control__header">
-        <a className={classNames('device-control__icon-container', actionPending && 'device-control__icon-container--disabled')} style={{ backgroundColor: colorIconBackground ? color + '50' : 'none' }} onClick={iconOnClick} href="#">
+        <a className={classNames('device-control__icon-container', actionPending && 'device-control__icon-container--disabled')} style={{ backgroundColor: colorIconBackground ? color + '50' : 'transparent' }} onClick={iconOnClick} href="#">
           <FontAwesomeIcon icon={actionPending ? faSync : icon} spin={actionPending} color={color} />
         </a>
         <div className="device-control__body">

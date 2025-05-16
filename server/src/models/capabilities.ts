@@ -52,6 +52,19 @@ export type MotionSensorCapability = {
   getHasMotion(): Promise<boolean>;
 }
 
+export type BatteryLevelIndicatorCapability = {
+  getBatteryPercentage(): Promise<number>;
+}
+
+export type BatteryLowIndicatorCapability = {
+  getIsBatteryLow(): Promise<boolean>;
+}
+
+export type LockCapability = {
+  getIsLocked(): Promise<boolean>;
+  setIsLocked(isLocked: boolean): Promise<void>;
+}
+
 export type SpeakerCapability = {
   emitSound(sound: string, ttlInSeconds?: number): Promise<void>;
   emitSound(sound: string[], ttlInSeconds?: number): Promise<void>;
@@ -59,4 +72,16 @@ export type SpeakerCapability = {
 
 export type CameraCapability = {}
 
-export type Capability = 'LIGHT' | 'THERMOSTAT' | 'HUMIDITY_SENSOR' | 'TEMPERATURE_SENSOR' | 'MOTION_SENSOR' | 'LIGHT_SENSOR' | 'CAMERA' | 'SPEAKER' | 'SWITCH' | 'HEAT_PUMP';
+export type Capability = 'LIGHT'
+  | 'THERMOSTAT' 
+  | 'HUMIDITY_SENSOR' 
+  | 'TEMPERATURE_SENSOR' 
+  | 'MOTION_SENSOR' 
+  | 'LIGHT_SENSOR' 
+  | 'CAMERA' 
+  | 'SPEAKER' 
+  | 'SWITCH' 
+  | 'HEAT_PUMP'
+  | 'LOCK'
+  | 'BATTERY_LEVEL_INDICATOR'
+  | 'BATTERY_LOW_INDICATOR';

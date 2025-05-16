@@ -2,7 +2,7 @@ import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttribut
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import logger from '../logger';
 import { Event } from './event';
-import { Capability, SpeakerCapability, HumiditySensorCapability, LightCapability, MotionSensorCapability, ThermostatCapability, TemperatureSensorCapability, CameraCapability, LightSensorCapability, SwitchCapability, HeatPumpCapability } from './capabilities';
+import { Capability, SpeakerCapability, HumiditySensorCapability, LightCapability, MotionSensorCapability, ThermostatCapability, TemperatureSensorCapability, CameraCapability, LightSensorCapability, SwitchCapability, HeatPumpCapability, BatteryLevelIndicatorCapability, BatteryLowIndicatorCapability, LockCapability } from './capabilities';
 
 const latestEventCache = new Map();
 
@@ -63,6 +63,18 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     // TODO
     return true;
   }
+
+  getBatteryLowIndicatorCapability(): BatteryLowIndicatorCapability {
+    return this.#getCapabilityOrThrow((provider) => provider.getBatteryLowIndicatorCapability);
+  };
+
+  getBatteryLevelIndicatorCapability(): BatteryLevelIndicatorCapability {
+    return this.#getCapabilityOrThrow((provider) => provider.getBatteryLevelIndicatorCapability);
+  };
+
+  getLockCapability(): LockCapability {
+    return this.#getCapabilityOrThrow((provider) => provider.getLockCapability);
+  };
 
   getLightCapability(): LightCapability {
     return this.#getCapabilityOrThrow((provider) => provider.getLightCapability);
@@ -242,6 +254,9 @@ type ProviderHandler = {
   getLightSensorCapability?(device: Device): LightSensorCapability;
   getSwitchCapability?(device: Device): SwitchCapability;
   getHeatPumpCapability?(device: Device): HeatPumpCapability;
+  getBatteryLevelIndicatorCapability?(device: Device): BatteryLevelIndicatorCapability;
+  getBatteryLowIndicatorCapability?(device: Device): BatteryLowIndicatorCapability;
+  getLockCapability?(device: Device): LockCapability;
   getCapabilities(device: Device): Capability[];
 
   synchronize(): Promise<void>;

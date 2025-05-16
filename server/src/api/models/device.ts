@@ -4,6 +4,7 @@ import Thermostat from './thermostat';
 import Light from './light';
 import HeatPump from './heat-pump';
 import Camera from './camera';
+import Lock from './lock';
 
 export default class Device {
   #data: DeviceModel;
@@ -72,6 +73,10 @@ export default class Device {
           loaders.push(Promise.resolve(new HeatPump(this.#data)));
         break;
 
+        case 'LOCK':
+          loaders.push(Promise.resolve(new Lock(this.#data)));
+        break;
+
         case 'MOTION_SENSOR':
           loaders.push((async () => {
             const hasMotion = await this.#data.getMotionSensorCapability().getHasMotion();
@@ -109,6 +114,28 @@ export default class Device {
             return {
               __typename: 'Switch',
               isOn
+            };
+          })());
+        break;
+
+        case 'BATTERY_LEVEL_INDICATOR':
+          loaders.push((async () => {
+            const batteryPercentage = await this.#data.getBatteryLevelIndicatorCapability().getBatteryPercentage();
+
+            return {
+              __typename: 'BatteryLevelIndicator',
+              batteryPercentage
+            };
+          })());
+        break;
+
+        case 'BATTERY_LOW_INDICATOR':
+          loaders.push((async () => {
+            const batteryLow = await this.#data.getBatteryLowIndicatorCapability().getIsBatteryLow();
+
+            return {
+              __typename: 'BatteryLowIndicator',
+              isLow: batteryLow
             };
           })());
         break;

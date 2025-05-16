@@ -196,6 +196,16 @@ const resolvers = {
       return new Device(light);
     },
 
+    async updateLock(parent, args, context, info) {
+      const lock = await db.Device.findById(args.id);
+
+      if ('isLocked' in args) {
+        await lock.getLockCapability().setIsLocked(args.isLocked);
+      }
+
+      return new Device(lock);
+    },
+
     async updateThermostat(parent, args, context, info) {
       const thermostat = await db.Device.findById(args.id);
       await thermostat.getThermostatCapability().setTargetTemperature(args.targetTemperature);

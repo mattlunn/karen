@@ -42,11 +42,28 @@ export default gql`
     capabilities: [Capability]
   }
 
-  union Capability = MotionSensor | TemperatureSensor | LightSensor | Light | Thermostat | Camera | HumiditySensor | Speaker | Switch | HeatPump
+  union Capability = MotionSensor | TemperatureSensor | LightSensor | Light | Thermostat | Camera | HumiditySensor | Speaker | Switch | HeatPump | Lock | BatteryLevelIndicator | BatteryLowIndicator
+
+  type Lock {
+    isLocked: Boolean!
+  }
+
+  type BatteryLevelIndicator {
+    batteryPercentage: Boolean!
+  }
+
+  type BatteryLowIndicator {
+    isLow: Boolean!
+  }
 
   type MotionSensor {
     motionDetected: Boolean!
   }
+
+  type MotionSensor {
+    motionDetected: Boolean!
+  }
+  
 
   type TemperatureSensor {
     currentTemperature: Float!
@@ -201,6 +218,7 @@ export default gql`
   type Mutation {
     updateUser(id: ID!, eta: Float, status: Occupancy): User
     updateLight(id: ID!, isOn: Boolean, brightness: Int): Device
+    updateLock(id: ID!, isLocked: Boolean): Device
     updateThermostat(id: ID!, targetTemperature: Float): Device
     updateAlarm(mode: AlarmMode): Security
     updateCentralHeatingMode(mode: CentralHeatingMode): Heating

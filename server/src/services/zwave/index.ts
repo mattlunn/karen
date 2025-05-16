@@ -5,7 +5,8 @@ import logger from '../../logger';
 const deviceMap = new Map([
   ['Fibargroup FGMS001', 'motion_sensor'],
   ['Fibargroup FGD212', 'light'],
-  ['Zooz ZSE44', 'humidity_sensor']
+  ['Zooz ZSE44', 'humidity_sensor'],
+  ['Yale SD-L1000-CH', 'lock']
 ]);
 
 type DeviceHandler = {
@@ -101,6 +102,24 @@ deviceHandlers.set('Zooz ZSE44', [
     propertyKey: 'Battery.level',
     valueMapper: ({ newValue }) => newValue,
     typeMapper: () => 'battery'
+  }
+]);
+
+deviceHandlers.set('Yale SD-L1000-CH', [
+  {
+    propertyKey: 'Door Lock.currentMode',
+    valueMapper: ({ newValue }) => newValue === 255,
+    typeMapper: () => 'locked'
+  },
+  {
+    propertyKey: 'Battery.isLow',
+    valueMapper: ({ newValue }) => newValue,
+    typeMapper: () => 'battery_low'
+  },
+  {
+    propertyKey: 'Battery.level',
+    valueMapper: ({ newValue }) => newValue,
+    typeMapper: () => 'battery_percentage'
   }
 ]);
 
@@ -228,8 +247,48 @@ Device.registerProvider('zwave', {
 
   getLightSensorCapability(device) {
     return {
-      async getIlluminance() {
+      async getIlluminance(): Promise<number> {
         return (await device.getLatestEvent('illuminance'))?.value ?? 0;
+      }
+    };
+  },
+
+  getBatteryLevelIndicatorCapability(device) {
+    return {
+      async getBatteryPercentage(): Promise<number> {
+        return (await device.getLatestEvent('battery_percentage'))?.value ?? 0;
+      }
+    };
+  },
+
+  getBatteryLowIndicatorCapability(device) {
+    return {
+      async getIsBatteryLow(): Promise<boolean> {
+        return ((await device.getLatestEvent('battery_low'))?.value ?? 0) === 1;
+      }
+    };
+  },
+
+  getLockCapability(device) {
+    return {
+      async getIsLocked(): Promise<boolean> {
+        const latestEvent = await device.getLatestEvent('locked');
+
+        return !!(latestEvent && !latestEvent.end);
+      },
+
+      async setIsLocked(isLocked: boolean) {
+        const { makeRequest } = await getClient();
+
+        return makeRequest('node.set_value', {
+          nodeId: Number(device.providerId),
+          valueId: {
+            commandClass: 98,
+            endpoint: 0,
+            property: "targetMode",
+          },
+          value: isLocked ? 255 : 0
+        });
       }
     };
   },
@@ -238,6 +297,8 @@ Device.registerProvider('zwave', {
     switch (device.type) {
       case 'light':
         return ['LIGHT'];
+      case 'lock':
+          return ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR'];
       case 'multi_sensor':
         return ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR'];
       case 'humidity_sensor':

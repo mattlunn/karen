@@ -4,9 +4,9 @@ import gql from 'graphql-tag';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DeviceControl from './device-control';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faCouch, faHouseFire, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking, faVideo, faDroplet, faToggleOff, faFire } from '@fortawesome/free-solid-svg-icons';
+import { faCouch, faHouseFire, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking, faVideo, faDroplet, faToggleOff, faFire, faDoorClosed, faDoorOpen } from '@fortawesome/free-solid-svg-icons';
 
-library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer, faHouseFire);
+library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer, faHouseFire, faDoorClosed, faDoorOpen);
 
 function createIfCapabilitySatisfied(device, ...creators) {
   for (let i=0;i<creators.length-1;i+=2) {
@@ -84,6 +84,52 @@ function buildDeviceControlForDevice(device) {
     (device, capability) => (
       <DeviceControl device={device} icon={faToggleOff} color="#04A7F4" colorIconBackground={capability.isOn} values={[]} />
     ),
+
+    x => x.__typename === 'Lock', 
+    (device, capability) => {
+      const [setDoorLockedStatus, { loading }] = useMutation(gql`
+        mutation updateLock($id: ID!, $isLocked: Boolean) {
+          updateLock(id: $id, isLocked: $isLocked) {
+            id
+            name
+
+            capabilities {
+              ... on Lock {
+                isLocked
+              }
+            }
+          }
+        }
+      `);
+
+      const commonProps = {
+        device,
+        values: [],
+        actionPending: loading,
+        iconOnClick: (e) => {
+          e.preventDefault();
+
+          if (loading) return;
+
+          setDoorLockedStatus({
+            variables: {
+              id: device.id,
+              isLocked: !capability.isLocked
+            }
+          });
+        }
+      };
+
+      if (capability.isLocked) {
+        return (
+          <DeviceControl {...commonProps} icon={faDoorClosed} color="#04A7F4" colorIconBackground={false} />
+        );
+      } else {
+        return (
+          <DeviceControl {...commonProps} icon={faDoorOpen} color="#FF7F22" colorIconBackground={true} />
+        );
+      }
+    },
 
     x => x.__typename === 'HeatPump', 
     (device, capability) => (
