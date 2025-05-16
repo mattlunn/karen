@@ -1,6 +1,7 @@
 import { Device, Event } from '../../models';
 import getClient from './lib/client';
 import logger from '../../logger';
+import bus from '../../bus';
 
 const deviceMap = new Map([
   ['Fibargroup FGMS001', 'motion_sensor'],
@@ -107,9 +108,14 @@ deviceHandlers.set('Zooz ZSE44', [
 
 deviceHandlers.set('Yale SD-L1000-CH', [
   {
-    propertyKey: 'Door Lock.currentMode',
-    valueMapper: ({ newValue }) => newValue === 255,
+    propertyKey: 'Door Lock.boltStatus',
+    valueMapper: ({ newValue }) => newValue === 'locked',
     typeMapper: () => 'locked'
+  },
+  {
+    propertyKey: 'Notification.Access Control',
+    valueMapper: ({ newValue }) => newValue === 11,
+    typeMapper: () => 'is_jammed'
   },
   {
     propertyKey: 'Battery.isLow',
@@ -275,6 +281,50 @@ Device.registerProvider('zwave', {
         const latestEvent = await device.getLatestEvent('locked');
 
         return !!(latestEvent && !latestEvent.end);
+      },
+
+      async getIsJammed(): Promise<boolean> {
+        const latestEvent = await device.getLatestEvent('is_jammed');
+
+        return !!(latestEvent && !latestEvent.end);
+      },
+      
+      async ensureIsLocked(abortSignal: AbortSignal): Promise<void> {
+        if (await this.getIsLocked()) {
+          return;
+        }
+
+        if (await this.getIsJammed()) {
+          throw new Error('Lock is jammed');
+        }
+
+        return new Promise((res, rej) => {
+          function cleanup() {
+            bus.off('EVENT_START', eventHandler);
+          }
+          
+          async function eventHandler(event: Event) {
+            if (event.deviceId === device.id) {
+              if (event.type === 'locked') {
+                cleanup();
+                res();
+              }
+
+              if (event.type === 'is_jammed') {
+                cleanup();
+                rej(new Error('Lock is jammed'));
+              }
+            }
+          }
+
+          abortSignal.addEventListener('abort', () => {
+            cleanup();
+            rej(abortSignal.reason);
+          });
+
+          bus.on('EVENT_START', eventHandler);
+          this.setIsLocked(true);
+        });
       },
 
       async setIsLocked(isLocked: boolean) {

@@ -61,7 +61,9 @@ export type BatteryLowIndicatorCapability = {
 }
 
 export type LockCapability = {
+  ensureIsLocked(signal: AbortSignal): Promise<void>;
   getIsLocked(): Promise<boolean>;
+  getIsJammed(): Promise<boolean>;
   setIsLocked(isLocked: boolean): Promise<void>;
 }
 

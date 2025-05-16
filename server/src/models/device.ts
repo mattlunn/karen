@@ -186,6 +186,12 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     });
   };
 
+  static async findByCapability(capability: Capability) {
+    const allDevices = await this.findAll();
+
+    return allDevices.filter(x => x.getCapabilities().includes(capability));
+  };
+
   static findByProviderId(provider: string, id: string) {
     return this.findOne({
       where: {

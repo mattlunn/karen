@@ -121,7 +121,7 @@ nowAndSetInterval(createBackgroundTransaction('unifi:check-presence', async () =
           if (deviceIsHome && !userIsHome) {
             logger.info(`Forcing ${user.handle} to home, as their device is at home`);
 
-            await markUserAsHome(user);
+            await markUserAsHome(user, 'wifi');
           } else if (!deviceIsHome && userIsHome) {
             logger.info(`Forcing ${user.handle} to away, as their device has not been seen recently`);
 

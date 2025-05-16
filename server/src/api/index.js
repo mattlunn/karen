@@ -261,6 +261,7 @@ const resolvers = {
               upcoming.userId = user.id;
             }
 
+            upcoming.arrivalTrigger = 'manual';
             upcoming.arrival = new Date();
 
             current = upcoming;

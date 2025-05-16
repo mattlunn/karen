@@ -4,7 +4,7 @@ import moment from 'moment';
 import logger from '../logger';
 import { enqueueWorkItem } from '../queue';
 
-export async function markUserAsHome(user: User) {
+export async function markUserAsHome(user: User, trigger: 'wifi' | 'geolocation') {
   await enqueueWorkItem(async () => {
     let [current, [upcoming]] = await Promise.all([
       Stay.findCurrentStay(user.id),
@@ -20,6 +20,7 @@ export async function markUserAsHome(user: User) {
         });
       }
 
+      upcoming.arrivalTrigger = trigger;
       upcoming.arrival = new Date();
       await upcoming.save();
     }

@@ -22,7 +22,7 @@ router.use(asyncWrapper(async (req, res, next) => {
 }));
 
 router.post('/enter', asyncWrapper(async (req, res) => {
-  await markUserAsHome(res.locals.user);
+  await markUserAsHome(res.locals.user, 'geolocation');
 
   res.sendStatus(200);
 }));

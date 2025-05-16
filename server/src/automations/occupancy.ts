@@ -5,6 +5,10 @@ import { createBackgroundTransaction } from '../helpers/newrelic';
 import { getCentralHeatingMode, setCentralHeatingMode } from '../services/tado';
 import { ArmingMode } from '../models/arming';
 
+type OccupanyAutomationConfiguration = {
+  timeout_for_last_user_leaves_tasks_to_execute: number
+};
+
 async function turnOffLights() {
   const lights = await Device.findByType('light');
   const lightsTurnedOff: Device[] = [];
@@ -20,8 +24,10 @@ async function turnOffLights() {
   return lightsTurnedOff;
 }
 
-export default function () {
+export default function (config: OccupanyAutomationConfiguration) {
   bus.on(LAST_USER_LEAVES, createBackgroundTransaction('automations:occupancy:last-user-leaves', async (stay) => {
+    const abortController = new AbortController();
+
     async function ensureActiveArming(): Promise<Arming> {
       let activeArming = await Arming.getActiveArming(stay.end);
 
@@ -33,6 +39,15 @@ export default function () {
       }
 
       return activeArming;
+    }
+
+    async function getUnsecuredLocks(): Promise<Device[]> {
+      const doors = await Device.findByCapability('LOCK');
+      const doorsConfirmedLocked = await Promise.allSettled(doors.map(async (door) => {
+        return await door.getLockCapability().ensureIsLocked(abortController.signal);
+      }));
+
+      return doors.filter((x, i) => doorsConfirmedLocked[i].status !== 'fulfilled');
     }
   
     async function ensureHeatingOff() {
@@ -48,12 +63,18 @@ export default function () {
     }
     
     try {
+      setTimeout(() => {
+        abortController.abort();
+      }, config.timeout_for_last_user_leaves_tasks_to_execute);
+
       let [
         activeArming,
+        locksUnsecured,
         centralHeatingModeChanged,
         lightsTurnedOff
       ] = await Promise.all([
         ensureActiveArming(),
+        getUnsecuredLocks(),
         ensureHeatingOff(),
         turnOffLights()
       ]);
@@ -62,7 +83,8 @@ export default function () {
         `No-one is home.`,
         lightsTurnedOff.length ? `${joinWithAnd(lightsTurnedOff.map(x => x.name))} light${pluralise(lightsTurnedOff)} have been turned off,` : `All the lights are off,`,
         `the heating ${centralHeatingModeChanged ? 'has been turned off' : 'was already off'}, and`,
-        activeArming.mode === ArmingMode.AWAY ? 'the alarm is on.' : 'the alarm is already set to Night Mode.'
+        activeArming.mode === ArmingMode.AWAY ? 'the alarm is on.' : 'the alarm is already set to Night Mode.',
+        locksUnsecured.length === 0 ? 'All the doors are locked.' : `The ${joinWithAnd(locksUnsecured.map(x => x.name))} ${locksUnsecured.length === 1 ? 'is' : 'are'} not locked!`
       ].join(' ');
 
       bus.emit(NOTIFICATION_TO_ADMINS, {

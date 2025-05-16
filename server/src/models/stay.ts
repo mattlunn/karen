@@ -6,6 +6,7 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
   declare public id: CreationOptional<Number>;
   declare public eta: CreationOptional<Date | null>;
   declare public arrival: CreationOptional<Date | null>;
+  declare public arrivalTrigger: CreationOptional<string | null>;
   declare public departure: CreationOptional<Date | null>;
   declare public userId: CreationOptional<Number | null>;
   declare public createdAt: CreationOptional<Date>;
@@ -132,6 +133,10 @@ export default function (sequelize: Sequelize) {
     },
     arrival: {
       type: DataTypes.DATE,
+      allowNull: true
+    },
+    arrivalTrigger: {
+      type: DataTypes.STRING,
       allowNull: true
     },
     departure: {
