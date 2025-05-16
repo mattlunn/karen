@@ -10,7 +10,7 @@ export default function ({ doorLockName }) {
         user
       ] = Promise.all([
         await Device.findByName(doorLockName),
-        await Stay.getUser(),
+        await stay.getUser(),
       ]);
 
       await device.getLockCapability().setIsLocked(false);
