@@ -24,16 +24,20 @@ export default class EbusClient {
       const socket = createConnection(this.#port, this.#host, () => {
         let data: string[] = [];
 
+        socket.setTimeout(60000, () => {
+          socket.end();
+        });
+
         socket.setEncoding('utf-8');
         socket.on('data', (response: string) => {
           data.push(...response.split('\n'));
 
           if (data.at(-1) === '' && data.at(-2) === '') {
+            socket.end();
             res(data[0]);
           }
         });
 
-        logger.debug(`${command}`);
         socket.write(`${command}\n`);
       });
     });
