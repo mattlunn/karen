@@ -1,19 +1,3 @@
-export type LightCapability = {
-  getIsOn(): Promise<boolean>;
-  getBrightness(): Promise<number>;
-  setBrightness(brightness: number): Promise<void>;
-  setIsOn(isOn: boolean): Promise<void>;
-}
-
-export type ThermostatCapability = {
-  getPower(): Promise<number>;
-  getCurrentTemperature(): Promise<number>;
-  getTargetTemperature(): Promise<number>;
-  getIsHeating(): Promise<boolean>
-  setTargetTemperature(target: number | null): Promise<void>
-  setIsOn(isOn: boolean): Promise<void>
-}
-
 export type HumiditySensorCapability = {
   getHumidity(): Promise<number>;
 }

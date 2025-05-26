@@ -10,195 +10,81 @@ const deviceMap = new Map([
   ['Yale SD-L1000-CH', 'lock']
 ]);
 
-type DeviceHandler = {
-  propertyKey: string,
-  typeMapper: () => string,
-  valueMapper: (value: any) => unknown
-};
+type DeviceHandler = (device: Device, newValue: any) => Promise<void>;
 
-const deviceHandlers = new Map<string, DeviceHandler[]>();
+const capabilityHandlers = new Map<string, DeviceHandler>();
 
-deviceHandlers.set('Fibargroup FGMS001', [
-  // Some of the sensors trigger the first event for motion, others trigger the 2nd.
-  {
-    propertyKey: 'Binary Sensor.Any',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'motion'
-  },
-  {
-    propertyKey: 'Basic.currentValue',
-    valueMapper: ({ newValue }) => newValue !== 0,
-    typeMapper: () => 'motion'
-  },
-  { 
-    propertyKey: 'Multilevel Sensor.Air temperature',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'temperature'
-  },
-  { 
-    propertyKey: 'Multilevel Sensor.Illuminance',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'illuminance'
-  },
-  { 
-    propertyKey: 'Battery.level',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'battery'
-  }
-]);
+capabilityHandlers.set(
+  'Binary Sensor.Any',
+  (device, { newValue }) => device.getMotionSensorCapability().setHasMotionState(newValue)
+);
 
-deviceHandlers.set('AEON Labs ZW100', [
-  {
-    propertyKey: 'Binary Sensor.Any',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'motion'
-  },
-  { 
-    propertyKey: 'Multilevel Sensor.Air temperature',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'temperature'
-  },
-  { 
-    propertyKey: 'Multilevel Sensor.Humidity',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'humidity'
-  },
-  { 
-    propertyKey: 'Multilevel Sensor.Illuminance',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'illuminance'
-  }
-]);
+capabilityHandlers.set(
+  'Basic.currentValue',
+  (device, { newValue }) => device.getMotionSensorCapability().setHasMotionState(newValue !== 0)
+);
 
-deviceHandlers.set('Fibargroup FGD212', [
-  { 
-    propertyKey: 'Multilevel Sensor.Power',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'power'
-  },
-  { 
-    propertyKey: 'Multilevel Switch.currentValue',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'brightness'
-  },
-  { 
-    propertyKey: 'Multilevel Switch.currentValue',
-    valueMapper: ({ newValue }) => newValue !== 0,
-    typeMapper: () => 'on'
-  }
-]);
+capabilityHandlers.set(
+  'Multilevel Sensor.Air temperature',
+  (device, { newValue }) => device.getTemperatureSensorCapability().setTemperatureState(newValue)
+);
 
-deviceHandlers.set('Zooz ZSE44', [
-  {
-    propertyKey: 'Multilevel Sensor.Humidity',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'humidity'
-  },
-  {
-    propertyKey: 'Multilevel Sensor.Air temperature',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'temperature'
-  },
-  { 
-    propertyKey: 'Battery.level',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'battery'
-  }
-]);
+capabilityHandlers.set(
+  'Multilevel Sensor.Illuminance',
+  (device, { newValue }) => device.getLightSensorCapability().setIlluminanceState(newValue)
+);
 
-deviceHandlers.set('Yale SD-L1000-CH', [
-  {
-    propertyKey: 'Door Lock.boltStatus',
-    valueMapper: ({ newValue }) => newValue === 'locked',
-    typeMapper: () => 'locked'
-  },
-  {
-    propertyKey: 'Notification.Access Control',
-    valueMapper: ({ newValue }) => newValue === 11,
-    typeMapper: () => 'is_jammed'
-  },
-  {
-    propertyKey: 'Battery.isLow',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'battery_low'
-  },
-  {
-    propertyKey: 'Battery.level',
-    valueMapper: ({ newValue }) => newValue,
-    typeMapper: () => 'battery_percentage'
-  }
-]);
+capabilityHandlers.set(
+  'Multilevel Sensor.Humidity',
+  (device, { newValue }) => device.getHumiditySensorCapability().setHumidityState(newValue)
+);
+
+capabilityHandlers.set(
+  'Multilevel Switch.currentValue',
+  (device, { newValue }) => device.getLightCapability().setBrightnessState(newValue)
+);
+
+capabilityHandlers.set(
+  'Multilevel Switch.currentValue',
+  (device, { newValue }) => device.getLightCapability().setIsOnState(newValue)
+);
+
+capabilityHandlers.set(
+  'Battery.level',
+  (device, { newValue }) => device.getBatteryLevelIndicatorCapability().setBatteryLevelState(newValue)
+);
+
+capabilityHandlers.set(
+  'Battery.level',
+  (device, { newValue }) => device.getBatteryLowIndicatorCapability().setBatteryLowState(newValue)
+);
+
+capabilityHandlers.set(
+  'Door Lock.boltStatus',
+  (device, { newValue }) => device.getLockCapability().setIsLockedState(newValue === 'locked')
+);
+
+capabilityHandlers.set(
+  'Notification.Access Control',
+  (device, { newValue }) => device.getLockCapability().setIsJammedState(newValue === 11)
+);
 
 getClient().then(({ on, getNodes }) => {
   on('event', async (data: any) => {
     if (data.source === 'node' && data.event === 'value updated') {
-      const deviceId = data.nodeId;
-      const device = await Device.findByProviderIdOrError('zwave', deviceId);
-      const node = Array.from(getNodes()).find((x: any) => x.nodeId === deviceId) as any;
-      const nodeType = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
-      const eventHandlers = deviceHandlers.get(nodeType)!.filter(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
-    
-      for (const { typeMapper, valueMapper } of eventHandlers) {
-        const eventType = typeMapper();
-        const eventValue = valueMapper(data.args);
-        const lastEvent = await device.getLatestEvent(eventType);
-        const now = new Date();
+      const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
+      const eventHandler = capabilityHandlers.get(`${data.args.commandClassName}.${data.args.property}`);
 
-        if (eventValue === true) {
-          if (lastEvent && lastEvent.end === null) {
-            continue;
-          }
-
-          await Event.create({
-            deviceId: device.id,
-            type: eventType,
-            value: 1,
-            start: now
-          });
-        } else if (eventValue === false) {
-          if (lastEvent === null || lastEvent.end) {
-            continue;
-          }
-
-          lastEvent.end = now;
-          await lastEvent.save();
-        } else if (!lastEvent || lastEvent.value !== eventValue) {
-          if (lastEvent) {
-            lastEvent.end = now;
-            await lastEvent.save();
-          }
-
-          await Event.create({
-            deviceId: device.id,
-            type: eventType,
-            value: eventValue as number,
-            start: now
-          });
-        }
-
-        device.onPropertyChanged(eventType);
+      if (eventHandler !== undefined) {
+        await eventHandler(device, data.args);
       }
     }
   });
 });
 
 Device.registerProvider('zwave', {
-  getMotionSensorCapability(device) {
-    return {
-      async getHasMotion() {
-        const latestEvent = await device.getLatestEvent('motion');
-
-        return !!(latestEvent && !latestEvent.end);
-      }
-    };
-  },
-
   getLightCapability(device) {
     return {
-      async getBrightness() {
-        return (await device.getLatestEvent('brightness'))?.value ?? 0;
-      },
-
       async setBrightness(brightness) {
         const { makeRequest } = await getClient();
 
@@ -213,12 +99,6 @@ Device.registerProvider('zwave', {
         });
       },
 
-      async getIsOn() {
-        const latestEvent = await device.getLatestEvent('on');
-
-        return !!(latestEvent && !latestEvent.end);
-      },
-
       async setIsOn(isOn) {
         const { makeRequest } = await getClient();
 
@@ -231,64 +111,12 @@ Device.registerProvider('zwave', {
           },
           value: isOn ? 99 : 0
         });
-      },
-    }
-  },
-
-  getTemperatureSensorCapability(device) {
-    return {
-      async getCurrentTemperature(): Promise<number> {
-        return (await device.getLatestEvent('temperature'))?.value ?? 0;
-      }
-    };
-  },
-
-  getHumiditySensorCapability(device) {
-    return {
-      async getHumidity(): Promise<number> {
-        return (await device.getLatestEvent('humidity'))?.value ?? 0;
-      }
-    };
-  },
-
-  getLightSensorCapability(device) {
-    return {
-      async getIlluminance(): Promise<number> {
-        return (await device.getLatestEvent('illuminance'))?.value ?? 0;
-      }
-    };
-  },
-
-  getBatteryLevelIndicatorCapability(device) {
-    return {
-      async getBatteryPercentage(): Promise<number> {
-        return (await device.getLatestEvent('battery_percentage'))?.value ?? 0;
-      }
-    };
-  },
-
-  getBatteryLowIndicatorCapability(device) {
-    return {
-      async getIsBatteryLow(): Promise<boolean> {
-        return ((await device.getLatestEvent('battery_low'))?.value ?? 0) === 1;
       }
     };
   },
 
   getLockCapability(device) {
     return {
-      async getIsLocked(): Promise<boolean> {
-        const latestEvent = await device.getLatestEvent('locked');
-
-        return !!(latestEvent && !latestEvent.end);
-      },
-
-      async getIsJammed(): Promise<boolean> {
-        const latestEvent = await device.getLatestEvent('is_jammed');
-
-        return !!(latestEvent && !latestEvent.end);
-      },
-      
       async ensureIsLocked(abortSignal: AbortSignal): Promise<void> {
         if (await this.getIsLocked()) {
           return;

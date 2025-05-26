@@ -47,34 +47,8 @@ Device.registerProvider('tado', {
     return [];
   },
 
-  getTemperatureSensorCapability(device: Device) {
-    return {
-      async getCurrentTemperature(): Promise<number> {
-        return (await device.getLatestEvent('temperature'))?.value ?? 0;
-      }
-    }
-  },
-
   getThermostatCapability(device: Device) {
     return {
-      async getCurrentTemperature(): Promise<number> {
-        return (await device.getLatestEvent('temperature'))?.value ?? 0;
-      },
-
-      async getPower() {
-        return (await device.getLatestEvent('power'))?.value ?? 0;
-        
-      },
-
-      async getTargetTemperature() {
-        return (await device.getLatestEvent('target'))?.value ?? 0;
-      },
-
-      async getIsHeating() {
-        const latestEvent = await device.getLatestEvent('heating');
-        return !!latestEvent && !latestEvent.end;
-      },
-
       async setTargetTemperature(value: number | null) {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
 
@@ -93,14 +67,6 @@ Device.registerProvider('tado', {
         } else /* value === false */ {
           await client.setHeatingPowerForZone(device.providerId, false, false);
         }
-      }
-    }
-  },
-
-  getHumiditySensorCapability(device: Device) {
-    return {
-      async getHumidity() {
-        return (await device.getLatestEvent('humidity'))?.value ?? 0;
       }
     }
   },

@@ -123,6 +123,7 @@ export async function getAccessToken(): Promise<string> {
     });
 
     if (!response.ok) {
+      logger.error(await response.text());
       throw new Error(`Unable to get Access Token: HTTP status code was '${response.status}'`);
     }
 
