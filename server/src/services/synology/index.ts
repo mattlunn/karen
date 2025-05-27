@@ -164,10 +164,6 @@ nowAndSetInterval(createBackgroundTransaction('synology:clear-old-recordings', a
 }), moment.duration(1, 'day').as('milliseconds'));
 
 Device.registerProvider('synology', {
-  getCameraCapability(device) {
-    return {};
-  },
-
   getCapabilities(device) {
     return ['CAMERA'];
   },
