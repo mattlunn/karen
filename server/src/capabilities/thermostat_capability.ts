@@ -1,7 +1,10 @@
 import { Device } from '../models';
-import { getter as booleanGetter, setter as booleanSetter } from './helpers/boolean_property';
-import { getter as numericGetter, setter as numericSetter } from './helpers/numeric_property';
+import { numericProperty, booleanProperty } from './helpers';
 
+@numericProperty('CurrentTemperature', { dbName: 'temperature' })
+@numericProperty('TargetTemperature', { dbName: 'target', writeable: true })
+@numericProperty('Power', { dbName: 'power' })
+@booleanProperty('IsOn', { dbName: 'heating', writeable: true })
 export class ThermostatCapability {
   #device: Device;
   #handlers: Pick<ThermostatCapability, 'setTargetTemperature' | 'setIsOn'>;
@@ -24,47 +27,6 @@ export class ThermostatCapability {
     this.#handlers = handler(device);
   }
 
-  async getCurrentTemperature(): Promise<number> {
-    return numericGetter(this.#device, 'temperature');
-  }
-
-  async setCurrentTemperatureState(temperature: number): Promise<void> {
-    return numericSetter(this.#device, 'temperature', temperature, new Date());
-  }
-
-  async getPower(): Promise<Number> {
-    return numericGetter(this.#device, 'power');
-  }
-
-  async setPowerState(power: number): Promise<void> {
-    return numericSetter(this.#device, 'power', power, new Date());
-  }
-
-  async getHeating(): Promise<boolean> {
-    return booleanGetter(this.#device, 'heating');
-  }
-
-  async setHeatingState(heating: boolean): Promise<void> {
-    return booleanSetter(this.#device, 'heating', heating, new Date());
-  }
-
-  async getTargetTemperature(): Promise<number> {
-    return numericGetter(this.#device, 'target');
-  }
-
-  async setTargetTemperatureState(temperature: number): Promise<void> {
-    return numericSetter(this.#device, 'target', temperature, new Date());
-  }
-
-  async setTargetTemperature(temperature: number): Promise<void> {
-    return this.#handlers.setTargetTemperature(temperature);
-  }
-
-  getIsOn(): Promise<boolean> {
-    return booleanGetter(this.#device, 'on');
-  }
-
-  async setIsOn(isOn: boolean): Promise<void> {
-    return this.#handlers.setIsOn(isOn);
-  }
+  declare setTargetTemperature: (targetTemperature: number, signal?: AbortSignal) => Promise<void>;
+  declare setIsOn: (isOn: boolean, signal?: AbortSignal) => Promise<void>;
 }

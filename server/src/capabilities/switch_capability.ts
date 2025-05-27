@@ -1,12 +1,13 @@
 import { Device } from '../models';
-import { getter as booleanGetter, setter as booleanSetter } from './helpers/boolean_property';
+import { booleanProperty } from './helpers';
 
+@booleanProperty('IsOn', { dbName: 'on' })
 export class SwitchCapability {
-  #device: Device;
-  #handlers: Pick<SwitchCapability, 'setIsOn'>;
+  device: Device;
+  handlers: Pick<SwitchCapability, 'setIsOn'>;
 
   constructor(device: Device) {
-    this.#device = device;
+    this.device = device;
     
     const provider = Device._providers.get(device.provider);
 
@@ -20,18 +21,8 @@ export class SwitchCapability {
       throw new Error(`Provider ${device.provider} does not support LightCapability`);
     }
 
-    this.#handlers = handler(device);
+    this.handlers = handler(device);
   }
 
-  getIsOn(): Promise<boolean> {
-    return booleanGetter(this.#device, 'on');
-  }
-
-  async setIsOn(isOn: boolean): Promise<void> {
-    return this.#handlers.setIsOn(isOn);
-  }
-
-  async setIsOnState(isOn: boolean): Promise<void> {
-    return booleanSetter(this.#device, 'on', isOn, new Date());
-  }
+  declare setIsOn: (isOn: boolean, signal?: AbortSignal) => Promise<void>;
 }

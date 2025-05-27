@@ -1,12 +1,13 @@
+import { PropertyDecoratorOptions } from '.';
 import { Device, Event } from '../../models';
 
-export async function getter(device: Device, property: string) {
+export async function booleanGetter(device: Device, property: string) {
   const latestEvent = await device.getLatestEvent(property);
 
   return !!(latestEvent && !latestEvent.end);
 }
 
-export async function setter(device: Device, property: string, newValue: boolean, timestamp: Date) {
+export async function booleanSetter(device: Device, property: string, newValue: boolean, timestamp: Date) {
   const lastEvent = await device.getLatestEvent(property);
 
   if (newValue === true) {
@@ -30,4 +31,24 @@ export async function setter(device: Device, property: string, newValue: boolean
   }
 
   device.onPropertyChanged(property);
+}
+
+export function booleanProperty(name: string, options: PropertyDecoratorOptions) {
+  return (target: Function, context: {}) => {
+    const { writeable = false, dbName } = options;
+
+    target.prototype[`get${name}`] = async function() {
+      return await booleanGetter(this.device, dbName);
+    }
+
+    target.prototype[`set${name}State`] = async function(newValue: boolean): Promise<void> {
+      return await booleanSetter(this.device, dbName, newValue, new Date());
+    }
+
+    if (writeable) {
+      target.prototype[`set${name}`] = async function(value: number): Promise<void> {
+        return this.handlers[`set${name}`](value);
+      }
+    }
+  }
 }

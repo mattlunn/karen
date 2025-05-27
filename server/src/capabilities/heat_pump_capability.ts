@@ -1,51 +1,24 @@
 import { Device } from '../models';
 import { HeatPumpMode } from '../models/capabilities';
-import { getter as numericGetter, setter as numericSetter } from './helpers/numeric_property';
+import { numericProperty, numericGetter, numericSetter } from './helpers';
 
+@numericProperty('CompressorModulation', { dbName: 'compressor_modulation' })
+@numericProperty('DailyConsumedEnergy', { dbName: 'energy_daily' })
+@numericProperty('DHWTemperature', { dbName: 'hwc_temperature' })
+@numericProperty('HeatingCoP', { dbName: 'cop_hc' })
+@numericProperty('Mode', { dbName: 'mode' })
 export class HeatPumpCapability {
-  #device: Device;
+  device: Device;
 
   constructor(device: Device) {
-    this.#device = device;
-  }
-
-  async getCompressorModulation(): Promise<number> {
-    return numericGetter(this.#device, 'compressor_modulation');
-  }
-
-  async setCompressorModulationState(value: number): Promise<void> {
-    return numericSetter(this.#device, 'compressor_modulation', value, new Date());
-  }
-
-  async getDailyConsumedEnergy(): Promise<number> {
-    return numericGetter(this.#device, 'energy_daily');
-  }
-
-  async setDailyConsumedEnergyState(value: number): Promise<void> {
-    return numericSetter(this.#device, 'energy_daily', value, new Date());
-  }
-
-  async getDHWTemperature(): Promise<number> {
-    return numericGetter(this.#device, 'hwc_temperature');
-  }
-
-  async setDHWTemperatureState(value: number): Promise<void> {
-    return numericSetter(this.#device, 'hwc_temperature', value, new Date());
-  }
-
-  async getHeatingCoP(): Promise<number> {
-    return numericGetter(this.#device, 'cop_hc');
-  }
-
-  async setHeatingCoPState(value: number): Promise<void> {
-    return numericSetter(this.#device, 'cop_hc', value, new Date());
+    this.device = device;
   }
 
   async getMode(): Promise<HeatPumpMode> {
-    return numericGetter(this.#device, 'mode');
+    return numericGetter(this.device, 'mode');
   }
 
   async setModeState(value: number): Promise<void> {
-    return numericSetter(this.#device, 'mode', value, new Date());
+    return numericSetter(this.device, 'mode', value, new Date());
   }
 };

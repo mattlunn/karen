@@ -1,13 +1,11 @@
-import { Device } from "../models";
+import { Device } from '../models';
+import { booleanProperty } from './helpers';
 
+@booleanProperty('IsBatteryLow', { dbName: 'battery_low' })
 export default class BatteryLowIndicatorCapability {
-  #device: Device;
+  device: Device;
 
   constructor(device: Device) {
-    this.#device = device;
-  }
-  
-  async getIsBatteryLow(): Promise<boolean> {
-    return ((await this.#device.getLatestEvent('battery_low'))?.value ?? 0) === 1;
+    this.device = device;
   }
 }

@@ -18,15 +18,6 @@ Device.registerProvider('shelly', {
     const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
 
     return {
-      async getBrightness() {
-        return (await device.getLatestEvent('brightness'))?.value ?? 100;
-      },
-
-      async getIsOn() {
-        const latestEvent = await device.getLatestEvent('on');
-        return !!(latestEvent && !latestEvent.end);
-      },
-
       setBrightness(brightness) {
         return shellyDevice.setBrightness(brightness);
       },
@@ -41,11 +32,6 @@ Device.registerProvider('shelly', {
     const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
 
     return {
-      async getIsOn() {
-        const latestEvent = await device.getLatestEvent('on');
-        return !!(latestEvent && !latestEvent.end);
-      },
-
       async setIsOn(isOn) {
         return await shellyDevice.setIsOn(isOn);
       },

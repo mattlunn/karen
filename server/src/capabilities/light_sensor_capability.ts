@@ -1,18 +1,14 @@
+import { Capability } from '.';
 import { Device } from '../models';
-import { getter as numberGetter, setter as numberSetter } from './helpers/numeric_property';
+import { numericProperty } from './helpers';
 
-export class LightSensorCapability {
-  #device: Device;
+@numericProperty('Illuminance', { dbName: 'illumninance' })
+export class LightSensorCapability implements Capability<LightSensorCapability, 'getIlluminance'> {
+  device: Device;
+  handlers: Pick<LightSensorCapability, 'getIlluminance'>;
 
   constructor(device: Device) {
-    this.#device = device;
-  }
-
-  async getIlluminance(): Promise<number> {
-    return numberGetter(this.#device, 'illuminance');
-  }
-
-  async setIlluminanceState(illuminance: number): Promise<void> {
-    return numberSetter(this.#device, 'illuminance', illuminance, new Date());
+    this.device = device;
+    this.handlers = { getIlluminance: () => Promise.resolve(null) };
   }
 }

@@ -118,11 +118,11 @@ Device.registerProvider('zwave', {
   getLockCapability(device) {
     return {
       async ensureIsLocked(abortSignal: AbortSignal): Promise<void> {
-        if (await this.getIsLocked()) {
+        if (await device.getLockCapability().getIsLocked()) {
           return;
         }
 
-        if (await this.getIsJammed()) {
+        if (await device.getLockCapability().getIsJammed()) {
           throw new Error('Lock is jammed');
         }
 

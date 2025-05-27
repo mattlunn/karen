@@ -1,12 +1,13 @@
 import { Device } from '../models';
-import { getter as booleanGetter, setter as booleanSetter } from './helpers/boolean_property';
+import { booleanProperty } from './helpers';
 
+@booleanProperty('IsLocked', { dbName: 'locked' })
 export class LockCapability {
-  #device: Device;
-  #handlers: Pick<LockCapability, 'setIsLocked' | 'ensureIsLocked'>;
+  device: Device;
+  handlers: Pick<LockCapability, 'setIsLocked' | 'ensureIsLocked'>;
 
   constructor(device: Device) {
-    this.#device = device;
+    this.device = device;
     
     const provider = Device._providers.get(device.provider);
 
@@ -20,22 +21,12 @@ export class LockCapability {
       throw new Error(`Provider ${device.provider} does not support LightCapability`);
     }
 
-    this.#handlers = handler(device);
-  }
-
-  getIsLocked(): Promise<boolean> {
-    return booleanGetter(this.#device, 'locked');
-  }
-
-  async setIsLocked(isOn: boolean): Promise<void> {
-    return this.#handlers.setIsLocked(isOn);
+    this.handlers = handler(device);
   }
 
   async ensureIsLocked(signal: AbortSignal): Promise<void> {
-    return this.#handlers.ensureIsLocked(signal);
+    return this.handlers.ensureIsLocked(signal);
   }
 
-  async setIsLockedState(isOn: boolean): Promise<void> {
-    return booleanSetter(this.#device, 'locked', isOn, new Date());
-  }
+  declare setIsLocked: (isLocked: boolean, signal?: AbortSignal) => Promise<void>;
 }
