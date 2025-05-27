@@ -15,13 +15,13 @@ export class ThermostatCapability {
       throw new Error(`Provider ${device.provider} does not exist for device ${device.id} (${device.name})`);
     }
 
-    const handlers = provider.getLightCapability(device);
+    const handler = provider.getThermostatCapability;
 
-    if (handlers === undefined) {
+    if (handler === undefined) {
       throw new Error(`Provider ${device.provider} does not support LightCapability`);
     }
 
-    this.#handlers = handlers;
+    this.#handlers = handler(device);
   }
 
   async getCurrentTemperature(): Promise<number> {

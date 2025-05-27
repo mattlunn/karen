@@ -2,8 +2,8 @@ import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttribut
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import logger from '../logger';
 import { Event } from './event';
-import { Capability, SpeakerCapability, HumiditySensorCapability, CameraCapability, LightSensorCapability, SwitchCapability, BatteryLevelIndicatorCapability, LockCapability } from './capabilities';
-import { LightCapability, ThermostatCapability, MotionSensorCapability, TemperatureSensorCapability, HeatPumpCapability } from '../capabilities';
+import { Capability } from './capabilities';
+import { LightCapability, CameraCapability, ThermostatCapability, MotionSensorCapability, TemperatureSensorCapability, HeatPumpCapability, LightSensorCapability, HumiditySensorCapability, SwitchCapability, LockCapability, SpeakerCapability } from '../capabilities';
 
 const latestEventCache = new Map();
 
@@ -18,7 +18,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   #metaParsed: Record<string, unknown>;
   #capabilityCache: Map<(device: Device) => unknown, unknown> = new Map();
-  #cachedCapabilities: Map<> = new Map();
+  #cachedCapabilities: Map<new (device: Device) => unknown, unknown> = new Map();
 
   declare getEvents: HasManyGetAssociationsMixin<{ start: Date; }>;
 
@@ -69,7 +69,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
       this.#cachedCapabilities.set(Constructor, capability);
     }
 
-    return capability;
+    return capability as T;
   };
 
   async getIsConnected(): Promise<boolean> {
@@ -78,7 +78,11 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   }
 
   getLockCapability(): LockCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getLockCapability);
+    return this.#getOrCreateCachedCapability(LockCapability);
+  };
+
+  getCameraCapability(): CameraCapability {
+    return this.#getOrCreateCachedCapability(CameraCapability);
   };
 
   getLightCapability(): LightCapability {
@@ -102,19 +106,19 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   };
 
   getLightSensorCapability(): LightSensorCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getLightSensorCapability);
+    return this.#getOrCreateCachedCapability(LightSensorCapability);
   };
 
   getHumiditySensorCapability(): HumiditySensorCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getHumiditySensorCapability);
+    return this.#getOrCreateCachedCapability(HumiditySensorCapability);
   };
 
   getSpeakerCapability(): SpeakerCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getSpeakerCapability);
+    return this.#getOrCreateCachedCapability(SpeakerCapability);
   };
 
   getSwitchCapability(): SwitchCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getSwitchCapability);
+    return this.#getOrCreateCachedCapability(SwitchCapability);
   };
 
   getCapabilities(): Capability[] {
@@ -257,11 +261,11 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 type ProviderHandler = {
   getLightCapability?(device: Device): Pick<LightCapability, 'setBrightness' | 'setIsOn'>;
   getThermostatCapability?(device: Device): Pick<ThermostatCapability, 'setTargetTemperature' | 'setIsOn'>;
-  getSpeakerCapability?(device: Device): SpeakerCapability;
-  getCameraCapability?(device: Device): CameraCapability;
-  getSwitchCapability?(device: Device): SwitchCapability;
+  getSpeakerCapability?(device: Device): Pick<SpeakerCapability, 'emitSound'>
+  getSwitchCapability?(device: Device): Pick<SwitchCapability, 'setIsOn'>;
   getHeatPumpCapability?(device: Device): HeatPumpCapability;
-  getLockCapability?(device: Device): LockCapability;
+  getLockCapability?(device: Device): Pick<LockCapability, 'setIsLocked' | 'ensureIsLocked'>;
+
   getCapabilities(device: Device): Capability[];
 
   synchronize(): Promise<void>;

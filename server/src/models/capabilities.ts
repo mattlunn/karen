@@ -1,16 +1,3 @@
-export type HumiditySensorCapability = {
-  getHumidity(): Promise<number>;
-}
-
-export type LightSensorCapability = {
-  getIlluminance(): Promise<number>;
-}
-
-export type SwitchCapability = {
-  getIsOn(): Promise<boolean>;
-  setIsOn(isOn: boolean): Promise<void>;
-}
-
 export enum HeatPumpMode {
   UNKNOWN = 0,
   STANDBY = 1,
@@ -27,36 +14,6 @@ export type HeatPumpCapability = {
   getDHWTemperature(): Promise<number>;
   getHeatingCoP(): Promise<number>;
 }
-
-export type TemperatureSensorCapability = {
-  getCurrentTemperature(): Promise<number>;
-}
-
-export type MotionSensorCapability = {
-  getHasMotion(): Promise<boolean>;
-}
-
-export type BatteryLevelIndicatorCapability = {
-  getBatteryPercentage(): Promise<number>;
-}
-
-export type BatteryLowIndicatorCapability = {
-  getIsBatteryLow(): Promise<boolean>;
-}
-
-export type LockCapability = {
-  ensureIsLocked(signal: AbortSignal): Promise<void>;
-  getIsLocked(): Promise<boolean>;
-  getIsJammed(): Promise<boolean>;
-  setIsLocked(isLocked: boolean): Promise<void>;
-}
-
-export type SpeakerCapability = {
-  emitSound(sound: string, ttlInSeconds?: number): Promise<void>;
-  emitSound(sound: string[], ttlInSeconds?: number): Promise<void>;
-}
-
-export type CameraCapability = {}
 
 export type Capability = 'LIGHT'
   | 'THERMOSTAT' 
