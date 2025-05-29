@@ -1,7 +1,10 @@
 import { Device, Event } from '../../models';
-import getClient from './lib/client';
+import ZWaveClient from './lib/client';
 import logger from '../../logger';
 import bus from '../../bus';
+import config from '../../config';
+import newrelic from 'newrelic';
+import sleep from '../../helpers/sleep';
 
 const deviceMap = new Map([
   ['Fibargroup FGMS001', 'motion_sensor'],
@@ -129,58 +132,94 @@ deviceHandlers.set('Yale SD-L1000-CH', [
   }
 ]);
 
-getClient().then(({ on, getNodes }) => {
-  on('event', async (data: any) => {
-    if (data.source === 'node' && data.event === 'value updated') {
-      const deviceId = data.nodeId;
-      const device = await Device.findByProviderIdOrError('zwave', deviceId);
-      const node = Array.from(getNodes()).find((x: any) => x.nodeId === deviceId) as any;
-      const nodeType = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
-      const eventHandlers = deviceHandlers.get(nodeType)!.filter(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
-    
-      for (const { typeMapper, valueMapper } of eventHandlers) {
-        const eventType = typeMapper();
-        const eventValue = valueMapper(data.args);
-        const lastEvent = await device.getLatestEvent(eventType);
-        const now = new Date();
+async function getClient() {
+  const client = new ZWaveClient(config.zwave);
+  await client.connect();
 
-        if (eventValue === true) {
-          if (lastEvent && lastEvent.end === null) {
-            continue;
+  return client;
+}
+
+(async function () {
+  const BACKOFFS = [1, 5, 60];
+  let backoffIndex = 0;
+
+  while (true) {
+    logger.info('Starting ZWave client...');
+
+    try {
+      await new Promise((_, rej) => {
+        const client = new ZWaveClient(config.zwave);
+        
+        client.on('disconnected', (e: Error) => {
+          rej(e);
+        });
+
+        client.on('event', async (data: any) => {
+          if (data.source === 'node' && data.event === 'value updated') {
+            const deviceId = data.nodeId;
+            const device = await Device.findByProviderIdOrError('zwave', deviceId);
+            const node = Array.from(client.getNodes()).find((x: any) => x.nodeId === deviceId) as any;
+            const nodeType = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
+            const eventHandlers = deviceHandlers.get(nodeType)!.filter(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
+
+            for (const { typeMapper, valueMapper } of eventHandlers) {
+              const eventType = typeMapper();
+              const eventValue = valueMapper(data.args);
+              const lastEvent = await device.getLatestEvent(eventType);
+              const now = new Date();
+
+              if (eventValue === true) {
+                if (lastEvent && lastEvent.end === null) {
+                  continue;
+                }
+
+                await Event.create({
+                  deviceId: device.id,
+                  type: eventType,
+                  value: 1,
+                  start: now
+                });
+              } else if (eventValue === false) {
+                if (lastEvent === null || lastEvent.end) {
+                  continue;
+                }
+
+                lastEvent.end = now;
+                await lastEvent.save();
+              } else if (!lastEvent || lastEvent.value !== eventValue) {
+                if (lastEvent) {
+                  lastEvent.end = now;
+                  await lastEvent.save();
+                }
+
+                await Event.create({
+                  deviceId: device.id,
+                  type: eventType,
+                  value: eventValue as number,
+                  start: now
+                });
+              }
+
+              device.onPropertyChanged(eventType);
+            }
           }
+        });
 
-          await Event.create({
-            deviceId: device.id,
-            type: eventType,
-            value: 1,
-            start: now
-          });
-        } else if (eventValue === false) {
-          if (lastEvent === null || lastEvent.end) {
-            continue;
-          }
+        client.connect().then(() => {
+          logger.info('ZWave client connection established');
+          backoffIndex = 0;
+        }, rej);
+      });
+    } catch (e) {
+      const timeout = BACKOFFS[Math.min(backoffIndex++, BACKOFFS.length - 1)];
 
-          lastEvent.end = now;
-          await lastEvent.save();
-        } else if (!lastEvent || lastEvent.value !== eventValue) {
-          if (lastEvent) {
-            lastEvent.end = now;
-            await lastEvent.save();
-          }
+      newrelic.noticeError(e as Error);
+      logger.error(e, `Zwave client disconnected; waiting ${timeout} seconds before retrying...`);
 
-          await Event.create({
-            deviceId: device.id,
-            type: eventType,
-            value: eventValue as number,
-            start: now
-          });
-        }
-
-        device.onPropertyChanged(eventType);
-      }
+      await sleep(timeout * 1000);
     }
-  });
-});
+  }
+}());
 
 Device.registerProvider('zwave', {
   getMotionSensorCapability(device) {
@@ -328,9 +367,9 @@ Device.registerProvider('zwave', {
       },
 
       async setIsLocked(isLocked: boolean) {
-        const { makeRequest } = await getClient();
+        const client = await getClient();
 
-        return makeRequest('node.set_value', {
+        return client.makeRequest('node.set_value', {
           nodeId: Number(device.providerId),
           valueId: {
             commandClass: 98,
@@ -359,7 +398,7 @@ Device.registerProvider('zwave', {
   },
 
   async synchronize() {
-    const { getNodes } = await getClient();
+    const client = await getClient();
 
     /*
       {
@@ -420,7 +459,7 @@ Device.registerProvider('zwave', {
       }
     */
 
-    for (const node of getNodes()) {
+    for (const node of client.getNodes()) {
       if (node.ready) {
         const deviceName = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
         const deviceId = node.nodeId;
