@@ -366,10 +366,10 @@ Device.registerProvider('zwave', {
         });
       },
 
-      async setIsLocked(isLocked: boolean) {
+      async setIsLocked(isLocked: boolean): Promise<void> {
         const client = await getClient();
 
-        return client.makeRequest('node.set_value', {
+        await client.makeRequest('node.set_value', {
           nodeId: Number(device.providerId),
           valueId: {
             commandClass: 98,
