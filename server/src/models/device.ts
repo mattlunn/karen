@@ -3,7 +3,24 @@ import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import logger from '../logger';
 import { Event } from './event';
 import { Capability } from './capabilities';
-import { LightCapability, CameraCapability, ThermostatCapability, MotionSensorCapability, TemperatureSensorCapability, HeatPumpCapability, LightSensorCapability, HumiditySensorCapability, SwitchCapability, LockCapability, SpeakerCapability } from '../capabilities';
+import { 
+  LightCapability, 
+  LightCapabilityProviderHandlers, 
+  CameraCapability, 
+  ThermostatCapability, 
+  ThermostatCapabilityProviderHandlers,
+  MotionSensorCapability, 
+  TemperatureSensorCapability, 
+  HeatPumpCapability, 
+  LightSensorCapability, 
+  HumiditySensorCapability, 
+  SwitchCapability,
+  SwitchCapabilityProviderHandlers,
+  LockCapability, 
+  LockCapabilityProviderHandlers,
+  SpeakerCapability,
+  SpeakerCapabilityProviderHandlers
+} from '../capabilities';
 
 const latestEventCache = new Map();
 
@@ -17,7 +34,6 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare metaStringified: CreationOptional<string>;
 
   #metaParsed: Record<string, unknown>;
-  #capabilityCache: Map<(device: Device) => unknown, unknown> = new Map();
   #cachedCapabilities: Map<new (device: Device) => unknown, unknown> = new Map();
 
   declare getEvents: HasManyGetAssociationsMixin<{ start: Date; }>;
@@ -39,26 +55,6 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
       device: this,
       property
     });
-  };
-
-  #getCapabilityOrThrow<T>(handler: (provider: ProviderHandler) => (undefined | ((device: Device) => T)), ): T {
-    const provider = Device._providers.get(this.provider);
-
-    if (provider === undefined) {
-      throw new Error(`Provider ${this.provider} does not exist for device ${this.id} (${this.name})`);
-    }
-
-    const capabilityProvider = handler(provider);
-
-    if (typeof capabilityProvider !== 'function') {
-      throw new Error(`Provider ${this.provider} does not provide support the requested capability (${handler.toString()})`);
-    }
-
-    if (!this.#capabilityCache.has(capabilityProvider)) {
-      this.#capabilityCache.set(capabilityProvider, capabilityProvider(this));
-    }
-
-    return this.#capabilityCache.get(capabilityProvider) as T;
   };
 
   #getOrCreateCachedCapability<T>(Constructor: new (device: Device) => T): T {
@@ -256,15 +252,22 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
     handlers.synchronize().catch(e => logger.error(e));
   };
+
+  static getProviderOrThrow(provider: string) {
+    if (!this._providers.has(provider)) {
+      throw new Error(`Provider ${provider} does not exist`);
+    }
+
+    return this._providers.get(provider);
+  }
 };
 
 type ProviderHandler = {
-  getLightCapability?(device: Device): Pick<LightCapability, 'setBrightness' | 'setIsOn'>;
-  getThermostatCapability?(device: Device): Pick<ThermostatCapability, 'setTargetTemperature' | 'setIsOn'>;
-  getSpeakerCapability?(device: Device): Pick<SpeakerCapability, 'emitSound'>
-  getSwitchCapability?(device: Device): Pick<SwitchCapability, 'setIsOn'>;
-  getHeatPumpCapability?(device: Device): HeatPumpCapability;
-  getLockCapability?(device: Device): Pick<LockCapability, 'setIsLocked' | 'ensureIsLocked'>;
+  getLightCapability?(device: Device): Pick<LightCapability, LightCapabilityProviderHandlers>;
+  getThermostatCapability?(device: Device): Pick<ThermostatCapability, ThermostatCapabilityProviderHandlers>;
+  getSpeakerCapability?(device: Device): Pick<SpeakerCapability, SpeakerCapabilityProviderHandlers>;
+  getSwitchCapability?(device: Device): Pick<SwitchCapability, SwitchCapabilityProviderHandlers>;
+  getLockCapability?(device: Device): Pick<LockCapability, LockCapabilityProviderHandlers>;
 
   getCapabilities(device: Device): Capability[];
 

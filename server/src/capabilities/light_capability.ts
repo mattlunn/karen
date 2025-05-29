@@ -1,30 +1,21 @@
+import { Capability } from '.';
 import { Device } from '../models';
 import { numericProperty, booleanProperty } from './helpers';
 
+export type LightCapabilityProviderHandlers = 'setBrightness' | 'setIsOn';
+
 @numericProperty('Brightness', { dbName: 'brightness', writeable: true })
 @booleanProperty('IsOn', { dbName: 'on', writeable: true })
-export class LightCapability {
-  device: Device;
-  handlers: Pick<LightCapability, 'setBrightness' | 'setIsOn'>;
-
+export class LightCapability extends Capability<LightCapability, LightCapabilityProviderHandlers> {
   constructor(device: Device) {
-    this.device = device;
-    
-    const provider = Device._providers.get(device.provider);
-
-    if (provider === undefined) {
-      throw new Error(`Provider ${device.provider} does not exist for device ${device.id} (${device.name})`);
-    }
-
-    const handler = provider.getLightCapability;
-
-    if (handler === undefined) {
-      throw new Error(`Provider ${device.provider} does not support LightCapability`);
-    }
-
-    this.handlers = handler(device);
+    super(device, Device.getProviderOrThrow(device.provider)!.getLightCapability);
   }
 
   declare setBrightness: (brightness: number) => Promise<void>;
+  declare setBrightnessState: (brightness: number) => Promise<void>;
+  declare getBrightness: () => Promise<number>;
+
   declare setIsOn: (isOn: boolean) => Promise<void>;
+  declare setIsOnState: (isOn: boolean) => Promise<void>;
+  declare getIsOn: () => Promise<boolean>;
 }

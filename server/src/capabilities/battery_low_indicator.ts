@@ -1,11 +1,15 @@
+import { Capability } from '.';
 import { Device } from '../models';
 import { booleanProperty } from './helpers';
 
-@booleanProperty('IsBatteryLow', { dbName: 'battery_low' })
-export default class BatteryLowIndicatorCapability {
-  device: Device;
+export type BatteryLowCapabilityProviderHandlers = never;
 
+@booleanProperty('IsBatteryLow', { dbName: 'battery_low' })
+export default class BatteryLowIndicatorCapability extends Capability<BatteryLowIndicatorCapability, BatteryLowCapabilityProviderHandlers> {
   constructor(device: Device) {
-    this.device = device;
+    super(device, undefined);
   }
+
+  declare getIsBatteryLow: () => Promise<boolean>;
+  declare setIsBatteryLowState: (isLow: boolean) => Promise<void>;
 }

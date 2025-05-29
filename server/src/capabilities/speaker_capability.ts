@@ -1,25 +1,14 @@
+import { Capability } from '.';
 import { Device } from '../models';
 
-export class SpeakerCapability {
-  #handlers: Pick<SpeakerCapability, 'emitSound'>;
+export type SpeakerCapabilityProviderHandlers = 'emitSound';
 
+export class SpeakerCapability extends Capability<SpeakerCapability, SpeakerCapabilityProviderHandlers> {
   constructor(device: Device) {
-    const provider = Device._providers.get(device.provider);
-
-    if (provider === undefined) {
-      throw new Error(`Provider ${device.provider} does not exist for device ${device.id} (${device.name})`);
-    }
-
-    const handler = provider.getSpeakerCapability;
-
-    if (handler === undefined) {
-      throw new Error(`Provider ${device.provider} does not support LightCapability`);
-    }
-
-    this.#handlers = handler(device);
+    super(device, Device.getProviderOrThrow(device.provider)!.getSpeakerCapability);
   }
 
   async emitSound(sound: string | string[]): Promise<void> {
-    return this.#handlers.emitSound(sound);
+    return this.handlers.emitSound(sound);
   }
 }

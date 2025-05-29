@@ -1,32 +1,29 @@
+import { Capability } from '.';
 import { Device } from '../models';
 import { numericProperty, booleanProperty } from './helpers';
+
+export type ThermostatCapabilityProviderHandlers = 'setTargetTemperature' | 'setIsOn';
 
 @numericProperty('CurrentTemperature', { dbName: 'temperature' })
 @numericProperty('TargetTemperature', { dbName: 'target', writeable: true })
 @numericProperty('Power', { dbName: 'power' })
 @booleanProperty('IsOn', { dbName: 'heating', writeable: true })
-export class ThermostatCapability {
-  #device: Device;
-  #handlers: Pick<ThermostatCapability, 'setTargetTemperature' | 'setIsOn'>;
-
+export class ThermostatCapability extends Capability<ThermostatCapability, ThermostatCapabilityProviderHandlers> {
   constructor(device: Device) {
-    this.#device = device;
-    
-    const provider = Device._providers.get(device.provider);
-
-    if (provider === undefined) {
-      throw new Error(`Provider ${device.provider} does not exist for device ${device.id} (${device.name})`);
-    }
-
-    const handler = provider.getThermostatCapability;
-
-    if (handler === undefined) {
-      throw new Error(`Provider ${device.provider} does not support LightCapability`);
-    }
-
-    this.#handlers = handler(device);
+    super(device, Device.getProviderOrThrow(device.provider)!.getThermostatCapability);
   }
 
   declare setTargetTemperature: (targetTemperature: number, signal?: AbortSignal) => Promise<void>;
+  declare getTargetTemperature: () => Promise<number>;
+  declare setTargetTemperatureState: (targetTemperature: number) => Promise<void>;
+
   declare setIsOn: (isOn: boolean, signal?: AbortSignal) => Promise<void>;
+  declare getIsOn: () => Promise<boolean>;
+  declare setIsOnState: (isOn: boolean) => Promise<void>;
+
+  declare getCurrentTemperature: () => Promise<number>;
+  declare setCurrentTemperatureState: (currentTemperature: number) => Promise<void>;
+
+  declare getPower: () => Promise<number>;
+  declare setPowerState: (power: number) => Promise<void>;
 }

@@ -1,11 +1,15 @@
+import { Capability } from '.';
 import { Device } from '../models';
 import { numericProperty } from './helpers';
 
-@numericProperty('Humidity', { dbName: 'humidity' })
-export class HumiditySensorCapability {
-  device: Device;
+export type HumiditySensorCapabilityProviderHandlers = never;
 
+@numericProperty('Humidity', { dbName: 'humidity' })
+export class HumiditySensorCapability extends Capability<HumiditySensorCapability, HumiditySensorCapabilityProviderHandlers> {
   constructor(device: Device) {
-    this.device = device;
+    super(device, undefined);
   }
+
+  declare getHumidity: () => Promise<number>;
+  declare setHumidityState: (humidity: number) => Promise<void>;
 }

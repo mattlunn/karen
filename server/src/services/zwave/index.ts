@@ -1,7 +1,10 @@
 import { Device, Event } from '../../models';
-import getClient from './lib/client';
+import ZWaveClient from './lib/client';
 import logger from '../../logger';
 import bus from '../../bus';
+import config from '../../config';
+import newrelic from 'newrelic';
+import sleep from '../../helpers/sleep';
 
 const deviceMap = new Map([
   ['Fibargroup FGMS001', 'motion_sensor'],
@@ -69,18 +72,54 @@ capabilityHandlers.set(
   (device, { newValue }) => device.getLockCapability().setIsJammedState(newValue === 11)
 );
 
-getClient().then(({ on, getNodes }) => {
-  on('event', async (data: any) => {
-    if (data.source === 'node' && data.event === 'value updated') {
-      const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
-      const eventHandler = capabilityHandlers.get(`${data.args.commandClassName}.${data.args.property}`);
+async function getClient() {
+  const client = new ZWaveClient(config.zwave);
+  await client.connect();
 
-      if (eventHandler !== undefined) {
-        await eventHandler(device, data.args);
-      }
+  return client;
+}
+
+(async function () {
+  const BACKOFFS = [1, 5, 60];
+  let backoffIndex = 0;
+
+  while (true) {
+    logger.info('Starting ZWave client...');
+
+    try {
+      await new Promise((_, rej) => {
+        const client = new ZWaveClient(config.zwave);
+        
+        client.on('disconnected', (e: Error) => {
+          rej(e);
+        });
+
+        client.on('event', async (data: any) => {
+          if (data.source === 'node' && data.event === 'value updated') {
+            const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
+            const eventHandler = capabilityHandlers.get(`${data.args.commandClassName}.${data.args.property}`);
+
+            if (eventHandler !== undefined) {
+              await eventHandler(device, data.args);
+            }
+          }
+        });
+
+        client.connect().then(() => {
+          logger.info('ZWave client connection established');
+          backoffIndex = 0;
+        }, rej);
+      });
+    } catch (e) {
+      const timeout = BACKOFFS[Math.min(backoffIndex++, BACKOFFS.length - 1)];
+
+      newrelic.noticeError(e as Error);
+      logger.error(e, `Zwave client disconnected; waiting ${timeout} seconds before retrying...`);
+
+      await sleep(timeout * 1000);
     }
-  });
-});
+  }
+}());
 
 Device.registerProvider('zwave', {
   getLightCapability(device) {

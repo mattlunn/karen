@@ -2,13 +2,14 @@ import { Capability } from '.';
 import { Device } from '../models';
 import { numericProperty } from './helpers';
 
-@numericProperty('Illuminance', { dbName: 'illumninance' })
-export class LightSensorCapability implements Capability<LightSensorCapability, 'getIlluminance'> {
-  device: Device;
-  handlers: Pick<LightSensorCapability, 'getIlluminance'>;
+export type LightSensorCapabilityProviderHandlers = never;
 
+@numericProperty('Illuminance', { dbName: 'illumninance' })
+export class LightSensorCapability extends Capability<LightSensorCapability, LightSensorCapabilityProviderHandlers> {
   constructor(device: Device) {
-    this.device = device;
-    this.handlers = { getIlluminance: () => Promise.resolve(null) };
+    super(device, undefined);
   }
+
+  declare getIlluminance: () => Promise<number>;
+  declare setIluminanceState: (number: number) => Promise<void>;
 }
