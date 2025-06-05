@@ -475,7 +475,7 @@ Device.registerProvider('zwave', {
               type: deviceType,
               provider: 'zwave',
               providerId: deviceId,
-              name: deviceName
+              name: `${deviceName} (${deviceId})`
             });
           }
         }

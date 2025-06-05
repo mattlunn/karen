@@ -27,11 +27,11 @@ export default class ZWaveClient {
     }
   }
 
-  getNodes() {
+  getNodes = () => {
     return Array.from(this.#nodes.values());
   }
 
-  async connect() {
+  connect = async () => {
     return new Promise<void>((res, rej) => {
       this.#socket = new ws(`wss://${this.#options.user}:${this.#options.password}@${this.#options.host}`);
 
@@ -108,7 +108,7 @@ export default class ZWaveClient {
     });
   }
 
-  async makeRequest(command: string | object, data = {}) {
+  makeRequest = async (command: string | object, data = {}) => {
     const id = uuid();
     const msg: Record<string, unknown> = typeof command === 'object' 
       ? { ...command }
@@ -127,7 +127,7 @@ export default class ZWaveClient {
     });
   }
 
-  on(event: string, listener: (...args: any[]) => void) {
+  on = (event: string, listener: (...args: any[]) => void) => {
     this.#events.on(event, listener);
   }
 }
