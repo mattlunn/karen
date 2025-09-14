@@ -47,41 +47,15 @@ Device.registerProvider('tado', {
     return [];
   },
 
-  getTemperatureSensorCapability(device: Device) {
+  provideThermostatCapability() {
     return {
-      async getCurrentTemperature(): Promise<number> {
-        return (await device.getLatestEvent('temperature'))?.value ?? 0;
-      }
-    }
-  },
-
-  getThermostatCapability(device: Device) {
-    return {
-      async getCurrentTemperature(): Promise<number> {
-        return (await device.getLatestEvent('temperature'))?.value ?? 0;
-      },
-
-      async getPower() {
-        return (await device.getLatestEvent('power'))?.value ?? 0;
-        
-      },
-
-      async getTargetTemperature() {
-        return (await device.getLatestEvent('target'))?.value ?? 0;
-      },
-
-      async getIsHeating() {
-        const latestEvent = await device.getLatestEvent('heating');
-        return !!latestEvent && !latestEvent.end;
-      },
-
-      async setTargetTemperature(value: number | null) {
+      async setTargetTemperature(device: Device, value: number | null) {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
 
         await client.setHeatingPowerForZone(device.providerId, value === null ? false : value, false);
       },
 
-      async setIsOn(isOn: boolean) {
+      async setIsOn(device: Device, isOn: boolean) {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
 
         if (isOn === true) {
@@ -93,14 +67,6 @@ Device.registerProvider('tado', {
         } else /* value === false */ {
           await client.setHeatingPowerForZone(device.providerId, false, false);
         }
-      }
-    }
-  },
-
-  getHumiditySensorCapability(device: Device) {
-    return {
-      async getHumidity() {
-        return (await device.getLatestEvent('humidity'))?.value ?? 0;
       }
     }
   },
@@ -182,6 +148,7 @@ export async function setCentralHeatingMode(mode: keyof typeof CENTRAL_HEATING_M
       await lastEvent.save();
     }
 
+    // TODO: This shouldn't sit here; whole point of this is stop services controlling Events
     await Event.create({
       deviceId: controller.id,
       start: now,
@@ -215,45 +182,17 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);
   const devices = await Device.findByProvider('tado');
 
-  async function updateState(device: Device, type: string, currentValue: number | boolean, timestamp: Date) {
-    const lastEvent = await device.getLatestEvent(type);
-    const valueHasChanged = !lastEvent
-      || typeof currentValue === 'number' && currentValue !== lastEvent.value
-      || typeof currentValue === 'boolean' && !lastEvent.end !== currentValue;
-
-    if (valueHasChanged) {
-      // on -> off (update old, don't create new)
-      // off -> on (don't touch old, create new)
-      // value -> value (update old, create new)
-
-      if (lastEvent && currentValue !== true) {
-        lastEvent.end = timestamp;
-        await lastEvent.save();
-      }
-
-      if (currentValue !== false) {
-        await Event.create({
-          deviceId: device.id,
-          start: timestamp,
-          value: Number(currentValue),
-          type
-        });
-      }
-
-      device.onPropertyChanged(type);
-    }
-  }
-
   for (const device of devices) {
     if (device.type === 'thermostat') {
       const data = await client.getZoneState(device.providerId);
+      const deviceCapability = device.getThermostatCapability();
 
       await Promise.all([
-        updateState(device, 'power', data.activityDataPoints.heatingPower.percentage, new Date(data.activityDataPoints.heatingPower.timestamp)),
-        updateState(device, 'heating', data.activityDataPoints.heatingPower.percentage > 0, new Date(data.activityDataPoints.heatingPower.timestamp)),
-        updateState(device, 'humidity', data.sensorDataPoints.humidity.percentage, new Date(data.sensorDataPoints.humidity.timestamp)),
-        updateState(device, 'temperature', data.sensorDataPoints.insideTemperature.celsius, new Date(data.sensorDataPoints.insideTemperature.timestamp)),
-        updateState(device, 'target', data.setting.power === 'ON' ? data.setting.temperature.celsius : 0, new Date())
+        deviceCapability.setPowerState(data.activityDataPoints.heatingPower.percentage, new Date(data.activityDataPoints.heatingPower.timestamp)),
+        deviceCapability.setIsOnState(data.activityDataPoints.heatingPower.percentage > 0, new Date(data.activityDataPoints.heatingPower.timestamp)),
+        deviceCapability.setHumidityState(data.sensorDataPoints.humidity.percentage, new Date(data.sensorDataPoints.humidity.timestamp)),
+        deviceCapability.setCurrentTemperatureState(data.sensorDataPoints.insideTemperature.celsius, new Date(data.sensorDataPoints.insideTemperature.timestamp)),
+        deviceCapability.setTargetTemperatureState(data.setting.power === 'ON' ? data.setting.temperature.celsius : 0, new Date())
       ]);
     }
   }

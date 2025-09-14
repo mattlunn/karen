@@ -109,6 +109,7 @@
     "start": "node --unhandled-rejections=warn server.js",
     "start:dev": "NODE_OPTIONS='--unhandled-rejections=warn' nodemon --watch ../dist ../dist/server.js | npx pino-pretty",
     "start:dev-inspect": "NODE_OPTIONS='--unhandled-rejections=warn' nodemon --inspect ../dist ../dist/server.js | npx pino-pretty",
+    "start:dev-inspect-brk": "NODE_OPTIONS='--unhandled-rejections=warn' nodemon --inspect-brk ../dist ../dist/server.js | npx pino-pretty",
     "create-user": "babel-node scripts/create-user.js",
     "migrate": "babel-node scripts/migrate.js",
     "build": "npm run build:server && npm run build:browser",

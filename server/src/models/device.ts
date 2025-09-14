@@ -2,7 +2,27 @@ import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttribut
 import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import logger from '../logger';
 import { Event } from './event';
-import { Capability, SpeakerCapability, HumiditySensorCapability, LightCapability, MotionSensorCapability, ThermostatCapability, TemperatureSensorCapability, CameraCapability, LightSensorCapability, SwitchCapability, HeatPumpCapability, BatteryLevelIndicatorCapability, BatteryLowIndicatorCapability, LockCapability } from './capabilities';
+import { 
+  Capability, 
+  ProviderLightCapability, 
+  ProviderLockCapability, 
+  ProviderSpeakerCapability, 
+  ProviderThermostatCapability,
+  ProviderSwitchCapability,
+
+  LightSensorCapability, 
+  HumiditySensorCapability, 
+  LightCapability, 
+  BatteryLevelIndicatorCapability,
+  BatteryLowIndicatorCapability, 
+  LockCapability, 
+  MotionSensorCapability, 
+  TemperatureSensorCapability,
+  ThermostatCapability, 
+  SwitchCapability, 
+  HeatPumpCapability,
+  SpeakerCapability
+} from './capabilities';
 
 const latestEventCache = new Map();
 
@@ -39,24 +59,14 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     });
   };
 
-  #getCapabilityOrThrow<T>(handler: (provider: ProviderHandler) => (undefined | ((device: Device) => T))): T {
-    const provider = Device._providers.get(this.provider);
+  #getCapabilityOrThrow<T>(handler: () => T): T {
+    // TODO: Should check that the provider can provide this capability at this point???
 
-    if (provider === undefined) {
-      throw new Error(`Provider ${this.provider} does not exist for device ${this.id} (${this.name})`);
+    if (!this.#capabilityCache.has(handler)) {
+      this.#capabilityCache.set(handler, handler());
     }
 
-    const capabilityProvider = handler(provider);
-
-    if (typeof capabilityProvider !== 'function') {
-      throw new Error(`Provider ${this.provider} does not provide support the requested capability (${handler.toString()})`);
-    }
-
-    if (!this.#capabilityCache.has(capabilityProvider)) {
-      this.#capabilityCache.set(capabilityProvider, capabilityProvider(this));
-    }
-
-    return this.#capabilityCache.get(capabilityProvider) as T;
+    return this.#capabilityCache.get(handler) as T;
   };
 
   async getIsConnected(): Promise<boolean> {
@@ -65,51 +75,51 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   }
 
   getBatteryLowIndicatorCapability(): BatteryLowIndicatorCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getBatteryLowIndicatorCapability);
+    return this.#getCapabilityOrThrow(() => new BatteryLowIndicatorCapability(this));
   };
 
   getBatteryLevelIndicatorCapability(): BatteryLevelIndicatorCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getBatteryLevelIndicatorCapability);
+    return this.#getCapabilityOrThrow(() => new BatteryLevelIndicatorCapability(this));
   };
 
   getLockCapability(): LockCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getLockCapability);
+    return this.#getCapabilityOrThrow(() => new LockCapability(this));
   };
 
   getLightCapability(): LightCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getLightCapability);
+    return this.#getCapabilityOrThrow(() => new LightCapability(this));
   };
 
   getThermostatCapability(): ThermostatCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getThermostatCapability);
+    return this.#getCapabilityOrThrow(() => new ThermostatCapability(this));
   };
 
   getMotionSensorCapability(): MotionSensorCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getMotionSensorCapability);
+    return this.#getCapabilityOrThrow(() => new MotionSensorCapability(this));
   };
 
   getTemperatureSensorCapability(): TemperatureSensorCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getTemperatureSensorCapability);
+    return this.#getCapabilityOrThrow(() => new TemperatureSensorCapability(this));
   };
 
   getHeatPumpCapability(): HeatPumpCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getHeatPumpCapability);
+    return this.#getCapabilityOrThrow(() => new HeatPumpCapability(this));
   };
 
   getLightSensorCapability(): LightSensorCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getLightSensorCapability);
+    return this.#getCapabilityOrThrow(() => new LightSensorCapability(this));
   };
 
   getHumiditySensorCapability(): HumiditySensorCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getHumiditySensorCapability);
+    return this.#getCapabilityOrThrow(() => new HumiditySensorCapability(this));
   };
 
   getSpeakerCapability(): SpeakerCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getSpeakerCapability);
+    return this.#getCapabilityOrThrow(() => new SpeakerCapability(this));
   };
 
   getSwitchCapability(): SwitchCapability {
-    return this.#getCapabilityOrThrow((provider) => provider.getSwitchCapability);
+    return this.#getCapabilityOrThrow(() => new SwitchCapability(this));
   };
 
   getCapabilities(): Capability[] {
@@ -247,24 +257,26 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
     handlers.synchronize().catch(e => logger.error(e));
   };
+
+  static getProviderCapabilities(provider: string): ProviderHandler {
+    const providerHandler = this._providers.get(provider);
+
+    if (providerHandler === undefined) {
+      throw new Error(`Provider ${provider} does not exist`);
+    }
+
+    return providerHandler;
+  }
 };
 
 type ProviderHandler = {
-  getLightCapability?(device: Device): LightCapability;
-  getThermostatCapability?(device: Device): ThermostatCapability;
-  getHumiditySensorCapability?(device: Device): HumiditySensorCapability;
-  getTemperatureSensorCapability?(device: Device): TemperatureSensorCapability;
-  getSpeakerCapability?(device: Device): SpeakerCapability;
-  getMotionSensorCapability?(device: Device): MotionSensorCapability;
-  getCameraCapability?(device: Device): CameraCapability;
-  getLightSensorCapability?(device: Device): LightSensorCapability;
-  getSwitchCapability?(device: Device): SwitchCapability;
-  getHeatPumpCapability?(device: Device): HeatPumpCapability;
-  getBatteryLevelIndicatorCapability?(device: Device): BatteryLevelIndicatorCapability;
-  getBatteryLowIndicatorCapability?(device: Device): BatteryLowIndicatorCapability;
-  getLockCapability?(device: Device): LockCapability;
-  getCapabilities(device: Device): Capability[];
+  provideLightCapability?(): ProviderLightCapability;
+  provideLockCapability?(): ProviderLockCapability;
+  provideThermostatCapability?(): ProviderThermostatCapability;
+  provideSwitchCapability?(): ProviderSwitchCapability;
+  provideSpeakerCapability?(): ProviderSpeakerCapability;
 
+  getCapabilities(device: Device): Capability[];
   synchronize(): Promise<void>;
 };
 

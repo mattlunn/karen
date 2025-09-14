@@ -20,7 +20,7 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold
       if (compressorLockedOutForCooldown === true) {
         const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
         const thermostats = await Device.findByType('thermostat');
-        const thermostatsHeatDemand = await Promise.all(thermostats.map((thermostat) => thermostat.getThermostatCapability().getIsHeating()));
+        const thermostatsHeatDemand = await Promise.all(thermostats.map((thermostat) => thermostat.getThermostatCapability().getIsOn()));
         const thermostatsAreRequestingHeat = thermostatsHeatDemand.some(x => x);
 
         compressorLockedOutForCooldown = false;

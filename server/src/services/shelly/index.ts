@@ -14,39 +14,27 @@ Device.registerProvider('shelly', {
     }
   },
 
-  getLightCapability(device) {
-    const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
-
+  provideLightCapability() {
     return {
-      async getBrightness() {
-        return (await device.getLatestEvent('brightness'))?.value ?? 100;
-      },
+      setBrightness(device: Device, brightness: number) {
+        const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
 
-      async getIsOn() {
-        const latestEvent = await device.getLatestEvent('on');
-        return !!(latestEvent && !latestEvent.end);
-      },
-
-      setBrightness(brightness) {
         return shellyDevice.setBrightness(brightness);
       },
 
-      setIsOn(isOn) {
+      setIsOn(device: Device, isOn: boolean) {
+        const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
+
         return shellyDevice.setIsOn(isOn);
       },
     };
   },
 
-  getSwitchCapability(device) {
-    const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
-
+  provideSwitchCapability() {
     return {
-      async getIsOn() {
-        const latestEvent = await device.getLatestEvent('on');
-        return !!(latestEvent && !latestEvent.end);
-      },
+      async setIsOn(device: Device, isOn: boolean) {
+        const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
 
-      async setIsOn(isOn) {
         return await shellyDevice.setIsOn(isOn);
       },
     };
