@@ -1,11 +1,10 @@
 import fetch from 'node-fetch';
-import config from '../../config';
-import { saveConfig } from '../../helpers/config';
 import logger from '../../logger';
 import { stringify } from 'querystring';
 
 export type Token = {
   accessToken: string,
+  refreshToken: string,
   expiresAt: number
 };
 
@@ -106,42 +105,34 @@ export type ZoneState = {
   overlay: null
 });
 
-let token: Token | undefined;
-
-export async function getAccessToken(): Promise<string> {
-  if (!token || token.expiresAt < Date.now() + 1000 * 60) {
-    const response = await fetch('https://login.tado.com/oauth2/token', {
-      method: 'POST',
-      body: stringify({
-        client_id: '1bb50063-6b0c-4d11-bd99-387f4a91cc46',
-        grant_type: 'refresh_token',
-        refresh_token: config.tado.refresh_token
-      }),
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`Unable to get Access Token: HTTP status code was '${response.status}'`);
+export async function exchangeRefreshTokenForAccessToken(refreshToken: string): Promise<Token> {
+  const response = await fetch('https://login.tado.com/oauth2/token', {
+    method: 'POST',
+    body: stringify({
+      client_id: '1bb50063-6b0c-4d11-bd99-387f4a91cc46',
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken
+    }),
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
     }
+  });
 
-    const { access_token, expires_in, refresh_token } = await response.json();
-
-    if (process.env.NODE_ENV === 'development') {
-      logger.debug(`Tado access_token is '${access_token}'`);
-    }
-
-    token = {
-      accessToken: access_token,
-      expiresAt: Date.now() + (expires_in * 1000)
-    };
-
-    config.tado.refresh_token = refresh_token;
-    saveConfig();
+  if (!response.ok) {
+    throw new Error(`Unable to get Access Token: HTTP status code was '${response.status}'`);
   }
 
-  return token.accessToken;
+  const { access_token, expires_in, refresh_token } = await response.json();
+
+  if (process.env.NODE_ENV === 'development') {
+    logger.debug(`Tado access_token is '${access_token}'`);
+  }
+
+  return {
+    accessToken: access_token,
+    refreshToken: refresh_token,
+    expiresAt: Date.now() + (expires_in * 1000)
+  };
 }
 
 export default class TadoClient {

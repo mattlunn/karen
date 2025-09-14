@@ -107,7 +107,7 @@ class Timeline extends Component {
           <Event
             timestamp={event.timestamp}
             icon={faLightbulb}
-            title={`The "${event.device.name}" light was switched off after being on for ${Math.ceil(event.duration / 1000 / 60)} minutes`}
+            title={`The "${event.device.name}" light was switched off after being on for ${Math.ceil(event.duration / 60)} minutes`}
           />
         );
       case 'AlarmArmingEvent': {

@@ -20,5 +20,7 @@ export async function setNumericProperty(device: Device, propertyName: string, p
       value: propertyValue,
       type: propertyName
     });
+
+    device.onPropertyChanged(propertyName);
   }
 }

@@ -84,13 +84,10 @@ deviceHandlers.set('Fibargroup FGD212', [
   { 
     propertyKey: 'Multilevel Switch.currentValue',
     propertyMapper(device: Device, value: number) {
-      return device.getLightCapability().setBrightnessState(value);
-    }
-  },
-  { 
-    propertyKey: 'Multilevel Switch.currentValue',
-    propertyMapper(device: Device, value: number) {
-      return device.getLightCapability().setIsOnState(value !== 0);
+      return Promise.all([
+        device.getLightCapability().setBrightnessState(value),
+        device.getLightCapability().setIsOnState(value !== 0)
+      ]);
     }
   }
 ]);

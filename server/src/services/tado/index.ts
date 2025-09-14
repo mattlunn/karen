@@ -1,6 +1,7 @@
 import { Device, Event, Stay } from '../../models';
-import TadoClient, { getAccessToken } from './client';
+import TadoClient, { exchangeRefreshTokenForAccessToken } from './client';
 import config from '../../config';
+import { saveConfig } from '../../helpers/config'; 
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import moment, { Moment } from 'moment';
 import getTimetabledTemperature from './helpers/get-timetabled-temperature';
@@ -33,6 +34,38 @@ type DeviceState = {
   nextTarget: NextTarget | null
   warmupRatePerHour: number | null
 });
+
+const getAccessToken = (() => {
+  let token: { accessToken: string, expiresAt: number } | null = null;
+
+  async function getNewAccessToken(): Promise<string> {
+    if (!token || token.expiresAt < Date.now() + 1000 * 60) {
+      const newToken = await exchangeRefreshTokenForAccessToken(config.tado.refresh_token);
+
+      token = {
+        accessToken: newToken.accessToken,
+        expiresAt: newToken.expiresAt
+      };
+
+      config.tado.refresh_token = newToken.refreshToken;
+      saveConfig();
+    }
+
+    return token.accessToken;
+  }
+
+  let pendingRequestForAccessToken: Promise<string> | null = null;
+
+  return (): Promise<string> => {
+    if (pendingRequestForAccessToken) {
+      return pendingRequestForAccessToken;
+    } else {
+      return pendingRequestForAccessToken = getNewAccessToken().finally(() => {
+        pendingRequestForAccessToken = null;
+      });
+    }
+  };
+})();
 
 Device.registerProvider('tado', {
   getCapabilities(device) {

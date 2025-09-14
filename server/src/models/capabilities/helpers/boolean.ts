@@ -26,5 +26,7 @@ export async function setBooleanProperty(device: Device, propertyName: string, p
         type: propertyName
       });
     }
+
+    device.onPropertyChanged(propertyName);
   }
 }
