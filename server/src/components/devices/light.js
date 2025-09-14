@@ -70,7 +70,7 @@ export default function Light({ device, capability }) {
   return (
     <DeviceControl device={device} icon={faLightbulb} color="#ffa24d" colorIconBackground={capability.isOn} values={[
       capability.isOn ? 'On' : 'Off',
-      <BrightnessControl device={device} capability={capability} />
+      <BrightnessControl device={device} capability={capability} key={1}/>
     ]} actionPending={loading} iconOnClick={(e) => {
       e.preventDefault();
 
