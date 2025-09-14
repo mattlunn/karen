@@ -18,7 +18,7 @@ export default class Thermostat {
   }
 
   isHeating(): Promise<boolean> {
-    return this.#device.getThermostatCapability().getIsHeating();
+    return this.#device.getThermostatCapability().getIsOn();
   }
 
   humidity(): Promise<number> {

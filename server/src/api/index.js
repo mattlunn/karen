@@ -1,13 +1,12 @@
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import * as db from '../models';
-import { User, Stay, Security, Camera, Lighting, Thermostat, Heating, Light, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording, AlarmArmingEvent, DoorbellRingEvent, Room } from './models';
+import { User, Stay, Security, Heating, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording, AlarmArmingEvent, DoorbellRingEvent } from './models';
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
 import { setCentralHeatingMode, getCentralHeatingMode } from '../services/tado';
 import { setDHWMode, getDHWMode } from '../services/ebusd';
 import UnorderedDataLoader from './loaders/unordered-dataloader';
-import DataLoaderWithNoIdParam from './loaders/dataloader-with-no-id-param';
 import DeviceLoader from './loaders/device-loader';
 import RoomLoader from './loaders/room-loader';
 import typeDefs from './type-defs';

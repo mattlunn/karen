@@ -1,8 +1,7 @@
 import express from 'express';
-import logger from '../logger';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import config from '../config';
-import { Device, Event } from '../models';
+import { Device } from '../models';
 import DeviceClient from '../services/shelly/client/device';
 
 const router = express.Router();
@@ -17,32 +16,8 @@ router.use((req, res, next) => {
 
 router.get('/event', asyncWrapper(async (req, res) => {
   const device = await Device.findByProviderIdOrError('shelly', req.query.id);
-  const lastEvent = await device.getLatestEvent('on');
-  const time = new Date();
-  const isOn = req.query.action === 'on';
 
-  if (isOn) {
-    if (lastEvent && !lastEvent.end) {
-      logger.error(`"${device.id}" has been turned on, but is already turned on...`);
-    } else {
-      await Event.create({
-        deviceId: device.id,
-        type: 'on',
-        start: time,
-        value: 1
-      });
-    }
-  } else {
-    if (!lastEvent || lastEvent.end) {
-      logger.error(`"${device.id}" has been turned off, but has no active event...`);
-    } else {
-      lastEvent.end = time;
-      await lastEvent.save();
-    }
-  }
-
-  device.onPropertyChanged('on');
-
+  await device.getLightCapability().setIsOnState(req.query.action === 'on');
   res.sendStatus(200).end();
 }));
 

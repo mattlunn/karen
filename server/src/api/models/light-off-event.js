@@ -16,6 +16,6 @@ export default class LightOffEvent {
   }
 
   duration() {
-    return this.data.end - this.data.start;
+    return (this.data.end - this.data.start) / 1000;
   }
 }

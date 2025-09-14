@@ -22,21 +22,13 @@ Device.registerProvider('tplink', {
     return ['LIGHT']
   },
 
-  getLightCapability(device) {
+  provideLightCapability() {
     return {
-      getBrightness() {
-        return Promise.resolve(100);
-      },
-
-      async getIsOn() {
-        return (await getTpLinkDeviceFromDevice(device).then(x => x?.getPowerState())) ?? false;
-      },
-
-      setBrightness() {
+      setBrightness(device: Device) {
         throw new Error('TPLink does not allow changing of brightness');
       },
 
-      async setIsOn(isOn: boolean) {
+      async setIsOn(device: Device, isOn: boolean) {
         await getTpLinkDeviceFromDevice(device).then(x => x?.setPowerState(isOn));
       }
     }; 
