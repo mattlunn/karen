@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DeviceControl from './device-control';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCouch, faHouseFire, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking, faVideo, faDroplet, faToggleOff, faFire, faDoorClosed, faDoorOpen, faShop, faTree } from '@fortawesome/free-solid-svg-icons';
+import Light from './devices/light';
 
 library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer, faHouseFire, faDoorClosed, faDoorOpen, faShop, faTree);
 
@@ -32,40 +33,7 @@ function buildDeviceControlForDevice(device) {
     ),
     
     x => x.__typename === 'Light', 
-    (device, capability) => {
-      const [setLightSwitchStatus, { loading }] = useMutation(gql`
-        mutation updateLight($id: ID!, $isOn: Boolean) {
-          updateLight(id: $id, isOn: $isOn) {
-            id
-            name
-
-            capabilities {
-              ... on Light {
-                isOn
-              }
-            }
-          }
-        }
-      `);
-    
-      return (
-        <DeviceControl device={device} icon={faLightbulb} color="#ffa24d" colorIconBackground={capability.isOn} values={[
-          capability.isOn ? 'On' : 'Off',
-          `${capability.brightness}%`
-        ]} actionPending={loading} iconOnClick={(e) => {
-          e.preventDefault();
-
-          if (loading) return;
-
-          setLightSwitchStatus({
-            variables: {
-              id: device.id,
-              isOn: !capability.isOn
-            }
-          });
-        }} />
-      );
-    },
+    (device, capability) => <Light device={device} capability={capability} />,
 
     x => x.__typename === 'Camera', 
     (device, capability) => (

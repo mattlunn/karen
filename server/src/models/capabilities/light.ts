@@ -30,6 +30,10 @@ export class LightCapability {
   }
 
   setBrightness(brightness: number): Promise<void> { 
-    return Device.getProviderCapabilities(this.#device.provider).provideLightCapability!().setBrightness(this.#device, brightness);
+    if (brightness === 0) {
+      return Device.getProviderCapabilities(this.#device.provider).provideLightCapability!().setIsOn(this.#device, false);
+    } else {
+      return Device.getProviderCapabilities(this.#device.provider).provideLightCapability!().setBrightness(this.#device, brightness);
+    }
   }
 }
