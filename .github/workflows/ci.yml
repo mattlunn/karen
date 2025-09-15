@@ -20,8 +20,8 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 20
-      - run: npm run codegen
       - run: npm ci
+      - run: npm run codegen
       - run: npm run lint
       - run: npm run test
       - run: npm run build
