@@ -24,13 +24,13 @@ deviceHandlers.set('Fibargroup FGMS001', [
   {
     propertyKey: 'Binary Sensor.Any',
     propertyMapper(device: Device, value: boolean) {
-      return device.getMotionSensorCapability().setMotionState(value);
+      return device.getMotionSensorCapability().setHasMotionState(value);
     }
   },
   {
     propertyKey: 'Basic.currentValue',
     propertyMapper(device: Device, value: number) {
-      return device.getMotionSensorCapability().setMotionState(value !== 0);
+      return device.getMotionSensorCapability().setHasMotionState(value !== 0);
     }
   },
   { 
@@ -57,7 +57,7 @@ deviceHandlers.set('AEON Labs ZW100', [
   {
     propertyKey: 'Binary Sensor.Any',
     propertyMapper(device: Device, value: boolean) {
-      return device.getMotionSensorCapability().setMotionState(value);
+      return device.getMotionSensorCapability().setHasMotionState(value);
     }
   },
   { 

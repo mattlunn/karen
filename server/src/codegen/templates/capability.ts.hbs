@@ -1,0 +1,42 @@
+import { Device } from '../device';
+import { getNumericProperty, setNumericProperty } from './helpers/number';
+import { getBooleanProperty, setBooleanProperty } from './helpers/boolean';
+
+export default class {{className}} {
+  protected device: Device;
+
+  constructor(device: Device) {
+    this.device = device;
+  }
+
+{{#each properties}}
+  {{#if isBoolean}}
+  get{{propertyName}}(): Promise<boolean> {
+    return getBooleanProperty(this.device, '{{eventName}}');
+  }
+
+  set{{propertyName}}State(value: boolean, timestamp?: Date): Promise<void> {
+    return setBooleanProperty(this.device, '{{eventName}}', value, timestamp);
+  }
+  {{#if isWriteable}}
+  set{{propertyName}}(value: boolean): Promise<void> {
+    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}!().set{{propertyName}}(this.device, value);
+  }
+  {{/if}}
+  {{else}}
+  get{{propertyName}}(): Promise<number> {
+    return getNumericProperty(this.device, '{{eventName}}');
+  }
+
+  set{{propertyName}}State(value: number, timestamp?: Date): Promise<void> {
+    return setNumericProperty(this.device, '{{eventName}}', value, timestamp);
+  }
+
+  {{#if isWriteable}}
+  set{{propertyName}}(value: number): Promise<void> {
+    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}!().set{{propertyName}}(this.device, value);
+  }
+  {{/if}}
+  {{/if}}
+{{/each}}
+}

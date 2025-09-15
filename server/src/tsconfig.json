@@ -12,6 +12,7 @@
     "noEmit": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "experimentalDecorators": true
   }
 }

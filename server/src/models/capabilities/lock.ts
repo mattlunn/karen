@@ -1,28 +1,10 @@
 import bus from '../../bus';
-import { Device, Event } from '..';
-import { getBooleanProperty, setBooleanProperty } from './helpers/boolean';
+import { Event } from '..';
+import LockBaseCapability from './lock.gen';
 
-export class LockCapability {
-  constructor(device: Device) {
-    this.#device = device;
-  }
-
-  #device: Device;
-  
-  getIsLocked(): Promise<boolean> {
-    return getBooleanProperty(this.#device, 'locked');
-  }
-
-  setIsLockedState(isLocked: boolean): Promise<void> {
-    return setBooleanProperty(this.#device, 'locked', isLocked);
-  }
-
-  setIsLocked(isLocked: boolean): Promise<void> { 
-    return Device.getProviderCapabilities(this.#device.provider).provideLockCapability!().setIsLocked(this.#device, isLocked);
-  }
-
+export class LockCapability extends LockBaseCapability {
   async ensureIsLocked(abortSignal: AbortSignal): Promise<void> {
-    const device = this.#device;
+    const device = this.device;
 
     if (await this.getIsLocked()) {
       return;
@@ -59,13 +41,5 @@ export class LockCapability {
       bus.on('EVENT_START', eventHandler);
       this.setIsLocked(true);
     });
-  }
-
-  getIsJammed(): Promise<boolean> {
-    return getBooleanProperty(this.#device, 'is_jammed');
-  }
-
-  setIsJammedState(isJammed: boolean): Promise<void> {
-    return setBooleanProperty(this.#device, 'is_jammed', isJammed);
   }
 }
