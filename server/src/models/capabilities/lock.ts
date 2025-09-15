@@ -1,6 +1,6 @@
 import bus from '../../bus';
 import { Event } from '..';
-import LockBaseCapability from './lock.gen';
+import { LockBaseCapability } from './capabilities.gen';
 
 export class LockCapability extends LockBaseCapability {
   async ensureIsLocked(abortSignal: AbortSignal): Promise<void> {

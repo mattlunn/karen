@@ -113,6 +113,7 @@
     "start:dev-inspect-brk": "NODE_OPTIONS='--unhandled-rejections=warn' nodemon --inspect-brk ../dist ../dist/server.js | npx pino-pretty",
     "create-user": "babel-node scripts/create-user.js",
     "migrate": "babel-node scripts/migrate.js",
+    "codegen": "npx --yes ts-node codegen/index.ts",
     "build": "npm run build:server && npm run build:browser",
     "build:server": "babel . -d ../dist --extensions '.ts,.tsx,.js' --copy-files --include-dotfiles",
     "dev": "babel . -d ../dist --extensions '.ts,.tsx,.js' --copy-files --no-copy-ignored --ignore config.json --include-dotfiles --watch | npx pino-pretty",

@@ -2,7 +2,8 @@ import { Device } from '../device';
 import { getNumericProperty, setNumericProperty } from './helpers/number';
 import { getBooleanProperty, setBooleanProperty } from './helpers/boolean';
 
-export default class {{className}} {
+{{#each capabilities}}
+export class {{className}} {
   protected device: Device;
 
   constructor(device: Device) {
@@ -40,3 +41,16 @@ export default class {{className}} {
   {{/if}}
 {{/each}}
 }
+
+{{/each}}
+
+{{#each providers}}
+export type Provider{{capabilityName}} = {
+  {{#each properties}}
+  {{#if isWriteable}}
+  set{{propertyName}}(device: Device, value: {{#if isBoolean}}boolean{{else}}number{{/if}}): Promise<void>
+  {{/if}}
+  {{/each}}
+}
+
+{{/each}}

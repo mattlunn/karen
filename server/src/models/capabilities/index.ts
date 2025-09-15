@@ -3,25 +3,7 @@ import { Device } from '../device';
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
 export { SpeakerCapability } from './speaker';
-export * from './index.gen'
-
-export type ProviderLightCapability = {
-  setBrightness(device: Device, brightness: number): Promise<void>;
-  setIsOn(device: Device, isOn: boolean): Promise<void>;
-}
-
-export type ProviderLockCapability = {
-  setIsLocked(device: Device, isLocked: boolean): Promise<void>;
-}
-
-export type ProviderThermostatCapability = {
-  setTargetTemperature(device: Device, target: number | null): Promise<void>
-  setIsOn(device: Device, isOn: boolean): Promise<void>
-}
-
-export type ProviderSwitchCapability = {
-  setIsOn(device: Device, isOn: boolean): Promise<void>;
-}
+export * from './capabilities.gen'
 
 export type ProviderSpeakerCapability = {
   emitSound(device: Device, sound: string | string[], ttlInSeconds?: number): Promise<void>;

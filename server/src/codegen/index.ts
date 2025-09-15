@@ -16,11 +16,9 @@ type PropertyDescriptor = {
 
 const capabilities = (require('../capabilities.json') as CapabilityDescriptor[]).map(({ name, properties, capabilityModelClassName = null }) => {
   const moduleName = `${name.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '')}.gen`;
-  const filePath = `../models/capabilities/${moduleName}.ts`;
 
   return {
     moduleName,
-    filePath,
     className: `${capabilityModelClassName || name}Capability`,
     capabilityName: `${name}Capability`,
     properties: properties.map(x => {
@@ -35,23 +33,13 @@ const capabilities = (require('../capabilities.json') as CapabilityDescriptor[])
 });
 
 function generateCapabilityModels() {
-  const template = Handlebars.compile(readFileSync('./codegen/templates/capability.ts.hbs', 'utf-8'));
+  const template = Handlebars.compile(readFileSync('./codegen/templates/capabilities.ts.hbs', 'utf-8'));
+  const filePath = `../models/capabilities/capabilities.gen.ts`;
+  const providers = capabilities.filter(x => x.properties.some(x => x.isWriteable));
 
-  for (const capability of capabilities) {
-    const { filePath } = capability;
+  writeFileSync(`${__dirname}/${filePath}`, template({ capabilities, providers }));
 
-    writeFileSync(`${__dirname}/${filePath}`, template(capability));
-    console.log(`Wrote ${filePath}`);
-  }
-}
-
-function generateCapabilityIndex() {
-  const template = Handlebars.compile(readFileSync('./codegen/templates/capability_index.ts.hbs', 'utf-8'));
-  const filePath = `../models/capabilities/index.gen.ts`;
-
-  writeFileSync(`${__dirname}/${filePath}`, template({ capabilities }));
   console.log(`Wrote ${filePath}`);
 }
 
-generateCapabilityIndex();
 generateCapabilityModels();

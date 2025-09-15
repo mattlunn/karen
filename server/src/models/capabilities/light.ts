@@ -1,5 +1,5 @@
 import { Device } from '../device';
-import LightBaseCapability from './light.gen';
+import { LightBaseCapability } from './capabilities.gen'
 
 export class LightCapability extends LightBaseCapability {
   setBrightness(brightness: number): Promise<void> { 

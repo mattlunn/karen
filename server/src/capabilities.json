@@ -231,4 +231,8 @@
       "eventName": "target"
     }
   ]
+}, {
+  "name": "Speaker",
+  "capabilityModelClassName": "SpeakerBase",
+  "properties": []
 }]
