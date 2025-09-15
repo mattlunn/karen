@@ -54,3 +54,8 @@ export type Provider{{capabilityName}} = {
 }
 
 {{/each}}
+
+export type Capability = 
+  {{#each capabilities}}
+  | '{{capabilityEnumName}}'
+  {{/each}}

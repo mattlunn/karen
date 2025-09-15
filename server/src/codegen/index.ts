@@ -16,11 +16,13 @@ type PropertyDescriptor = {
 
 const capabilities = (require('../capabilities.json') as CapabilityDescriptor[]).map(({ name, properties, capabilityModelClassName = null }) => {
   const moduleName = `${name.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '')}.gen`;
+  const capabilityEnumName = name.replace(/([A-Z])/g, '_$1').slice(1).toUpperCase();
 
   return {
     moduleName,
     className: `${capabilityModelClassName || name}Capability`,
     capabilityName: `${name}Capability`,
+    capabilityEnumName,
     properties: properties.map(x => {
       return {
         propertyName: x.name,

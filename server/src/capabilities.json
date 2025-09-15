@@ -235,4 +235,7 @@
   "name": "Speaker",
   "capabilityModelClassName": "SpeakerBase",
   "properties": []
+}, {
+  "name": "Camera",
+  "properties": []
 }]

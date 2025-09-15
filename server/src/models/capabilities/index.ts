@@ -17,17 +17,3 @@ export enum HeatPumpMode {
   DEICING = 4,
   FROST_PROTECTION = 5
 };
-
-export type Capability = 'LIGHT'
-  | 'THERMOSTAT' 
-  | 'HUMIDITY_SENSOR' 
-  | 'TEMPERATURE_SENSOR' 
-  | 'MOTION_SENSOR' 
-  | 'LIGHT_SENSOR' 
-  | 'CAMERA' 
-  | 'SPEAKER' 
-  | 'SWITCH' 
-  | 'HEAT_PUMP'
-  | 'LOCK'
-  | 'BATTERY_LEVEL_INDICATOR'
-  | 'BATTERY_LOW_INDICATOR';
