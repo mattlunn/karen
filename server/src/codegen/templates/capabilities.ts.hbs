@@ -1,6 +1,7 @@
-import { Device } from '../device';
+import { Device, NumericEvent, BooleanEvent } from '..';
 import { getNumericProperty, setNumericProperty } from './helpers/number';
 import { getBooleanProperty, setBooleanProperty } from './helpers/boolean';
+import bus from '../../bus';
 
 {{#each capabilities}}
 export class {{className}} {
@@ -16,12 +17,20 @@ export class {{className}} {
     return getBooleanProperty(this.device, '{{eventName}}');
   }
 
-  set{{propertyName}}State(value: boolean, timestamp?: Date): Promise<void> {
-    return setBooleanProperty(this.device, '{{eventName}}', value, timestamp);
+  async set{{propertyName}}State(value: boolean, timestamp?: Date): Promise<void> {
+    const event = await setBooleanProperty(this.device, '{{eventName}}', value, timestamp);
+
+    if (event !== null) {
+      if (value) {
+        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}End(new BooleanEvent(event));
+      } else {
+        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Start(new BooleanEvent(event));
+      }
+    }
   }
   {{#if isWriteable}}
   set{{propertyName}}(value: boolean): Promise<void> {
-    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}!().set{{propertyName}}(this.device, value);
+    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}Capability!().set{{propertyName}}(this.device, value);
   }
   {{/if}}
   {{else}}
@@ -29,13 +38,17 @@ export class {{className}} {
     return getNumericProperty(this.device, '{{eventName}}');
   }
 
-  set{{propertyName}}State(value: number, timestamp?: Date): Promise<void> {
-    return setNumericProperty(this.device, '{{eventName}}', value, timestamp);
+  async set{{propertyName}}State(value: number, timestamp?: Date): Promise<void> {
+    const event = await setNumericProperty(this.device, '{{eventName}}', value, timestamp);
+
+    if (event !== null) {
+      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(new NumericEvent(event));
+    }
   }
 
   {{#if isWriteable}}
   set{{propertyName}}(value: number): Promise<void> {
-    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}!().set{{propertyName}}(this.device, value);
+    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}Capability!().set{{propertyName}}(this.device, value);
   }
   {{/if}}
   {{/if}}
@@ -45,7 +58,7 @@ export class {{className}} {
 {{/each}}
 
 {{#each providers}}
-export type Provider{{capabilityName}} = {
+export type Provider{{capabilityName}}Capability = {
   {{#each properties}}
   {{#if isWriteable}}
   set{{propertyName}}(device: Device, value: {{#if isBoolean}}boolean{{else}}number{{/if}}): Promise<void>
@@ -59,3 +72,56 @@ export type Capability =
   {{#each capabilities}}
   | '{{capabilityEnumName}}'
   {{/each}}
+
+export type DeviceCapabilityEvent = 
+    | 'ON_DEVICE_CAPABILITY_PROPERTY_CHANGED'
+  {{#each capabilities}}
+  {{#each properties}}
+  {{#if isBoolean}}
+    | 'ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START'
+    | 'ON_{{../capabilityEnumName}}_{{propertyEnumName}}_END'
+  {{else}}
+    | 'ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED'
+  {{/if}}
+  {{/each}}
+  {{/each}}
+
+export class DeviceCapabilityEvents {
+  {{#each capabilities}}
+  {{#each properties}}
+  {{#if isBoolean}}
+  static on{{../capabilityName}}{{propertyName}}Start(handler: (e: BooleanEvent) => unknown) {
+    bus.on('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START', handler);
+  }
+
+  static emit{{../capabilityName}}{{propertyName}}Start(e: BooleanEvent) {
+    bus.emit('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START', e);
+  }
+
+  static on{{../capabilityName}}{{propertyName}}End(handler: (e: BooleanEvent) => unknown) {
+    bus.on('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_END', handler);
+  }
+
+  static emit{{../capabilityName}}{{propertyName}}End(e: BooleanEvent) {
+    bus.emit('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_END', e);
+  }
+  {{else}}
+  static on{{../capabilityName}}{{propertyName}}Changed(handler: (e: NumericEvent) => unknown) {
+    bus.on('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED', handler);
+  }
+
+  static emit{{../capabilityName}}{{propertyName}}Changed(e: NumericEvent) {
+    bus.emit('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED', e);
+  }
+  {{/if}}
+  {{/each}}
+  {{/each}}
+
+  static onDeviceCapabilityPropertyChanged(handler: (e: BooleanEvent | NumericEvent) => unknown) {
+    bus.on('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', handler);
+  }
+
+  static emitDeviceCapabilityPropertyChanged(e: BooleanEvent) {
+    bus.emit('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', e);
+  }
+}

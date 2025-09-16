@@ -4,7 +4,7 @@ export async function getNumericProperty(device: Device, propertyName: string, d
   return (await device.getLatestEvent(propertyName))?.value ?? defaultValue;
 }
 
-export async function setNumericProperty(device: Device, propertyName: string, propertyValue: number, timestamp: Date = new Date()): Promise<void> {
+export async function setNumericProperty(device: Device, propertyName: string, propertyValue: number, timestamp: Date = new Date()): Promise<Event | null> {
   const lastEvent = await device.getLatestEvent(propertyName);
   const valueHasChanged = !lastEvent || propertyValue !== lastEvent.value
 
@@ -14,13 +14,13 @@ export async function setNumericProperty(device: Device, propertyName: string, p
       await lastEvent.save();
     }
 
-    await Event.create({
+    return await Event.create({
       deviceId: device.id,
       start: timestamp,
       value: propertyValue,
       type: propertyName
     });
-
-    device.onPropertyChanged(propertyName);
   }
+
+  return null;
 }

@@ -1,7 +1,5 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, HasOneGetAssociationMixin, CreationOptional } from 'sequelize';
 import { Recording } from './recording';
-import bus, { EVENT_START, EVENT_END } from '../bus';
-import logger from '../logger';
 import { Device } from './device';
 
 export class Event extends Model<InferAttributes<Event>, InferCreationAttributes<Event>> {
@@ -53,9 +51,42 @@ export default function (sequelize: Sequelize) {
     sequelize: sequelize,
     modelName: 'event'
   });
+}
 
-  Event.addHook('afterSave',  (event: Event) => {
-    bus.emit(event.end ? EVENT_END : EVENT_START, event);
-    logger.info(`${event.end ? EVENT_END : EVENT_START} called on Event ${event.id} (${event.type})`);
-  });
+export class BooleanEvent {
+  protected event: Event;
+
+  public value: boolean;
+  public start: Date;
+  public end?: Date;
+
+  constructor(e: Event) {
+    this.event = e;
+    this.value = !!e.value;
+    this.start = e.start;
+    this.end = e.end;
+  }
+
+  getDevice() {
+    return this.event.getDevice();
+  }
+}
+
+export class NumericEvent {
+  protected event: Event;
+
+  public value: number;
+  public start: Date;
+  public end?: Date;
+
+  constructor(e: Event) {
+    this.event = e;
+    this.value = e.value;
+    this.start = e.start;
+    this.end = e.end;
+  }
+
+  getDevice() {
+    return this.event.getDevice();
+  }
 }
