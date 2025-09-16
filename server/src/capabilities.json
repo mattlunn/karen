@@ -1,0 +1,241 @@
+[{
+  "name": "BatteryLevelIndicator",
+  "properties": [
+    {
+      "name": "BatteryPercentage",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "battery_percentage"
+    }
+  ]
+},
+{
+  "name": "BatteryLowIndicator",
+  "properties": [
+    {
+      "name": "IsBatteryLow",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "battery_low"
+    }
+  ]
+},{
+  "name": "HeatPump",
+  "properties": [
+    {
+      "name": "Mode",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "mode"
+    },
+    {
+      "name": "DHWCoP",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "cop_hwc"
+    },
+    {
+      "name": "HeatingCoP",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "cop_hc"
+    },
+    {
+      "name": "DHWIsOn",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "dhw_mode"
+    },
+    {
+      "name": "CurrentPower",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "current_power"
+    },
+    {
+      "name": "CurrentYield",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "current_yield"
+    },
+    {
+      "name": "DailyConsumedEnergy",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "energy_daily"
+    },
+    {
+      "name": "CompressorModulation",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "compressor_modulation"
+    },
+    {
+      "name": "CompressorPower",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "compressor_power"
+    },
+    {
+      "name": "SystemPressure",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "system_pressure"
+    },
+    {
+      "name": "DHWTemperature",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "hwc_temperature"
+    },
+    {
+      "name": "DesiredFlowTemperature",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "desired_flow_temperature"
+    },
+    {
+      "name": "ReturnTemperature",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "return_temperature"
+    },
+    {
+      "name": "OutsideTemperature",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "outside_temperature"
+    },
+    {
+      "name": "ActualFlowTemperature",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "actual_flow_temperature"
+    }
+  ]
+}, {
+  "name": "HumiditySensor",
+  "properties": [
+    {
+      "name": "Humidity",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "humidity"
+    }
+  ]
+}, {
+  "name": "LightSensor",
+  "properties": [
+    {
+      "name": "Illuminance",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "illuminance"
+    }
+  ]
+}, {
+  "name": "Light",
+  "capabilityModelClassName": "LightBase",
+  "properties": [
+    {
+      "name": "IsOn",
+      "isWriteable": true,
+      "type": "boolean",
+      "eventName": "on"
+    }, 
+    {
+      "name": "Brightness",
+      "isWriteable": true,
+      "type": "number",
+      "eventName": "brightness"
+    }
+  ]
+}, {
+  "name": "Lock",
+  "capabilityModelClassName": "LockBase",
+  "properties": [
+    {
+      "name": "IsLocked",
+      "isWriteable": true,
+      "type": "boolean",
+      "eventName": "locked"
+    }, 
+    {
+      "name": "IsJammed",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "is_jammed"
+    }
+  ]
+}, {
+  "name": "MotionSensor",
+  "properties": [
+    {
+      "name": "HasMotion",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "motion"
+    }
+  ]
+}, {
+  "name": "Switch",
+  "properties": [
+    {
+      "name": "IsOn",
+      "isWriteable": true,
+      "type": "boolean",
+      "eventName": "on"
+    }
+  ]
+}, {
+  "name": "TemperatureSensor",
+  "properties": [
+    {
+      "name": "CurrentTemperature",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "temperature"
+    }
+  ]
+}, {
+  "name": "Thermostat",
+  "properties": [
+    {
+      "name": "IsOn",
+      "isWriteable": true,
+      "type": "boolean",
+      "eventName": "heating"
+    },
+    {
+      "name": "Power",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "power"
+    },
+    {
+      "name": "Humidity",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "humidity"
+    },
+    {
+      "name": "CurrentTemperature",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "temperature"
+    },
+    {
+      "name": "TargetTemperature",
+      "isWriteable": true,
+      "type": "number",
+      "eventName": "target"
+    }
+  ]
+}, {
+  "name": "Speaker",
+  "capabilityModelClassName": "SpeakerBase",
+  "properties": []
+}, {
+  "name": "Camera",
+  "properties": []
+}]
