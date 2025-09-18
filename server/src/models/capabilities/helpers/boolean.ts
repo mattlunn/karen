@@ -5,7 +5,7 @@ export async function getBooleanProperty(device: Device, propertyName: string): 
   return !!latestEvent && !latestEvent.end;
 }
 
-export async function setBooleanProperty(device: Device, propertyName: string, propertyValue: boolean, timestamp: Date = new Date()): Promise<void> {
+export async function setBooleanProperty(device: Device, propertyName: string, propertyValue: boolean, timestamp: Date = new Date()): Promise<Event | null> {
   const lastEvent = await device.getLatestEvent(propertyName);
   const valueHasChanged = !lastEvent || !lastEvent.end !== propertyValue;
 
@@ -19,14 +19,14 @@ export async function setBooleanProperty(device: Device, propertyName: string, p
     }
 
     if (propertyValue === true) {
-      await Event.create({
+      return await Event.create({
         deviceId: device.id,
         start: timestamp,
         value: Number(propertyValue),
         type: propertyName
       });
     }
-
-    device.onPropertyChanged(propertyName);
   }
+
+  return null;
 }

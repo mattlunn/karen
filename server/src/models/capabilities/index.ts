@@ -1,4 +1,4 @@
-import { Device } from '../device';
+import { Device, Event } from '../';
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';

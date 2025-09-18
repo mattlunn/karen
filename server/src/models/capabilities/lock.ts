@@ -1,6 +1,4 @@
-import bus from '../../bus';
-import { Event } from '..';
-import { LockBaseCapability } from './capabilities.gen';
+import { DeviceCapabilityEvents, LockBaseCapability } from './capabilities.gen';
 
 export class LockCapability extends LockBaseCapability {
   async ensureIsLocked(abortSignal: AbortSignal): Promise<void> {
@@ -16,21 +14,18 @@ export class LockCapability extends LockBaseCapability {
 
     return new Promise((res, rej) => {
       function cleanup() {
-        bus.off('EVENT_START', eventHandler);
+        DeviceCapabilityEvents.offLockIsJammedStart(doorJammedHandler);
+        DeviceCapabilityEvents.offLockIsLockedStart(doorLockedHandler);
       }
-      
-      async function eventHandler(event: Event) {
-        if (event.deviceId === device.id) {
-          if (event.type === 'locked') {
-            cleanup();
-            res();
-          }
 
-          if (event.type === 'is_jammed') {
-            cleanup();
-            rej(new Error('Lock is jammed'));
-          }
-        }
+      function doorJammedHandler() {
+        cleanup();
+        rej(new Error('Lock is jammed'));
+      }
+
+      function doorLockedHandler() {
+        cleanup();
+        res();
       }
 
       abortSignal.addEventListener('abort', () => {
@@ -38,7 +33,9 @@ export class LockCapability extends LockBaseCapability {
         rej(abortSignal.reason);
       });
 
-      bus.on('EVENT_START', eventHandler);
+      DeviceCapabilityEvents.onLockIsJammedStart(d => d.id === device.id, doorJammedHandler);
+      DeviceCapabilityEvents.onLockIsLockedStart(d => d.id === device.id, doorLockedHandler);
+
       this.setIsLocked(true);
     });
   }

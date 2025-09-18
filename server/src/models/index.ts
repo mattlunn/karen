@@ -24,7 +24,7 @@ const instance = new Sequelize(config.database.name, config.database.user, confi
 export const Token = tokenFactory(instance);
 
 export { Device } from './device';
-export { Event } from './event';
+export { Event, BooleanEvent, NumericEvent } from './event';
 export { Recording } from './recording';
 export { User } from './user';
 export { Stay } from './stay';

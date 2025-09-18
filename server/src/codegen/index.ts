@@ -14,21 +14,26 @@ type PropertyDescriptor = {
   eventName: string;
 }
 
+const toSnakeCase = (x: string) => x.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '');
+const toPascalUpperCase = (x: string) => x.replace(/([A-Z])/g, '_$1').slice(1).toUpperCase();
+
 const capabilities = (require('../capabilities.json') as CapabilityDescriptor[]).map(({ name, properties, capabilityModelClassName = null }) => {
-  const moduleName = `${name.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '')}.gen`;
-  const capabilityEnumName = name.replace(/([A-Z])/g, '_$1').slice(1).toUpperCase();
+  const moduleName = `${toSnakeCase(name)}.gen`;
+  const capabilityEnumName = toPascalUpperCase(name);
 
   return {
     moduleName,
     className: `${capabilityModelClassName || name}Capability`,
-    capabilityName: `${name}Capability`,
+    capabilityName: name,
     capabilityEnumName,
     properties: properties.map(x => {
       return {
         propertyName: x.name,
+        propertyEnumName: toPascalUpperCase(x.name),
         isBoolean: x.type === 'boolean',
         isWriteable: x.isWriteable,
-        eventName: x.eventName,
+        eventType: x.type === 'boolean' ? 'BooleanEvent' : 'NumericEvent',
+        fieldName: x.eventName,
       }
     })
   };
