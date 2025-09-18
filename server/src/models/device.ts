@@ -1,5 +1,4 @@
 import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional, NonAttribute } from 'sequelize';
-import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import logger from '../logger';
 import { Event } from './event';
 import { 
@@ -52,13 +51,6 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
     return this.#metaParsed;
   }
-
-  onPropertyChanged(property: string) {
-    bus.emit(DEVICE_PROPERTY_CHANGED, {
-      device: this,
-      property
-    });
-  };
 
   #getCapabilityOrThrow<T>(handler: () => T): T {
     // TODO: Should check that the provider can provide this capability at this point???
@@ -131,10 +123,6 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     }
 
     return provider.getCapabilities(this);
-  }
-
-  hasCapability(capability: Capability): boolean {
-    return this.getCapabilities().includes(capability);
   }
 
   async getLatestEvent(type: string): Promise<Event | null> {

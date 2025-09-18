@@ -134,6 +134,7 @@ export class DeviceCapabilityEvents {
 
   static emit{{../capabilityName}}{{propertyName}}Start(e: BooleanEvent) {
     bus.emit('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START', e);
+    bus.emit('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', e);
   }
 
   static on{{../capabilityName}}{{propertyName}}End(deviceFilter: (d: Device) => boolean, handler: (e: BooleanEvent) => unknown): void;
@@ -148,6 +149,7 @@ export class DeviceCapabilityEvents {
 
   static emit{{../capabilityName}}{{propertyName}}End(e: BooleanEvent) {
     bus.emit('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_END', e);
+    bus.emit('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', e);
   }
   {{/if}}
   static on{{../capabilityName}}{{propertyName}}Changed(deviceFilter: (d: Device) => boolean, handler: (e: {{eventType}}) => unknown): void;
@@ -162,6 +164,7 @@ export class DeviceCapabilityEvents {
 
   static emit{{../capabilityName}}{{propertyName}}Changed(e: {{eventType}}) {
     bus.emit('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED', e);
+    bus.emit('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', e);
   }
   {{/each}}
   {{/each}}
@@ -170,7 +173,7 @@ export class DeviceCapabilityEvents {
     bus.on('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', handler);
   }
 
-  static emitDeviceCapabilityPropertyChanged(e: BooleanEvent | NumericEvent) {
-    bus.emit('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', e);
+  static offDeviceCapabilityPropertyChanged(handler: (e: BooleanEvent | NumericEvent) => unknown) {
+    bus.off('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', handler);
   }
 }

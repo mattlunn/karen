@@ -10,34 +10,63 @@ import UnorderedDataLoader from './loaders/unordered-dataloader';
 import DeviceLoader from './loaders/device-loader';
 import RoomLoader from './loaders/room-loader';
 import typeDefs from './type-defs';
-import bus, { DEVICE_PROPERTY_CHANGED } from '../bus';
 import createNewRelicPlugin from '@newrelic/apollo-server-plugin';
 import logger from '../logger';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { useServer } from 'graphql-ws/lib/use/ws';
+import { DeviceCapabilityEvents } from '../models/capabilities';
 
 function createSubscriptionForDevice() {
   return {
     subscribe() {
       let ended = false;
+      let updatedDevices = new Set([]);
+      let pendingPromiseResolver;
+
+      const handler = async (e) => {
+        const device = await e.getDevice();
+
+        if (typeof pendingPromiseResolver === 'function') {
+          pendingPromiseResolver({
+            done: false,
+            value: { onDeviceChanged: new Device(device) }
+          });
+          pendingPromiseResolver = null;
+        } else {
+          updatedDevices.add(device);
+        }
+      };
+
+      DeviceCapabilityEvents.onDeviceCapabilityPropertyChanged(handler);
 
       return {
         [Symbol.asyncIterator]() {
           return {
             next() {
-              return new Promise((res) => {
-                bus.once(DEVICE_PROPERTY_CHANGED, ({ device }) => {
-                  if (ended) {
-                    res({ done: true });
-                  } else {
-                    res({ done: false, value: { onDeviceChanged: new Device(device) }});
-                  }
+              if (ended) {
+                return Promise.resolve({
+                  done: true
                 });
-              });
+              }
+
+              if (updatedDevices.size > 0) {
+                const value = updatedDevices.values().next().value;
+
+                updatedDevices.delete(value);
+
+                return Promise.resolve({
+                  done: false, value: { onDeviceChanged: new Device(value) }
+                });
+              } else {
+                return new Promise((res) => {
+                  pendingPromiseResolver = res;
+                });
+              }
             },
 
             return() {
               ended = true;
+              DeviceCapabilityEvents.offDeviceCapabilityPropertyChanged(handler);
 
               return Promise.resolve({
                 done: true
