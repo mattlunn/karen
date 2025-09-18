@@ -1,6 +1,7 @@
-import bus, { EVENT_START, NOTIFICATION_TO_ADMINS } from '../bus';
-import { Device, Event } from '../models';
+import bus, { NOTIFICATION_TO_ADMINS } from '../bus';
+import { Device } from '../models';
 import { createBackgroundTransaction } from '../helpers/newrelic';
+import { DeviceCapabilityEvents } from '../models/capabilities';
 
 type HeatingAutomationParameters = {
   heatingSwitchName: string;
@@ -48,56 +49,60 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold
     return Math.min(...temperatureDeltas);
   }
 
-  bus.on(EVENT_START, createBackgroundTransaction(`automations:heating`, async (event: Event) => {
-    const eventDevice = await event.getDevice();
+  DeviceCapabilityEvents.onThermostatPowerChanged(createBackgroundTransaction('automations:heating:thermostat-power-changed', async (event) => {
+    const thermostat = await event.getDevice();
     const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
     const heatingIsOn = await heatingDevice.getSwitchCapability().getIsOn();
+    const thermostatIsOn = event.value > 0;
 
-    if (eventDevice.hasCapability('THERMOSTAT') && event.type === 'power') {
-      const thermostatIsOn = event.value > 0;
-
-      // On power change, if any heating demand, then turn on.
-      if (thermostatIsOn) {
-        if (!heatingIsOn && !compressorLockedOutForCooldown) {
-          await heatingDevice.getSwitchCapability().setIsOn(true);
-
-          bus.emit(NOTIFICATION_TO_ADMINS, {
-            message: `Turning heating on, as ${eventDevice.name} is requesting heat (${event.value}%)`
-          });
-        }
-
-      // On power change to 0, if no thermostats within X degrees, then turn off
-      } else {
-        const maximumTemperatureDelta = await getLargestTemperatureDelta();
-
-        if (maximumTemperatureDelta > temperatureDeltaSwitchOffThreshold && heatingIsOn) {
-          await heatingDevice.getSwitchCapability().setIsOn(false);
-
-          bus.emit(NOTIFICATION_TO_ADMINS, { 
-            message: `Turning heating off, as no thermostats are within ${temperatureDeltaSwitchOffThreshold}° of their target temperature`
-          });
-        }
-      }
-    }
-
-    if (eventDevice.hasCapability('THERMOSTAT') && event.type === 'temperature') {
-      const target = await eventDevice.getThermostatCapability().getTargetTemperature(); 
-      const temperatureDelta = target - event.value;
-
-      if (temperatureDelta > temperatureDeltaSwitchOnThreshold && compressorLockedOutForCooldown) {
+    // On power change, if any heating demand, then turn on.
+    if (thermostatIsOn) {
+      if (!heatingIsOn && !compressorLockedOutForCooldown) {
         await heatingDevice.getSwitchCapability().setIsOn(true);
 
-        compressorLockedOutForCooldown = false;
+        bus.emit(NOTIFICATION_TO_ADMINS, {
+          message: `Turning heating on, as ${thermostat.name} is requesting heat (${event.value}%)`
+        });
+      }
+
+    // On power change to 0, if no thermostats within X degrees, then turn off
+    } else {
+      const maximumTemperatureDelta = await getLargestTemperatureDelta();
+
+      if (maximumTemperatureDelta > temperatureDeltaSwitchOffThreshold && heatingIsOn) {
+        await heatingDevice.getSwitchCapability().setIsOn(false);
 
         bus.emit(NOTIFICATION_TO_ADMINS, { 
-          message: `Ending lockout and turning heating on, as ${eventDevice.name} is ${temperatureDelta}° below target of ${target}°C`
+          message: `Turning heating off, as no thermostats are within ${temperatureDeltaSwitchOffThreshold}° of their target temperature`
         });
       }
     }
+  }));
+
+  DeviceCapabilityEvents.onThermostatCurrentTemperatureChanged(createBackgroundTransaction('automations:heating:thermostat-temperature-changed', async (event) => {
+    const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
+    const thermostat = await event.getDevice();
+    const target = await thermostat.getThermostatCapability().getTargetTemperature(); 
+    const temperatureDelta = target - event.value;
+
+    if (temperatureDelta > temperatureDeltaSwitchOnThreshold && compressorLockedOutForCooldown) {
+      await heatingDevice.getSwitchCapability().setIsOn(true);
+
+      compressorLockedOutForCooldown = false;
+
+      bus.emit(NOTIFICATION_TO_ADMINS, { 
+        message: `Ending lockout and turning heating on, as ${thermostat.name} is ${temperatureDelta}° below target of ${target}°C`
+      });
+    }
+  }));
+
+  DeviceCapabilityEvents.onHeatPumpCompressorModulationChanged(createBackgroundTransaction('automations:heating:compressor-modulation-changed', async (event) => {
+    const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
+    const heatingIsOn = await heatingDevice.getSwitchCapability().getIsOn();
 
     // Either because we have already turned heat demand off from above, or there is not enough heat demand to keep
     // the heat pump on, so turn it off.
-    if (eventDevice.name === heatPumpDeviceName && event.type === 'compressor_modulation' && event.value === 0 && heatingIsOn) {
+    if (event.value === 0 && heatingIsOn) {
       const maximumTemperatureDelta = await getLargestTemperatureDelta();
 
       // ... but only if all rooms are warm enough, otherwise the above condition will just switch the heating on again.

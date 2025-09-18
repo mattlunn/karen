@@ -1,7 +1,9 @@
-import bus, { EVENT_START, FIRST_USER_HOME } from '../bus';
+import bus, { FIRST_USER_HOME } from '../bus';
 import { Device, Stay } from '../models';
 import { isWithinTime } from '../helpers/time';
 import setIntervalForTime from '../helpers/set-interval-for-time';
+import { DeviceCapabilityEvents } from '../models/capabilities';
+import { createBackgroundTransaction } from '../helpers/newrelic';
 
 // Morning
 // Gets turned on when motion detected between window
@@ -27,11 +29,11 @@ export default function ({ switchNames, morningStart, morningEnd, eveningStart, 
   }
 
   // Turn on in the morning when motion first detected.
-  bus.on(EVENT_START, async (event) => {
-    if (event.type === 'motion' && isWithinTime(morningStart, morningEnd, event.start)) {
+  DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:christmas:motion-started', async () => {
+    if (isWithinTime(morningStart, morningEnd, event.start)) {
       await setDevicesOnStatus(true);
     }
-  });
+  }));
 
   // Turn off at end of morning at specified time.
   setIntervalForTime(async () => {

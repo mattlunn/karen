@@ -1,6 +1,7 @@
 import { BooleanEvent, Device } from '../models';
 import { isWithinTime } from '../helpers/time';
 import { DeviceCapabilityEvents } from '../models/capabilities';
+import { createBackgroundTransaction } from '../helpers/newrelic';
 
 const offDelays = new Map();
 
@@ -17,16 +18,17 @@ type ControlLightOnMotionParameters = {
 };
 
 export default function ({ sensorName, lightName, between = [{ start: '00:00', end: '00:00 + 1d' }], offDelaySeconds = 0 }: ControlLightOnMotionParameters) {
-  DeviceCapabilityEvents.onMotionSensorHasMotionStart(async (event: BooleanEvent) => {
-    const sensor = await event.getDevice();
+  DeviceCapabilityEvents.onMotionSensorHasMotionChanged(
+    device => device.name === sensorName, 
+    createBackgroundTransaction('automations:control-light-on-motion:motion-sensor-changed', async (event: BooleanEvent) => {
+      const sensor = await event.getDevice();
 
-    if (sensor.name === sensorName) {
       for (const { start, end, illuminance = null, brightness = 100 } of between) {
         if (isWithinTime(start, end)) {
           const light = await Device.findByNameOrError(lightName);
           const lightIsOn = await light.getLightCapability().getIsOn();
           const belowIlluminanceThreshold = lightIsOn || illuminance === null || await sensor.getLightSensorCapability().getIlluminance() < illuminance;
-          const lightDesiredOn = eventEvent === EVENT_START && belowIlluminanceThreshold;
+          const lightDesiredOn = !event.hasEnded() && belowIlluminanceThreshold;
 
           clearTimeout(offDelays.get(lightName));
 
@@ -41,6 +43,6 @@ export default function ({ sensorName, lightName, between = [{ start: '00:00', e
           break;
         }
       }
-    }
-  });
+    })
+  );
 }

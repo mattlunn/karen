@@ -67,6 +67,10 @@ export class BooleanEvent {
     this.end = e.end;
   }
 
+  hasEnded() {
+    return !!this.event.end;
+  }
+
   getDevice() {
     return this.event.getDevice();
   }

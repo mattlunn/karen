@@ -1,6 +1,7 @@
 import { BooleanEvent, Device, NumericEvent } from '../models';
 import { isWithinTime } from '../helpers/time';
 import { DeviceCapabilityEvents } from '../models/capabilities';
+import { createBackgroundTransaction } from '../helpers/newrelic';
 
 let timeoutToTurnOff: undefined | ReturnType<typeof setTimeout> = undefined;
 
@@ -37,13 +38,13 @@ export default function ({ motionSensorNames, humiditySensorName, lightName, max
     return humiditySensor.getHumiditySensorCapability().getHumidity();
   }
 
-  DeviceCapabilityEvents.onMotionSensorHasMotionStart(async (event: BooleanEvent) => {
+  DeviceCapabilityEvents.onMotionSensorHasMotionChanged(device => motionSensorNames.includes(device.name), createBackgroundTransaction('automations:bathroom:motion-sensor-changed', async (event: BooleanEvent) => {
     const [sensor, light] = await Promise.all([
       event.getDevice(),
       Device.findByNameOrError(lightName)
     ]);
 
-    if (motionSensorNames.includes(sensor.name)) {
+    if (!event.hasEnded()) {
       const [isLightOn, currentBrightness] = await Promise.all([
         light.getLightCapability().getIsOn(),
         light.getLightCapability().getBrightness()
@@ -59,16 +60,7 @@ export default function ({ motionSensorNames, humiditySensorName, lightName, max
       if (!isLightOn || desiredBrightness !== currentBrightness) {
         await light.getLightCapability().setBrightness(desiredBrightness);
       }
-    }
-  });
-
-  DeviceCapabilityEvents.onMotionSensorHasMotionEnd(async (event: BooleanEvent) => {
-    const [sensor, light] = await Promise.all([
-      event.getDevice(),
-      Device.findByNameOrError(lightName)
-    ]);
-
-    if (motionSensorNames.includes(sensor.name) && !await isSomeoneInRoom()) {
+    } else if (motionSensorNames.includes(sensor.name) && !await isSomeoneInRoom()) {
       timeoutToTurnOff = setTimeout(async () => {
         const humidity = await getHumidityInRoom();
 
@@ -81,9 +73,9 @@ export default function ({ motionSensorNames, humiditySensorName, lightName, max
         }
       }, offDelaySeconds * 1000);
     }
-  });
+  }));
 
-  DeviceCapabilityEvents.onHumiditySensorHumidityChanged(async (event: NumericEvent) => {
+  DeviceCapabilityEvents.onHumiditySensorHumidityChanged(device => device.name === humiditySensorName, createBackgroundTransaction('automations:bathroom:humidity-changed', async (event: NumericEvent) => {
     const light = await Device.findByNameOrError(lightName);
 
     if (!await isSomeoneInRoom() && timeoutToTurnOff === null) {
@@ -96,5 +88,5 @@ export default function ({ motionSensorNames, humiditySensorName, lightName, max
         await light.getLightCapability().setIsOn(false);
       }
     }
-  });
+  }));
 }

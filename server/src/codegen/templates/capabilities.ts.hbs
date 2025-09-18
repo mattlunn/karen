@@ -14,18 +14,21 @@ export class {{className}} {
 {{#each properties}}
   {{#if isBoolean}}
   get{{propertyName}}(): Promise<boolean> {
-    return getBooleanProperty(this.device, '{{eventName}}');
+    return getBooleanProperty(this.device, '{{fieldName}}');
   }
 
   async set{{propertyName}}State(value: boolean, timestamp?: Date): Promise<void> {
-    const event = await setBooleanProperty(this.device, '{{eventName}}', value, timestamp);
+    const event = await setBooleanProperty(this.device, '{{fieldName}}', value, timestamp);
 
     if (event !== null) {
+      const eventWrapper = new BooleanEvent(event);
       if (value) {
-        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}End(new BooleanEvent(event));
+        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}End(eventWrapper);
       } else {
-        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Start(new BooleanEvent(event));
+        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Start(eventWrapper);
       }
+
+      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
     }
   }
   {{#if isWriteable}}
@@ -35,11 +38,11 @@ export class {{className}} {
   {{/if}}
   {{else}}
   get{{propertyName}}(): Promise<number> {
-    return getNumericProperty(this.device, '{{eventName}}');
+    return getNumericProperty(this.device, '{{fieldName}}');
   }
 
   async set{{propertyName}}State(value: number, timestamp?: Date): Promise<void> {
-    const event = await setNumericProperty(this.device, '{{eventName}}', value, timestamp);
+    const event = await setNumericProperty(this.device, '{{fieldName}}', value, timestamp);
 
     if (event !== null) {
       DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(new NumericEvent(event));
@@ -80,40 +83,86 @@ export type DeviceCapabilityEvent =
   {{#if isBoolean}}
     | 'ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START'
     | 'ON_{{../capabilityEnumName}}_{{propertyEnumName}}_END'
-  {{else}}
-    | 'ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED'
   {{/if}}
+    | 'ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED'
   {{/each}}
   {{/each}}
 
 export class DeviceCapabilityEvents {
+  private static onPropertyChangedHelper<T>(event: DeviceCapabilityEvent, arg1: ((d: Device) => boolean) | ((e: T) => unknown), arg2?: (e: T) => unknown) {
+    let handler: (e: BooleanEvent | NumericEvent) => unknown;
+    let deviceFilter: (d: Device) => boolean;
+
+    if (typeof arg2 === 'undefined') {
+      handler = arg1 as (e: BooleanEvent | NumericEvent) => unknown;
+    } else {
+      deviceFilter = arg1 as (d: Device) => boolean;
+      handler = arg2 as (e: BooleanEvent | NumericEvent) => unknown;
+    }
+
+    const listener = async (e: BooleanEvent | NumericEvent) => {
+      if (typeof deviceFilter === 'undefined' || deviceFilter(await e.getDevice())) {
+        handler(e);
+      }
+    };
+
+    listener.originalHandler = handler;
+    bus.on(event, listener);
+  }
+
+  private static offPropertyChangedHelper<T>(event: DeviceCapabilityEvent, handler: (...args: any[]) => unknown) {
+    const matchedListener = bus.rawListeners(event).find((x: any) => x.originalHandler === handler);
+
+    if (matchedListener) {
+      bus.off(event, matchedListener as (...args: any[]) => void);
+    }
+  }
+
   {{#each capabilities}}
   {{#each properties}}
   {{#if isBoolean}}
-  static on{{../capabilityName}}{{propertyName}}Start(handler: (e: BooleanEvent) => unknown) {
-    bus.on('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START', handler);
+
+  static on{{../capabilityName}}{{propertyName}}Start(deviceFilter: (d: Device) => boolean, handler: (e: BooleanEvent) => unknown): void;
+  static on{{../capabilityName}}{{propertyName}}Start(handler: (e: BooleanEvent) => unknown): void
+  static on{{../capabilityName}}{{propertyName}}Start(arg1: ((d: Device) => boolean) | ((e: BooleanEvent) => unknown), arg2?: (e: BooleanEvent) => unknown) {
+    return this.onPropertyChangedHelper('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START', arg1, arg2);
+  }
+  
+  static off{{../capabilityName}}{{propertyName}}Start(handler: (e: BooleanEvent) => unknown): void {
+    return this.offPropertyChangedHelper('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START', handler);
   }
 
   static emit{{../capabilityName}}{{propertyName}}Start(e: BooleanEvent) {
     bus.emit('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START', e);
   }
 
-  static on{{../capabilityName}}{{propertyName}}End(handler: (e: BooleanEvent) => unknown) {
-    bus.on('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_END', handler);
+  static on{{../capabilityName}}{{propertyName}}End(deviceFilter: (d: Device) => boolean, handler: (e: BooleanEvent) => unknown): void;
+  static on{{../capabilityName}}{{propertyName}}End(handler: (e: BooleanEvent) => unknown): void
+  static on{{../capabilityName}}{{propertyName}}End(arg1: ((d: Device) => boolean) | ((e: BooleanEvent) => unknown), arg2?: (e: BooleanEvent) => unknown) {
+    return this.onPropertyChangedHelper('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_END', arg1, arg2);
+  }
+
+  static off{{../capabilityName}}{{propertyName}}End(handler: (e: BooleanEvent) => unknown): void {
+    return this.offPropertyChangedHelper('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_END', handler);
   }
 
   static emit{{../capabilityName}}{{propertyName}}End(e: BooleanEvent) {
     bus.emit('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_END', e);
   }
-  {{else}}
-  static on{{../capabilityName}}{{propertyName}}Changed(handler: (e: NumericEvent) => unknown) {
-    bus.on('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED', handler);
+  {{/if}}
+  static on{{../capabilityName}}{{propertyName}}Changed(deviceFilter: (d: Device) => boolean, handler: (e: {{eventType}}) => unknown): void;
+  static on{{../capabilityName}}{{propertyName}}Changed(handler: (e: {{eventType}}) => unknown): void
+  static on{{../capabilityName}}{{propertyName}}Changed(arg1: ((d: Device) => boolean) | ((e: {{eventType}}) => unknown), arg2?: (e: {{eventType}}) => unknown) {
+    return this.onPropertyChangedHelper('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED', arg1, arg2);
   }
 
-  static emit{{../capabilityName}}{{propertyName}}Changed(e: NumericEvent) {
+  static off{{../capabilityName}}{{propertyName}}Changed(handler: (e: {{eventType}}) => unknown): void {
+    return this.offPropertyChangedHelper('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED', handler);
+  }
+
+  static emit{{../capabilityName}}{{propertyName}}Changed(e: {{eventType}}) {
     bus.emit('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED', e);
   }
-  {{/if}}
   {{/each}}
   {{/each}}
 
@@ -121,7 +170,7 @@ export class DeviceCapabilityEvents {
     bus.on('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', handler);
   }
 
-  static emitDeviceCapabilityPropertyChanged(e: BooleanEvent) {
+  static emitDeviceCapabilityPropertyChanged(e: BooleanEvent | NumericEvent) {
     bus.emit('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', e);
   }
 }

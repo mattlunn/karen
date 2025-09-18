@@ -1,6 +1,7 @@
-import bus, { FIRST_USER_HOME, EVENT_START } from '../bus';
-import { Device } from '../models';
-import { startBackgroundTransaction } from '../helpers/newrelic';
+import bus, { FIRST_USER_HOME } from '../bus';
+import { Device, Stay } from '../models';
+import { createBackgroundTransaction } from '../helpers/newrelic';
+import { DeviceCapabilityEvents } from '../models/capabilities';
 
 const greetings: ((name: string) => string)[] = [
   (name) => `<voice name="Mizuki"><lang xml:lang="ja-JP">こんにちは ${name}</lang></voice>. That's hello, in Japanese!'`,
@@ -13,22 +14,24 @@ const greetings: ((name: string) => string)[] = [
 ];
 
 export default async function ({ alexa_name: alexaName }: { alexa_name: string }) {
-  bus.on(FIRST_USER_HOME, (stay) => {
-    bus.on(EVENT_START, function listener(event) {
-      return startBackgroundTransaction('automations:greeting', async function() {
-        if (event.type === 'motion') {
-          const [
-            device,
-            user
-          ] = await Promise.all([
-            Device.findByNameOrError(alexaName),
-            stay.getUser()
-          ]);
+  let unannouncedStay: Stay | null = null;
 
-          bus.off(EVENT_START, listener);
-          device.getSpeakerCapability().emitSound(greetings[Math.floor(Math.random() * greetings.length)](user.handle));
-        }
-      });
-    });
+  DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:greeting', async (event) => {
+    if (unannouncedStay !== null) {
+      const [
+        device,
+        user
+      ] = await Promise.all([
+        Device.findByNameOrError(alexaName),
+        unannouncedStay.getUser()
+      ]);
+
+      unannouncedStay = null;
+      device.getSpeakerCapability().emitSound(greetings[Math.floor(Math.random() * greetings.length)](user.handle));
+    }
+  }));
+
+  bus.on(FIRST_USER_HOME, (stay) => {
+    unannouncedStay = stay;
   });
 }

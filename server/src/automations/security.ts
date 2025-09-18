@@ -1,10 +1,10 @@
 import { Device, Arming, Stay, User, AlarmActivation, Event } from '../models';
 import { call } from '../services/twilio';
-import bus, { EVENT_START } from '../bus';
 import moment from 'moment';
 import sleep from '../helpers/sleep';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
+import { DeviceCapabilityEvents } from '../models/capabilities';
 
 const successAsBoolean = (promise: Promise<void>) => promise.then(() => true, () => false);
 
@@ -117,33 +117,31 @@ export default async function ({
   night_excluded_devices: nightExcludedDevices = [],
   excluded_devices: excludedDevices = []
 }: SecurityAutomationConfiguration) {
-  bus.on(EVENT_START, createBackgroundTransaction('automations:security:event-start', async (event) => {
-    if (event.type === 'motion') {
-      const [
-        arming,
-        device
-       ] = await Promise.all([
-        Arming.getActiveArming(event.start),
-        event.getDevice()
-      ]);
+  DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:security:motion-detected', async (event) => {
+    const [
+      arming,
+      device
+      ] = await Promise.all([
+      Arming.getActiveArming(event.start),
+      event.getDevice()
+    ]);
 
-      if (arming && !isExcludedDevice(arming.mode, device.name, excludedDevices, nightExcludedDevices)) {
-        let mostRecentActivation = await arming.getMostRecentActivation();
+    if (arming && !isExcludedDevice(arming.mode, device.name, excludedDevices, nightExcludedDevices)) {
+      let mostRecentActivation = await arming.getMostRecentActivation();
 
-        if (!mostRecentActivation || mostRecentActivation.isSuppressed) {
-          mostRecentActivation = await AlarmActivation.create({
-            armingId: arming.id,
-            startedAt: event.start
-          });
+      if (!mostRecentActivation || mostRecentActivation.isSuppressed) {
+        mostRecentActivation = await AlarmActivation.create({
+          armingId: arming.id,
+          startedAt: event.start
+        });
 
-          notifyAbsentUsersOfEvent(event);
-          turnOnAllTheLights();
+        notifyAbsentUsersOfEvent(event);
+        turnOnAllTheLights();
 
-          if (arming.mode === ArmingMode.NIGHT) {
-            notifyNightModeAlexa(nightModeAlexa, event);
-          } else {
-            soundTheAlarm(alarmAlexa, mostRecentActivation);
-          }
+        if (arming.mode === ArmingMode.NIGHT) {
+          notifyNightModeAlexa(nightModeAlexa, event);
+        } else {
+          soundTheAlarm(alarmAlexa, mostRecentActivation);
         }
       }
     }

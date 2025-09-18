@@ -32,7 +32,8 @@ const capabilities = (require('../capabilities.json') as CapabilityDescriptor[])
         propertyEnumName: toPascalUpperCase(x.name),
         isBoolean: x.type === 'boolean',
         isWriteable: x.isWriteable,
-        eventName: x.eventName,
+        eventType: x.type === 'boolean' ? 'BooleanEvent' : 'NumericEvent',
+        fieldName: x.eventName,
       }
     })
   };
