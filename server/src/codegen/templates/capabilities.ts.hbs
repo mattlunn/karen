@@ -23,9 +23,9 @@ export class {{className}} {
     if (event !== null) {
       const eventWrapper = new BooleanEvent(event);
       if (value) {
-        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}End(eventWrapper);
-      } else {
         DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Start(eventWrapper);
+      } else {
+        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}End(eventWrapper);
       }
 
       DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
