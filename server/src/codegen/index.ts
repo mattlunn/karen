@@ -34,13 +34,13 @@ const capabilities = (require('../capabilities.json') as CapabilityDescriptor[])
         isWriteable: x.isWriteable,
         eventType: x.type === 'boolean' ? 'BooleanEvent' : 'NumericEvent',
         fieldName: x.eventName,
-      }
+      };
     })
   };
 });
 
 function generateCapabilityModels() {
-  const template = Handlebars.compile(readFileSync('./codegen/templates/capabilities.ts.hbs', 'utf-8'));
+  const template = Handlebars.compile(readFileSync('./codegen/templates/models.ts.hbs', 'utf-8'));
   const filePath = `../models/capabilities/capabilities.gen.ts`;
   const providers = capabilities.filter(x => x.properties.some(x => x.isWriteable));
 
@@ -49,4 +49,14 @@ function generateCapabilityModels() {
   console.log(`Wrote ${filePath}`);
 }
 
+function generateCapabilityTypeDefs() {
+  const template = Handlebars.compile(readFileSync('./codegen/templates/typedefs.ts.hbs', 'utf-8'));
+  const filePath = `../api/typedefs/capabilities.gen.ts`;
+
+  writeFileSync(`${__dirname}/${filePath}`, template({ capabilities }));
+
+  console.log(`Wrote ${filePath}`);
+}
+
 generateCapabilityModels();
+generateCapabilityTypeDefs();

@@ -9,7 +9,7 @@ import { setDHWMode, getDHWMode } from '../services/ebusd';
 import UnorderedDataLoader from './loaders/unordered-dataloader';
 import DeviceLoader from './loaders/device-loader';
 import RoomLoader from './loaders/room-loader';
-import typeDefs from './type-defs';
+import { main, capabilities } from './typedefs';
 import createNewRelicPlugin from '@newrelic/apollo-server-plugin';
 import logger from '../logger';
 import { makeExecutableSchema } from '@graphql-tools/schema';
@@ -95,14 +95,6 @@ const resolvers = {
       return new Security(context);
     },
 
-    async getHeating(parent, args, context, info) {
-      return new Heating(context);
-    },
-
-    async getHistory(parent, args, context, info) {
-      return new History(args);
-    },
-
     async getDevice(parent, args, context, info) {
       const device = await db.Device.findById(args.id);
 
@@ -117,7 +109,7 @@ const resolvers = {
       return devices.findAll();
     },
 
-    async getTimeline(parent, { since, limit }, context, info) {
+    async getHistory(parent, { since, limit, devices, events }, context, info) {
       const events = await Promise.all([
         db.Event.findAll({
           order: [['start', 'DESC']],
@@ -387,7 +379,10 @@ const resolvers = {
 };
 
 export default async function(wsServer) {
-  const schema = makeExecutableSchema({ typeDefs, resolvers });
+  const schema = makeExecutableSchema({ 
+    typeDefs: [main, capabilities], 
+    resolvers 
+  });
   const server = new ApolloServer({
     includeStacktraceInErrorResponses: true,
     schema,

@@ -1,6 +1,6 @@
 import { gql } from 'graphql-tag';
 
-export default gql`
+export const main = gql`
   enum Occupancy {
     HOME
     AWAY
@@ -159,6 +159,13 @@ export default gql`
   union TimelineEvent = MotionEvent | ArrivalEvent | DepartureEvent | LightOnEvent | LightOffEvent | AlarmArmingEvent | DoorbellRingEvent
   union HistoryDatumType = Thermostat | Light
 
+  enum EventType {
+    USER_ARRIVAL
+    USER_DEPARTURE
+    ALARM_ARMING
+    DOORBELL_RING
+  }
+
   type User {
     id: ID!
     avatar: String!
@@ -209,9 +216,8 @@ export default gql`
     getDevices: [Device]
     getUsers: [User]
     getSecurityStatus: Security
-    getHeating: Heating,
-    getHistory(ids: [ID!], type: String, from: Float!, to: Float!, interval: Float!): History
     getTimeline(since: Float!, limit: Int!): [TimelineEvent!]
+    getHistory(since: Float!, limit: Int!, devices: [ID!], events: [EventType!]): [Event!]
     getRooms: [Room]
   }
 
@@ -229,3 +235,5 @@ export default gql`
     onDeviceChanged: Device
   }
 `;
+
+export { capabilities } from './capabilities.gen';

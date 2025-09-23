@@ -1,0 +1,27 @@
+import { gql } from 'graphql-tag';
+
+export const capabilities = gql`
+  extend enum EventType {
+  {{#each capabilities}}
+  {{#each properties}}
+  {{#if isBoolean}}
+    {{../capabilityEnumName}}_{{propertyEnumName}}_START
+    {{../capabilityEnumName}}_{{propertyEnumName}}_END
+  {{/if}}
+    {{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED
+  {{/each}}
+  {{/each}}
+  }
+
+  {{#each capabilities}}
+  {{#each properties}}
+  type {{../capabilityName}}{{propertyName}}ChangeEvent implements Event {
+    id: ID!
+    timestamp: Float!
+    value: {{#if isBoolean}}Boolean{{else}}Int{{/if}}!
+    device: Device!
+  }
+
+  {{/each}}
+  {{/each}}
+`;
