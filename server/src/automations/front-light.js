@@ -4,33 +4,24 @@ import { Device } from '../models';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 
 let offTimeout;
-let offExecutionTime;
 
-function turnOffAfter(device, delayInMs) {
-  const turnOffTime = Date.now() + delayInMs;
-
-  if (offExecutionTime && offExecutionTime > turnOffTime) {
-    return;
-  }
-
-  clearTimeout(offTimeout);
-
-  offExecutionTime = turnOffTime;
-  offTimeout = setTimeout(() => {
-    device.getLightCapability().setIsOn(false);
-  }, delayInMs);
-}
-
-export default function ({ offDelayInMinutes, start, end, lightName }) {
+export default function ({ offDelayInMinutes, start, end, lightNames }) {
   bus.on(STAY_START, createBackgroundTransaction('automations:front-light:stay-start', async () => {
     if (isWithinTime(start, end)) {
-      const device = await Device.findByName(lightName);
+      const devices = await Promise.all(lightNames.map(x => Device.findByName(lightName)));
+      const devicesToTurnOff = [];
 
-      if (!await device.getLightCapability().getIsOn()) {
-        device.getLightCapability().setIsOn(true);
-
-        turnOffAfter(device, offDelayInMinutes * 60000);
+      for (const device of devices) {
+        if (!await device.getLightCapability().getIsOn()) {
+          device.getLightCapability().setIsOn(true);
+          devicesToTurnOff.push(device);
+        }
       }
+
+      clearTimeout(offTimeout);
+      setTimeout(async () => {
+        await Promise.all(devicesToTurnOff.map(x => device.getLightCapability().setIsOn(false)));
+      }, offDelayInMinutes * 60 * 1000);
     }
   }));
 }
