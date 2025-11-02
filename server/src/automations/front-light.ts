@@ -3,13 +3,20 @@ import { isWithinTime } from '../helpers/time';
 import { Device } from '../models';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 
-let offTimeout;
+let offTimeout: ReturnType<typeof setTimeout>;
 
-export default function ({ offDelayInMinutes, start, end, lightNames }) {
+type FrontLightAutomationParameters = {
+  offDelayInMinutes: number;
+  start: string;
+  end: string;
+  lightNames: string[];
+};
+
+export default function ({ offDelayInMinutes, start, end, lightNames }: FrontLightAutomationParameters) {
   bus.on(STAY_START, createBackgroundTransaction('automations:front-light:stay-start', async () => {
     if (isWithinTime(start, end)) {
-      const devices = await Promise.all(lightNames.map(x => Device.findByName(lightName)));
-      const devicesToTurnOff = [];
+      const devices = await Promise.all(lightNames.map(lightName => Device.findByNameOrError(lightName)));
+      const devicesToTurnOff: Device[] = [];
 
       for (const device of devices) {
         if (!await device.getLightCapability().getIsOn()) {
@@ -20,7 +27,7 @@ export default function ({ offDelayInMinutes, start, end, lightNames }) {
 
       clearTimeout(offTimeout);
       setTimeout(async () => {
-        await Promise.all(devicesToTurnOff.map(x => device.getLightCapability().setIsOn(false)));
+        await Promise.all(devicesToTurnOff.map(device => device.getLightCapability().setIsOn(false)));
       }, offDelayInMinutes * 60 * 1000);
     }
   }));
