@@ -105,6 +105,18 @@ export type ZoneState = {
   overlay: null
 });
 
+export type ZonesState = Record<number, ZoneState>;
+
+export class TadoClientError extends Error {
+  code: string;
+
+  constructor(code: string, message: string) {
+    super(`${code}: ${message}`);
+
+    this.code = code;
+  }
+}
+
 export async function exchangeRefreshTokenForAccessToken(refreshToken: string): Promise<Token> {
   const response = await fetch('https://login.tado.com/oauth2/token', {
     method: 'POST',
@@ -161,7 +173,7 @@ export default class TadoClient {
     const json = await response.json();
 
     if (json.errors && json.errors.length) {
-      throw new Error(`${json.errors[0].code}: ${json.errors[0].title}`);
+      throw new TadoClientError(json.errors[0].code, json.errors[0].title);
     }
 
     return json;
@@ -171,8 +183,10 @@ export default class TadoClient {
     return this._request('/zones');
   }
 
-  getZoneState(zone: string): Promise<ZoneState> {
-    return this._request(`/zones/${zone}/state`);
+  async getZonesState(): Promise<ZonesState> {
+    const data = await this._request(`/zoneStates`);
+
+    return data.zoneStates;
   }
 
   async getActiveTimetable(zone: string): Promise<ZoneActiveTimetable> {
