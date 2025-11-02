@@ -24,6 +24,18 @@ async function turnOffLights() {
   return lightsTurnedOff;
 }
 
+function promiseOrAbort<T>(promise: Promise<T>, abortSignal: AbortSignal): Promise<T> {
+  return Promise.race([
+    promise,
+
+    new Promise<T>((_, reject) => {
+      abortSignal.addEventListener('abort', () => {
+        reject(new Error('Operation aborted'));
+      });
+    })
+  ]);
+}
+ 
 export default function (config: OccupanyAutomationConfiguration) {
   bus.on(LAST_USER_LEAVES, createBackgroundTransaction('automations:occupancy:last-user-leaves', async (stay) => {
     const abortController = new AbortController();
@@ -73,10 +85,10 @@ export default function (config: OccupanyAutomationConfiguration) {
         centralHeatingModeChanged,
         lightsTurnedOff
       ] = await Promise.all([
-        ensureActiveArming(),
-        getUnsecuredLocks(),
-        ensureHeatingOff(),
-        turnOffLights()
+        promiseOrAbort(ensureActiveArming(), abortController.signal),
+        promiseOrAbort(getUnsecuredLocks(), abortController.signal),
+        promiseOrAbort(ensureHeatingOff(), abortController.signal),
+        promiseOrAbort(turnOffLights(), abortController.signal)
       ]);
 
       const notification = [
