@@ -166,6 +166,11 @@ export default class TadoClient {
       }
     });
 
+    const rateLimitPolicy = response.headers.get('ratelimit-policy');
+    const rateLimit = response.headers.get('ratelimit');
+
+    logger.info(`Tado: Policy: ${rateLimitPolicy}, Current State: ${rateLimit}`);
+
     if (response.status === 204) {
       return Promise.resolve();
     }

@@ -53,10 +53,6 @@ export default class ZWaveClient {
         const dataAsString = data.toString();
         const message = JSON.parse(dataAsString);
     
-        if (process.env.NODE_ENV === 'development') {
-          logger.debug(message);
-        }
-    
         switch (message.type) {
           case 'result': {
             const { success, messageId, result } = message;
