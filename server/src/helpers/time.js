@@ -43,7 +43,7 @@ export function normalizeTime(time, date = new Date()) {
 }
 
 // Has tests!
-export function isWithinTime(start, end, date = Date.now()) {
+export function isWithinTime(start, end, date = new Date()) {
   const normalizedStart = normalizeTime(start, date);
   const normalizedEnd = normalizeTime(end, date);
 
