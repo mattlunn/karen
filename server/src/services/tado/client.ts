@@ -10,16 +10,7 @@ export type Token = {
 
 export type ISODateTime = string;
 
-export type ZoneActiveTimetable = {
-  id: 0,
-  type: "ONE_DAY"
-} | {
-  id: 1,
-  type: "THREE_DAY"
-} | {
-  id: 2,
-  type: "SEVEN_DAY"
-};
+export type ZoneActiveTimetableId = 0 | 1 | 2;
 
 export type ZoneSetting = {
   type: "HEATING",
@@ -194,13 +185,13 @@ export default class TadoClient {
     return data.zoneStates;
   }
 
-  async getActiveTimetable(zone: string): Promise<ZoneActiveTimetable> {
+  async getActiveTimetableId(zone: string): Promise<ZoneActiveTimetableId> {
     const data = await this._request(`/zones/${zone}/schedule/activeTimetable`);
 
     return data.id;
   }
 
-  getTimetableBlocks(zone: string, timetable: ZoneActiveTimetable["id"]): Promise<ZoneTimetableBlock> {
+  getTimetableBlocks(zone: string, timetable: ZoneActiveTimetableId): Promise<ZoneTimetableBlock> {
     return this._request(`/zones/${zone}/schedule/timetables/${timetable}/blocks`);
   }
 

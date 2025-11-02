@@ -1,5 +1,5 @@
 import { Device, Event, Stay } from '../../models';
-import TadoClient, { TadoClientError, exchangeRefreshTokenForAccessToken } from './client';
+import TadoClient, { TadoClientError, ZoneState, exchangeRefreshTokenForAccessToken } from './client';
 import config from '../../config';
 import { saveConfig } from '../../helpers/config'; 
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
@@ -242,7 +242,7 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
 }), Math.max(config.tado.sync_interval_seconds, 10) * 1000);
 
 
-const getNextTargetForThermostatGenerator = (isSomeoneAtHome: boolean, client: TadoClient, nextEta: Stay | null) => async (device: Device, zoneState: any, activeTimetable: any): Promise<NextTarget | null> => {
+const getNextTargetForThermostatGenerator = (isSomeoneAtHome: boolean, client: TadoClient, nextEta: Stay | null) => async (device: Device, zoneState: ZoneState): Promise<NextTarget | null> => {
   if (isSomeoneAtHome) {
     const { nextScheduleChange } = zoneState;
 
@@ -253,7 +253,9 @@ const getNextTargetForThermostatGenerator = (isSomeoneAtHome: boolean, client: T
       };
     }
   } else if (nextEta) {
-    const temperature = getTimetabledTemperature(await client.getTimetableBlocks(device.providerId, activeTimetable), moment(nextEta.eta));
+    const activeTimetableId = await client.getActiveTimetableId(device.providerId);
+    const timetabledBlocks = await client.getTimetableBlocks(device.providerId, activeTimetableId);
+    const temperature = getTimetabledTemperature(timetabledBlocks, moment(nextEta.eta));
 
     if (temperature !== null) {
       return {
@@ -289,16 +291,14 @@ if (config.tado.enable_warm_up) {
         const [
           currentTemperature,
           targetTemperature,
-          activeTimetable
         ] = await Promise.all([
           device.getThermostatCapability().getCurrentTemperature(),
           device.getThermostatCapability().getTargetTemperature(),
-          client.getActiveTimetable(device.providerId)
         ]);
 
         let warmupRatePerHour = null;
     
-        const nextTarget = await getNextTargetForThermostat(device, zoneState, activeTimetable);
+        const nextTarget = await getNextTargetForThermostat(device, zoneState);
         const hasManualOverride = zoneState.overlayType === 'MANUAL';
     
         if (nextTarget !== null) {
