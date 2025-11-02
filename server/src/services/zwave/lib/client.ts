@@ -9,6 +9,16 @@ type ZWaveClientOptions = {
   host: string;
 };
 
+export class ZWaveClientError extends Error {
+  code: number;
+
+  constructor(code: number, message: string) {
+    super(`${code}: ${message}`);
+
+    this.code = code;
+  }
+}
+
 export default class ZWaveClient {
   #options: ZWaveClientOptions;
   #socket: ws | null;
@@ -55,12 +65,19 @@ export default class ZWaveClient {
     
         switch (message.type) {
           case 'result': {
-            const { success, messageId, result } = message;
+            const { success, messageId, result, errorCode } = message;
             const promise = this.#msgs.get(messageId);
     
             if (typeof promise !== 'undefined') {
               this.#msgs.delete(messageId);
-              return promise[success ? 'resolve' : 'reject'](result);
+
+              if (success) {
+                promise.resolve(result);
+              } else if (errorCode === 'zwave_error'){
+                promise.reject(new ZWaveClientError(message.zwaveErrorCode, message.zwaveErrorMessage));
+              } else {
+                promise.reject(new Error(errorCode));
+              }
             }
             
             break;
