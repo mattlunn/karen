@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import SideBar from '../sidebar';
-import Modals from '../modals';
 import Header from '../header';
 import moment from 'moment';
 import Event from '../event';
@@ -179,8 +178,6 @@ class Timeline extends Component {
             {this.props.isLoadingMoreEvents && <div className='loading-spinner timeline__loader' />}
           </div>
         </div>
-
-        <Modals />
       </div>
     );
   }

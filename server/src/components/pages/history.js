@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import SideBar from '../sidebar';
-import Modals from '../modals';
 import Header from '../header';
 import { graphql } from '@apollo/client/react/hoc';
 import gql from 'graphql-tag';
@@ -30,8 +29,6 @@ class History extends Component {
             {tab === 'lighting' && lights.map(light => <LightingHistory key={light.id} id={light.id} name={light.name} />)}
           </div>
         </div>
-
-        <Modals />
       </div>
     );
   }

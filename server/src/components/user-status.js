@@ -1,87 +1,96 @@
-import React, { Component }  from 'react';
+import React from 'react';
+import ReactDOM from 'react-dom';
 import moment from 'moment';
 import classNames from 'classnames';
 import { AWAY, HOME } from '../constants/status';
 import { humanDate } from '../helpers/date';
-import { connect } from 'react-redux';
-import { showModal } from '../actions/modal';
-import { ETA_PICKER } from '../constants/modals';
-import { graphql } from '@apollo/client/react/hoc';
-import gql from 'graphql-tag';
+import { useMutation, gql } from '@apollo/client';
+import EtaPicker from './modals/eta-picker';
+import Modal from './modal';
 
-function mapDispatchToProps(dispatch, ownProps) {
-  return {
-    showModal: () => dispatch(showModal(ETA_PICKER, {
-      id: ownProps.id,
-      eta: ownProps.until ? moment(ownProps.until) : null
-    }))
-  };
-}
-
-class UserStatus extends Component {
-  renderStatusMessage() {
-    if (this.props.status === HOME) {
-      const sinceMoment = moment(this.props.since);
-
-      return `since ${sinceMoment.format('HH:mm')} ${humanDate(sinceMoment)}`;
-    } else {
-      const untilMoment = this.props.until ? moment(this.props.until) : null;
-
-      const renderUntilMessage = () => {
-        return (
-          <a href="#" onClick={this.props.showModal}>
-            {untilMoment && (
-              <React.Fragment>
-                {untilMoment.format('HH:mm')}
-                &nbsp;
-                {humanDate(untilMoment)}
-              </React.Fragment>
-            )}
-            {!untilMoment && "unknown"}
-          </a>
-        );
-      };
-
-      return <React.Fragment>until {renderUntilMessage()}</React.Fragment>;
+const UPDATE_USER_MUTATION = gql`
+  mutation($id: ID!, $status: Occupancy) {
+    updateUser(id:$id, status:$status) {
+      id,
+      status,
+      since
     }
   }
+`;
 
-  render() {
+function StatusMessage({ status, since, until, id }) {
+  const [ showModal, setShowModal ] = React.useState(false);
+
+  if (status === HOME) {
+    const sinceMoment = moment(since);
+    return `since ${sinceMoment.format('HH:mm')} ${humanDate(sinceMoment)}`;
+  } else {
+    const untilMoment = until ? moment(until) : null;
+    const untilMessage = (
+      <a
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          setShowModal(true);
+        }}
+      >
+        {untilMoment ? (
+          <>
+            {untilMoment.format('HH:mm')}
+            &nbsp;
+            {humanDate(untilMoment)}
+          </>
+        ) : (
+          'unknown'
+        )}
+      </a>
+    );
+
     return (
-      <div className="user-status">
-        <a href="#" onClick={this.props.toggleStatus}>
-          <img className={classNames('user-status__avatar', {
-            'user-status__avatar--away': this.props.status === AWAY
-          })} src={this.props.avatar} />
-        </a>
-        <div>
-          <h3 className="user-status__user-name">
-            {this.props.id}
-          </h3>
-          <p className="user-status__about">{this.renderStatusMessage()}</p>
-        </div>
-      </div>
+      <>
+        until {untilMessage}
+
+        {showModal && ReactDOM.createPortal(
+          <Modal>
+            <EtaPicker id={id} eta={untilMoment} closeModal={() => setShowModal(false)} />
+          </Modal>,
+          
+          document.body)
+        }
+      </>
     );
   }
 }
 
-export default graphql(gql`mutation($id: ID!, $status: Occupancy) {
-  updateUser(id:$id, status:$status) {
-    id,
-    status,
-    since
-  }
-}`, {
-  props({ mutate, ownProps }) {
-    return {
-      toggleStatus() {
-        mutate({
+export default function UserStatus(props) {
+  const { status, id, avatar } = props;
+  const [updateUser] = useMutation(UPDATE_USER_MUTATION);
+
+  return (
+    <div className="user-status">
+      <a href="#" onClick={(e) => {
+        e.preventDefault();
+
+        updateUser({
           variables: {
-            id: ownProps.id,
-            status: ownProps.status === HOME ? AWAY : HOME
+            id,
+            status: status === HOME ? AWAY : HOME
           }
         });
-      }
-    };
-  }
-})(connect(null, mapDispatchToProps)(UserStatus));
+      }}>
+        <img
+          className={classNames('user-status__avatar', {
+            'user-status__avatar--away': status === AWAY
+          })}
+          src={avatar}
+        />
+      </a>
+      <div>
+        <h3 className="user-status__user-name">{id}</h3>
+        <p className="user-status__about">
+          <StatusMessage {...props} />
+        </p>
+      </div>
+    </div>
+  );
+}

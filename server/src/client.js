@@ -16,7 +16,6 @@ import { createBrowserHistory } from 'history';
 import { Provider } from 'react-redux';
 
 import user from './reducers/user';
-import modal from './reducers/modal';
 
 import { onError } from '@apollo/client/link/error';
 import { getMainDefinition } from '@apollo/client/utilities';
@@ -80,7 +79,6 @@ const history = createBrowserHistory();
 const store = createStore(combineReducers({
   router: routerReducer,
   user,
-  modal,
 }), applyMiddleware(
   thunk,
   routerMiddleware(history)

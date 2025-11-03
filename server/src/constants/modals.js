@@ -1,1 +1,0 @@
-export const ETA_PICKER = 'ETA_PICKER';

@@ -1,6 +1,5 @@
 import React from 'react';
 import SideBar from '../sidebar';
-import Modals from '../modals';
 import Header from '../header';
 import { useQuery } from '@apollo/client';
 import gql from 'graphql-tag';
@@ -46,8 +45,6 @@ export default function Device({ match: { params: { id }}}) {
           <h2>{name}</h2>
         </div>
       </div>
-
-      <Modals />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import SideBar from '../sidebar';
-import Modals from '../modals';
 import Header from '../header';
 import Security from '../security';
 import Groups from '../groups';
@@ -17,8 +16,6 @@ export default class Home extends Component {
             <Groups />
           </div>
         </div>
-
-        <Modals />
       </div>
     );
   }
