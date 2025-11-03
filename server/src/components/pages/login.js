@@ -19,6 +19,8 @@ export default function Login() {
 
     if (res.ok) {
       push('/');
+    } else {
+      setIsLoggingIn(false);
     }
   };
 
