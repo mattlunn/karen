@@ -9,10 +9,8 @@ import Login from './components/pages/login';
 import History from './components/pages/history';
 import thunk from 'redux-thunk';
 import { Route } from 'react-router';
-import { Switch } from 'react-router-dom';
+import { Switch, BrowserRouter } from 'react-router-dom';
 import { createStore, combineReducers, applyMiddleware } from 'redux';
-import { ConnectedRouter, routerReducer, routerMiddleware, push } from 'react-router-redux';
-import { createBrowserHistory } from 'history';
 import { Provider } from 'react-redux';
 
 import user from './reducers/user';
@@ -75,20 +73,17 @@ const client = new ApolloClient({
   })
 });
 
-const history = createBrowserHistory();
 const store = createStore(combineReducers({
-  router: routerReducer,
   user,
 }), applyMiddleware(
   thunk,
-  routerMiddleware(history)
 ));
 
 window.onload = () => {
   ReactDOM.render(
     <Provider store={store}>
       <ApolloProvider client={client}>
-        <ConnectedRouter history={history}>
+        <BrowserRouter>
           <Switch>
             <Route exact path="/" component={Home}/>
             <Route exact path="/login" component={Login}/>
@@ -97,7 +92,7 @@ window.onload = () => {
             <Route exact path="/device/:id" component={Device}/>
             <Route exact path="/device" component={Devices}/>
           </Switch>
-        </ConnectedRouter>
+        </BrowserRouter>
       </ApolloProvider>
     </Provider>,
 
