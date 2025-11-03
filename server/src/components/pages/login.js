@@ -1,57 +1,44 @@
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import { attemptLogin } from '../../actions/user';
-import { getIsLoggingIn, getLoginError } from '../../reducers/user';
+import React, { useState } from 'react';
+import { applicationFetch } from '../../helpers/fetch';
+import { useHistory } from 'react-router-dom';
 
-function mapStateToProps(state) {
-  return {
-    isLoggingIn: getIsLoggingIn(state.user),
-    loginError: getLoginError(state.user)
-  };
-}
+export default function Login() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const { push } = useHistory();
 
-class Home extends Component {
-  constructor() {
-    super();
-
-    this.state = {};
-  }
-
-  handleLogin = (e) => {
+  const attemptLogin = async (e) => {
     e.preventDefault();
+    setIsLoggingIn(true);
 
-    this.props.attemptLogin(this.state.username, this.state.password);
-  };
-
-  updateField = (e) => {
-    this.setState({
-      [e.target.name]: e.target.value
+    const res = await applicationFetch('/authentication/login', {
+      username,
+      password
     });
+
+    if (res.ok) {
+      push('/');
+    }
   };
 
-  render() {
-    return (
-      <div>
-        <div className="login__panel">
-          <form>
-            <p>
-              <label>Username</label>
-              <input type="text" name="username" onChange={this.updateField} />
-            </p>
-            <p>
-              <label>Password</label>
-              <input type="password" name="password" onChange={this.updateField} />
-            </p>
-            <p>
-              <input type="submit" value="Submit" onClick={this.handleLogin} disabled={this.props.isLoggingIn} />
-            </p>
-          </form>
-        </div>
+  return (
+    <div>
+      <div className="login__panel">
+        <form>
+          <p>
+            <label>Username</label>
+            <input type="text" name="username" onChange={(e) => setUsername(e.target.value)}/>
+          </p>
+          <p>
+            <label>Password</label>
+            <input type="password" name="password" onChange={(e) => setPassword(e.target.value)}/>
+          </p>
+          <p>
+            <input type="submit" value="Submit" onClick={attemptLogin} disabled={isLoggingIn} />
+          </p>
+        </form>
       </div>
-    );
-  }
+    </div>
+  );
 }
-
-export default connect(mapStateToProps, {
-  attemptLogin
-})(Home);

@@ -70,7 +70,7 @@ export default function Sidebar({ hideOnMobile}) {
 
   let body = null;
 
-  if (loading === false) {
+  if (loading === false && data) {
     const stays = data.stays;
     const alarmMode = data.security.alarmMode;
     const { centralHeatingMode, dhwHeatingMode } = data.heating;

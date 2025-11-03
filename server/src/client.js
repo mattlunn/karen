@@ -7,14 +7,8 @@ import Devices from './components/pages/devices';
 import Device from './components/pages/device';
 import Login from './components/pages/login';
 import History from './components/pages/history';
-import thunk from 'redux-thunk';
 import { Route } from 'react-router';
 import { Switch, BrowserRouter } from 'react-router-dom';
-import { createStore, combineReducers, applyMiddleware } from 'redux';
-import { Provider } from 'react-redux';
-
-import user from './reducers/user';
-
 import { onError } from '@apollo/client/link/error';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { 
@@ -45,7 +39,7 @@ const client = new ApolloClient({
   link: ApolloLink.from([
     onError(({ networkError }) => {
       if (networkError && networkError.statusCode === 401) {
-        store.dispatch(push('/login'));
+        location.assign('/login');
       }
     }),
     split(
@@ -73,28 +67,20 @@ const client = new ApolloClient({
   })
 });
 
-const store = createStore(combineReducers({
-  user,
-}), applyMiddleware(
-  thunk,
-));
-
 window.onload = () => {
   ReactDOM.render(
-    <Provider store={store}>
-      <ApolloProvider client={client}>
-        <BrowserRouter>
-          <Switch>
-            <Route exact path="/" component={Home}/>
-            <Route exact path="/login" component={Login}/>
-            <Route exact path="/timeline" component={Timeline}/>
-            <Route exact path="/history" component={History}/>
-            <Route exact path="/device/:id" component={Device}/>
-            <Route exact path="/device" component={Devices}/>
-          </Switch>
-        </BrowserRouter>
-      </ApolloProvider>
-    </Provider>,
+    <ApolloProvider client={client}>
+      <BrowserRouter>
+        <Switch>
+          <Route exact path="/" component={Home}/>
+          <Route exact path="/login" component={Login}/>
+          <Route exact path="/timeline" component={Timeline}/>
+          <Route exact path="/history" component={History}/>
+          <Route exact path="/device/:id" component={Device}/>
+          <Route exact path="/device" component={Devices}/>
+        </Switch>
+      </BrowserRouter>
+    </ApolloProvider>,
 
     document.getElementById('main')
   );
