@@ -13,12 +13,12 @@ module.exports = {
   mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   module: {
     rules: [{
-      test: /\.js$/,
+      test: /\.[jt]sx?$/,
       exclude: /node_modules/,
       use: [{
         loader: 'babel-loader',
         options: {
-          presets: ['@babel/preset-react', ['@babel/preset-env', { targets: { browsers: ['last 2 Chrome versions'] }}]],
+          presets: ['@babel/preset-react', '@babel/preset-typescript', ['@babel/preset-env', { targets: { browsers: ['last 2 Chrome versions'] }}]],
           plugins: ['@babel/plugin-proposal-class-properties']
         }
       }]
@@ -26,6 +26,9 @@ module.exports = {
       test: /\.(css|less)$/i,
       use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader'],
     }]
+  },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js'],
   },
   plugins: [
     new MiniCssExtractPlugin({

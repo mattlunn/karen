@@ -1,11 +1,14 @@
 import express from 'express';
-import asyncWrapper from '../helpers/express-async-wrapper';
-import { Event, Recording } from '../models';
-import { makeSynologyRequest } from '../services/synology';
+import asyncWrapper from '../../helpers/express-async-wrapper';
+import { Event, Recording } from '../../models';
+import { makeSynologyRequest } from '../../services/synology';
 import moment from 'moment';
-import s3 from '../services/s3';
+import s3 from '../../services/s3';
+import deviceRouteHander from './device';
 
 const router = express.Router();
+
+router.get('/device/:id', deviceRouteHander);
 
 router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
   res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
