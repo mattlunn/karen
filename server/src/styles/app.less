@@ -781,3 +781,28 @@ button.secondary {
     font-size: 12px;
   }
 }
+
+.device {
+  &__top {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 1fr;
+  }
+
+  &__info {
+    background: rgba(0, 0, 0, .03);
+    border: 1px solid rgba(0, 0, 0, .125);
+    padding: 10px;
+    border-radius: 5px;
+
+    & dt {
+      font-weight: bold;
+      font-size: 0.8em;
+    }
+
+    & dd {
+      font-size: 1em;
+      margin-bottom: 10px;
+    }
+  }
+}

@@ -76,6 +76,7 @@
     "@types/eventsource": "^1.1.15",
     "@types/newrelic": "^9.14.4",
     "@types/node-fetch": "^2.6.11",
+    "@types/react-router-dom": "^5.3.3",
     "@types/uuid": "^9.0.8",
     "@types/ws": "^8.5.12",
     "babel-loader": "^8.1.0",
