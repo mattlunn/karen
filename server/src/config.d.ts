@@ -57,6 +57,7 @@ declare namespace _default {
     const webhook_host: string;
   }
   export namespace tplink {
+    const sync_interval_seconds: number;
     const discovery_duration_seconds: number;
     const connect_timeout_milliseconds: number;
   }

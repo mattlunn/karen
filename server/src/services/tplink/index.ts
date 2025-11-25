@@ -3,10 +3,12 @@ import { Device } from '../../models';
 import config from '../../config';
 import sleep from '../../helpers/sleep';
 import newrelic from 'newrelic';
+import logger from '../../logger';
+import nowAndSetInterval from '../../helpers/now-and-set-interval';
 
 const client = new Client();
 
-function getTpLinkDeviceFromDevice(device: Device): Promise<Bulb | Plug | null> {
+function getTpLinkDeviceFromDevice(device: Device): Promise<Plug | Bulb | null> {
   return Promise.race([
     client.getDevice({ host: device.providerId }),
     sleep(Math.max(config.tplink.connect_timeout_milliseconds, 1)).then(() => null)
@@ -16,6 +18,20 @@ function getTpLinkDeviceFromDevice(device: Device): Promise<Bulb | Plug | null> 
     return null;
   });
 }
+
+nowAndSetInterval(async () => {
+  const devices = await Device.findByProvider('tplink');
+
+  for (const device of devices) {
+    const tpLinkDevice = await getTpLinkDeviceFromDevice(device) as Plug | null;
+
+    if (tpLinkDevice === null) {
+      continue;
+    }
+
+    device.getLightCapability().setIsOnState(await tpLinkDevice.getPowerState());
+  }
+}, Math.max(config.tplink.sync_interval_seconds, 60) * 1000);
 
 Device.registerProvider('tplink', {
   getCapabilities() {
@@ -31,7 +47,7 @@ Device.registerProvider('tplink', {
       async setIsOn(device: Device, isOn: boolean) {
         await getTpLinkDeviceFromDevice(device).then(x => x?.setPowerState(isOn));
       }
-    }; 
+    };
   },
 
   async synchronize() {
