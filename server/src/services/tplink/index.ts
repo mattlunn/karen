@@ -57,6 +57,8 @@ Device.registerProvider('tplink', {
     client.startDiscovery({
       discoveryTimeout: discoveryDuration
     }).on('device-new', device => {
+      logger.info(`Discovered TPLink device: ${device.alias} (${device.host})`);
+
       newDevices.push(device)
     });
     await sleep(discoveryDuration);
