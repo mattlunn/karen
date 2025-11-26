@@ -6,7 +6,7 @@ import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
 
 const deviceMap = new Map([
-  ['Fibargroup FGMS001', 'motion_sensor'],
+  ['Fibargroup FGMS001', 'multi_sensor'],
   ['Fibargroup FGD212', 'light'],
   ['Zooz ZSE44', 'humidity_sensor'],
   ['Yale SD-L1000-CH', 'lock']
@@ -336,7 +336,7 @@ Device.registerProvider('zwave', {
               type: deviceType,
               provider: 'zwave',
               providerId: deviceId,
-              name: `${deviceName} (${deviceId})`
+              name: node.name || `${deviceName} (${deviceId})`
             });
           }
         }
