@@ -15,7 +15,7 @@ export async function setBooleanProperty(device: Device, propertyName: string, p
 
     if (lastEvent && propertyValue === false) {
       lastEvent.end = timestamp;
-      await lastEvent.save();
+      return await lastEvent.save();
     }
 
     if (propertyValue === true) {
