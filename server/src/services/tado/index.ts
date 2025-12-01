@@ -219,7 +219,7 @@ if (config.tado.enable_warm_up) {
           // Don't make any changes if we have a manual override, or if the current target is more than the 
           // next target.
           if (nextTargetTemperature > targetTemperature && !hasManualOverride) {
-            warmupRatePerHour = await getWarmupRatePerHour(device);
+            warmupRatePerHour = Math.max(await getWarmupRatePerHour(device), config.tado.min_warm_up_per_hour_degrees);
 
             const difference = nextTargetTemperature - currentTemperature;
             const hoursNeededToWarmUp = difference / warmupRatePerHour;

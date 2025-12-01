@@ -47,6 +47,7 @@ declare namespace _default {
     const secret: string;
     const sync_interval_seconds: number;
     const enable_warm_up: number;
+    const min_warm_up_per_hour_degrees: number;
     const eta_check_interval_minutes: number;
     const linked_zones: string[][];
   }
