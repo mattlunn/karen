@@ -11,7 +11,7 @@ import { createBackgroundTransaction } from '../helpers/newrelic';
 
 // Evening
 // Gets turned on at certain time, or when someone comes home.
-// Gets turned off when Karen turns off all the lights
+// Gets turned off when Karen turns off all the lights, or at fixed time.
 
 type ChristmasTreeAutomationParameters = {
   switchNames: string[];
