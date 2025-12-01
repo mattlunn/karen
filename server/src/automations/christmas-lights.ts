@@ -63,4 +63,9 @@ export default function ({ switchNames, morningStart, morningEnd, eveningStart, 
       await setDevicesOnStatus(true);
     }
   });
+
+  // Turn off last thing at night
+  setIntervalForTime(async () => {
+    await setDevicesOnStatus(false);
+  }, eveningEnd);
 }
