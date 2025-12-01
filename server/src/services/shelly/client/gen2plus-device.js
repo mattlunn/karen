@@ -1,11 +1,11 @@
 import fetch from 'node-fetch';
-import logger from '../../../logger';
 
-export default class Gen3DeviceClient {
-  constructor(ip, username, password) {
+export default class Gen2PlusDeviceClient {
+  constructor(ip, username, password, generation) {
     this._ip = ip;
     this._username = username;
     this._password = password;
+    this._generation = generation;
   }
 
   async _request(path) {
@@ -63,6 +63,14 @@ export default class Gen3DeviceClient {
   }
 
   getGeneration() {
-    return 3;
+    return this._generation;
+  }
+
+  async getModel() {
+    return (await this._request('/shelly')).type;
+  }
+
+  async setLedMode(mode) {
+    return await this._request(`/rpc/PLUGUK_UI.SetConfig?config={"leds":{"mode":"${mode}"}}`);
   }
 }

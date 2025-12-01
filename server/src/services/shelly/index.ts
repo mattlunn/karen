@@ -6,6 +6,7 @@ Device.registerProvider('shelly', {
   getCapabilities(device) {
     switch (device.meta.generation) {
       case 1:
+      case 2:
         return ['LIGHT'];
       case 3:
         return ['SWITCH'];

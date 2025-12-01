@@ -89,4 +89,8 @@ export default class Gen1DeviceClient {
   getGeneration() {
     return 1;
   }
+
+  async getModel() {
+    return (await this._request('/shelly')).model;
+  }
 }

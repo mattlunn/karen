@@ -29,6 +29,7 @@ router.get('/install', asyncWrapper(async (req, res) => {
   }
 
   const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
+  const model = await client.getModel();
   let device = await Device.findByProviderId('shelly', ip);
 
   if (!device) {
@@ -47,6 +48,15 @@ router.get('/install', asyncWrapper(async (req, res) => {
   await client.setupAuthentication();
   await client.setOutputOffWebhook(`http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=off`);
   await client.setOutputOnWebhook(`http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=on`);
+
+  switch (model) {
+    case 'SNPL-00112UK': {  // plug
+      await client.setLedMode('off');
+
+      break;
+    }
+  }
+  
   await client.reboot();
   await device.save();
 
