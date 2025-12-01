@@ -4,7 +4,6 @@ import * as db from '../models';
 import { User, Stay, Security, Heating, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording, AlarmArmingEvent, DoorbellRingEvent } from './models';
 import { HOME, AWAY } from '../constants/status';
 import moment from 'moment-timezone';
-import { setCentralHeatingMode, getCentralHeatingMode } from '../services/tado';
 import { setDHWMode, getDHWMode } from '../services/ebusd';
 import UnorderedDataLoader from './loaders/unordered-dataloader';
 import DeviceLoader from './loaders/device-loader';
@@ -336,7 +335,24 @@ const resolvers = {
     },
     
     async updateCentralHeatingMode(parent, args, context, info) {
-      await setCentralHeatingMode(args.mode);
+      const devices = await db.Device.findByCapability('THERMOSTAT');
+      const mode = args.mode.toLowerCase();
+
+      for (const device of devices) {
+        switch (mode) {
+          case 'off':
+            await device.getThermostatCapability().setIsOn(false);
+          break;
+
+          case 'on':
+            await device.getThermostatCapability().setIsOn(true);
+          break;
+
+          case 'setback':
+            await device.getThermostatCapability().setTargetTemperature(await device.getThermostatCapability().getSetbackTemperature());
+          break;
+        }
+      }
 
       return new Heating();
     },
@@ -407,7 +423,6 @@ export default async function(wsServer) {
       devices: new DeviceLoader(),
       rooms: new RoomLoader(),
       recordingsByEventId: new UnorderedDataLoader((ids) => db.Recording.findAll({ where: { eventId: ids }}), recording => recording.eventId, recording => new Recording(recording)),
-      centralHeatingMode: () => getCentralHeatingMode(),
       dhwHeatingMode: async () => await getDHWMode() ? 'ON' : 'OFF'
     };
   }

@@ -2,7 +2,6 @@ import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, NOTIFICATION_TO_ADMINS } from '
 import { Device, Arming, Stay } from '../models';
 import { joinWithAnd, pluralise } from '../helpers/array';
 import { createBackgroundTransaction } from '../helpers/newrelic';
-import { getCentralHeatingMode, setCentralHeatingMode } from '../services/tado';
 import { ArmingMode } from '../models/arming';
 
 type OccupanyAutomationConfiguration = {
@@ -63,15 +62,19 @@ export default function (config: OccupanyAutomationConfiguration) {
     }
   
     async function ensureHeatingOff() {
-      const currentHeatingMode = await getCentralHeatingMode();
+      const thermostats = await Device.findByCapability('THERMOSTAT');
+      const thermostatsThatWereTurnedBack = await Promise.all(thermostats.map(async (thermostat) => {
+        const thermostatIsOn = await thermostat.getThermostatCapability().getIsOn();
 
-      if (currentHeatingMode === 'ON') {
-        await setCentralHeatingMode('SETBACK');
+        if (thermostatIsOn) {
+          await thermostat.getThermostatCapability().setTargetTemperature(await thermostat.getThermostatCapability().getSetbackTemperature());
+          return true;
+        }
 
-        return true;
-      }
+        return false;
+      }));
 
-      return false;
+      return thermostatsThatWereTurnedBack.some(x => x);
     }
     
     try {
@@ -82,7 +85,7 @@ export default function (config: OccupanyAutomationConfiguration) {
       let [
         activeArming,
         locksUnsecured,
-        centralHeatingModeChanged,
+        allThermostatsWereTurnedOff,
         lightsTurnedOff
       ] = await Promise.all([
         promiseOrAbort(ensureActiveArming(), abortController.signal),
@@ -94,7 +97,7 @@ export default function (config: OccupanyAutomationConfiguration) {
       const notification = [
         `No-one is home.`,
         lightsTurnedOff.length ? `${joinWithAnd(lightsTurnedOff.map(x => x.name))} light${pluralise(lightsTurnedOff)} have been turned off,` : `All the lights are off,`,
-        `the heating ${centralHeatingModeChanged ? 'has been turned off' : 'was already off'}, and`,
+        `the heating ${allThermostatsWereTurnedOff ? 'has been turned off' : 'was already off'}, and`,
         activeArming.mode === ArmingMode.AWAY ? 'the alarm is on.' : 'the alarm is already set to Night Mode.',
         locksUnsecured.length === 0 ? 'All the doors are locked.' : `The ${joinWithAnd(locksUnsecured.map(x => x.name))} ${locksUnsecured.length === 1 ? 'is' : 'are'} not locked!`
       ].join(' ');
@@ -119,6 +122,7 @@ export default function (config: OccupanyAutomationConfiguration) {
       await activeArming.save();
     }
 
-    await setCentralHeatingMode('ON');
+    const thermostats = await Device.findByCapability('THERMOSTAT');
+    await Promise.all(thermostats.map(async (thermostat) => await thermostat.getThermostatCapability().setIsOn(true)));
   }));
 }

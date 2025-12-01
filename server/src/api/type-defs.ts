@@ -96,6 +96,7 @@ export default gql`
 
   type Thermostat {
     targetTemperature: Float!
+    setbackTemperature: Float!
     currentTemperature: Float!
     isHeating: Boolean!
     power: Float!
@@ -182,7 +183,6 @@ export default gql`
   }
 
   type Heating {
-    centralHeatingMode: CentralHeatingMode
     dhwHeatingMode: DHWHeatingMode
     thermostats: [Device]
   }

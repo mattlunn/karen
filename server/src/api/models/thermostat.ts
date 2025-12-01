@@ -17,6 +17,10 @@ export default class Thermostat {
     return this.#device.getThermostatCapability().getCurrentTemperature();
   }
 
+  setbackTemperature(): Promise<number> {
+    return this.#device.getThermostatCapability().getSetbackTemperature();
+  }
+
   isHeating(): Promise<boolean> {
     return this.#device.getThermostatCapability().getIsOn();
   }

@@ -213,6 +213,12 @@
       "eventName": "power"
     },
     {
+      "name": "SetbackTemperature",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "setback"
+    },
+    {
       "name": "Humidity",
       "isWriteable": false,
       "type": "number",

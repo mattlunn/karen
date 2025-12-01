@@ -22,8 +22,16 @@ const GET_HOUSE_STATE = gql`
     }
 
     heating: getHeating {
-      centralHeatingMode
       dhwHeatingMode
+
+      thermostats {
+        capabilities {
+          ... on Thermostat {
+            targetTemperature
+            setbackTemperature
+          }
+        }
+      }
     }
   }
 `;
@@ -31,7 +39,14 @@ const GET_HOUSE_STATE = gql`
 const SET_CENTRAL_HEATING_MODE = gql`
   mutation UpdateCentralHeatingMode($mode: CentralHeatingMode) {
     updateCentralHeatingMode(mode: $mode) {
-      centralHeatingMode
+      thermostats {
+        capabilities {
+          ... on Thermostat {
+            targetTemperature
+            setbackTemperature
+          }
+        }
+      }
     }
   }
 `;
@@ -73,7 +88,26 @@ export default function Sidebar({ hideOnMobile}) {
   if (loading === false && data) {
     const stays = data.stays;
     const alarmMode = data.security.alarmMode;
-    const { centralHeatingMode, dhwHeatingMode } = data.heating;
+    const { dhwHeatingMode, thermostats } = data.heating;
+    
+    const commonThermostatMode = thermostats.reduce((mode, curr, currIndex) => {
+      if (mode === null && currIndex !== 0) return null;
+
+      const { targetTemperature, setbackTemperature } = curr.capabilities.find(c => c.__typename === 'Thermostat');
+      const currMode = (() => {
+        if (targetTemperature === 0) {
+          return 'OFF';
+        }
+
+        if (targetTemperature === setbackTemperature) {
+          return 'SETBACK';
+        }
+
+        return 'ON';
+      })();
+
+      return mode === null || mode === currMode ? currMode : null;
+    }, null);
 
     body = (
       <>
@@ -105,9 +139,9 @@ export default function Sidebar({ hideOnMobile}) {
         <div className="sidebar__home-controls">
           <h3 className="home-controls__title"><FontAwesomeIcon icon={faFire} /></h3>
           <div>
-            <HomeControlButton currentValue={centralHeatingMode} label="On" onClick={updateCentralHeatingMode} value="ON" />
-            <HomeControlButton currentValue={centralHeatingMode} label="Setback" onClick={updateCentralHeatingMode} value="SETBACK" />
-            <HomeControlButton currentValue={centralHeatingMode} label="Off" onClick={updateCentralHeatingMode} value="OFF" />
+            <HomeControlButton currentValue={commonThermostatMode} label="On" onClick={updateCentralHeatingMode} value="ON" />
+            <HomeControlButton currentValue={commonThermostatMode} label="Setback" onClick={updateCentralHeatingMode} value="SETBACK" />
+            <HomeControlButton currentValue={commonThermostatMode} label="Off" onClick={updateCentralHeatingMode} value="OFF" />
           </div>
         </div>
 
