@@ -1,4 +1,4 @@
-import { Device, Event, Stay } from '../../models';
+import { Device, Stay } from '../../models';
 import TadoClient, { TadoClientError, ZoneState, exchangeRefreshTokenForAccessToken } from './client';
 import config from '../../config';
 import { saveConfig } from '../../helpers/config'; 

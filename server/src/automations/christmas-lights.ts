@@ -4,6 +4,7 @@ import { isWithinTime } from '../helpers/time';
 import setIntervalForTime from '../helpers/set-interval-for-time';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { createBackgroundTransaction } from '../helpers/newrelic';
+import logger from '../logger';
 
 // Morning
 // Gets turned on when motion detected between window
@@ -32,6 +33,8 @@ export default function ({ switchNames, morningStart, morningEnd, eveningStart, 
         if (isOn !== onStatus) {
           await device.getLightCapability().setIsOn(onStatus);
         }
+      } else {
+        logger.error(`Christmas Lights Automation: Could not find device with name ${switchName}`);
       }
     }));
   }
