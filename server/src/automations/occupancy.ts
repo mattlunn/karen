@@ -64,7 +64,8 @@ export default function (config: OccupanyAutomationConfiguration) {
     async function ensureHeatingOff() {
       const thermostats = await Device.findByCapability('THERMOSTAT');
       const thermostatsThatWereTurnedBack = await Promise.all(thermostats.map(async (thermostat) => {
-        const thermostatIsOn = await thermostat.getThermostatCapability().getIsOn();
+        const targetTemperature = await thermostat.getThermostatCapability().getTargetTemperature();
+        const thermostatIsOn = targetTemperature > 0;
 
         if (thermostatIsOn) {
           await thermostat.getThermostatCapability().setTargetTemperature(await thermostat.getThermostatCapability().getSetbackTemperature());
