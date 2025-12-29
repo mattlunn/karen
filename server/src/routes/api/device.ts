@@ -30,14 +30,37 @@ export default expressAsyncWrapper(async function (req, res, next) {
           }
 
           case 'THERMOSTAT': {
-            const light = await device.getThermostatCapability();
+            const thermostat = await device.getThermostatCapability();
             
             return { 
               type: capability,
-              currentTemperature: await light.getCurrentTemperature(),
-              
-              isOn: await light.getIsOn()
+              currentTemperature: await thermostat.getCurrentTemperature(),
+              targetTemperature: await thermostat.getTargetTemperature(),
+              power: await thermostat.getPower(),
+              isOn: await thermostat.getIsOn()
             };
+          }
+
+          case 'HUMIDITY_SENSOR': {
+            const sensor = await device.getHumiditySensorCapability();
+            
+            return { 
+              type: capability,
+              humidity: await sensor.getHumidity()
+            };
+          }
+
+          case 'TEMPERATURE_SENSOR': {
+            const sensor = await device.getTemperatureSensorCapability();
+            
+            return { 
+              type: capability,
+              currentTemperature: await sensor.getCurrentTemperature()
+            };
+          }
+
+          default: {
+            return { type: capability };
           }
         }
       }))
