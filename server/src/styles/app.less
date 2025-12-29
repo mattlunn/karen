@@ -781,3 +781,67 @@ button.secondary {
     font-size: 12px;
   }
 }
+
+.device {
+  &__top {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 1fr;
+  }
+
+  &__info {
+    background: rgba(0, 0, 0, .03);
+    border: 1px solid rgba(0, 0, 0, .125);
+    padding: 10px;
+    border-radius: 5px;
+
+    & dt {
+      font-weight: bold;
+      font-size: 0.8em;
+    }
+
+    & dd {
+      font-size: 1em;
+      margin-bottom: 10px;
+    }
+  }
+
+  &__status-item {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 6px;
+    background: #ffffff;
+    padding: 10px;
+    display: inline-grid;
+    grid-template-columns: 36px auto;
+    grid-column-gap: 10px;
+    width: 150px;
+    margin-right: 15px;
+    margin-bottom: 15px;
+  }
+
+  &__status-item-icon {
+    height: 45px;
+    width: 45px;
+    text-align: center;
+    border-radius: 100px;
+    line-height: 45px;
+    font-size: 1.5em;
+  }
+
+  &__status-item-value {
+    font-size: 1.2em;
+    text-align: right;
+  }
+
+  &__status-item-value-title {
+    font-size: 0.45em;
+    color: gray;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    height: 15px;
+  }
+
+  &__status-item-value-value {
+    
+  }
+}
