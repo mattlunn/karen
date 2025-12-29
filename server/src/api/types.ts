@@ -1,7 +1,7 @@
 export type CapabilityApiResponse = {
   type: 'LIGHT';
-  brightness: number;
-  isOn: boolean;
+  isOnHistory: BooleanEventApiResponse[];
+  brightnessHistory: NumericEventApiResponse[];
 } | {
   type: 'THERMOSTAT';
   currentTemperature: number;
@@ -14,7 +14,26 @@ export type CapabilityApiResponse = {
 } | {
   type: 'TEMPERATURE_SENSOR';
   currentTemperature: number;
+} | {
+  type: 'LIGHT_SENSOR';
+  illuminance: number;
+} | {
+  type: 'MOTION_SENSOR';
+  hasMotion: boolean;
+} | {
+  type: null
 };
+
+export type BooleanEventApiResponse = {
+  start: string;
+  end: string | null;
+}
+
+export type NumericEventApiResponse = {
+  start: string;
+  end: string | null;
+  value: number;
+}
 
 export type DeviceApiResponse = {
   device: {

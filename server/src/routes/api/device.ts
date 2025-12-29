@@ -1,16 +1,34 @@
-import { Device } from '../../models';
+import { BooleanEvent, Device, NumericEvent } from '../../models';
 import expressAsyncWrapper from '../../helpers/express-async-wrapper';
-import { DeviceApiResponse } from '../../api/types';
 import { Capability } from '../../models/capabilities';
+import moment from 'moment';
+import { BooleanEventApiResponse, DeviceApiResponse, NumericEventApiResponse } from '../../api/types';
+import { HistorySelector } from '../../models/capabilities/helpers';
+
+async function mapBooleanHistoryToResponse(fetchHistory: (hs: HistorySelector) => Promise<BooleanEvent[]>, historySelector: HistorySelector): Promise<BooleanEventApiResponse[]> {
+  return (await fetchHistory(historySelector)).map((event: BooleanEvent) => ({
+    start: event.start.toISOString(),
+    end: event.end?.toISOString() ?? null,
+  }));
+}
+
+async function mapNumericHistoryToResponse(fetchHistory: (hs: HistorySelector) => Promise<NumericEvent[]>, historySelector: HistorySelector): Promise<NumericEventApiResponse[]> {
+  return (await fetchHistory(historySelector)).map((event: NumericEvent) => ({
+    start: event.start.toISOString(),
+    end: event.end?.toISOString() ?? null,
+    value: event.value
+  }));
+}
 
 export default expressAsyncWrapper(async function (req, res, next) {
   const device = await Device.findById(req.params.id);
-  
+  const historySelector = { until: new Date(), since: moment().subtract(7, 'day').toDate() };
+
   if (!device) {
     return next('route');
   }
 
-  res.json({
+  const response: DeviceApiResponse = {
     device: {
       id: device.id,
       name: device.name,
@@ -21,13 +39,13 @@ export default expressAsyncWrapper(async function (req, res, next) {
         switch (capability) {
           case 'LIGHT': {
             const light = await device.getLightCapability();
-            
-            return { 
-              type: capability,
-              brightness: await light.getBrightness(),
-              isOn: await light.getIsOn()
+
+            return {
+              type: 'LIGHT',
+              isOnHistory: await mapBooleanHistoryToResponse((hs) => light.getIsOnHistory(hs), historySelector),
+              brightnessHistory: await mapNumericHistoryToResponse((hs) => light.getBrightnessHistory(hs), historySelector)
             };
-          }
+          };
 
           case 'THERMOSTAT': {
             const thermostat = await device.getThermostatCapability();
@@ -59,11 +77,31 @@ export default expressAsyncWrapper(async function (req, res, next) {
             };
           }
 
+          case 'LIGHT_SENSOR': {
+            const sensor = await device.getLightSensorCapability();
+            
+            return { 
+              type: capability,
+              illuminance: await sensor.getIlluminance()
+            };
+          }
+
+          case 'MOTION_SENSOR': {
+            const sensor = await device.getMotionSensorCapability();
+            
+            return { 
+              type: capability,
+              hasMotion: await sensor.getHasMotion()
+            };
+          }
+
           default: {
-            return { type: capability };
+            return { type: null };
           }
         }
       }))
     }
-  } as DeviceApiResponse)
+  };
+
+  res.json(response);
 });

@@ -1,6 +1,14 @@
 import { Device, NumericEvent, BooleanEvent } from '..';
-import { getNumericProperty, setNumericProperty } from './helpers/number';
-import { getBooleanProperty, setBooleanProperty } from './helpers/boolean';
+import { 
+  getNumericProperty, 
+  setNumericProperty, 
+  getBooleanProperty, 
+  setBooleanProperty, 
+  getBooleanPropertyHistory, 
+  getNumericPropertyHistory,
+  HistorySelector
+} from './helpers';
+
 import bus from '../../bus';
 
 {{#each capabilities}}
@@ -15,6 +23,10 @@ export class {{className}} {
   {{#if isBoolean}}
   get{{propertyName}}(): Promise<boolean> {
     return getBooleanProperty(this.device, '{{fieldName}}');
+  }
+
+  get{{propertyName}}History(selection: HistorySelector): Promise<BooleanEvent[]> {
+    return getBooleanPropertyHistory(this.device, '{{fieldName}}', selection);
   }
 
   async set{{propertyName}}State(value: boolean, timestamp?: Date): Promise<void> {
@@ -39,6 +51,10 @@ export class {{className}} {
   {{else}}
   get{{propertyName}}(): Promise<number> {
     return getNumericProperty(this.device, '{{fieldName}}');
+  }
+
+  get{{propertyName}}History(selection: HistorySelector): Promise<NumericEvent[]> {
+    return getNumericPropertyHistory(this.device, '{{fieldName}}', selection);
   }
 
   async set{{propertyName}}State(value: number, timestamp?: Date): Promise<void> {

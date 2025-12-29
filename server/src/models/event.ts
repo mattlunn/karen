@@ -6,7 +6,7 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
   declare public id: CreationOptional<number>;
   declare public deviceId: number;
   declare public start: Date;
-  declare public end: CreationOptional<Date>;
+  declare public end: Date | null;
   declare public type: string;
   declare public value: CreationOptional<number>;
 
@@ -58,7 +58,7 @@ export class BooleanEvent {
 
   public value: boolean;
   public start: Date;
-  public end?: Date;
+  public end: Date | null;
 
   constructor(e: Event) {
     this.event = e;
@@ -81,7 +81,7 @@ export class NumericEvent {
 
   public value: number;
   public start: Date;
-  public end?: Date;
+  public end: Date | null;
 
   constructor(e: Event) {
     this.event = e;

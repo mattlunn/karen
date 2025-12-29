@@ -4,21 +4,40 @@ import Header from '../header';
 import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
 
-import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
+import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke } from '@fortawesome/free-solid-svg-icons';
+import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke, faPersonWalking } from '@fortawesome/free-solid-svg-icons';
 
-function StatusItem({ icon, title, value, color }: { icon: IconDefinition; title: string; value: string, color?: string }) {
+function extractRecentNumericHistory(history: NumericEventApiResponse[], formatValue: (value: number) => string) {
+  if (history.length === 0) {
+    return { value: 'N/A' };
+  }
+
+  const recentEvent = history[history.length - 1];
+
+  return { value: formatValue(recentEvent.value), since: recentEvent.start };
+}
+
+function extractRecentBooleanHistory(history: BooleanEventApiResponse[], formatValue: (value: boolean) => string) {
+  if (history.length === 0) {
+    return { value: 'N/A' };
+  }
+
+  const recentEvent = history[history.length - 1];
+
+  return { value: formatValue(!recentEvent.end), since: recentEvent.end || recentEvent.start };
+}
+
+function StatusItem({ icon, title, value, color, since }: { icon: IconDefinition; title: string; value: string, color?: string, since?: string }) {
   return (
     <li className="device__status-item">
       <div className="device__status-item-icon">
+        <div className="device__status-item-value-title">{title}</div>
         <FontAwesomeIcon icon={icon} color={color}/>
       </div>
       <div className="device__status-item-value">
-        <dl>
-          <dt className="device__status-item-value-title">{title}</dt>
-          <dd className="device__status-item-value-value">{value}</dd>
-        </dl> 
+        <div className="device__status-item-value-value">{value}</div>
+        <div className="device__status-item-value-date">{since}</div>
       </div>
     </li>
   );
@@ -66,8 +85,20 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
 
                     case 'LIGHT': {
                       return ([
-                        <StatusItem icon={faLightbulb} title="Brightness" value={`${capability.brightness}%`} />,
-                        <StatusItem icon={faCircleHalfStroke} title="Status" value={capability.isOn ? 'On' : 'Off'} />
+                        <StatusItem icon={faLightbulb} title="Brightness" {...extractRecentNumericHistory(capability.brightnessHistory, (value) => `${value}%`)} />,
+                        <StatusItem icon={faCircleHalfStroke} title="Status" {...extractRecentBooleanHistory(capability.isOnHistory, isOn => isOn ? 'On' : 'Off')} />
+                      ]);
+                    }
+
+                    case 'MOTION_SENSOR': {
+                      return ([
+                        <StatusItem icon={faPersonWalking} title="Status" value={capability.hasMotion ? 'Motion' : 'No Motion'} />
+                      ]);
+                    }
+
+                    case 'LIGHT_SENSOR': {
+                      return ([
+                        <StatusItem icon={faLightbulb} title="Illuminance" value={`${capability.illuminance} lx`} />
                       ]);
                     }
                   }
