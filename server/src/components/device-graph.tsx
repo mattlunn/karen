@@ -168,7 +168,8 @@ export function ThermostatCapabilityGraph({ response } : { response: DeviceApiRe
               unit: 'minute'
             },
             ticks: {
-              source: 'auto'
+              source: 'auto',
+              stepSize: 15
             }
           },
 
@@ -242,7 +243,8 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
                 unit: 'minute'
               },
               ticks: {
-                source: 'auto'
+                source: 'auto',
+                stepSize: 15
               }
             },
 
@@ -276,7 +278,8 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
                 unit: 'minute'
               },
               ticks: {
-                source: 'auto'
+                source: 'auto',
+                stepSize: 15
               }
             }
           }
@@ -297,7 +300,8 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
                 unit: 'minute'
               },
               ticks: {
-                source: 'auto'
+                source: 'auto',
+                stepSize: 15
               }
             }
           }
@@ -322,14 +326,15 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
                 unit: 'minute'
               },
               ticks: {
-                source: 'auto'
+                source: 'auto',
+                stepSize: 15
               }
             }
           }
         }}
       />
 
-      <Chart type="line" data={{
+      <Chart type="line" height={75} data={{
         datasets: [{
           type: 'line',
           data: systemPressureHistory,
@@ -344,7 +349,8 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
                 unit: 'minute'
               },
               ticks: {
-                source: 'auto'
+                source: 'auto',
+                stepSize: 15
               }
             },
 
