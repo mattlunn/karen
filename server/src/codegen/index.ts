@@ -1,5 +1,9 @@
 import Handlebars from 'handlebars';
 import { readFileSync, writeFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 type CapabilityDescriptor = {
   name: string;
@@ -17,7 +21,7 @@ type PropertyDescriptor = {
 const toSnakeCase = (x: string) => x.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '');
 const toPascalUpperCase = (x: string) => x.replace(/([A-Z])/g, '_$1').slice(1).toUpperCase();
 
-const capabilities = (require('../capabilities.json') as CapabilityDescriptor[]).map(({ name, properties, capabilityModelClassName = null }) => {
+const capabilities = (JSON.parse(readFileSync(__dirname + '/../capabilities.json', 'utf-8')) as CapabilityDescriptor[]).map(({ name, properties, capabilityModelClassName = null }) => {
   const moduleName = `${toSnakeCase(name)}.gen`;
   const capabilityEnumName = toPascalUpperCase(name);
 
