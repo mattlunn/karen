@@ -14,6 +14,7 @@ import {
   Colors,
   Filler
 } from 'chart.js';
+import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
 import 'chartjs-adapter-moment';
 import { DeviceApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../api/types';
@@ -31,7 +32,8 @@ ChartJS.register(
   BarController,
   TimeScale,
   Colors,
-  Filler
+  Filler,
+  AnnotationPlugin
 );
 
 function mapNumericDataToDataset(numericEventHistory: NumericEventApiResponse[], history: HistoryDetailsApiResponse) {
@@ -198,8 +200,11 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
 
   const dhwTemperatureHistory = mapNumericDataToDataset(heatPumpCapability.dHWTemperatureHistory, response.history);
   const outsideTemperatureHistory = mapNumericDataToDataset(heatPumpCapability.outsideTemperatureHistory, response.history);
+  const systemPressureHistory = mapNumericDataToDataset(heatPumpCapability.systemPressureHistory, response.history);
   const yieldHistory = mapNumericDataToDataset(heatPumpCapability.yieldHistory, response.history);
   const powerHistory = mapNumericDataToDataset(heatPumpCapability.powerHistory, response.history);
+  const actualFlowTemperatureHistory = mapNumericDataToDataset(heatPumpCapability.actualFlowTemperatureHistory, response.history);
+  const returnTemperatureHistory = mapNumericDataToDataset(heatPumpCapability.returnTemperatureHistory, response.history);
   const modeHistory = mapEnumDataToDatasets(heatPumpCapability.modeHistory, response.history);
 
   function createDatasetForMode(mode: string) {
@@ -260,6 +265,27 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
       <Chart type="line" data={{
         datasets: [{
           type: 'line',
+          data: outsideTemperatureHistory,
+          label: 'Outside Temperature',
+        }],
+      }} options={{
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'minute'
+              },
+              ticks: {
+                source: 'auto'
+              }
+            }
+          }
+        }}
+      />
+
+      <Chart type="line" data={{
+        datasets: [{
+          type: 'line',
           data: dhwTemperatureHistory,
           label: 'Hot Water Temperature',
         }],
@@ -281,8 +307,12 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
       <Chart type="line" data={{
         datasets: [{
           type: 'line',
-          data: outsideTemperatureHistory,
-          label: 'Outside Temperature',
+          data: actualFlowTemperatureHistory,
+          label: 'Actual Flow Temperature',
+        }, {
+          type: 'line',
+          data: returnTemperatureHistory,
+          label: 'Return Temperature',
         }],
       }} options={{
           scales: {
@@ -293,6 +323,57 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
               },
               ticks: {
                 source: 'auto'
+              }
+            }
+          }
+        }}
+      />
+
+      <Chart type="line" data={{
+        datasets: [{
+          type: 'line',
+          data: systemPressureHistory,
+          label: 'System Pressure',
+          stepped: true
+        }],
+      }} options={{
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'minute'
+              },
+              ticks: {
+                source: 'auto'
+              }
+            },
+
+            y: {
+              min: 0,
+              max: 2
+            }
+          },
+
+          plugins: {
+            annotation: {
+              annotations: {
+                red: {
+                  type: 'box',
+                  xMin: response.history.since,
+                  xMax: response.history.until,
+                  yMin: 0,
+                  yMax: 1,
+                  backgroundColor: 'rgba(255, 0, 55, 0.25)'
+                },
+
+                green: {
+                  type: 'box',
+                  xMin: response.history.since,
+                  xMax: response.history.until,
+                  yMin: 1,
+                  yMax: 2,
+                  backgroundColor: 'rgba(31, 135, 0, 0.25)'
+                }
               }
             }
           }

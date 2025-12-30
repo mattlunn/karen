@@ -26,6 +26,9 @@ export type CapabilityApiResponse = {
   outsideTemperatureHistory: NumericEventApiResponse[];
   yieldHistory: NumericEventApiResponse[];
   powerHistory: NumericEventApiResponse[];
+  returnTemperatureHistory: NumericEventApiResponse[];
+  actualFlowTemperatureHistory: NumericEventApiResponse[];
+  systemPressureHistory: NumericEventApiResponse[];
   modeHistory: EnumEventApiResponse[];
   dHWCoP: number;
   heatingCoP: number;
