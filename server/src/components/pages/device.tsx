@@ -3,6 +3,7 @@ import SideBar from '../sidebar';
 import Header from '../header';
 import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
+import moment from 'moment';
 
 import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -29,15 +30,24 @@ function extractRecentBooleanHistory(history: BooleanEventApiResponse[], formatV
 }
 
 function StatusItem({ icon, title, value, color, since }: { icon: IconDefinition; title: string; value: string, color?: string, since?: string }) {
+  const sinceMoment = moment(since);
+  const sinceFormatted = sinceMoment.isSameOrAfter(moment().startOf('day')) 
+    ? sinceMoment.format('HH:mm:ss')
+    : sinceMoment.format('YYYY-MM-DD HH:mm:ss');
+
   return (
     <li className="device__status-item">
-      <div className="device__status-item-icon">
-        <div className="device__status-item-value-title">{title}</div>
-        <FontAwesomeIcon icon={icon} color={color}/>
+      <div className="device__status-item-title">
+        {title}
+
+        <div className="device__status-item-icon">
+          <FontAwesomeIcon icon={icon} color={color}/>
+        </div>
       </div>
-      <div className="device__status-item-value">
-        <div className="device__status-item-value-value">{value}</div>
-        <div className="device__status-item-value-date">{since}</div>
+
+      <div className="device__status-item-details">
+        <div className="device__status-item-value">{value}</div>
+        <div className="device__status-item-date">{sinceFormatted}</div>
       </div>
     </li>
   );
