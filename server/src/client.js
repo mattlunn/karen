@@ -1,12 +1,11 @@
 import './moment';
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import Timeline from './components/pages/timeline';
 import Home from './components/pages/home';
 import Devices from './components/pages/devices';
 import Device from './components/pages/device';
 import Login from './components/pages/login';
-import History from './components/pages/history';
 import { Route } from 'react-router';
 import { Switch, BrowserRouter } from 'react-router-dom';
 import { onError } from '@apollo/client/link/error';
@@ -24,7 +23,6 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 
 import './styles/app.less';
-import 'react-vis/dist/style.css';
 
 const wsLink = new GraphQLWsLink(createClient({
   url: `ws${location.protocol.slice(4)}//${location.host}/graphql`,
@@ -68,20 +66,19 @@ const client = new ApolloClient({
 });
 
 window.onload = () => {
-  ReactDOM.render(
+  const root = createRoot(document.getElementById('main'));
+
+  root.render(
     <ApolloProvider client={client}>
       <BrowserRouter>
         <Switch>
           <Route exact path="/" component={Home}/>
           <Route exact path="/login" component={Login}/>
           <Route exact path="/timeline" component={Timeline}/>
-          <Route exact path="/history" component={History}/>
           <Route exact path="/device/:id" component={Device}/>
           <Route exact path="/device" component={Devices}/>
         </Switch>
       </BrowserRouter>
     </ApolloProvider>,
-
-    document.getElementById('main')
   );
 };

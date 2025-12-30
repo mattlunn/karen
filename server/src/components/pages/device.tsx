@@ -6,19 +6,6 @@ import { RouteComponentProps } from 'react-router-dom';
 import moment from 'moment';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke, faPersonWalking } from '@fortawesome/free-solid-svg-icons';
-import {
-  Chart as ChartJS,
-  LinearScale,
-  CategoryScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Legend,
-  Tooltip,
-  LineController,
-  BarController,
-} from 'chart.js';
-import { Chart } from 'react-chartjs-2';
 
 import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
 import Event from '../event';
@@ -191,7 +178,6 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
             </div>
           </div>
           <div className="device__graph">
-            <Chart type='bar' data={data} />
           </div>
           <div className="device__timeline">
             <h3 className="device__timeline-header">Timeline</h3>
