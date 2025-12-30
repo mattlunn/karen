@@ -363,7 +363,8 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
                   xMax: response.history.until,
                   yMin: 0,
                   yMax: 1,
-                  backgroundColor: 'rgba(255, 0, 55, 0.25)'
+                  backgroundColor: 'rgba(255, 0, 55, 0.25)',
+                  borderWidth: 0
                 },
 
                 green: {
@@ -372,7 +373,8 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
                   xMax: response.history.until,
                   yMin: 1,
                   yMax: 2,
-                  backgroundColor: 'rgba(31, 135, 0, 0.25)'
+                  backgroundColor: 'rgba(31, 135, 0, 0.25)',
+                  borderWidth: 0
                 }
               }
             }
