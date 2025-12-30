@@ -5,11 +5,11 @@ import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
 import moment from 'moment';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke, faPersonWalking } from '@fortawesome/free-solid-svg-icons';
+import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke, faPersonWalking, faFaucetDrip, faFireBurner, faFaucet, faTree } from '@fortawesome/free-solid-svg-icons';
 
 import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
 import Event from '../event';
-import DeviceGraph from '../device-graph';
+import { HeatPumpCapabilityGraph, ThermostatCapabilityGraph } from '../device-graph';
 
 type TimelineEvent = {
   timestamp: Date;
@@ -64,7 +64,7 @@ function extractRecentNumericHistory(history: NumericEventApiResponse[], formatV
     return { value: 'N/A' };
   }
 
-  const recentEvent = history[history.length - 1];
+  const recentEvent = history[0];
 
   return { value: formatValue(recentEvent.value), since: recentEvent.start };
 }
@@ -74,7 +74,7 @@ function extractRecentBooleanHistory(history: BooleanEventApiResponse[], formatV
     return { value: 'N/A' };
   }
 
-  const recentEvent = history[history.length - 1];
+  const recentEvent = history[0];
 
   return { value: formatValue(!recentEvent.end), since: recentEvent.end || recentEvent.start };
 }
@@ -161,6 +161,16 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
                         <StatusItem icon={faLightbulb} title="Illuminance" {...extractRecentNumericHistory(capability.illuminanceHistory, (value) => `${value} lx`)} />
                       ]);
                     }
+
+                    case 'HEAT_PUMP': {
+                      return ([
+                        <StatusItem icon={faFaucet} title="Hot Water CoP" value={`${capability.dHWCoP.toFixed(1)} CoP`} />,
+                        <StatusItem icon={faFire} title="Heating CoP" value={`${capability.heatingCoP.toFixed(1)} CoP`} />,
+                        <StatusItem icon={faTree} title="Outside Temperature" {...extractRecentNumericHistory(capability.outsideTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
+                        <StatusItem icon={faFaucetDrip} title="Hot Water Temperature" {...extractRecentNumericHistory(capability.dHWTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
+                        <StatusItem icon={faFireBurner} title="Daily Yield" value={`${capability.totalDailyYield}kWh`} />,
+                      ]);
+                    }
                   }
                 }).flat()}
               </ul>
@@ -181,7 +191,17 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
           <div className="device__graph">
             <h3 className="device__section-header">Graph</h3>
 
-            <DeviceGraph response={data} />
+            {device.capabilities.map((capability: CapabilityApiResponse) => {
+              switch (capability.type) {
+                case 'THERMOSTAT': {
+                  return (<ThermostatCapabilityGraph response={data} />);
+                }
+
+                case 'HEAT_PUMP': {
+                  return <HeatPumpCapabilityGraph response={data} />;
+                }
+              }
+            }).flat()}
           </div>
           <div className="device__timeline">
             <h3 className="device__section-header">Timeline</h3>

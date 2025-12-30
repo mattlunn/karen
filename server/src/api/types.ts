@@ -21,8 +21,28 @@ export type CapabilityApiResponse = {
   type: 'MOTION_SENSOR';
   hasMotionHistory: BooleanEventApiResponse[];
 } | {
+  type: 'HEAT_PUMP',
+  dHWTemperatureHistory: NumericEventApiResponse[];
+  outsideTemperatureHistory: NumericEventApiResponse[];
+  yieldHistory: NumericEventApiResponse[];
+  powerHistory: NumericEventApiResponse[];
+  modeHistory: EnumEventApiResponse[];
+  dHWCoP: number;
+  heatingCoP: number;
+  totalDailyYield: number;
+} | {
   type: null
 };
+
+/*
+dHWCoP: heatPump.getDHWCoP(),
+heatingCoP: heatPump.getHeatingCoP(),
+dHWTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getDHWCoPHistory(hs), historySelector),
+powerHistory: mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), historySelector),
+yieldHistory: mapNumericHistoryToResponse((hs) => heatPump.getCurrentYieldHistory(hs), historySelector),
+totalDailyYield: heatPump.getDailyConsumedEnergy(),
+outsideTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getOutsideTemperatureHistory(hs), historySelector),
+*/
 
 export type BooleanEventApiResponse = {
   start: string;
@@ -33,6 +53,12 @@ export type NumericEventApiResponse = {
   start: string;
   end: string | null;
   value: number;
+}
+
+export type EnumEventApiResponse = {
+  start: string;
+  end: string | null;
+  value: string;
 }
 
 export type HistoryDetailsApiResponse = {

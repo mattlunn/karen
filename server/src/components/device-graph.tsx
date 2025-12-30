@@ -16,7 +16,7 @@ import {
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import 'chartjs-adapter-moment';
-import { DeviceApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../api/types';
+import { DeviceApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../api/types';
 import moment from 'moment';
 
 ChartJS.register(
@@ -82,7 +82,48 @@ function mapNumericDataToDataset(numericEventHistory: NumericEventApiResponse[],
   return dataset;
 }
 
-export default function DeviceGraph({ response } : { response: DeviceApiResponse }) {
+function mapEnumDataToDatasets(enumEventHistory: EnumEventApiResponse[], history: HistoryDetailsApiResponse): Record<string, { x: string, y: number }[]> {
+  const dataset = [];
+
+  const sortedEvents = enumEventHistory.toSorted((a, b) => {
+    return new Date(a.start).getTime() - new Date(b.start).getTime();
+  });
+
+  if (sortedEvents.length === 0) {
+    return {};
+  }
+
+  if (sortedEvents.at(0)!.start < history.since) {
+    sortedEvents[0].start = history.since;
+  }
+
+  if (sortedEvents.at(-1)!.end === null || sortedEvents.at(-1)!.end! > history.until) {
+    sortedEvents.at(-1)!.end = history.until;
+  }
+
+  const datasets: Record<string, { x: string, y: number }[]> = {};
+
+  for (const event of sortedEvents) {
+    if (!datasets[event.value]) {
+      datasets[event.value] = [];
+    }
+
+    datasets[event.value].push({
+      x: event.start,
+      y: 1,
+    }, {
+      x: event.end!,
+      y: 1
+    }, {
+      x: moment(event.end).add(5, 'm').toISOString(),
+      y: 0,
+    });
+  }
+
+  return datasets;
+}
+
+export function ThermostatCapabilityGraph({ response } : { response: DeviceApiResponse }) {
   const thermostatCapability = response.device.capabilities.find(x => x.type === 'THERMOSTAT');
 
   if (!thermostatCapability) {
@@ -115,7 +156,7 @@ export default function DeviceGraph({ response } : { response: DeviceApiResponse
         yAxisID: 'yPercentage',
         pointRadius: 0,
         borderWidth: 1,
-        tension: 0
+        stepped: true
       }],
     }} options={{
         scales: {
@@ -145,5 +186,118 @@ export default function DeviceGraph({ response } : { response: DeviceApiResponse
         }
       }}
     />
+  );
+}
+
+export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResponse }) {
+  const heatPumpCapability = response.device.capabilities.find(x => x.type === 'HEAT_PUMP');
+
+  if (!heatPumpCapability) {
+    return <></>
+  }
+
+  const dhwTemperatureHistory = mapNumericDataToDataset(heatPumpCapability.dHWTemperatureHistory, response.history);
+  const outsideTemperatureHistory = mapNumericDataToDataset(heatPumpCapability.outsideTemperatureHistory, response.history);
+  const yieldHistory = mapNumericDataToDataset(heatPumpCapability.yieldHistory, response.history);
+  const powerHistory = mapNumericDataToDataset(heatPumpCapability.powerHistory, response.history);
+  const modeHistory = mapEnumDataToDatasets(heatPumpCapability.modeHistory, response.history);
+
+  function createDatasetForMode(mode: string) {
+    return {
+      type: 'line' as const, 
+      yAxisID: 'yModes',
+      data: modeHistory[mode.toUpperCase()] || [],
+      label: mode,
+      stepped: true,
+      fill: 'start',
+      pointRadius: 0,
+      borderWidth: 1,
+    };
+  }
+
+  return (
+    <>
+      <Chart type="line" data={{
+        datasets: [{
+          type: 'line',
+          data: yieldHistory,
+          label: 'Yield',
+          yAxisID: 'y'
+        }, {
+          type: 'line',
+          data: powerHistory,
+          label: 'Power',
+          yAxisID: 'y'
+        }, createDatasetForMode('Heating'), createDatasetForMode('Standby'), createDatasetForMode('DHW'), createDatasetForMode('Frost_Protection'), createDatasetForMode('Deicing')]
+      }} options={{
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'minute'
+              },
+              ticks: {
+                source: 'auto'
+              }
+            },
+
+            y: {
+              position: 'left',
+              type: 'linear'
+            },
+
+            yModes: {
+              type: 'linear',
+              position: 'right',
+              max: 1,
+              min: 0,
+              display: false
+            },
+          }
+        }}
+      />
+
+      <Chart type="line" data={{
+        datasets: [{
+          type: 'line',
+          data: dhwTemperatureHistory,
+          label: 'Hot Water Temperature',
+        }],
+      }} options={{
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'minute'
+              },
+              ticks: {
+                source: 'auto'
+              }
+            }
+          }
+        }}
+      />
+
+      <Chart type="line" data={{
+        datasets: [{
+          type: 'line',
+          data: outsideTemperatureHistory,
+          label: 'Outside Temperature',
+        }],
+      }} options={{
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'minute'
+              },
+              ticks: {
+                source: 'auto'
+              }
+            }
+          }
+        }}
+      />
+    </>
   );
 }
