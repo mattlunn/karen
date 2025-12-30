@@ -22,7 +22,7 @@ async function mapNumericHistoryToResponse(fetchHistory: (hs: HistorySelector) =
 
 export default expressAsyncWrapper(async function (req, res, next) {
   const device = await Device.findById(req.params.id);
-  const historySelector = { until: new Date(), since: moment().subtract(7, 'day').toDate() };
+  const historySelector = { until: new Date(), since: moment().startOf('day').toDate() };
 
   if (!device) {
     return next('route');
@@ -100,6 +100,11 @@ export default expressAsyncWrapper(async function (req, res, next) {
           }
         }
       }))
+    },
+
+    history: {
+      since: historySelector.since.toISOString(),
+      until: historySelector.until.toISOString()  
     }
   };
 

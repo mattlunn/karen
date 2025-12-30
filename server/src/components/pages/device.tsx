@@ -9,6 +9,7 @@ import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, f
 
 import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
 import Event from '../event';
+import DeviceGraph from '../device-graph';
 
 type TimelineEvent = {
   timestamp: Date;
@@ -178,9 +179,12 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
             </div>
           </div>
           <div className="device__graph">
+            <h3 className="device__section-header">Graph</h3>
+
+            <DeviceGraph response={data} />
           </div>
           <div className="device__timeline">
-            <h3 className="device__timeline-header">Timeline</h3>
+            <h3 className="device__section-header">Timeline</h3>
 
             {renderTimeline(device.capabilities.map((capability: CapabilityApiResponse) => {
               switch (capability.type) {

@@ -76,7 +76,7 @@ async function getLastNEventsUntil(device: Device, propertyName: string, timeRan
 };
 
 async function getEventsInRange(device: Device, propertyName: string, timeRangeSelector: TimeRangeSelector): Promise<Event[]> {
-  return await Event.findAll({
+  return Event.findAll({
     where: {
       deviceId: device.id,
       type: propertyName,

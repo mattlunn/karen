@@ -35,6 +35,11 @@ export type NumericEventApiResponse = {
   value: number;
 }
 
+export type HistoryDetailsApiResponse = {
+  since: string,
+  until: string
+}
+
 export type DeviceApiResponse = {
   device: {
     capabilities: CapabilityApiResponse[];
@@ -43,5 +48,7 @@ export type DeviceApiResponse = {
     type: string;
     provider: string;
     providerId: string;
-  }
+  },
+
+  history: HistoryDetailsApiResponse
 }
