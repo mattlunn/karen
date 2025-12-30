@@ -39,7 +39,8 @@ module.exports = {
             fixedRows++;
           }
         }
-      };
+      }
+    // eslint-disable-next-line no-constant-condition
     } while (true);
 
     console.log(`Done. ${fixedRows} were fixed. ${offset} were unfixable`);

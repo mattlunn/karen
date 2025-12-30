@@ -2,10 +2,10 @@
   "compilerOptions": {
     "allowJs": true,
     "strict": true,
-    "module": "Node16",
+    "module": "ESNext",
     "forceConsistentCasingInFileNames": true,
     "target": "es2024",
-    "moduleResolution": "Node16",
+    "moduleResolution": "Bundler",
     "esModuleInterop": true,
     "noEmit": true,
     "jsx": "react",
