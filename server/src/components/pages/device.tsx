@@ -1,12 +1,63 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import SideBar from '../sidebar';
 import Header from '../header';
 import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
-
-import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
+import moment from 'moment';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke, faPersonWalking } from '@fortawesome/free-solid-svg-icons';
+
+import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
+import Event from '../event';
+import DeviceGraph from '../device-graph';
+
+type TimelineEvent = {
+  timestamp: Date;
+  component: ReactNode;
+};
+
+function renderTimeline(events: ((TimelineEvent | null)[][])[]): ReactNode {
+  const flattenedEvents = events.flat(2).filter(e => e !== null) as TimelineEvent[];
+  const days: { date: moment.Moment; events: ReactNode[] }[] = [];
+  
+  flattenedEvents.toSorted((a, b) => {
+    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+  }).forEach((event) => {
+    const eventMoment = moment(event.timestamp);
+    const isSameDay = days.length > 0 && days[0].date.isSame(eventMoment, 'day');
+
+    if (isSameDay) {
+      days[0].events.unshift(event.component);
+    } else {
+      days.unshift({
+        date: eventMoment.startOf('day'),
+        events: [event.component]
+      });
+    }
+  });
+
+  return (
+    <ol className='timeline'>
+      {days.map(({ date, events }, idx) => {
+        return (
+          <li key={idx} className='day'>
+            <h4 className='day__header'>{date.format('dddd, MMMM Do YYYY')}</h4>
+
+              <ol className='events'>
+              {events.map((event, idx) => {
+                return (
+                  <li className='event' key={idx}>
+                    {event}
+                  </li>
+                );
+              })}
+            </ol>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 function extractRecentNumericHistory(history: NumericEventApiResponse[], formatValue: (value: number) => string) {
   if (history.length === 0) {
@@ -29,15 +80,24 @@ function extractRecentBooleanHistory(history: BooleanEventApiResponse[], formatV
 }
 
 function StatusItem({ icon, title, value, color, since }: { icon: IconDefinition; title: string; value: string, color?: string, since?: string }) {
+  const sinceMoment = moment(since);
+  const sinceFormatted = sinceMoment.isSameOrAfter(moment().startOf('day')) 
+    ? sinceMoment.format('HH:mm:ss')
+    : sinceMoment.format('YYYY-MM-DD HH:mm:ss');
+
   return (
     <li className="device__status-item">
-      <div className="device__status-item-icon">
-        <div className="device__status-item-value-title">{title}</div>
-        <FontAwesomeIcon icon={icon} color={color}/>
+      <div className="device__status-item-title">
+        {title}
+
+        <div className="device__status-item-icon">
+          <FontAwesomeIcon icon={icon} color={color}/>
+        </div>
       </div>
-      <div className="device__status-item-value">
-        <div className="device__status-item-value-value">{value}</div>
-        <div className="device__status-item-value-date">{since}</div>
+
+      <div className="device__status-item-details">
+        <div className="device__status-item-value">{value}</div>
+        <div className="device__status-item-date">{sinceFormatted}</div>
       </div>
     </li>
   );
@@ -66,20 +126,20 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
                   switch (capability.type) {
                     case 'TEMPERATURE_SENSOR': {
                       return ([
-                        <StatusItem icon={faThermometerQuarter} title="Current Temperature" value={`${capability.currentTemperature.toFixed(1)}°C`} color="#ff6f22" />
+                        <StatusItem icon={faThermometerQuarter} title="Current Temperature" {...extractRecentNumericHistory(capability.currentTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} color="#ff6f22" />
                       ]);
                     }
 
                     case 'HUMIDITY_SENSOR': {
                       return ([
-                        <StatusItem icon={faDroplet} title="Humidity" value={`${capability.humidity}%`} color="#04A7F4" />
+                        <StatusItem icon={faDroplet} title="Humidity" {...extractRecentNumericHistory(capability.humidityHistory, (value) => `${value}%`)} color="#04A7F4" />
                       ]);
                     }
 
                     case 'THERMOSTAT': {
                       return ([
-                        <StatusItem icon={faThermometerQuarter} title="Target Temperature" value={`${capability.targetTemperature.toFixed(1)}°C`} color="#ff6f22" />,
-                        <StatusItem icon={faFire} title="Power" value={`${capability.power}%`} color="#ff6f22" />
+                        <StatusItem icon={faThermometerQuarter} title="Target Temperature" {...extractRecentNumericHistory(capability.targetTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} color="#ff6f22" />,
+                        <StatusItem icon={faFire} title="Power" {...extractRecentNumericHistory(capability.powerHistory, (value) => `${value}%`)} color="#ff6f22" />
                       ]);
                     }
 
@@ -92,13 +152,13 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
 
                     case 'MOTION_SENSOR': {
                       return ([
-                        <StatusItem icon={faPersonWalking} title="Status" value={capability.hasMotion ? 'Motion' : 'No Motion'} />
+                        <StatusItem icon={faPersonWalking} title="Status" {...extractRecentBooleanHistory(capability.hasMotionHistory, isOn => isOn ? 'Motion' : 'No Motion')} />
                       ]);
                     }
 
                     case 'LIGHT_SENSOR': {
                       return ([
-                        <StatusItem icon={faLightbulb} title="Illuminance" value={`${capability.illuminance} lx`} />
+                        <StatusItem icon={faLightbulb} title="Illuminance" {...extractRecentNumericHistory(capability.illuminanceHistory, (value) => `${value} lx`)} />
                       ]);
                     }
                   }
@@ -118,8 +178,53 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
               </dl>
             </div>
           </div>
-          <div>
-            
+          <div className="device__graph">
+            <h3 className="device__section-header">Graph</h3>
+
+            <DeviceGraph response={data} />
+          </div>
+          <div className="device__timeline">
+            <h3 className="device__section-header">Timeline</h3>
+
+            {renderTimeline(device.capabilities.map((capability: CapabilityApiResponse) => {
+              switch (capability.type) {
+                case 'LIGHT': {
+                  return capability.isOnHistory.map((event) => {
+                    return [{
+                      timestamp: new Date(event.start),
+                      component: (
+                        <Event icon={faLightbulb} title="Light turned on" timestamp={event.start} />
+                      )
+                    }, event.end ? {
+                      timestamp: new Date(event.end),
+                      component: (
+                        <Event icon={faLightbulb} title="Light turned off" timestamp={event.end} />
+                      )
+                    } : null];
+                  });
+                };
+
+                case 'MOTION_SENSOR': {
+                  return capability.hasMotionHistory.map((event) => {
+                    return [{
+                      timestamp: new Date(event.start),
+                      component: (
+                        <Event icon={faPersonWalking} title="Motion detected" timestamp={event.start} />
+                      )
+                    }, event.end ? {
+                      timestamp: new Date(event.end),
+                      component: (
+                        <Event icon={faPersonWalking} title="Motion ended" timestamp={event.end} />
+                      )
+                    } : null];
+                  });
+                }
+
+                default: {
+                  return [];
+                }
+              }
+            }))}
           </div>
         </div>
       </div>

@@ -26,7 +26,8 @@ export default function ({ offDelayInMinutes, start, end, lightNames }: FrontLig
       }
 
       clearTimeout(offTimeout);
-      setTimeout(async () => {
+      
+      offTimeout = setTimeout(async () => {
         await Promise.all(devicesToTurnOff.map(device => device.getLightCapability().setIsOn(false)));
       }, offDelayInMinutes * 60 * 1000);
     }

@@ -26,9 +26,6 @@ export default function Header() {
           <Link to="/timeline" className="header__nav-item-link">Timeline</Link>
         </li>
         <li className="header__nav-item">
-          <Link to="/history" className="header__nav-item-link">History</Link>
-        </li>
-        <li className="header__nav-item">
           <Link to="/device" className="header__nav-item-link">Devices</Link>
         </li>
         <li className="header__nav-item">

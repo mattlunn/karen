@@ -57,7 +57,7 @@ class Timeline extends Component {
             timestamp={event.timestamp}
             title={`Motion detected by "${event.device.name}"`}
             icon={faEye}
-            controls={({ togglePanel }) => {
+            renderControls={({ togglePanel }) => {
               return event.recording ? [
                 <a key={0} onClick={(e) => {
                   e.preventDefault();
@@ -124,7 +124,7 @@ class Timeline extends Component {
             timestamp={event.timestamp}
             icon={faBell}
             title={`Someone rang the doorbell`}
-            controls={({ togglePanel }) => {
+            renderControls={({ togglePanel }) => {
               return [
                 <a key={0} onClick={(e) => {
                   e.preventDefault();
