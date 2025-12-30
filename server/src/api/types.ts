@@ -4,22 +4,22 @@ export type CapabilityApiResponse = {
   brightnessHistory: NumericEventApiResponse[];
 } | {
   type: 'THERMOSTAT';
-  currentTemperature: number;
-  targetTemperature: number;
-  power: number;
-  isOn: boolean;
+  currentTemperatureHistory: NumericEventApiResponse[];
+  targetTemperatureHistory: NumericEventApiResponse[];
+  powerHistory: NumericEventApiResponse[];
+  isOnHistory: BooleanEventApiResponse[];
 } | {
   type: 'HUMIDITY_SENSOR';
-  humidity: number;
+  humidityHistory: NumericEventApiResponse[];
 } | {
   type: 'TEMPERATURE_SENSOR';
-  currentTemperature: number;
+  currentTemperatureHistory: NumericEventApiResponse[];
 } | {
   type: 'LIGHT_SENSOR';
-  illuminance: number;
+  illuminanceHistory: NumericEventApiResponse[];
 } | {
   type: 'MOTION_SENSOR';
-  hasMotion: boolean;
+  hasMotionHistory: BooleanEventApiResponse[];
 } | {
   type: null
 };

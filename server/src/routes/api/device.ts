@@ -52,10 +52,10 @@ export default expressAsyncWrapper(async function (req, res, next) {
             
             return { 
               type: capability,
-              currentTemperature: await thermostat.getCurrentTemperature(),
-              targetTemperature: await thermostat.getTargetTemperature(),
-              power: await thermostat.getPower(),
-              isOn: await thermostat.getIsOn()
+              currentTemperatureHistory: await mapNumericHistoryToResponse((hs) => thermostat.getCurrentTemperatureHistory(hs), historySelector),
+              targetTemperatureHistory: await mapNumericHistoryToResponse((hs) => thermostat.getTargetTemperatureHistory(hs), historySelector),
+              powerHistory: await mapNumericHistoryToResponse((hs) => thermostat.getPowerHistory(hs), historySelector),
+              isOnHistory: await mapBooleanHistoryToResponse((hs) => thermostat.getIsOnHistory(hs), historySelector),
             };
           }
 
@@ -64,7 +64,7 @@ export default expressAsyncWrapper(async function (req, res, next) {
             
             return { 
               type: capability,
-              humidity: await sensor.getHumidity()
+              humidityHistory: await mapNumericHistoryToResponse((hs) => sensor.getHumidityHistory(hs), historySelector),
             };
           }
 
@@ -73,7 +73,7 @@ export default expressAsyncWrapper(async function (req, res, next) {
             
             return { 
               type: capability,
-              currentTemperature: await sensor.getCurrentTemperature()
+              currentTemperatureHistory: await mapNumericHistoryToResponse((hs) => sensor.getCurrentTemperatureHistory(hs), historySelector),
             };
           }
 
@@ -82,7 +82,7 @@ export default expressAsyncWrapper(async function (req, res, next) {
             
             return { 
               type: capability,
-              illuminance: await sensor.getIlluminance()
+              illuminanceHistory: await mapNumericHistoryToResponse((hs) => sensor.getIlluminanceHistory(hs), historySelector),
             };
           }
 
@@ -91,7 +91,7 @@ export default expressAsyncWrapper(async function (req, res, next) {
             
             return { 
               type: capability,
-              hasMotion: await sensor.getHasMotion()
+              hasMotionHistory: await mapBooleanHistoryToResponse((hs) => sensor.getHasMotionHistory(hs), historySelector),
             };
           }
 

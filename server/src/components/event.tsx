@@ -4,11 +4,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 
 type EventProps = {
-  renderControls?: (args: { openPanel: (panel: string) => void; closePanel: () => void; togglePanel: (panel: string) => void; }) => React.ReactNode[];
   timestamp: string;
   icon: IconProp;
   title: ReactNode;
-  panels: Record<string, ReactNode>;
+  renderControls?: (args: { openPanel: (panel: string) => void; closePanel: () => void; togglePanel: (panel: string) => void; }) => React.ReactNode[];
+  panels?: Record<string, ReactNode>;
 };
 
 export default function Event({ renderControls, timestamp, icon, title, panels }: EventProps) {
@@ -51,7 +51,7 @@ export default function Event({ renderControls, timestamp, icon, title, panels }
 
       {controlsRender()}
 
-      {panel && (
+      {panels && panel && (
         <div className="event__panel">
           {panels[panel]}
         </div>

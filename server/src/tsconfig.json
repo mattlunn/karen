@@ -4,7 +4,7 @@
     "strict": true,
     "module": "Node16",
     "forceConsistentCasingInFileNames": true,
-    "target": "es2022",
+    "target": "es2024",
     "moduleResolution": "Node16",
     "esModuleInterop": true,
     "noEmit": true,
