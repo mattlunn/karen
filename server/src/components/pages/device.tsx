@@ -4,10 +4,10 @@ import Header from '../header';
 import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
 import moment from 'moment';
-
-import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke, faPersonWalking } from '@fortawesome/free-solid-svg-icons';
+
+import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
 
 function extractRecentNumericHistory(history: NumericEventApiResponse[], formatValue: (value: number) => string) {
   if (history.length === 0) {
@@ -129,7 +129,18 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
             </div>
           </div>
           <div>
-            
+            <div className="device__timeline">
+              <h3>Timeline</h3>
+
+              {device.capabilities.map((capability: CapabilityApiResponse) => {
+                switch (capability.type) {
+                  case 'LIGHT': {
+                    return capability.isOnHistory.map((event) => {
+                    });
+                  }
+                }
+              })}
+            </div>
           </div>
         </div>
       </div>
