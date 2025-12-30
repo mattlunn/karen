@@ -42,18 +42,22 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     await updater(await getter());
   }
 
+  function roundTo1DecimalPlace(val: number) {
+    return Math.round(val * 10) / 10;
+  }
+
   await Promise.all([
-    updateState(() => client.getOutsideTemperature(), (v) => deviceCapability.setOutsideTemperatureState(v)),
-    updateState(() => client.getActualFlowTemperature(), (v) => deviceCapability.setActualFlowTemperatureState(v)),
+    updateState(() => client.getOutsideTemperature(), (v) => deviceCapability.setOutsideTemperatureState(roundTo1DecimalPlace(v))),
+    updateState(() => client.getActualFlowTemperature(), (v) => deviceCapability.setActualFlowTemperatureState(roundTo1DecimalPlace(v))),
     updateState(() => client.getCompressorModulation(), (v) => deviceCapability.setCompressorModulationState(v)),
-    updateState(() => client.getDesiredFlowTemperature(), (v) => deviceCapability.setDesiredFlowTemperatureState(v)),
-    updateState(() => client.getReturnTemperature(), (v) => deviceCapability.setReturnTemperatureState(v)),
+    updateState(() => client.getDesiredFlowTemperature(), (v) => deviceCapability.setDesiredFlowTemperatureState(roundTo1DecimalPlace(v))),
+    updateState(() => client.getReturnTemperature(), (v) => deviceCapability.setReturnTemperatureState(roundTo1DecimalPlace(v))),
     updateState(() => client.getHotWaterCylinderTemperature(), (v) => deviceCapability.setDHWTemperatureState(v)),
     updateState(() => client.getSystemPressure(), (v) => deviceCapability.setSystemPressureState(v)),
     updateState(() => client.getCompressorPower(), (v) => deviceCapability.setCompressorPowerState(v)),
     updateState(() => client.getEnergyDaily(), (v) => deviceCapability.setDailyConsumedEnergyState(v)),
-    updateState(() => client.getCurrentPower(), (v) => deviceCapability.setCurrentPowerState(v)),
-    updateState(() => client.getCurrentYield(), (v) => deviceCapability.setCurrentYieldState(v)),
+    updateState(() => client.getCurrentPower(), (v) => deviceCapability.setCurrentPowerState(roundTo1DecimalPlace(v))),
+    updateState(() => client.getCurrentYield(), (v) => deviceCapability.setCurrentYieldState(roundTo1DecimalPlace(v))),
     updateState(() => client.getMode(), (v) => deviceCapability.setModeState(v)),
     updateState(() => client.getCopHwc(), (v) => deviceCapability.setDHWCoPState(v)),
     updateState(() => client.getCopHc(), (v) => deviceCapability.setHeatingCoPState(v)),
