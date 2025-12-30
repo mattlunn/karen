@@ -115,7 +115,7 @@ function mapEnumDataToDatasets(enumEventHistory: EnumEventApiResponse[], history
       x: event.end!,
       y: 1
     }, {
-      x: moment(event.end).add(5, 'm').toISOString(),
+      x: moment(event.end).add(1, 's').toISOString(),
       y: 0,
     });
   }
