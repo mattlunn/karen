@@ -171,6 +171,7 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
                         <StatusItem icon={faFireBurner} title="Daily Yield" value={`${capability.totalDailyYield}kWh`} />,
                         <StatusItem icon={faThermometer4} title="Flow Temperature" {...extractRecentNumericHistory(capability.actualFlowTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
                         <StatusItem icon={faThermometer2} title="Return Temperature" {...extractRecentNumericHistory(capability.returnTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
+                        <StatusItem icon={faThermometer2} title="System Pressure" {...extractRecentNumericHistory(capability.returnTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
                       ]);
                     }
                   }

@@ -1,7 +1,7 @@
 import { BooleanEvent, Device, Event, NumericEvent, Op } from "../..";
 
-type TimeRangeSelector = { since: Date; until: Date };
-type LastNSelector = { until: Date; limit: number };
+export type TimeRangeSelector = { since: Date; until: Date };
+export type LastNSelector = { until: Date; limit: number };
 
 export type HistorySelector = TimeRangeSelector | LastNSelector;
 

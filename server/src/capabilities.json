@@ -111,6 +111,12 @@
       "isWriteable": false,
       "type": "number",
       "eventName": "actual_flow_temperature"
+    },
+    {
+      "name": "DayCoP",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "cop_day"
     }
   ]
 }, {
