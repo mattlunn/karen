@@ -122,7 +122,7 @@ export default expressAsyncWrapper(async function (req, res, next) {
               type: 'HEAT_PUMP',
               dHWCoP: heatPump.getDHWCoP(),
               heatingCoP: heatPump.getHeatingCoP(),
-              dHWTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getDHWCoPHistory(hs), historySelector),
+              dHWTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getDHWTemperatureHistory(hs), historySelector),
               actualFlowTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getActualFlowTemperatureHistory(hs), historySelector),
               returnTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getReturnTemperatureHistory(hs), historySelector),
               powerHistory: mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), historySelector),
