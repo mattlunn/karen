@@ -73,10 +73,10 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
 }), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);
 
 setIntervalForTime(async () => {
-  const startOfNextDay = moment();
-  const dayHistory = { since: moment(startOfNextDay).subtract(1, 'd').toDate(), until: startOfNextDay.toDate() };
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const capability = await device.getHeatPumpCapability();
+  const endOfDay = moment().toDate();
+  const startOfDay = moment(endOfDay).subtract(1, 'd').toDate();
 
   function dailyWattHours(events: NumericEvent[]) {
     return events.reduce((acc, curr) => {
@@ -84,11 +84,11 @@ setIntervalForTime(async () => {
     }, 0) / 60;
   }
 
-  const dayPower = dailyWattHours(clampAndSortHistory(await capability.getCurrentPowerHistory(dayHistory), dayHistory, false));
-  const dayYield = dailyWattHours(clampAndSortHistory(await capability.getCurrentYieldHistory(dayHistory), dayHistory, false));
+  const dayPower = dailyWattHours(clampAndSortHistory(await capability.getCurrentPowerHistory({ since: startOfDay, until: endOfDay }), startOfDay, endOfDay, false));
+  const dayYield = dailyWattHours(clampAndSortHistory(await capability.getCurrentYieldHistory({ since: startOfDay, until: endOfDay }), startOfDay, endOfDay, false));
 
   const calculatedCoP = (dayPower + dayYield) / dayPower;
 
-  await capability.setDayCoPState(calculatedCoP, dayHistory.until);
-  console.log(`Calculated CoP is ${calculatedCoP.toFixed(1)} (dayPower: ${dayPower}, dayYield: ${dayYield}) for ${moment(dayHistory.since).format('DD/MM/YYYY')}`);
+  await capability.setDayCoPState(calculatedCoP, endOfDay);
+  console.log(`Calculated CoP is ${calculatedCoP.toFixed(1)} (dayPower: ${dayPower}, dayYield: ${dayYield}) for ${moment(startOfDay).format('DD/MM/YYYY')}`);
 }, '00:00');

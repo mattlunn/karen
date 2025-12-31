@@ -7,9 +7,10 @@ import moment from 'moment';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke, faPersonWalking, faFaucetDrip, faFireBurner, faFaucet, faTree, faThermometer1, faThermometer2, faThermometer4 } from '@fortawesome/free-solid-svg-icons';
 
-import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
+import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse, HistoryDetailsApiResponse } from '../../api/types';
 import Event from '../event';
-import { HeatPumpCapabilityGraph, ThermostatCapabilityGraph } from '../device-graph';
+import { ThermostatCapabilityGraph } from '../capability-graphs/thermostat-graphs';
+import { HeatPumpCapabilityGraph } from '../capability-graphs/heatpump-graphs';
 
 type TimelineEvent = {
   timestamp: Date;
@@ -59,7 +60,9 @@ function renderTimeline(events: ((TimelineEvent | null)[][])[]): ReactNode {
   );
 }
 
-function extractRecentNumericHistory(history: NumericEventApiResponse[], formatValue: (value: number) => string) {
+function extractRecentNumericHistory(response: HistoryDetailsApiResponse<NumericEventApiResponse>, formatValue: (value: number) => string) {
+  const history = response.history;
+
   if (history.length === 0) {
     return { value: 'N/A' };
   }
@@ -69,7 +72,9 @@ function extractRecentNumericHistory(history: NumericEventApiResponse[], formatV
   return { value: formatValue(recentEvent.value), since: recentEvent.start };
 }
 
-function extractRecentBooleanHistory(history: BooleanEventApiResponse[], formatValue: (value: boolean) => string) {
+function extractRecentBooleanHistory(response: HistoryDetailsApiResponse<BooleanEventApiResponse>, formatValue: (value: boolean) => string) {
+  const history = response.history;
+
   if (history.length === 0) {
     return { value: 'N/A' };
   }
@@ -212,7 +217,7 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
             {renderTimeline(device.capabilities.map((capability: CapabilityApiResponse) => {
               switch (capability.type) {
                 case 'LIGHT': {
-                  return capability.isOnHistory.map((event) => {
+                  return capability.isOnHistory.history.map((event) => {
                     return [{
                       timestamp: new Date(event.start),
                       component: (
@@ -228,7 +233,7 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
                 };
 
                 case 'MOTION_SENSOR': {
-                  return capability.hasMotionHistory.map((event) => {
+                  return capability.hasMotionHistory.history.map((event) => {
                     return [{
                       timestamp: new Date(event.start),
                       component: (

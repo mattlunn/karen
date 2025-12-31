@@ -1,51 +1,42 @@
 export type CapabilityApiResponse = {
   type: 'LIGHT';
-  isOnHistory: BooleanEventApiResponse[];
-  brightnessHistory: NumericEventApiResponse[];
+  isOnHistory: HistoryDetailsApiResponse<BooleanEventApiResponse>;
+  brightnessHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
 } | {
   type: 'THERMOSTAT';
-  currentTemperatureHistory: NumericEventApiResponse[];
-  targetTemperatureHistory: NumericEventApiResponse[];
-  powerHistory: NumericEventApiResponse[];
-  isOnHistory: BooleanEventApiResponse[];
+  currentTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  targetTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  powerHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  isOnHistory: HistoryDetailsApiResponse<BooleanEventApiResponse>;
 } | {
   type: 'HUMIDITY_SENSOR';
-  humidityHistory: NumericEventApiResponse[];
+  humidityHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
 } | {
   type: 'TEMPERATURE_SENSOR';
-  currentTemperatureHistory: NumericEventApiResponse[];
+  currentTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
 } | {
   type: 'LIGHT_SENSOR';
-  illuminanceHistory: NumericEventApiResponse[];
+  illuminanceHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
 } | {
   type: 'MOTION_SENSOR';
-  hasMotionHistory: BooleanEventApiResponse[];
+  hasMotionHistory: HistoryDetailsApiResponse<BooleanEventApiResponse>;
 } | {
   type: 'HEAT_PUMP',
-  dHWTemperatureHistory: NumericEventApiResponse[];
-  outsideTemperatureHistory: NumericEventApiResponse[];
-  yieldHistory: NumericEventApiResponse[];
-  powerHistory: NumericEventApiResponse[];
-  returnTemperatureHistory: NumericEventApiResponse[];
-  actualFlowTemperatureHistory: NumericEventApiResponse[];
-  systemPressureHistory: NumericEventApiResponse[];
-  modeHistory: EnumEventApiResponse[];
+  dHWTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  outsideTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  yieldHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  powerHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  dailyCoPHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  returnTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  actualFlowTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  systemPressureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  modeHistory: HistoryDetailsApiResponse<EnumEventApiResponse>;
   dHWCoP: number;
   heatingCoP: number;
   totalDailyYield: number;
 } | {
   type: null
 };
-
-/*
-dHWCoP: heatPump.getDHWCoP(),
-heatingCoP: heatPump.getHeatingCoP(),
-dHWTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getDHWCoPHistory(hs), historySelector),
-powerHistory: mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), historySelector),
-yieldHistory: mapNumericHistoryToResponse((hs) => heatPump.getCurrentYieldHistory(hs), historySelector),
-totalDailyYield: heatPump.getDailyConsumedEnergy(),
-outsideTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getOutsideTemperatureHistory(hs), historySelector),
-*/
 
 export type BooleanEventApiResponse = {
   start: string;
@@ -64,9 +55,10 @@ export type EnumEventApiResponse = {
   value: string;
 }
 
-export type HistoryDetailsApiResponse = {
+export type HistoryDetailsApiResponse<T> = {
   since: string,
-  until: string
+  until: string,
+  history: T[]
 }
 
 export type DeviceApiResponse = {
@@ -77,7 +69,5 @@ export type DeviceApiResponse = {
     type: string;
     provider: string;
     providerId: string;
-  },
-
-  history: HistoryDetailsApiResponse
+  }
 }

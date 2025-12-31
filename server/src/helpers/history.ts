@@ -1,16 +1,15 @@
-import { BooleanEvent, NumericEvent } from "../models";
-import { TimeRangeSelector } from "../models/capabilities/helpers";
+interface HistoryEvent<T> {
+  start: T,
+  end: T | null
+}
 
-
-export function clampAndSortHistory(history: NumericEvent[], selector: TimeRangeSelector, expectGaps: false): NumericEvent[];
-export function clampAndSortHistory(history: BooleanEvent[], selector: TimeRangeSelector, expectGaps: true): BooleanEvent[];
-export function clampAndSortHistory<T extends NumericEvent | BooleanEvent>(history: T[], selector: TimeRangeSelector, expectGaps: boolean): T[] {
+export function clampAndSortHistory<U, T extends HistoryEvent<U>>(history: T[], start: U, end: U, expectGaps: boolean): T[] {
   if (history.length === 0) {
     return history;
   }
 
   const sortedHistory = history.toSorted((a, b) => {
-    return a.start.valueOf() - b.start.valueOf();
+    return a.start > b.start ? 1 : -1;
   });
 
   // Fix data issues where some events never get ended, leaving multiple "open" events.
@@ -23,7 +22,8 @@ export function clampAndSortHistory<T extends NumericEvent | BooleanEvent>(histo
       currentItem.end = nextItem.start;
     }
 
-    if (!expectGaps && currentItem.end.getTime() !== nextItem.start.getTime()) {
+    // Can't !== or ===, as date instances for the same date will not be equal.
+    if (!expectGaps && currentItem.end > nextItem.start || currentItem.end < nextItem.end!) {
       currentItem.end = nextItem.start;
     } else if (currentItem.end > nextItem.start) {
       currentItem.end = nextItem.start;
@@ -32,19 +32,19 @@ export function clampAndSortHistory<T extends NumericEvent | BooleanEvent>(histo
 
   // If the last event is ongoing, set its end to the end of the window requested.
   if (sortedHistory.at(-1)!.end === null) {
-    sortedHistory.at(-1)!.end = selector.until;
+    sortedHistory.at(-1)!.end = end;
   }
 
   // Having fixed the above, we can end up in scenarios where there were multiple open events
   // prior to the time range selected, so we now have a number of events at the start of the
   // array which aren't for the time period requested.
-  while (sortedHistory[0].start < selector.since && sortedHistory[0].end! < selector.since) {
+  while (sortedHistory[0].start < start && sortedHistory[0].end! < start) {
     sortedHistory.shift();
   }
 
   // If the first event starts before the start of the window, clamp it to the start.
-  if (sortedHistory.at(0)!.start < selector.since) {
-    sortedHistory.at(0)!.start = selector.since;
+  if (sortedHistory.at(0)!.start < start) {
+    sortedHistory.at(0)!.start = start;
   }
 
   return sortedHistory;
