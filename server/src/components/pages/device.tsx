@@ -5,7 +5,7 @@ import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
 import moment from 'moment';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke, faPersonWalking, faFaucetDrip, faFireBurner, faFaucet, faTree, faThermometer1, faThermometer2, faThermometer4 } from '@fortawesome/free-solid-svg-icons';
+import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke, faPersonWalking, faFaucetDrip, faFireBurner, faFaucet, faTree, faThermometer1, faThermometer2, faThermometer4, faGauge } from '@fortawesome/free-solid-svg-icons';
 
 import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse, HistoryDetailsApiResponse } from '../../api/types';
 import Event from '../event';
@@ -177,7 +177,7 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
                         <StatusItem icon={faFireBurner} title="Daily Yield" value={`${capability.totalDailyYield}kWh`} />,
                         <StatusItem icon={faThermometer4} title="Flow Temperature" {...extractRecentNumericHistory(capability.actualFlowTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
                         <StatusItem icon={faThermometer2} title="Return Temperature" {...extractRecentNumericHistory(capability.returnTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
-                        <StatusItem icon={faThermometer2} title="System Pressure" {...extractRecentNumericHistory(capability.returnTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
+                        <StatusItem icon={faGauge} title="System Pressure" {...extractRecentNumericHistory(capability.systemPressureHistory, (value) => `${value.toFixed(1)} bar`)} />,
                       ]);
                     }
                   }
