@@ -10,6 +10,7 @@ async function mapBooleanHistoryToResponse(fetchHistory: (hs: HistorySelector) =
     history: (await fetchHistory(historySelector)).map((event: BooleanEvent) => ({
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
+      value: true
     })),
     since: historySelector.since.toISOString(),
     until: historySelector.until.toISOString()

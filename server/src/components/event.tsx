@@ -6,12 +6,13 @@ import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 type EventProps = {
   timestamp: string;
   icon: IconProp;
+  iconColor?: string;
   title: ReactNode;
   renderControls?: (args: { openPanel: (panel: string) => void; closePanel: () => void; togglePanel: (panel: string) => void; }) => React.ReactNode[];
   panels?: Record<string, ReactNode>;
 };
 
-export default function Event({ renderControls, timestamp, icon, title, panels }: EventProps) {
+export default function Event({ renderControls, timestamp, icon, title, panels, iconColor }: EventProps) {
   const [panel, setPanel] = useState<string | null>(null);
   const controlsRender = () => {
     if (!renderControls) return null;
@@ -45,7 +46,7 @@ export default function Event({ renderControls, timestamp, icon, title, panels }
   return (
     <>
       <span className="event__timestamp">{moment(timestamp).format('HH:mm:ss')}</span>
-      <span className="event__icon"><FontAwesomeIcon icon={icon} /></span>
+      <span className="event__icon"><FontAwesomeIcon icon={icon} color={iconColor} /></span>
 
       {title}
 

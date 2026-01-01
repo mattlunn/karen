@@ -19,8 +19,7 @@ import {
 import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
 import 'chartjs-adapter-moment';
-import { EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
-import moment from 'moment';
+import { BooleanEventApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
 import 'chartjs-adapter-moment';
 import { clampAndSortHistory } from '../../helpers/history';
 
@@ -40,16 +39,16 @@ ChartJS.register(
   AnnotationPlugin
 );
 
-function mapNumericDataToDataset(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse>) {
+function mapNumericDataToDataset(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse | BooleanEventApiResponse | EnumEventApiResponse>) {
   const sortedEvents = clampAndSortHistory(numericEventHistory.history, numericEventHistory.since, numericEventHistory.until, false);
 
   return sortedEvents.reduce((acc: ({ x: string, y: number })[], curr) => {
     acc.push({
       x: curr.start,
-      y: curr.value
+      y: typeof curr.value === 'number' ? curr.value : 1
     }, {
       x: curr.end!,
-      y: curr.value
+      y: typeof curr.value === 'number' ? curr.value : 1
     });
 
     return acc;
@@ -75,17 +74,26 @@ export type CapabilityGraphProps = {
     color: string;
   }[]
 
+  modes?: {
+    data: HistoryDetailsApiResponse<EnumEventApiResponse | BooleanEventApiResponse>,
+    details: {
+      value: string | true;
+      label: string;
+      fillColor?: string
+    }[]
+  }
+
   yAxis?: Record<string, {
     position: 'left' | 'right',
     max: number,
-    min: number
+    min: number,
   }>
 
   yMin?: number
   yMax?: number
 };
 
-function assetAndGetMinMax(lines: { data: HistoryDetailsApiResponse<NumericEventApiResponse>; }[]): { min: string; max: string; } {
+function assertAndGetMinMax(lines: { data: HistoryDetailsApiResponse<NumericEventApiResponse>; }[]): { min: string; max: string; } {
   if (lines.length === 0) {
     throw new Error('Graph has no data');
   }
@@ -106,7 +114,7 @@ function assetAndGetMinMax(lines: { data: HistoryDetailsApiResponse<NumericEvent
 }
 
 export function CapabilityGraph(props: CapabilityGraphProps) {
-  const { min, max } = assetAndGetMinMax(props.lines);
+  const { min, max } = assertAndGetMinMax(props.lines);
   const datasets: ChartDataset<"line", { x: string; y: number; }[]>[] = props.lines.map(x => ({
     type: 'line',
     data: mapNumericDataToDataset(x.data),
@@ -125,7 +133,9 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         ticks: {
           source: 'auto',
           stepSize: 15
-        }
+        },
+        min,
+        max
       }
     },
 
@@ -149,6 +159,52 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     });
   }
 
+  if (props.modes) {
+    const sortedEvents = clampAndSortHistory(props.modes.data.history, props.modes.data.since, props.modes.data.until, true);
+
+    for (let i=0;i<props.modes.details.length;i++) {
+      const mode = props.modes.details[i];
+      const axisName = `yMode${i}`;
+
+      datasets.push({
+        type: 'line',
+        fill: 'start',
+        data: sortedEvents.reduce((acc: ({ x: string, y: number })[], curr) => {
+          if (curr.value === mode.value) {
+            acc.push({
+              x: curr.start,
+              y: 0
+            }, {
+              x: curr.start,
+              y: 1
+            }, {
+              x: curr.end!,
+              y: 1
+            }, {
+              x: curr.end!,
+              y: 0
+            });
+          }
+
+          return acc;
+        }, []),
+        label: mode.label,
+        yAxisID: axisName,
+        pointRadius: 0,
+        borderWidth: 1,
+        stepped: true,
+        backgroundColor: mode.fillColor
+      });
+
+      chartOptions.scales[axisName] = {
+        type: 'linear',
+        min: 0,
+        max: 1,
+        display: false
+      };
+    }
+  }
+
   if (props.yAxis) {
     for (const [axisId, axisDetails] of Object.entries(props.yAxis)) {
       chartOptions.scales[axisId] = {
@@ -162,15 +218,11 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     chartOptions.scales.y = {
       type: 'linear',
       min: props.yMin,
-      max: props.yMax
+      max: props.yMax,
     };
   }
 
   if (props.zones) {
-    chartOptions.plugins.annotation = {
-      annotations: {}
-    };
-
     props.zones.forEach((zone, idx) => {
       chartOptions.plugins.annotation.annotations[idx] = {
         type: 'box',
@@ -189,7 +241,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       type="line"
       data={{
         datasets
-      }} 
+      }}
       
       options={chartOptions}
     />
