@@ -143,7 +143,9 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       annotation: {
         annotations: {}
       }
-    }
+    },
+
+    maintainAspectRatio: false
   };
   
   if (props.bar) {
@@ -237,13 +239,15 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }
 
   return (
-    <Chart 
-      type="line"
-      data={{
-        datasets
-      }}
-      
-      options={chartOptions}
-    />
+    <div style={{ height: '600px' }}>
+      <Chart 
+        type="line"
+        data={{
+          datasets
+        }}
+        
+        options={chartOptions}
+      />
+    </div>
   );
 }
