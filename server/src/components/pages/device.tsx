@@ -11,6 +11,7 @@ import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse,
 import Event from '../event';
 import { ThermostatCapabilityGraph } from '../capability-graphs/thermostat-graphs';
 import { HeatPumpCapabilityGraph } from '../capability-graphs/heatpump-graphs';
+import { LightCapabilityGraph } from '../capability-graphs/light-graph';
 
 type TimelineEvent = {
   timestamp: Date;
@@ -22,7 +23,7 @@ function renderTimeline(events: ((TimelineEvent | null)[][])[]): ReactNode {
   const days: { date: moment.Moment; events: ReactNode[] }[] = [];
   
   flattenedEvents.toSorted((a, b) => {
-    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
   }).forEach((event) => {
     const eventMoment = moment(event.timestamp);
     const isSameDay = days.length > 0 && days[0].date.isSame(eventMoment, 'day');
@@ -208,6 +209,10 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
                 case 'HEAT_PUMP': {
                   return <HeatPumpCapabilityGraph response={data} />;
                 }
+
+                case 'LIGHT': {
+                  return <LightCapabilityGraph response={data} />;
+                }
               }
             }).flat()}
           </div>
@@ -221,7 +226,7 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
                     return [{
                       timestamp: new Date(event.start),
                       component: (
-                        <Event icon={faLightbulb} title="Light turned on" timestamp={event.start} />
+                        <Event icon={faLightbulb} title="Light turned on" timestamp={event.start} iconColor='#ffa24d'/>
                       )
                     }, event.end ? {
                       timestamp: new Date(event.end),
@@ -245,6 +250,17 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
                         <Event icon={faPersonWalking} title="Motion ended" timestamp={event.end} />
                       )
                     } : null];
+                  });
+                }
+
+                case 'HEAT_PUMP': {
+                  return capability.modeHistory.history.map((event) => {
+                    return [{
+                      timestamp: new Date(event.start),
+                      component: (
+                        <Event icon={faFireBurner} title={`Mode changed to ${event.value}`} timestamp={event.start} />
+                      )
+                    }];
                   });
                 }
 

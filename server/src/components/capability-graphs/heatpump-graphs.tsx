@@ -19,8 +19,23 @@ export function HeatPumpCapabilityGraph({ response } : { response: DeviceApiResp
           data: heatPumpCapability.powerHistory,
           label: 'Power'
         }]}
-
-        // createDatasetForMode('Heating'), createDatasetForMode('Standby'), createDatasetForMode('DHW'), createDatasetForMode('Frost_Protection'), createDatasetForMode('Deicing')]
+       
+        modes={{
+          data: heatPumpCapability.modeHistory,
+          details: [{
+            value: 'HEATING',
+            label: 'Heating',
+          }, {
+            value: 'DEICING',
+            label: 'Deicing',
+          }, {
+            value: 'FROST_PROTECTION',
+            label: 'Frost Protection',
+          }, {
+            value: 'DHW',
+            label: 'Hot Water',
+          }]
+        }}
       />
 
       <CapabilityGraph 
