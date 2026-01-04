@@ -58,7 +58,7 @@ export default class EbusClient {
   }
 
   async getOutsideTemperature(): Promise<number> {
-    return Number(await this.#read('OutsideTemp'));
+    return Number(await this.#read('DisplayedOutsideTemp', 'ctlv3'));
   }
 
   async getActualFlowTemperature(): Promise<number> {
