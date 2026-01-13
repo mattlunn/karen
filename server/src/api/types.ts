@@ -1,66 +1,64 @@
+// Device API response - current status values only (no history)
 export type CapabilityApiResponse = {
   type: 'LIGHT';
-  isOnHistory: HistoryDetailsApiResponse<BooleanEventApiResponse>;
-  brightnessHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  brightness: number;
+  isOn: boolean;
 } | {
   type: 'THERMOSTAT';
-  currentTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
-  targetTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
-  powerHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
-  isOnHistory: HistoryDetailsApiResponse<BooleanEventApiResponse>;
+  currentTemperature: number;
+  targetTemperature: number;
+  power: number;
+  isOn: boolean;
 } | {
   type: 'HUMIDITY_SENSOR';
-  humidityHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  humidity: number;
 } | {
   type: 'TEMPERATURE_SENSOR';
-  currentTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  currentTemperature: number;
 } | {
   type: 'LIGHT_SENSOR';
-  illuminanceHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  illuminance: number;
 } | {
   type: 'MOTION_SENSOR';
-  hasMotionHistory: HistoryDetailsApiResponse<BooleanEventApiResponse>;
+  hasMotion: boolean;
 } | {
-  type: 'HEAT_PUMP',
-  dHWTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
-  outsideTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
-  yieldHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
-  powerHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
-  dailyCoPHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
-  returnTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
-  actualFlowTemperatureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
-  systemPressureHistory: HistoryDetailsApiResponse<NumericEventApiResponse>;
-  modeHistory: HistoryDetailsApiResponse<EnumEventApiResponse>;
+  type: 'HEAT_PUMP';
   dHWCoP: number;
   heatingCoP: number;
   totalDailyYield: number;
+  outsideTemperature: number;
+  dHWTemperature: number;
+  actualFlowTemperature: number;
+  returnTemperature: number;
+  systemPressure: number;
 } | {
-  type: null
+  type: null;
 };
 
+// History API response types
 export type BooleanEventApiResponse = {
   start: string;
   end: string | null;
   value: true;
-}
+};
 
 export type NumericEventApiResponse = {
   start: string;
   end: string | null;
   value: number;
-}
+};
 
 export type EnumEventApiResponse = {
   start: string;
   end: string | null;
   value: string;
-}
+};
 
 export type HistoryDetailsApiResponse<T> = {
-  since: string,
-  until: string,
-  history: T[]
-}
+  since: string;
+  until: string;
+  history: T[];
+};
 
 export type DeviceApiResponse = {
   device: {
@@ -70,5 +68,5 @@ export type DeviceApiResponse = {
     type: string;
     provider: string;
     providerId: string;
-  }
-}
+  };
+};

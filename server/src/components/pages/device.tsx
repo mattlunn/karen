@@ -1,96 +1,31 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
 import SideBar from '../sidebar';
 import Header from '../header';
 import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
-import dayjs, { Dayjs } from '../../dayjs';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke, faPersonWalking, faFaucetDrip, faFireBurner, faFaucet, faTree, faThermometer1, faThermometer2, faThermometer4, faGauge } from '@fortawesome/free-solid-svg-icons';
+import {
+  faThermometerQuarter,
+  faDroplet,
+  IconDefinition,
+  faFire,
+  faLightbulb,
+  faCircleHalfStroke,
+  faPersonWalking,
+  faFaucetDrip,
+  faFaucet,
+  faTree,
+  faThermometer2,
+  faThermometer4,
+  faGauge
+} from '@fortawesome/free-solid-svg-icons';
 
-import type { DeviceApiResponse, CapabilityApiResponse, NumericEventApiResponse, BooleanEventApiResponse, HistoryDetailsApiResponse } from '../../api/types';
-import Event from '../event';
-import { ThermostatCapabilityGraph } from '../capability-graphs/thermostat-graphs';
-import { HeatPumpCapabilityGraph } from '../capability-graphs/heatpump-graphs';
-import { LightCapabilityGraph } from '../capability-graphs/light-graph';
+import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
+import { DateRangeProvider, DateRangeSelector } from '../date-range';
+import { DeviceGraph } from '../capability-graphs/DeviceGraph';
+import { TimelineSection } from '../timeline/TimelineSection';
 
-type TimelineEvent = {
-  timestamp: Date;
-  component: ReactNode;
-};
-
-function renderTimeline(events: ((TimelineEvent | null)[][])[]): ReactNode {
-  const flattenedEvents = events.flat(2).filter(e => e !== null) as TimelineEvent[];
-  const days: { date: Dayjs; events: ReactNode[] }[] = [];
-  
-  flattenedEvents.toSorted((a, b) => {
-    return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-  }).forEach((event) => {
-    const eventDayjs = dayjs(event.timestamp);
-    const isSameDay = days.length > 0 && days[0].date.isSame(eventDayjs, 'day');
-
-    if (isSameDay) {
-      days[0].events.unshift(event.component);
-    } else {
-      days.unshift({
-        date: eventDayjs.startOf('day'),
-        events: [event.component]
-      });
-    }
-  });
-
-  return (
-    <ol className='timeline'>
-      {days.map(({ date, events }, idx) => {
-        return (
-          <li key={idx} className='day'>
-            <h4 className='day__header'>{date.format('dddd, MMMM Do YYYY')}</h4>
-
-              <ol className='events'>
-              {events.map((event, idx) => {
-                return (
-                  <li className='event' key={idx}>
-                    {event}
-                  </li>
-                );
-              })}
-            </ol>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-function extractRecentNumericHistory(response: HistoryDetailsApiResponse<NumericEventApiResponse>, formatValue: (value: number) => string) {
-  const history = response.history;
-
-  if (history.length === 0) {
-    return { value: 'N/A' };
-  }
-
-  const recentEvent = history[0];
-
-  return { value: formatValue(recentEvent.value), since: recentEvent.start };
-}
-
-function extractRecentBooleanHistory(response: HistoryDetailsApiResponse<BooleanEventApiResponse>, formatValue: (value: boolean) => string) {
-  const history = response.history;
-
-  if (history.length === 0) {
-    return { value: 'N/A' };
-  }
-
-  const recentEvent = history[0];
-
-  return { value: formatValue(!recentEvent.end), since: recentEvent.end || recentEvent.start };
-}
-
-function StatusItem({ icon, title, value, color, since }: { icon: IconDefinition; title: string; value: string, color?: string, since?: string }) {
-  const sinceDayjs = dayjs(since);
-  const sinceFormatted = sinceDayjs.isSameOrAfter(dayjs().startOf('day'))
-    ? sinceDayjs.format('HH:mm:ss')
-    : sinceDayjs.format('YYYY-MM-DD HH:mm:ss');
-
+function StatusItem({ icon, title, value, color }: { icon: IconDefinition; title: string; value: string; color?: string }) {
   return (
     <li className="device__status-item">
       <div className="device__status-item-title">
@@ -103,14 +38,186 @@ function StatusItem({ icon, title, value, color, since }: { icon: IconDefinition
 
       <div className="device__status-item-details">
         <div className="device__status-item-value">{value}</div>
-        <div className="device__status-item-date">{sinceFormatted}</div>
       </div>
     </li>
   );
 }
 
+function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
+  const hasCapability = (type: string) => device.capabilities.some(c => c.type === type);
+
+  return (
+    <>
+      <div className="device__top">
+        <div className="device__status">
+          <ul>
+            {device.capabilities.map((capability: CapabilityApiResponse, idx: number) => {
+              switch (capability.type) {
+                case 'TEMPERATURE_SENSOR': {
+                  return (
+                    <StatusItem
+                      key={idx}
+                      icon={faThermometerQuarter}
+                      title="Current Temperature"
+                      value={`${capability.currentTemperature.toFixed(1)}°C`}
+                      color="#ff6f22"
+                    />
+                  );
+                }
+
+                case 'HUMIDITY_SENSOR': {
+                  return (
+                    <StatusItem
+                      key={idx}
+                      icon={faDroplet}
+                      title="Humidity"
+                      value={`${capability.humidity}%`}
+                      color="#04A7F4"
+                    />
+                  );
+                }
+
+                case 'THERMOSTAT': {
+                  return [
+                    <StatusItem
+                      key={`${idx}-target`}
+                      icon={faThermometerQuarter}
+                      title="Target Temperature"
+                      value={`${capability.targetTemperature.toFixed(1)}°C`}
+                      color="#ff6f22"
+                    />,
+                    <StatusItem
+                      key={`${idx}-power`}
+                      icon={faFire}
+                      title="Power"
+                      value={`${capability.power}%`}
+                      color="#ff6f22"
+                    />
+                  ];
+                }
+
+                case 'LIGHT': {
+                  return [
+                    <StatusItem
+                      key={`${idx}-brightness`}
+                      icon={faLightbulb}
+                      title="Brightness"
+                      value={`${capability.brightness}%`}
+                    />,
+                    <StatusItem
+                      key={`${idx}-status`}
+                      icon={faCircleHalfStroke}
+                      title="Status"
+                      value={capability.isOn ? 'On' : 'Off'}
+                    />
+                  ];
+                }
+
+                case 'MOTION_SENSOR': {
+                  return (
+                    <StatusItem
+                      key={idx}
+                      icon={faPersonWalking}
+                      title="Status"
+                      value={capability.hasMotion ? 'Motion' : 'No Motion'}
+                    />
+                  );
+                }
+
+                case 'LIGHT_SENSOR': {
+                  return (
+                    <StatusItem
+                      key={idx}
+                      icon={faLightbulb}
+                      title="Illuminance"
+                      value={`${capability.illuminance} lx`}
+                    />
+                  );
+                }
+
+                case 'HEAT_PUMP': {
+                  return [
+                    <StatusItem key={`${idx}-dhwcop`} icon={faFaucet} title="Hot Water CoP" value={`${capability.dHWCoP.toFixed(1)} CoP`} />,
+                    <StatusItem key={`${idx}-heatingcop`} icon={faFire} title="Heating CoP" value={`${capability.heatingCoP.toFixed(1)} CoP`} />,
+                    <StatusItem key={`${idx}-outside`} icon={faTree} title="Outside Temperature" value={`${capability.outsideTemperature.toFixed(1)}°C`} />,
+                    <StatusItem key={`${idx}-dhw`} icon={faFaucetDrip} title="Hot Water Temperature" value={`${capability.dHWTemperature.toFixed(1)}°C`} />,
+                    <StatusItem key={`${idx}-yield`} icon={faFire} title="Daily Yield" value={`${capability.totalDailyYield}kWh`} />,
+                    <StatusItem key={`${idx}-flow`} icon={faThermometer4} title="Flow Temperature" value={`${capability.actualFlowTemperature.toFixed(1)}°C`} />,
+                    <StatusItem key={`${idx}-return`} icon={faThermometer2} title="Return Temperature" value={`${capability.returnTemperature.toFixed(1)}°C`} />,
+                    <StatusItem key={`${idx}-pressure`} icon={faGauge} title="System Pressure" value={`${capability.systemPressure.toFixed(1)} bar`} />
+                  ];
+                }
+
+                default:
+                  return null;
+              }
+            }).flat()}
+          </ul>
+        </div>
+        <div className="device__info">
+          <dl>
+            <dt>Provider</dt>
+            <dd>{device.provider}</dd>
+            <dt>Provider Identifier</dt>
+            <dd>{device.providerId}</dd>
+            <dt>Manufacturer</dt>
+            <dd>N/A</dd>
+            <dt>Model</dt>
+            <dd>N/A</dd>
+          </dl>
+        </div>
+      </div>
+
+      <DateRangeSelector />
+
+      <div className="device__graph">
+        <h3 className="device__section-header">Graph</h3>
+
+        {hasCapability('THERMOSTAT') && (
+          <DeviceGraph
+            graphId="thermostat"
+            deviceId={device.id}
+            yAxis={{
+              yTemperature: { position: 'left', min: 0, max: 30 },
+              yPercentage: { position: 'right', min: 0, max: 100 }
+            }}
+          />
+        )}
+
+        {hasCapability('HEAT_PUMP') && (
+          <>
+            <DeviceGraph graphId="heatpump-power" deviceId={device.id} />
+            <DeviceGraph graphId="heatpump-outside-temp" deviceId={device.id} yMin={-10} />
+            <DeviceGraph graphId="heatpump-dhw-temp" deviceId={device.id} />
+            <DeviceGraph graphId="heatpump-flow-temp" deviceId={device.id} />
+            <DeviceGraph
+              graphId="heatpump-pressure"
+              deviceId={device.id}
+              zones={[
+                { min: 0, max: 1, color: 'rgba(255, 0, 55, 0.25)' },
+                { min: 1, max: 2, color: 'rgba(31, 135, 0, 0.25)' }
+              ]}
+              yMin={0}
+              yMax={2}
+            />
+          </>
+        )}
+
+        {hasCapability('LIGHT') && (
+          <DeviceGraph graphId="light" deviceId={device.id} />
+        )}
+      </div>
+
+      <div className="device__timeline">
+        <h3 className="device__section-header">Timeline</h3>
+        <TimelineSection deviceId={device.id} />
+      </div>
+    </>
+  );
+}
+
 export default function Device({ match: { params: { id }}} : RouteComponentProps<{ id: string }>) {
-  const { loading, error, data } = useApiCall<DeviceApiResponse>(`/device/${id}`);
+  const { loading, data } = useApiCall<DeviceApiResponse>(`/device/${id}`);
 
   if (loading || !data) {
     return <></>;
@@ -125,151 +232,9 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
         <SideBar hideOnMobile />
         <div className='body body--with-padding'>
           <h2>{device.name}</h2>
-          <div className="device__top">
-            <div className="device__status">
-              <ul>
-                {device.capabilities.map((capability: CapabilityApiResponse) => {
-                  switch (capability.type) {
-                    case 'TEMPERATURE_SENSOR': {
-                      return ([
-                        <StatusItem icon={faThermometerQuarter} title="Current Temperature" {...extractRecentNumericHistory(capability.currentTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} color="#ff6f22" />
-                      ]);
-                    }
-
-                    case 'HUMIDITY_SENSOR': {
-                      return ([
-                        <StatusItem icon={faDroplet} title="Humidity" {...extractRecentNumericHistory(capability.humidityHistory, (value) => `${value}%`)} color="#04A7F4" />
-                      ]);
-                    }
-
-                    case 'THERMOSTAT': {
-                      return ([
-                        <StatusItem icon={faThermometerQuarter} title="Target Temperature" {...extractRecentNumericHistory(capability.targetTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} color="#ff6f22" />,
-                        <StatusItem icon={faFire} title="Power" {...extractRecentNumericHistory(capability.powerHistory, (value) => `${value}%`)} color="#ff6f22" />
-                      ]);
-                    }
-
-                    case 'LIGHT': {
-                      return ([
-                        <StatusItem icon={faLightbulb} title="Brightness" {...extractRecentNumericHistory(capability.brightnessHistory, (value) => `${value}%`)} />,
-                        <StatusItem icon={faCircleHalfStroke} title="Status" {...extractRecentBooleanHistory(capability.isOnHistory, isOn => isOn ? 'On' : 'Off')} />
-                      ]);
-                    }
-
-                    case 'MOTION_SENSOR': {
-                      return ([
-                        <StatusItem icon={faPersonWalking} title="Status" {...extractRecentBooleanHistory(capability.hasMotionHistory, isOn => isOn ? 'Motion' : 'No Motion')} />
-                      ]);
-                    }
-
-                    case 'LIGHT_SENSOR': {
-                      return ([
-                        <StatusItem icon={faLightbulb} title="Illuminance" {...extractRecentNumericHistory(capability.illuminanceHistory, (value) => `${value} lx`)} />
-                      ]);
-                    }
-
-                    case 'HEAT_PUMP': {
-                      return ([
-                        <StatusItem icon={faFaucet} title="Hot Water CoP" value={`${capability.dHWCoP.toFixed(1)} CoP`} />,
-                        <StatusItem icon={faFire} title="Heating CoP" value={`${capability.heatingCoP.toFixed(1)} CoP`} />,
-                        <StatusItem icon={faTree} title="Outside Temperature" {...extractRecentNumericHistory(capability.outsideTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
-                        <StatusItem icon={faFaucetDrip} title="Hot Water Temperature" {...extractRecentNumericHistory(capability.dHWTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
-                        <StatusItem icon={faFireBurner} title="Daily Yield" value={`${capability.totalDailyYield}kWh`} />,
-                        <StatusItem icon={faThermometer4} title="Flow Temperature" {...extractRecentNumericHistory(capability.actualFlowTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
-                        <StatusItem icon={faThermometer2} title="Return Temperature" {...extractRecentNumericHistory(capability.returnTemperatureHistory, (value) => `${value.toFixed(1)}°C`)} />,
-                        <StatusItem icon={faGauge} title="System Pressure" {...extractRecentNumericHistory(capability.systemPressureHistory, (value) => `${value.toFixed(1)} bar`)} />,
-                      ]);
-                    }
-                  }
-                }).flat()}
-              </ul>
-            </div>
-            <div className="device__info">
-              <dl>
-                <dt>Provider</dt>
-                <dd>{device.provider}</dd>
-                <dt>Provider Identifer</dt>
-                <dd>{device.providerId}</dd>
-                <dt>Manufactuer</dt>
-                <dd>N/A</dd>
-                <dt>Model</dt>
-                <dd>N/A</dd>
-              </dl>
-            </div>
-          </div>
-          <div className="device__graph">
-            <h3 className="device__section-header">Graph</h3>
-
-            {device.capabilities.map((capability: CapabilityApiResponse) => {
-              switch (capability.type) {
-                case 'THERMOSTAT': {
-                  return (<ThermostatCapabilityGraph response={data} />);
-                }
-
-                case 'HEAT_PUMP': {
-                  return <HeatPumpCapabilityGraph response={data} />;
-                }
-
-                case 'LIGHT': {
-                  return <LightCapabilityGraph response={data} />;
-                }
-              }
-            }).flat()}
-          </div>
-          <div className="device__timeline">
-            <h3 className="device__section-header">Timeline</h3>
-
-            {renderTimeline(device.capabilities.map((capability: CapabilityApiResponse) => {
-              switch (capability.type) {
-                case 'LIGHT': {
-                  return capability.isOnHistory.history.map((event) => {
-                    return [{
-                      timestamp: new Date(event.start),
-                      component: (
-                        <Event icon={faLightbulb} title="Light turned on" timestamp={event.start} iconColor='#ffa24d'/>
-                      )
-                    }, event.end ? {
-                      timestamp: new Date(event.end),
-                      component: (
-                        <Event icon={faLightbulb} title="Light turned off" timestamp={event.end} />
-                      )
-                    } : null];
-                  });
-                };
-
-                case 'MOTION_SENSOR': {
-                  return capability.hasMotionHistory.history.map((event) => {
-                    return [{
-                      timestamp: new Date(event.start),
-                      component: (
-                        <Event icon={faPersonWalking} title="Motion detected" timestamp={event.start} />
-                      )
-                    }, event.end ? {
-                      timestamp: new Date(event.end),
-                      component: (
-                        <Event icon={faPersonWalking} title="Motion ended" timestamp={event.end} />
-                      )
-                    } : null];
-                  });
-                }
-
-                case 'HEAT_PUMP': {
-                  return capability.modeHistory.history.map((event) => {
-                    return [{
-                      timestamp: new Date(event.start),
-                      component: (
-                        <Event icon={faFireBurner} title={`Mode changed to ${event.value}`} timestamp={event.start} />
-                      )
-                    }];
-                  });
-                }
-
-                default: {
-                  return [];
-                }
-              }
-            }))}
-          </div>
+          <DateRangeProvider>
+            <DeviceContent device={device} />
+          </DateRangeProvider>
         </div>
       </div>
     </div>
