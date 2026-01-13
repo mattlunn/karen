@@ -24,7 +24,6 @@ class EtaPicker extends Component {
   };
 
   handleSelectChange = (e) => {
-    // Day.js uses same method names (hour, minute) as moment
     this.setState({
       date: this.state.date[e.target.name](Number(e.target.options[e.target.selectedIndex].value))
     });
