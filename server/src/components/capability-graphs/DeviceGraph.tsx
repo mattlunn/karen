@@ -1,39 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Checkbox, Group } from '@mantine/core';
-import { DateTimePicker } from '@mantine/dates';
 import useApiCall from '../../hooks/api';
-import { useDateRange } from '../date-range';
+import { useDateRange, DateRangeSelector } from '../date-range';
 import { CapabilityGraph, CapabilityGraphProps } from './capability-graph';
-import {
-  HistoryDetailsApiResponse,
-  NumericEventApiResponse,
-  EnumEventApiResponse,
-  BooleanEventApiResponse
-} from '../../api/types';
-import dayjs from '../../dayjs';
-import { DateRange } from '../date-range/types';
-
-// Response type from /api/device/:id/history endpoint
-type HistoryApiResponse = {
-  lines: {
-    data: HistoryDetailsApiResponse<NumericEventApiResponse>;
-    label: string;
-    yAxisID?: string;
-  }[];
-  modes?: {
-    data: HistoryDetailsApiResponse<EnumEventApiResponse | BooleanEventApiResponse>;
-    details: {
-      value: string | true;
-      label: string;
-      fillColor?: string;
-    }[];
-  };
-  bar?: {
-    data: HistoryDetailsApiResponse<NumericEventApiResponse>;
-    label: string;
-    yAxisID?: string;
-  };
-};
+import { HistoryApiResponse } from '../../api/types';
+import { DateRange, DateRangePreset } from '../date-range/types';
 
 type DeviceGraphProps = {
   graphId: string;
@@ -47,6 +18,7 @@ type DeviceGraphProps = {
 export function DeviceGraph({ graphId, deviceId, zones, yMin, yMax, yAxis }: DeviceGraphProps) {
   const { globalRange } = useDateRange();
   const [usePageRange, setUsePageRange] = useState(true);
+  const [localPreset, setLocalPreset] = useState<DateRangePreset>('last6hours');
   const [localRange, setLocalRange] = useState<DateRange | null>(null);
 
   const effectiveRange = usePageRange ? globalRange : (localRange ?? globalRange);
@@ -93,7 +65,7 @@ export function DeviceGraph({ graphId, deviceId, zones, yMin, yMax, yAxis }: Dev
 
   return (
     <div className="device-graph">
-      <div className="device-graph__controls">
+      <Group justify="flex-end" className="device-graph__controls">
         <Checkbox
           label="Use page date range"
           checked={usePageRange}
@@ -101,31 +73,14 @@ export function DeviceGraph({ graphId, deviceId, zones, yMin, yMax, yAxis }: Dev
         />
 
         {!usePageRange && localRange && (
-          <Group mt="xs">
-            <DateTimePicker
-              label="From"
-              size="xs"
-              value={localRange.since.toDate()}
-              onChange={(date) => date && setLocalRange({
-                ...localRange,
-                since: dayjs(date)
-              })}
-              maxDate={localRange.until.toDate()}
-            />
-            <DateTimePicker
-              label="To"
-              size="xs"
-              value={localRange.until.toDate()}
-              onChange={(date) => date && setLocalRange({
-                ...localRange,
-                until: dayjs(date)
-              })}
-              minDate={localRange.since.toDate()}
-              maxDate={new Date()}
-            />
-          </Group>
+          <DateRangeSelector
+            preset={localPreset}
+            range={localRange}
+            onPresetChange={setLocalPreset}
+            onRangeChange={setLocalRange}
+          />
         )}
-      </div>
+      </Group>
 
       <CapabilityGraph {...graphProps} />
     </div>

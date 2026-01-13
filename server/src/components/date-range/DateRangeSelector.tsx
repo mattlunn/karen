@@ -1,9 +1,10 @@
-import React from 'react';
-import { SegmentedControl, Group, Stack, Text } from '@mantine/core';
+import React, { useState, useEffect } from 'react';
+import { NativeSelect, Group, Button } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
-import dayjs from '../../dayjs';
+import dayjs, { Dayjs } from '../../dayjs';
 import { useDateRange } from './useDateRange';
-import { DateRangePreset } from './types';
+import { getPresetRange } from './DateRangeContext';
+import { DateRangePreset, DateRange } from './types';
 
 const presetOptions = [
   { value: 'last6hours', label: 'Last 6 hours' },
@@ -12,44 +13,77 @@ const presetOptions = [
   { value: 'custom', label: 'Custom' },
 ];
 
-export function DateRangeSelector() {
-  const { activePreset, setActivePreset, globalRange, setGlobalRange } = useDateRange();
+type DateRangeSelectorProps = {
+  // When provided, uses these values instead of global context
+  preset?: DateRangePreset;
+  range?: DateRange;
+  onPresetChange?: (preset: DateRangePreset) => void;
+  onRangeChange?: (range: DateRange) => void;
+};
+
+export function DateRangeSelector({ preset, range, onPresetChange, onRangeChange }: DateRangeSelectorProps) {
+  const context = useDateRange();
+
+  // Determine if using local (prop-driven) or global (context-driven) mode
+  const isLocalMode = preset !== undefined;
+
+  // Use props if provided, otherwise fall back to context
+  const activePreset = preset ?? context.activePreset;
+  const currentRange = range ?? context.globalRange;
+  const setActivePreset = onPresetChange ?? context.setActivePreset;
+  const setRange = onRangeChange ?? context.setGlobalRange;
+
+  // Pending state for custom range - only apply on Submit
+  const [pendingSince, setPendingSince] = useState<Dayjs>(currentRange.since);
+  const [pendingUntil, setPendingUntil] = useState<Dayjs>(currentRange.until);
+
+  // Sync pending state when range changes externally
+  useEffect(() => {
+    setPendingSince(currentRange.since);
+    setPendingUntil(currentRange.until);
+  }, [currentRange.since.valueOf(), currentRange.until.valueOf()]);
+
+  const handlePresetChange = (newPreset: DateRangePreset) => {
+    setActivePreset(newPreset);
+    // For local mode, immediately update range based on preset
+    if (isLocalMode && newPreset !== 'custom') {
+      setRange(getPresetRange(newPreset));
+    }
+  };
+
+  const handleSubmitCustomRange = () => {
+    setRange({ since: pendingSince, until: pendingUntil });
+  };
 
   return (
-    <Stack gap="sm" className="date-range-selector">
-      <SegmentedControl
+    <Group gap="sm" justify="flex-end" className="date-range-selector">
+      <NativeSelect
         value={activePreset}
-        onChange={(value) => setActivePreset(value as DateRangePreset)}
+        onChange={(e) => handlePresetChange(e.currentTarget.value as DateRangePreset)}
         data={presetOptions}
+        size="xs"
       />
 
       {activePreset === 'custom' && (
-        <Group>
+        <>
           <DateTimePicker
-            label="From"
-            value={globalRange.since.toDate()}
-            onChange={(date) => date && setGlobalRange({
-              ...globalRange,
-              since: dayjs(date)
-            })}
-            maxDate={globalRange.until.toDate()}
+            size="xs"
+            value={pendingSince.toDate()}
+            onChange={(date) => date && setPendingSince(dayjs(date))}
+            maxDate={pendingUntil.toDate()}
           />
           <DateTimePicker
-            label="To"
-            value={globalRange.until.toDate()}
-            onChange={(date) => date && setGlobalRange({
-              ...globalRange,
-              until: dayjs(date)
-            })}
-            minDate={globalRange.since.toDate()}
+            size="xs"
+            value={pendingUntil.toDate()}
+            onChange={(date) => date && setPendingUntil(dayjs(date))}
+            minDate={pendingSince.toDate()}
             maxDate={new Date()}
           />
-        </Group>
+          <Button size="xs" onClick={handleSubmitCustomRange}>
+            Apply
+          </Button>
+        </>
       )}
-
-      <Text size="sm" c="dimmed">
-        Showing data from {globalRange.since.format('DD/MM/YYYY HH:mm')} to {globalRange.until.format('DD/MM/YYYY HH:mm')}
-      </Text>
-    </Stack>
+    </Group>
   );
 }

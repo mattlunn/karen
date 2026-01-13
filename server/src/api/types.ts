@@ -1,36 +1,36 @@
-// Device API response - current status values only (no history)
+// Device API response - current status values with timestamps
 export type CapabilityApiResponse = {
   type: 'LIGHT';
-  brightness: number;
-  isOn: boolean;
+  brightness: NumericEventApiResponse | null;
+  isOn: BooleanEventApiResponse | null;
 } | {
   type: 'THERMOSTAT';
-  currentTemperature: number;
-  targetTemperature: number;
-  power: number;
-  isOn: boolean;
+  currentTemperature: NumericEventApiResponse | null;
+  targetTemperature: NumericEventApiResponse | null;
+  power: NumericEventApiResponse | null;
+  isOn: BooleanEventApiResponse | null;
 } | {
   type: 'HUMIDITY_SENSOR';
-  humidity: number;
+  humidity: NumericEventApiResponse | null;
 } | {
   type: 'TEMPERATURE_SENSOR';
-  currentTemperature: number;
+  currentTemperature: NumericEventApiResponse | null;
 } | {
   type: 'LIGHT_SENSOR';
-  illuminance: number;
+  illuminance: NumericEventApiResponse | null;
 } | {
   type: 'MOTION_SENSOR';
-  hasMotion: boolean;
+  hasMotion: BooleanEventApiResponse | null;
 } | {
   type: 'HEAT_PUMP';
-  dHWCoP: number;
-  heatingCoP: number;
-  totalDailyYield: number;
-  outsideTemperature: number;
-  dHWTemperature: number;
-  actualFlowTemperature: number;
-  returnTemperature: number;
-  systemPressure: number;
+  dHWCoP: NumericEventApiResponse | null;
+  heatingCoP: NumericEventApiResponse | null;
+  totalDailyYield: NumericEventApiResponse | null;
+  outsideTemperature: NumericEventApiResponse | null;
+  dHWTemperature: NumericEventApiResponse | null;
+  actualFlowTemperature: NumericEventApiResponse | null;
+  returnTemperature: NumericEventApiResponse | null;
+  systemPressure: NumericEventApiResponse | null;
 } | {
   type: null;
 };
@@ -69,4 +69,47 @@ export type DeviceApiResponse = {
     provider: string;
     providerId: string;
   };
+};
+
+// History API response types
+export type HistoryLineApiResponse = {
+  data: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  label: string;
+  yAxisID?: string;
+};
+
+export type HistoryModeDetailApiResponse = {
+  value: string | true;
+  label: string;
+  fillColor?: string;
+};
+
+export type HistoryModesApiResponse = {
+  data: HistoryDetailsApiResponse<EnumEventApiResponse | BooleanEventApiResponse>;
+  details: HistoryModeDetailApiResponse[];
+};
+
+export type HistoryBarApiResponse = {
+  data: HistoryDetailsApiResponse<NumericEventApiResponse>;
+  label: string;
+  yAxisID?: string;
+};
+
+export type HistoryApiResponse = {
+  lines: HistoryLineApiResponse[];
+  modes?: HistoryModesApiResponse;
+  bar?: HistoryBarApiResponse;
+};
+
+// Timeline API response types
+export type TimelineEventApiResponse = {
+  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode';
+  timestamp: string;
+  value?: string;
+};
+
+export type TimelineApiResponse = {
+  since: string;
+  until: string;
+  events: TimelineEventApiResponse[];
 };

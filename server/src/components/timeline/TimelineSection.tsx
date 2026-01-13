@@ -1,26 +1,12 @@
 import React, { useState, useMemo, ReactNode } from 'react';
 import { Checkbox, Group } from '@mantine/core';
-import { DateTimePicker } from '@mantine/dates';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLightbulb, faPersonWalking, faFireBurner } from '@fortawesome/free-solid-svg-icons';
 import useApiCall from '../../hooks/api';
-import { useDateRange } from '../date-range';
+import { useDateRange, DateRangeSelector } from '../date-range';
 import dayjs, { Dayjs } from '../../dayjs';
-import { DateRange } from '../date-range/types';
+import { DateRange, DateRangePreset } from '../date-range/types';
 import Event from '../event';
-
-// Response type from /api/device/:id/timeline endpoint
-type TimelineEventResponse = {
-  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode';
-  timestamp: string;
-  value?: string;
-};
-
-type TimelineApiResponse = {
-  since: string;
-  until: string;
-  events: TimelineEventResponse[];
-};
+import { TimelineApiResponse, TimelineEventApiResponse } from '../../api/types';
 
 type TimelineSectionProps = {
   deviceId: number;
@@ -73,7 +59,7 @@ function renderTimeline(events: TimelineItem[]): ReactNode {
   );
 }
 
-function mapEventToComponent(event: TimelineEventResponse): ReactNode {
+function mapEventToComponent(event: TimelineEventApiResponse): ReactNode {
   switch (event.type) {
     case 'light-on':
       return <Event icon={faLightbulb} title="Light turned on" timestamp={event.timestamp} iconColor='#ffa24d' />;
@@ -93,6 +79,7 @@ function mapEventToComponent(event: TimelineEventResponse): ReactNode {
 export function TimelineSection({ deviceId }: TimelineSectionProps) {
   const { globalRange } = useDateRange();
   const [usePageRange, setUsePageRange] = useState(true);
+  const [localPreset, setLocalPreset] = useState<DateRangePreset>('last6hours');
   const [localRange, setLocalRange] = useState<DateRange | null>(null);
 
   const effectiveRange = usePageRange ? globalRange : (localRange ?? globalRange);
@@ -133,7 +120,7 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
 
   return (
     <div className="timeline-section">
-      <div className="timeline-section__controls">
+      <Group justify="flex-end" className="timeline-section__controls">
         <Checkbox
           label="Use page date range"
           checked={usePageRange}
@@ -141,31 +128,14 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
         />
 
         {!usePageRange && localRange && (
-          <Group mt="xs">
-            <DateTimePicker
-              label="From"
-              size="xs"
-              value={localRange.since.toDate()}
-              onChange={(date) => date && setLocalRange({
-                ...localRange,
-                since: dayjs(date)
-              })}
-              maxDate={localRange.until.toDate()}
-            />
-            <DateTimePicker
-              label="To"
-              size="xs"
-              value={localRange.until.toDate()}
-              onChange={(date) => date && setLocalRange({
-                ...localRange,
-                until: dayjs(date)
-              })}
-              minDate={localRange.since.toDate()}
-              maxDate={new Date()}
-            />
-          </Group>
+          <DateRangeSelector
+            preset={localPreset}
+            range={localRange}
+            onPresetChange={setLocalPreset}
+            onRangeChange={setLocalRange}
+          />
         )}
-      </div>
+      </Group>
 
       {timelineItems.length > 0 ? renderTimeline(timelineItems) : <p>No events in this time range</p>}
     </div>

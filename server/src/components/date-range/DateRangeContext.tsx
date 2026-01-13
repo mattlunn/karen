@@ -4,7 +4,7 @@ import { DateRange, DateRangePreset, DateRangeContextValue } from './types';
 
 export const DateRangeContext = createContext<DateRangeContextValue | null>(null);
 
-function getPresetRange(preset: DateRangePreset): DateRange {
+export function getPresetRange(preset: DateRangePreset): DateRange {
   const now = dayjs();
 
   switch (preset) {

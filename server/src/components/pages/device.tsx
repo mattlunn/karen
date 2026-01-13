@@ -24,8 +24,15 @@ import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DeviceGraph } from '../capability-graphs/DeviceGraph';
 import { TimelineSection } from '../timeline/TimelineSection';
+import dayjs from '../../dayjs';
+import { humanDate } from '../../helpers/date';
 
-function StatusItem({ icon, title, value, color }: { icon: IconDefinition; title: string; value: string; color?: string }) {
+function formatSince(isoString: string): string {
+  const date = dayjs(isoString);
+  return `since ${date.format('HH:mm')} ${humanDate(date)}`;
+}
+
+function StatusItem({ icon, title, value, since, color }: { icon: IconDefinition; title: string; value: string; since?: string; color?: string }) {
   return (
     <li className="device__status-item">
       <div className="device__status-item-title">
@@ -38,6 +45,7 @@ function StatusItem({ icon, title, value, color }: { icon: IconDefinition; title
 
       <div className="device__status-item-details">
         <div className="device__status-item-value">{value}</div>
+        {since && <div className="device__status-item-since">{formatSince(since)}</div>}
       </div>
     </li>
   );
@@ -54,24 +62,28 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
             {device.capabilities.map((capability: CapabilityApiResponse, idx: number) => {
               switch (capability.type) {
                 case 'TEMPERATURE_SENSOR': {
+                  if (!capability.currentTemperature) return null;
                   return (
                     <StatusItem
                       key={idx}
                       icon={faThermometerQuarter}
                       title="Current Temperature"
-                      value={`${capability.currentTemperature.toFixed(1)}°C`}
+                      value={`${capability.currentTemperature.value.toFixed(1)}°C`}
+                      since={capability.currentTemperature.start}
                       color="#ff6f22"
                     />
                   );
                 }
 
                 case 'HUMIDITY_SENSOR': {
+                  if (!capability.humidity) return null;
                   return (
                     <StatusItem
                       key={idx}
                       icon={faDroplet}
                       title="Humidity"
-                      value={`${capability.humidity}%`}
+                      value={`${capability.humidity.value}%`}
+                      since={capability.humidity.start}
                       color="#04A7F4"
                     />
                   );
@@ -79,73 +91,89 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
 
                 case 'THERMOSTAT': {
                   return [
-                    <StatusItem
-                      key={`${idx}-target`}
-                      icon={faThermometerQuarter}
-                      title="Target Temperature"
-                      value={`${capability.targetTemperature.toFixed(1)}°C`}
-                      color="#ff6f22"
-                    />,
-                    <StatusItem
-                      key={`${idx}-power`}
-                      icon={faFire}
-                      title="Power"
-                      value={`${capability.power}%`}
-                      color="#ff6f22"
-                    />
-                  ];
+                    capability.targetTemperature && (
+                      <StatusItem
+                        key={`${idx}-target`}
+                        icon={faThermometerQuarter}
+                        title="Target Temperature"
+                        value={`${capability.targetTemperature.value.toFixed(1)}°C`}
+                        since={capability.targetTemperature.start}
+                        color="#ff6f22"
+                      />
+                    ),
+                    capability.power && (
+                      <StatusItem
+                        key={`${idx}-power`}
+                        icon={faFire}
+                        title="Power"
+                        value={`${capability.power.value}%`}
+                        since={capability.power.start}
+                        color="#ff6f22"
+                      />
+                    )
+                  ].filter(Boolean);
                 }
 
                 case 'LIGHT': {
                   return [
-                    <StatusItem
-                      key={`${idx}-brightness`}
-                      icon={faLightbulb}
-                      title="Brightness"
-                      value={`${capability.brightness}%`}
-                    />,
-                    <StatusItem
-                      key={`${idx}-status`}
-                      icon={faCircleHalfStroke}
-                      title="Status"
-                      value={capability.isOn ? 'On' : 'Off'}
-                    />
-                  ];
+                    capability.brightness && (
+                      <StatusItem
+                        key={`${idx}-brightness`}
+                        icon={faLightbulb}
+                        title="Brightness"
+                        value={`${capability.brightness.value}%`}
+                        since={capability.brightness.start}
+                      />
+                    ),
+                    capability.isOn && (
+                      <StatusItem
+                        key={`${idx}-status`}
+                        icon={faCircleHalfStroke}
+                        title="Status"
+                        value="On"
+                        since={capability.isOn.start}
+                      />
+                    )
+                  ].filter(Boolean);
                 }
 
                 case 'MOTION_SENSOR': {
+                  if (!capability.hasMotion) return null;
                   return (
                     <StatusItem
                       key={idx}
                       icon={faPersonWalking}
                       title="Status"
-                      value={capability.hasMotion ? 'Motion' : 'No Motion'}
+                      value="Motion"
+                      since={capability.hasMotion.start}
                     />
                   );
                 }
 
                 case 'LIGHT_SENSOR': {
+                  if (!capability.illuminance) return null;
                   return (
                     <StatusItem
                       key={idx}
                       icon={faLightbulb}
                       title="Illuminance"
-                      value={`${capability.illuminance} lx`}
+                      value={`${capability.illuminance.value} lx`}
+                      since={capability.illuminance.start}
                     />
                   );
                 }
 
                 case 'HEAT_PUMP': {
                   return [
-                    <StatusItem key={`${idx}-dhwcop`} icon={faFaucet} title="Hot Water CoP" value={`${capability.dHWCoP.toFixed(1)} CoP`} />,
-                    <StatusItem key={`${idx}-heatingcop`} icon={faFire} title="Heating CoP" value={`${capability.heatingCoP.toFixed(1)} CoP`} />,
-                    <StatusItem key={`${idx}-outside`} icon={faTree} title="Outside Temperature" value={`${capability.outsideTemperature.toFixed(1)}°C`} />,
-                    <StatusItem key={`${idx}-dhw`} icon={faFaucetDrip} title="Hot Water Temperature" value={`${capability.dHWTemperature.toFixed(1)}°C`} />,
-                    <StatusItem key={`${idx}-yield`} icon={faFire} title="Daily Yield" value={`${capability.totalDailyYield}kWh`} />,
-                    <StatusItem key={`${idx}-flow`} icon={faThermometer4} title="Flow Temperature" value={`${capability.actualFlowTemperature.toFixed(1)}°C`} />,
-                    <StatusItem key={`${idx}-return`} icon={faThermometer2} title="Return Temperature" value={`${capability.returnTemperature.toFixed(1)}°C`} />,
-                    <StatusItem key={`${idx}-pressure`} icon={faGauge} title="System Pressure" value={`${capability.systemPressure.toFixed(1)} bar`} />
-                  ];
+                    capability.dHWCoP && <StatusItem key={`${idx}-dhwcop`} icon={faFaucet} title="Hot Water CoP" value={`${capability.dHWCoP.value.toFixed(1)} CoP`} since={capability.dHWCoP.start} />,
+                    capability.heatingCoP && <StatusItem key={`${idx}-heatingcop`} icon={faFire} title="Heating CoP" value={`${capability.heatingCoP.value.toFixed(1)} CoP`} since={capability.heatingCoP.start} />,
+                    capability.outsideTemperature && <StatusItem key={`${idx}-outside`} icon={faTree} title="Outside Temperature" value={`${capability.outsideTemperature.value.toFixed(1)}°C`} since={capability.outsideTemperature.start} />,
+                    capability.dHWTemperature && <StatusItem key={`${idx}-dhw`} icon={faFaucetDrip} title="Hot Water Temperature" value={`${capability.dHWTemperature.value.toFixed(1)}°C`} since={capability.dHWTemperature.start} />,
+                    capability.totalDailyYield && <StatusItem key={`${idx}-yield`} icon={faFire} title="Daily Yield" value={`${capability.totalDailyYield.value}kWh`} since={capability.totalDailyYield.start} />,
+                    capability.actualFlowTemperature && <StatusItem key={`${idx}-flow`} icon={faThermometer4} title="Flow Temperature" value={`${capability.actualFlowTemperature.value.toFixed(1)}°C`} since={capability.actualFlowTemperature.start} />,
+                    capability.returnTemperature && <StatusItem key={`${idx}-return`} icon={faThermometer2} title="Return Temperature" value={`${capability.returnTemperature.value.toFixed(1)}°C`} since={capability.returnTemperature.start} />,
+                    capability.systemPressure && <StatusItem key={`${idx}-pressure`} icon={faGauge} title="System Pressure" value={`${capability.systemPressure.value.toFixed(1)} bar`} since={capability.systemPressure.start} />
+                  ].filter(Boolean);
                 }
 
                 default:

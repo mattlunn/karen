@@ -1,7 +1,27 @@
-import { Device } from '../../models';
+import { Device, NumericEvent, BooleanEvent } from '../../models';
 import expressAsyncWrapper from '../../helpers/express-async-wrapper';
 import { Capability } from '../../models/capabilities';
-import { DeviceApiResponse } from '../../api/types';
+import { DeviceApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
+
+function mapNumericEvent(events: NumericEvent[]): NumericEventApiResponse | null {
+  const event = events[0];
+  if (!event) return null;
+  return {
+    start: event.start.toISOString(),
+    end: event.end?.toISOString() ?? null,
+    value: event.value
+  };
+}
+
+function mapBooleanEvent(events: BooleanEvent[]): BooleanEventApiResponse | null {
+  const event = events[0];
+  if (!event) return null;
+  return {
+    start: event.start.toISOString(),
+    end: event.end?.toISOString() ?? null,
+    value: true
+  };
+}
 
 export default expressAsyncWrapper(async function (req, res, next) {
   const device = await Device.findById(req.params.id);
@@ -9,6 +29,8 @@ export default expressAsyncWrapper(async function (req, res, next) {
   if (!device) {
     return next('route');
   }
+
+  const currentSelector = { limit: 1, until: new Date() };
 
   const response: DeviceApiResponse = {
     device: {
@@ -20,76 +42,76 @@ export default expressAsyncWrapper(async function (req, res, next) {
       capabilities: await Promise.all(device.getCapabilities().map(async (capability: Capability) => {
         switch (capability) {
           case 'LIGHT': {
-            const light = await device.getLightCapability();
+            const light = device.getLightCapability();
 
             return {
               type: 'LIGHT' as const,
-              brightness: await light.getBrightness(),
-              isOn: await light.getIsOn()
+              brightness: mapNumericEvent(await light.getBrightnessHistory(currentSelector)),
+              isOn: mapBooleanEvent(await light.getIsOnHistory(currentSelector))
             };
           }
 
           case 'THERMOSTAT': {
-            const thermostat = await device.getThermostatCapability();
+            const thermostat = device.getThermostatCapability();
 
             return {
               type: capability,
-              currentTemperature: await thermostat.getCurrentTemperature(),
-              targetTemperature: await thermostat.getTargetTemperature(),
-              power: await thermostat.getPower(),
-              isOn: await thermostat.getIsOn()
+              currentTemperature: mapNumericEvent(await thermostat.getCurrentTemperatureHistory(currentSelector)),
+              targetTemperature: mapNumericEvent(await thermostat.getTargetTemperatureHistory(currentSelector)),
+              power: mapNumericEvent(await thermostat.getPowerHistory(currentSelector)),
+              isOn: mapBooleanEvent(await thermostat.getIsOnHistory(currentSelector))
             };
           }
 
           case 'HUMIDITY_SENSOR': {
-            const sensor = await device.getHumiditySensorCapability();
+            const sensor = device.getHumiditySensorCapability();
 
             return {
               type: capability,
-              humidity: await sensor.getHumidity()
+              humidity: mapNumericEvent(await sensor.getHumidityHistory(currentSelector))
             };
           }
 
           case 'TEMPERATURE_SENSOR': {
-            const sensor = await device.getTemperatureSensorCapability();
+            const sensor = device.getTemperatureSensorCapability();
 
             return {
               type: capability,
-              currentTemperature: await sensor.getCurrentTemperature()
+              currentTemperature: mapNumericEvent(await sensor.getCurrentTemperatureHistory(currentSelector))
             };
           }
 
           case 'LIGHT_SENSOR': {
-            const sensor = await device.getLightSensorCapability();
+            const sensor = device.getLightSensorCapability();
 
             return {
               type: capability,
-              illuminance: await sensor.getIlluminance()
+              illuminance: mapNumericEvent(await sensor.getIlluminanceHistory(currentSelector))
             };
           }
 
           case 'MOTION_SENSOR': {
-            const sensor = await device.getMotionSensorCapability();
+            const sensor = device.getMotionSensorCapability();
 
             return {
               type: capability,
-              hasMotion: await sensor.getHasMotion()
+              hasMotion: mapBooleanEvent(await sensor.getHasMotionHistory(currentSelector))
             };
           }
 
           case 'HEAT_PUMP': {
-            const heatPump = await device.getHeatPumpCapability();
+            const heatPump = device.getHeatPumpCapability();
 
             return {
               type: 'HEAT_PUMP' as const,
-              dHWCoP: await heatPump.getDHWCoP(),
-              heatingCoP: await heatPump.getHeatingCoP(),
-              totalDailyYield: await heatPump.getDailyConsumedEnergy(),
-              outsideTemperature: await heatPump.getOutsideTemperature(),
-              dHWTemperature: await heatPump.getDHWTemperature(),
-              actualFlowTemperature: await heatPump.getActualFlowTemperature(),
-              returnTemperature: await heatPump.getReturnTemperature(),
-              systemPressure: await heatPump.getSystemPressure()
+              dHWCoP: mapNumericEvent(await heatPump.getDHWCoPHistory(currentSelector)),
+              heatingCoP: mapNumericEvent(await heatPump.getHeatingCoPHistory(currentSelector)),
+              totalDailyYield: mapNumericEvent(await heatPump.getDailyConsumedEnergyHistory(currentSelector)),
+              outsideTemperature: mapNumericEvent(await heatPump.getOutsideTemperatureHistory(currentSelector)),
+              dHWTemperature: mapNumericEvent(await heatPump.getDHWTemperatureHistory(currentSelector)),
+              actualFlowTemperature: mapNumericEvent(await heatPump.getActualFlowTemperatureHistory(currentSelector)),
+              returnTemperature: mapNumericEvent(await heatPump.getReturnTemperatureHistory(currentSelector)),
+              systemPressure: mapNumericEvent(await heatPump.getSystemPressureHistory(currentSelector))
             };
           }
 
