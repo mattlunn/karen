@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import SideBar from '../sidebar';
 import Header from '../header';
-import moment from 'moment';
+import dayjs from '../../dayjs';
 import Event from '../event';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
@@ -18,14 +18,14 @@ class Timeline extends Component {
 
     while (i !== this.props.events.length) {
       const date = {
-        date: moment(this.props.events[i].timestamp).startOf('d'),
+        date: dayjs(this.props.events[i].timestamp).startOf('d'),
         events: []
       };
 
       do {
         date.events.push(this.props.events[i]);
         i = i + 1;
-      } while (i !== this.props.events.length && moment(this.props.events[i].timestamp).isSame(date.date, 'd'));
+      } while (i !== this.props.events.length && dayjs(this.props.events[i].timestamp).isSame(date.date, 'd'));
 
       yield date;
     }

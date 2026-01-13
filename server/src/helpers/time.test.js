@@ -2,15 +2,12 @@ jest.mock('../config', () => ({}), { virtual: true });
 
 import { isWithinTime } from './time';
 import getSunriseAndSunset from './sun';
-import moment from 'moment-timezone';
+import dayjs from '../dayjs';
 
 jest.mock('./sun');
 
 function getTime(hour, minute) {
-  return moment().startOf('day').set({
-    hour,
-    minute
-  });
+  return dayjs().startOf('day').hour(hour).minute(minute);
 }
 
 describe('isWithinTime', () => {

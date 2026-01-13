@@ -1,4 +1,4 @@
-import moment from 'moment';
+import dayjs from '../../../dayjs';
 
 export default function getTimetabledTemperature(timetable, time) {
   function getDayTypes() {
@@ -26,13 +26,13 @@ export default function getTimetabledTemperature(timetable, time) {
       return false;
     }
 
-    const blockEnd = moment(block.end, 'HH:mm');
+    let blockEnd = dayjs(block.end, 'HH:mm');
 
     if (block.end === '00:00') {
-      blockEnd.add(1, 'd');
+      blockEnd = blockEnd.add(1, 'd');
     }
 
-    return moment(block.start, 'HH:mm').isSameOrBefore(time) && blockEnd.isAfter(time);
+    return dayjs(block.start, 'HH:mm').isSameOrBefore(time) && blockEnd.isAfter(time);
   });
 
   if (matchingBlock.setting.power === 'ON') {

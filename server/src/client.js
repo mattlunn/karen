@@ -1,4 +1,4 @@
-import './moment';
+import './dayjs';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import Timeline from './components/pages/timeline';

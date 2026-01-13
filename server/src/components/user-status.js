@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import moment from 'moment';
+import dayjs from '../dayjs';
 import classNames from 'classnames';
 import { AWAY, HOME } from '../constants/status';
 import { humanDate } from '../helpers/date';
@@ -22,10 +22,10 @@ function StatusMessage({ status, since, until, id }) {
   const [ showModal, setShowModal ] = React.useState(false);
 
   if (status === HOME) {
-    const sinceMoment = moment(since);
+    const sinceMoment = dayjs(since);
     return `since ${sinceMoment.format('HH:mm')} ${humanDate(sinceMoment)}`;
   } else {
-    const untilMoment = until ? moment(until) : null;
+    const untilMoment = until ? dayjs(until) : null;
     const untilMessage = (
       <a
         href="#"

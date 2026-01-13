@@ -1,7 +1,7 @@
 import 'newrelic';
 
 import logger from './logger';
-import moment from './moment';
+import dayjs from './dayjs';
 import express from 'express';
 import alexaRoutes from './routes/alexa';
 import apiRoutes from './routes/api';
@@ -67,7 +67,7 @@ createGraphQLServer(wsServer).then((api) => {
   );
 
   app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
-    maxAge: moment.duration(1, 'year').asMilliseconds()
+    maxAge: dayjs.duration(1, 'year').asMilliseconds()
   }));
 
   httpServer.listen(config.port, () => {
@@ -75,4 +75,4 @@ createGraphQLServer(wsServer).then((api) => {
   });
 })
 
-setInterval(createBackgroundTransaction('device:synchronize', () => Device.synchronize()), moment.duration(1, 'day').as('milliseconds'));
+setInterval(createBackgroundTransaction('device:synchronize', () => Device.synchronize()), dayjs.duration(1, 'day').asMilliseconds());

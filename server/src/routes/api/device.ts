@@ -1,7 +1,7 @@
 import { BooleanEvent, Device, NumericEvent } from '../../models';
 import expressAsyncWrapper from '../../helpers/express-async-wrapper';
 import { Capability } from '../../models/capabilities';
-import moment from 'moment';
+import dayjs from '../../dayjs';
 import { BooleanEventApiResponse, DeviceApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
 import { HistorySelector, TimeRangeSelector } from '../../models/capabilities/helpers';
 
@@ -55,7 +55,7 @@ async function awaitPromises<T extends Record<string, any>>(obj: T): Promise<Awa
 
 export default expressAsyncWrapper(async function (req, res, next) {
   const device = await Device.findById(req.params.id);
-  const historySelector = { until: new Date(), since: moment().startOf('day').toDate() };
+  const historySelector = { until: new Date(), since: dayjs().startOf('day').toDate() };
 
   if (!device) {
     return next('route');
@@ -135,7 +135,7 @@ export default expressAsyncWrapper(async function (req, res, next) {
               type: 'HEAT_PUMP',
               dHWCoP: heatPump.getDHWCoP(),
               heatingCoP: heatPump.getHeatingCoP(),
-              dailyCoPHistory: mapNumericHistoryToResponse((hs) => heatPump.getDayCoPHistory(hs), { since: moment().startOf('day').subtract(30, 'days').toDate(), until: moment().toDate() }),
+              dailyCoPHistory: mapNumericHistoryToResponse((hs) => heatPump.getDayCoPHistory(hs), { since: dayjs().startOf('day').subtract(30, 'days').toDate(), until: dayjs().toDate() }),
               dHWTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getDHWTemperatureHistory(hs), historySelector),
               actualFlowTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getActualFlowTemperatureHistory(hs), historySelector),
               returnTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getReturnTemperatureHistory(hs), historySelector),

@@ -2,7 +2,7 @@ import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Event, Recording } from '../../models';
 import { makeSynologyRequest } from '../../services/synology';
-import moment from 'moment';
+import dayjs from '../../dayjs';
 import s3 from '../../services/s3';
 import deviceRouteHander from './device';
 
@@ -61,7 +61,7 @@ router.get('/recording/:id', asyncWrapper(async function (req, res) {
   const chunk = range.end - range.start;
 
   if (req.query.download === 'true') {
-    res.set('Content-disposition', 'attachment; filename=' + moment(recording.event.start).format('YYYY-MM-DD HH:mm:ss') + '.mp4');
+    res.set('Content-disposition', 'attachment; filename=' + dayjs(recording.event.start).format('YYYY-MM-DD HH:mm:ss') + '.mp4');
   }
 
   res.writeHead(status, {

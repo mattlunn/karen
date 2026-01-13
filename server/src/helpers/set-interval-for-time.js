@@ -1,12 +1,12 @@
 import { normalizeTime } from './time';
-import moment from 'moment';
+import dayjs from '../dayjs';
 
 export default function(func, time) {
   function getMillisecondsToNextOccurenceOf(time) {
-    const now = moment();
+    const now = dayjs();
     const todaysOccurence = normalizeTime(time);
     const nextOccurence = todaysOccurence.isBefore(now)
-      ? normalizeTime(time, moment(now).startOf('day').add(1, 'd'))
+      ? normalizeTime(time, dayjs(now).startOf('day').add(1, 'd'))
       : todaysOccurence;
 
     return nextOccurence.valueOf() - now.valueOf();

@@ -1,42 +1,39 @@
 import getSunriseAndSunset from './sun';
-import moment from 'moment';
+import dayjs from '../dayjs';
 
 function normalizeOffset(offset) {
-  const duration = moment.duration();
+  let totalMs = 0;
 
   // period === ["1h", "30m"]
   for (const period of offset.match(/\d+ *[a-zA-Z]/g)) {
     // [num, amount] === ["1", "h"]
     const [, num, amount] = period.match(/(\d+)(\w+)/);
 
-    duration.add(+num, amount);
+    totalMs += dayjs.duration(+num, amount).asMilliseconds();
   }
 
-  return duration;
+  return totalMs;
 }
 
 function normalizeBase(base, date) {
   if (base === 'sunrise' || base === 'sunset') {
-    return moment(getSunriseAndSunset(date)[base]);
+    return dayjs(getSunriseAndSunset(date)[base]);
   } else {
     const [hour, minute] = base.split(':');
-    const ret = moment(date).startOf('m');
 
-    ret.set({
-      hour,
-      minute
-    });
-
-    return ret;
+    return dayjs(date).startOf('minute').hour(+hour).minute(+minute);
   }
 }
 
 export function normalizeTime(time, date = new Date()) {
   const [base, direction, offset] = time.split(/ *([+-]) */);
-  const normalizedBase = normalizeBase(base, date);
+  let normalizedBase = normalizeBase(base, date);
 
   if (offset) {
-    normalizedBase[direction === '+' ? 'add' : 'subtract'](normalizeOffset(offset));
+    const offsetMs = normalizeOffset(offset);
+    normalizedBase = direction === '+'
+      ? normalizedBase.add(offsetMs, 'millisecond')
+      : normalizedBase.subtract(offsetMs, 'millisecond');
   }
 
   return normalizedBase;
@@ -44,12 +41,12 @@ export function normalizeTime(time, date = new Date()) {
 
 // Has tests!
 export function isWithinTime(start, end, date = new Date()) {
-  const normalizedStart = normalizeTime(start, date);
-  const normalizedEnd = normalizeTime(end, date);
+  let normalizedStart = normalizeTime(start, date);
+  let normalizedEnd = normalizeTime(end, date);
 
   if (normalizedStart.isAfter(date) && normalizedEnd.date() - normalizedStart.date() === 1) {
-    normalizedStart.subtract(1, 'd');
-    normalizedEnd.subtract(1, 'd');
+    normalizedStart = normalizedStart.subtract(1, 'd');
+    normalizedEnd = normalizedEnd.subtract(1, 'd');
   }
 
   return normalizedStart.isSameOrBefore(date) && normalizedEnd.isAfter(date);

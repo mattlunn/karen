@@ -1,5 +1,5 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional, NonAttribute, HasOneGetAssociationMixin } from 'sequelize';
-import moment from 'moment';
+import dayjs from '../dayjs';
 import { Arming } from './arming';
 
 export class AlarmActivation extends Model<InferAttributes<AlarmActivation>, InferCreationAttributes<AlarmActivation>> {
@@ -42,9 +42,9 @@ export default function (sequelize: Sequelize) {
           return this.getDataValue('suppressedAt');
         }
 
-        const autoSuppressionTime = moment(this.startedAt).add(5, 'minutes');
+        const autoSuppressionTime = dayjs(this.startedAt).add(5, 'minutes');
 
-        return autoSuppressionTime.isAfter(moment())
+        return autoSuppressionTime.isAfter(dayjs())
           ? null
           : autoSuppressionTime;
       }

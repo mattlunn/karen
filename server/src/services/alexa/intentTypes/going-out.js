@@ -1,4 +1,4 @@
-import moment from 'moment-timezone';
+import dayjs from '../../../dayjs';
 import config from '../../../config.json';
 import { parse, end } from 'iso8601-duration';
 import { Stay } from '../../../models';
@@ -7,7 +7,7 @@ function figureOutEta(slots) {
   if (slots.duration.value) {
     return end(parse(slots.duration.value));
   } else if (slots.dateBack.value) {
-    const date = moment.tz(`${slots.dateBack.value} ${slots.timeBack.value}`, 'YYYY-MM-DD HH:mm', config.timezone);
+    const date = dayjs.tz(`${slots.dateBack.value} ${slots.timeBack.value}`, 'YYYY-MM-DD HH:mm', config.timezone);
 
     if (date.isValid()) {
       return date.toDate();
@@ -15,15 +15,15 @@ function figureOutEta(slots) {
       throw new Error('Date input not valid');
     }
   } else if (slots.timeBack.value) {
-    const date = moment(slots.timeBack.value, 'HH:mm');
-    const now = moment();
+    let date = dayjs(slots.timeBack.value, 'HH:mm');
+    const now = dayjs();
 
     if (!date.isValid()) {
       throw new Error('Time input not valid');
     }
 
     while (date.isBefore(now)) {
-      date.add(12, 'hours');
+      date = date.add(12, 'hours');
     }
 
     return date.toDate();

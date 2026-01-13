@@ -2,7 +2,7 @@ import { Token, User } from '../models';
 import auth from '../middleware/auth';
 import { Router } from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
-import moment from 'moment';
+import dayjs from '../dayjs';
 import config from '../config';
 import logger from '../logger';
 
@@ -12,7 +12,7 @@ router.post('/login', asyncWrapper(async (req, res) => {
   const user = await User.findByCredentials(req.body.username, req.body.password);
 
   if (user) {
-    const expiry = moment().add(1, 'y').toDate();
+    const expiry = dayjs().add(1, 'y').toDate();
     const token = await Token.createForUser(user);
 
     res
@@ -63,7 +63,7 @@ router.post('/token', asyncWrapper(async (req, res) => {
   res.json({
     access_token: client.access_token,
     token_type: 'bearer',
-    expires_in: moment.duration(1, 'y').asSeconds(),
+    expires_in: dayjs.duration(1, 'y').asSeconds(),
     refresh_token: 'invalid'
   });
 }));

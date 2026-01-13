@@ -1,4 +1,4 @@
-import moment, { Moment } from 'moment';
+import dayjs, { Dayjs } from '../../dayjs';
 import config from '../../config';
 import logger from '../../logger';
 import { Event, Recording, Stay, Device, Op } from '../../models';
@@ -23,12 +23,12 @@ const latestCameraEvents = new Map();
 
 // Download footage from start -> end, +- 5 seconds.
 
-async function createEvent(device: Device, now: Moment) {
+async function createEvent(device: Device, now: Dayjs) {
   const latestCameraEvent = await device.getLatestEvent('motion');
   let activeCameraEvent = latestCameraEvent && !latestCameraEvent.end ? latestCameraEvent : null;
 
   if (activeCameraEvent) {
-    const cutoffForExtension = moment(now).subtract(config.synology.maximum_length_of_event_in_seconds, 's');
+    const cutoffForExtension = dayjs(now).subtract(config.synology.maximum_length_of_event_in_seconds, 's');
     const canExtendActiveCameraEvent = cutoffForExtension.isBefore(activeCameraEvent.start);
 
     if (!canExtendActiveCameraEvent) {
@@ -50,7 +50,7 @@ async function createEvent(device: Device, now: Moment) {
   return activeCameraEvent;
 }
 
-async function captureRecording(event: Event, providerId: string, startOfRecording: Moment, endOfRecording: Moment) {
+async function captureRecording(event: Event, providerId: string, startOfRecording: Dayjs, endOfRecording: Dayjs) {
   const existingRecording = await event.getRecording();
   let attempts = 10;
   let cameraRecording;
@@ -61,14 +61,14 @@ async function captureRecording(event: Event, providerId: string, startOfRecordi
     logger.debug(`Trying to load recording showing ${startOfRecording} - ${endOfRecording}, with ${attempts} remaining`);
 
     const synologyRecordings = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'List', {
-      fromTime: moment(startOfRecording).startOf('day').format('X'),
+      fromTime: dayjs(startOfRecording).startOf('day').format('X'),
       toTime: endOfRecording.format('X')
     }, true, 5);
 
     cameraRecording = synologyRecordings.data.events.find((recording: { cameraId: number, startTime: number, stopTime: number }) => {
       return String(recording.cameraId) === providerId
-        && moment.unix(recording.startTime).isBefore(startOfRecording)
-        && moment.unix(recording.stopTime).isAfter(endOfRecording);
+        && dayjs.unix(recording.startTime).isBefore(startOfRecording)
+        && dayjs.unix(recording.stopTime).isAfter(endOfRecording);
     });
   } while (!cameraRecording && --attempts);
 
@@ -83,7 +83,7 @@ async function captureRecording(event: Event, providerId: string, startOfRecordi
 
     const video = await makeSynologyRequest('SYNO.SurveillanceStation.Recording', 'Download', {
       id: cameraRecording.id,
-      offsetTimeMs: (moment(recordingToSave.start).unix() - cameraRecording.startTime) * 1000,
+      offsetTimeMs: (dayjs(recordingToSave.start).unix() - cameraRecording.startTime) * 1000,
       playTimeMs: endOfRecording.diff(startOfRecording)
     }, false);
 
@@ -96,7 +96,7 @@ async function captureRecording(event: Event, providerId: string, startOfRecordi
   }
 }
 
-export async function onMotionDetected(cameraId: string, startOfDetectedMotion: Moment) {
+export async function onMotionDetected(cameraId: string, startOfDetectedMotion: Dayjs) {
   const device = await Device.findByProviderIdOrError('synology', cameraId);
   const event = await createEvent(device, startOfDetectedMotion);
 
@@ -110,7 +110,7 @@ export async function onMotionDetected(cameraId: string, startOfDetectedMotion: 
       await event.save();
     }
 
-    enqueueWorkItem(() => captureRecording(event, device.providerId, moment(event.start).subtract(2, 's'), moment(now).add(2, 's')));
+    enqueueWorkItem(() => captureRecording(event, device.providerId, dayjs(event.start).subtract(2, 's'), dayjs(now).add(2, 's')));
   }, config.synology.length_of_motion_event_in_seconds * 1000);
 }
 
@@ -140,7 +140,7 @@ export async function onDoorbellRing(cameraId: string) {
 
 nowAndSetInterval(createBackgroundTransaction('synology:clear-old-recordings', async () => {
   if (typeof config.days_to_keep_recordings_while_home === 'number') {
-    const cutoffForUnarmedRecordings = moment().subtract(config.days_to_keep_recordings_while_home, 'days');
+    const cutoffForUnarmedRecordings = dayjs().subtract(config.days_to_keep_recordings_while_home, 'days');
     const recordings = await Recording.findAll({
       where: {
         start: {
@@ -161,7 +161,7 @@ nowAndSetInterval(createBackgroundTransaction('synology:clear-old-recordings', a
 
     logger.info('Old recordings removed. See you again tomorrow...');
   }
-}), moment.duration(1, 'day').as('milliseconds'));
+}), dayjs.duration(1, 'day').asMilliseconds());
 
 Device.registerProvider('synology', {
   getCapabilities(device) {
