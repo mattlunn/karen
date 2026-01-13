@@ -22,7 +22,7 @@ import {
   HeatPumpCapability,
   SpeakerCapability
 } from './capabilities';
-import moment from 'moment';
+import dayjs from '../dayjs';
 
 const latestEventCache = new Map();
 
@@ -160,7 +160,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
       latestEventCache.get(this.id).set(type, lastLatestEvent);
     } else if (!lastLatestEvent) {
       lastLatestEvent = {
-        start: moment().subtract(1, 'day').toDate(), // Arbritrary 1 day ago in case a new event comes in with a slightly past timestamp (e.g. periodic sync),
+        start: dayjs().subtract(1, 'day').toDate(), // Arbritrary 1 day ago in case a new event comes in with a slightly past timestamp (e.g. periodic sync),
         event: null
       };
 

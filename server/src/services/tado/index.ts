@@ -3,7 +3,7 @@ import TadoClient, { TadoClientError, ZoneState, exchangeRefreshTokenForAccessTo
 import config from '../../config';
 import { saveConfig } from '../../helpers/config'; 
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
-import moment, { Moment } from 'moment';
+import dayjs, { Dayjs } from '../../dayjs';
 import getTimetabledTemperature from './helpers/get-timetabled-temperature';
 import getWarmupRatePerHour from './helpers/get-warmup-rate-per-hour';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
@@ -11,7 +11,7 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
 
 type NextTarget = {
-  nextTargetTime: Moment,
+  nextTargetTime: Dayjs,
   nextTargetTemperature: number
 };
 
@@ -160,18 +160,18 @@ const getNextTargetForThermostatGenerator = (isSomeoneAtHome: boolean, client: T
 
     if (nextScheduleChange.setting.power === 'ON') {
       return {
-        nextTargetTime: moment(nextScheduleChange.start),
+        nextTargetTime: dayjs(nextScheduleChange.start),
         nextTargetTemperature: nextScheduleChange.setting.temperature.celsius
       };
     }
   } else if (nextEta) {
     const activeTimetableId = await client.getActiveTimetableId(device.providerId);
     const timetabledBlocks = await client.getTimetableBlocks(device.providerId, activeTimetableId);
-    const temperature = getTimetabledTemperature(timetabledBlocks, moment(nextEta.eta));
+    const temperature = getTimetabledTemperature(timetabledBlocks, dayjs(nextEta.eta));
 
     if (temperature !== null) {
       return {
-        nextTargetTime: moment(nextEta.eta),
+        nextTargetTime: dayjs(nextEta.eta),
         nextTargetTemperature: temperature
       };
     }
@@ -224,7 +224,7 @@ if (config.tado.enable_warm_up) {
             const difference = nextTargetTemperature - currentTemperature;
             const hoursNeededToWarmUp = difference / warmupRatePerHour;
 
-            if (moment().add(hoursNeededToWarmUp, 'h').isAfter(nextTargetTime)) {
+            if (dayjs().add(hoursNeededToWarmUp, 'h').isAfter(nextTargetTime)) {
               deviceStates.push({
                 device,
                 linkedZoneDevices: [],

@@ -1,13 +1,13 @@
-import moment from 'moment';
+import dayjs from '../dayjs';
 
 export function humanDate(date) {
-  const now = moment();
+  const now = dayjs();
 
   if (date.isSame(now, 'day')) {
     return 'today';
-  } else if (date.isSame(moment(now).subtract(1, 'day'), 'day')) {
+  } else if (date.isSame(dayjs(now).subtract(1, 'day'), 'day')) {
     return 'yesterday';
-  } else if (date.isSame(moment(now).add(1, 'day'), 'day')) {
+  } else if (date.isSame(dayjs(now).add(1, 'day'), 'day')) {
     return 'tomorrow';
   } else {
     return 'on ' + (

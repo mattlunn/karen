@@ -1,5 +1,5 @@
 import { Event, Op } from '../../../models';
-import moment from 'moment';
+import dayjs from '../../../dayjs';
 
 export default async function getWarmupRatePerHour(device) {
   const history = await Event.findAll({
@@ -43,7 +43,7 @@ export default async function getWarmupRatePerHour(device) {
   const warmupRates = history.reduce((acc, { start, end }) => {
     const temperatureAtStart = findTemperateAtTime(start);
     const temperatureAtEnd = findTemperateAtTime(end);
-    const durationInHours = moment(end).diff(start, 'h', true);
+    const durationInHours = dayjs(end).diff(start, 'h', true);
     
     if (durationInHours > 0.5 && temperatureAtEnd > temperatureAtStart) {
       acc.push((temperatureAtEnd - temperatureAtStart) / durationInHours);

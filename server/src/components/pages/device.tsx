@@ -3,7 +3,7 @@ import SideBar from '../sidebar';
 import Header from '../header';
 import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
-import moment from 'moment';
+import dayjs, { Dayjs } from '../../dayjs';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faThermometerQuarter, faDroplet, IconDefinition, faFire, faLightbulb, faCircleHalfStroke, faPersonWalking, faFaucetDrip, faFireBurner, faFaucet, faTree, faThermometer1, faThermometer2, faThermometer4, faGauge } from '@fortawesome/free-solid-svg-icons';
 
@@ -20,19 +20,19 @@ type TimelineEvent = {
 
 function renderTimeline(events: ((TimelineEvent | null)[][])[]): ReactNode {
   const flattenedEvents = events.flat(2).filter(e => e !== null) as TimelineEvent[];
-  const days: { date: moment.Moment; events: ReactNode[] }[] = [];
+  const days: { date: Dayjs; events: ReactNode[] }[] = [];
   
   flattenedEvents.toSorted((a, b) => {
     return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
   }).forEach((event) => {
-    const eventMoment = moment(event.timestamp);
-    const isSameDay = days.length > 0 && days[0].date.isSame(eventMoment, 'day');
+    const eventDayjs = dayjs(event.timestamp);
+    const isSameDay = days.length > 0 && days[0].date.isSame(eventDayjs, 'day');
 
     if (isSameDay) {
       days[0].events.unshift(event.component);
     } else {
       days.unshift({
-        date: eventMoment.startOf('day'),
+        date: eventDayjs.startOf('day'),
         events: [event.component]
       });
     }
@@ -86,10 +86,10 @@ function extractRecentBooleanHistory(response: HistoryDetailsApiResponse<Boolean
 }
 
 function StatusItem({ icon, title, value, color, since }: { icon: IconDefinition; title: string; value: string, color?: string, since?: string }) {
-  const sinceMoment = moment(since);
-  const sinceFormatted = sinceMoment.isSameOrAfter(moment().startOf('day')) 
-    ? sinceMoment.format('HH:mm:ss')
-    : sinceMoment.format('YYYY-MM-DD HH:mm:ss');
+  const sinceDayjs = dayjs(since);
+  const sinceFormatted = sinceDayjs.isSameOrAfter(dayjs().startOf('day'))
+    ? sinceDayjs.format('HH:mm:ss')
+    : sinceDayjs.format('YYYY-MM-DD HH:mm:ss');
 
   return (
     <li className="device__status-item">

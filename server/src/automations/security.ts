@@ -1,6 +1,6 @@
 import { Device, Arming, Stay, User, AlarmActivation, Event } from '../models';
 import { call } from '../services/twilio';
-import moment from 'moment';
+import dayjs from '../dayjs';
 import sleep from '../helpers/sleep';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
@@ -38,7 +38,7 @@ async function getAbsentUsersWithMobileNumbers() {
 async function notifyAbsentUsersOfEvent(event: Event) {
   const usersWithNumber = await getAbsentUsersWithMobileNumbers();
   const device = await event.getDevice();
-  const message = `Motion was detected by the ${device.name} at ${moment(event.start).format('HH:mm:ss')}`;
+  const message = `Motion was detected by the ${device.name} at ${dayjs(event.start).format('HH:mm:ss')}`;
 
   for (const user of usersWithNumber) {
     call(user, `<Response><Say voice="woman">Hi ${user.handle}. This is Karen. ${message}. I repeat ${message}. Stay safe. Goodbye.</Say></Response>`);
@@ -50,7 +50,7 @@ async function notifyNightModeAlexa(name: string, event: Event) {
   const device = await event.getDevice();
   const message = [
     '<audio src="soundbank://soundlibrary/alarms/back_up_beeps/back_up_beeps_09"/>',
-    `Motion was detected by the ${device.name} at ${moment(event.start).format('HH:mm:ss')}`
+    `Motion was detected by the ${device.name} at ${dayjs(event.start).format('HH:mm:ss')}`
   ];
 
   for (let i=0;i<3;i++) {

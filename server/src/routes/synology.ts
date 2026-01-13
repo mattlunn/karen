@@ -1,6 +1,6 @@
 import express from 'express';
 import asyncWrapper from "../helpers/express-async-wrapper";
-import moment from 'moment';
+import dayjs from '../dayjs';
 import config from '../config';
 import { onMotionDetected, onDoorbellRing } from '../services/synology';
 
@@ -15,7 +15,7 @@ router.use((req, res, next) => {
 });
 
 router.get('/motion', asyncWrapper(async (req, res) => {
-  const now = moment();
+  const now = dayjs();
   const { camera_id } = req.query;
 
   if (typeof camera_id === 'string') {

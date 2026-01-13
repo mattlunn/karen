@@ -1,6 +1,6 @@
 import { Stay, User } from '../models';
 import config from '../config';
-import moment from 'moment';
+import dayjs from '../dayjs';
 import logger from '../logger';
 import { enqueueWorkItem } from '../queue';
 
@@ -32,7 +32,7 @@ export async function markUserAsAway(user: User) {
     const userId = user.id;
     let [ current, unclaimedEta ] = await Promise.all([
       Stay.findCurrentStay(userId),
-      Stay.findUnclaimedEta(moment().subtract(config.location.unclaimed_eta_search_window_in_minutes, 'minutes').toDate())
+      Stay.findUnclaimedEta(dayjs().subtract(config.location.unclaimed_eta_search_window_in_minutes, 'minutes').toDate())
     ]);
 
     if (!current) {
@@ -48,7 +48,7 @@ export async function markUserAsAway(user: User) {
         unclaimedEta.userId = userId;
 
         await unclaimedEta.save();
-      } else if (current.eta !== null && moment(current.eta).isAfter(current.departure)) {
+      } else if (current.eta !== null && dayjs(current.eta).isAfter(current.departure)) {
         logger.info(`Exit for ${user.handle} in stay ${current.id}`
         + ` is before the ETA, and there is no upcoming unclaimed ETA. Assuming `
         + ` user went near to home, without actually going in...`);

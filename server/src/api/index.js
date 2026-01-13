@@ -3,7 +3,7 @@ import { expressMiddleware } from '@apollo/server/express4';
 import * as db from '../models';
 import { User, Stay, Security, Heating, History, MotionEvent, ArrivalEvent, DepartureEvent, LightOnEvent, LightOffEvent, Device, Recording, AlarmArmingEvent, DoorbellRingEvent } from './models';
 import { HOME, AWAY } from '../constants/status';
-import moment from 'moment-timezone';
+import dayjs from '../dayjs';
 import { setDHWMode, getDHWMode } from '../services/ebusd';
 import UnorderedDataLoader from './loaders/unordered-dataloader';
 import DeviceLoader from './loaders/device-loader';
@@ -308,13 +308,13 @@ const resolvers = {
       }
 
       if (args.eta) {
-        const eta = moment(args.eta);
+        const eta = dayjs(args.eta);
 
         if (current.departure === null) {
           throw new Error(`${user.handle} is currently at home. User must be away to set an ETA`);
         }
 
-        if (eta.isBefore(moment())) {
+        if (eta.isBefore(dayjs())) {
           throw new Error(`ETA (${args.eta}) cannot be before the current time`);
         }
 

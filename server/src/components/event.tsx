@@ -1,5 +1,5 @@
 import React, { ReactNode, useState } from 'react';
-import moment from 'moment';
+import dayjs from '../dayjs';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 
@@ -45,7 +45,7 @@ export default function Event({ renderControls, timestamp, icon, title, panels, 
 
   return (
     <>
-      <span className="event__timestamp">{moment(timestamp).format('HH:mm:ss')}</span>
+      <span className="event__timestamp">{dayjs(timestamp).format('HH:mm:ss')}</span>
       <span className="event__icon"><FontAwesomeIcon icon={icon} color={iconColor} /></span>
 
       {title}

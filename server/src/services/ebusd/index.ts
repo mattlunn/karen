@@ -4,7 +4,7 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 import setIntervalForTime from '../../helpers/set-interval-for-time';
-import moment from 'moment';
+import dayjs from '../../dayjs';
 import { clampAndSortHistory } from '../../helpers/history';
 
 Device.registerProvider('ebusd', {
@@ -75,12 +75,12 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
 setIntervalForTime(async () => {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const capability = await device.getHeatPumpCapability();
-  const endOfDay = moment().toDate();
-  const startOfDay = moment(endOfDay).subtract(1, 'd').toDate();
+  const endOfDay = dayjs().toDate();
+  const startOfDay = dayjs(endOfDay).subtract(1, 'd').toDate();
 
   function dailyWattHours(events: NumericEvent[]) {
     return events.reduce((acc, curr) => {
-      return acc + (curr.value * moment(curr.end).diff(curr.start, 'minute'));
+      return acc + (curr.value * dayjs(curr.end).diff(curr.start, 'minute'));
     }, 0) / 60;
   }
 
@@ -90,5 +90,5 @@ setIntervalForTime(async () => {
   const calculatedCoP = (dayPower + dayYield) / dayPower;
 
   await capability.setDayCoPState(calculatedCoP, endOfDay);
-  console.log(`Calculated CoP is ${calculatedCoP.toFixed(1)} (dayPower: ${dayPower}, dayYield: ${dayYield}) for ${moment(startOfDay).format('DD/MM/YYYY')}`);
+  console.log(`Calculated CoP is ${calculatedCoP.toFixed(1)} (dayPower: ${dayPower}, dayYield: ${dayYield}) for ${dayjs(startOfDay).format('DD/MM/YYYY')}`);
 }, '00:00');

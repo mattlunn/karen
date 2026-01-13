@@ -18,9 +18,8 @@ import {
 } from 'chart.js';
 import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
-import 'chartjs-adapter-moment';
+import 'chartjs-adapter-dayjs-4';
 import { BooleanEventApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
-import 'chartjs-adapter-moment';
 import { clampAndSortHistory } from '../../helpers/history';
 
 ChartJS.register(

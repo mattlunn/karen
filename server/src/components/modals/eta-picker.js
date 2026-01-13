@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { range } from '../../helpers/iterable';
 import pad from 'left-pad';
 import Calendar from 'react-calendar';
-import moment from 'moment';
+import dayjs from '../../dayjs';
 import gql from 'graphql-tag';
 import { graphql } from '@apollo/client/react/hoc';
 
@@ -11,12 +11,12 @@ class EtaPicker extends Component {
     super(props);
 
     this.state = {
-      date: props.eta ? moment(props.eta) : moment().startOf('day')
+      date: props.eta ? dayjs(props.eta) : dayjs().startOf('day')
     };
   }
 
   handleCalendarChange = (value) => {
-    const newDate = moment(value).hour(this.state.date.hour()).minute(this.state.date.minute());
+    const newDate = dayjs(value).hour(this.state.date.hour()).minute(this.state.date.minute());
 
     this.setState({
       date: newDate
@@ -24,8 +24,9 @@ class EtaPicker extends Component {
   };
 
   handleSelectChange = (e) => {
+    // Day.js uses same method names (hour, minute) as moment
     this.setState({
-      date: moment(this.state.date)[e.target.name](e.target.options[e.target.selectedIndex].value)
+      date: this.state.date[e.target.name](Number(e.target.options[e.target.selectedIndex].value))
     });
   };
 
