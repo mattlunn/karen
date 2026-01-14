@@ -1,17 +1,26 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 
-export default function useApiCall<T>(endpoint: string) {
+export default function useApiCall<T>(endpoint: string, params?: Record<string, string>) {
   const [data, setData] = useState<null | T>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<null | Error>(null);
   const controllerRef = useRef<null | AbortController>(null);
 
-  const fetchDevice = useCallback(async (signal) => {
+  const queryString = useMemo(() => {
+    if (!params || Object.keys(params).length === 0) {
+      return '';
+    }
+    return '?' + new URLSearchParams(params).toString();
+  }, [params && JSON.stringify(params)]);
+
+  const fullEndpoint = endpoint + queryString;
+
+  const fetchData = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch(`/api${endpoint}`, { signal });
+      const res = await fetch(`/api${fullEndpoint}`, { signal });
 
       if (!res.ok) {
         throw new Error(res.status.toString());
@@ -29,7 +38,7 @@ export default function useApiCall<T>(endpoint: string) {
     } finally {
       setLoading(false);
     }
-  }, [endpoint]);
+  }, [fullEndpoint]);
 
   const refresh = useCallback(() => {
     if (controllerRef.current) {
@@ -38,19 +47,19 @@ export default function useApiCall<T>(endpoint: string) {
 
     controllerRef.current = new AbortController();
 
-    fetchDevice(controllerRef.current);
-  }, [fetchDevice]);
+    fetchData(controllerRef.current.signal);
+  }, [fetchData]);
 
   useEffect(() => {
     const ctrl = new AbortController();
 
     controllerRef.current = ctrl;
-    fetchDevice(ctrl.signal);
+    fetchData(ctrl.signal);
     return () => {
       ctrl.abort();
       controllerRef.current = null;
     };
-  }, [fetchDevice, endpoint]);
+  }, [fetchData, fullEndpoint]);
 
   return { data, loading, error, refresh };
 }

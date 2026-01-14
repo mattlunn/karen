@@ -10,7 +10,7 @@ import { Route } from 'react-router';
 import { Switch, BrowserRouter } from 'react-router-dom';
 import { onError } from '@apollo/client/link/error';
 import { getMainDefinition } from '@apollo/client/utilities';
-import { 
+import {
   ApolloClient,
   ApolloLink,
   ApolloProvider,
@@ -21,7 +21,10 @@ import {
 import possibleTypes from './possible-types.json';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
+import { MantineProvider } from '@mantine/core';
 
+import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
 import './styles/app.less';
 
 const wsLink = new GraphQLWsLink(createClient({
@@ -69,16 +72,18 @@ window.onload = () => {
   const root = createRoot(document.getElementById('main'));
 
   root.render(
-    <ApolloProvider client={client}>
-      <BrowserRouter>
-        <Switch>
-          <Route exact path="/" component={Home}/>
-          <Route exact path="/login" component={Login}/>
-          <Route exact path="/timeline" component={Timeline}/>
-          <Route exact path="/device/:id" component={Device}/>
-          <Route exact path="/device" component={Devices}/>
-        </Switch>
-      </BrowserRouter>
-    </ApolloProvider>,
+    <MantineProvider>
+      <ApolloProvider client={client}>
+        <BrowserRouter>
+          <Switch>
+            <Route exact path="/" component={Home}/>
+            <Route exact path="/login" component={Login}/>
+            <Route exact path="/timeline" component={Timeline}/>
+            <Route exact path="/device/:id" component={Device}/>
+            <Route exact path="/device" component={Devices}/>
+          </Switch>
+        </BrowserRouter>
+      </ApolloProvider>
+    </MantineProvider>,
   );
 };
