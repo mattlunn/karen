@@ -66,12 +66,6 @@ export function DeviceGraph({ graphId, deviceId, zones, yMin, yMax, yAxis }: Dev
   return (
     <div className="device-graph">
       <Group justify="flex-end" className="device-graph__controls">
-        <Checkbox
-          label="Use page date range"
-          checked={usePageRange}
-          onChange={(e) => handleUsePageRangeChange(e.currentTarget.checked)}
-        />
-
         {!usePageRange && localRange && (
           <DateRangeSelector
             preset={localPreset}
@@ -80,6 +74,12 @@ export function DeviceGraph({ graphId, deviceId, zones, yMin, yMax, yAxis }: Dev
             onRangeChange={setLocalRange}
           />
         )}
+
+        <Checkbox
+          label="Use page date range"
+          checked={usePageRange}
+          onChange={(e) => handleUsePageRangeChange(e.currentTarget.checked)}
+        />
       </Group>
 
       <CapabilityGraph {...graphProps} />

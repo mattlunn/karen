@@ -3,24 +3,40 @@ import expressAsyncWrapper from '../../helpers/express-async-wrapper';
 import { Capability } from '../../models/capabilities';
 import { DeviceApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
 
-function mapNumericEvent(events: NumericEvent[]): NumericEventApiResponse | null {
-  const event = events[0];
-  if (!event) return null;
-  return {
-    start: event.start.toISOString(),
-    end: event.end?.toISOString() ?? null,
-    value: event.value
-  };
+type AwaitedObject<T> = {
+  [K in keyof T]: T[K] extends Promise<infer U> ? U : T[K];
+};
+
+async function awaitPromises<T extends Record<string, unknown>>(obj: T): Promise<AwaitedObject<T>> {
+  const entries = await Promise.all(
+    Object.entries(obj).map(async ([key, value]) => [key, await value])
+  );
+
+  return Object.fromEntries(entries) as AwaitedObject<T>;
 }
 
-function mapBooleanEvent(events: BooleanEvent[]): BooleanEventApiResponse | null {
-  const event = events[0];
-  if (!event) return null;
-  return {
-    start: event.start.toISOString(),
-    end: event.end?.toISOString() ?? null,
-    value: true
-  };
+function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise<NumericEventApiResponse | null> {
+  return eventsPromise.then(events => {
+    const event = events[0];
+    if (!event) return null;
+    return {
+      start: event.start.toISOString(),
+      end: event.end?.toISOString() ?? null,
+      value: event.value
+    };
+  });
+}
+
+function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise<BooleanEventApiResponse | null> {
+  return eventsPromise.then(events => {
+    const event = events[0];
+    if (!event) return null;
+    return {
+      start: event.start.toISOString(),
+      end: event.end?.toISOString() ?? null,
+      value: true
+    };
+  });
 }
 
 export default expressAsyncWrapper(async function (req, res, next) {
@@ -31,7 +47,6 @@ export default expressAsyncWrapper(async function (req, res, next) {
   }
 
   const currentSelector = { limit: 1, until: new Date() };
-
   const response: DeviceApiResponse = {
     device: {
       id: device.id,
@@ -44,75 +59,75 @@ export default expressAsyncWrapper(async function (req, res, next) {
           case 'LIGHT': {
             const light = device.getLightCapability();
 
-            return {
+            return awaitPromises({
               type: 'LIGHT' as const,
-              brightness: mapNumericEvent(await light.getBrightnessHistory(currentSelector)),
-              isOn: mapBooleanEvent(await light.getIsOnHistory(currentSelector))
-            };
+              brightness: mapNumericEvent(light.getBrightnessHistory(currentSelector)),
+              isOn: mapBooleanEvent(light.getIsOnHistory(currentSelector))
+            });
           }
 
           case 'THERMOSTAT': {
             const thermostat = device.getThermostatCapability();
 
-            return {
+            return awaitPromises({
               type: capability,
-              currentTemperature: mapNumericEvent(await thermostat.getCurrentTemperatureHistory(currentSelector)),
-              targetTemperature: mapNumericEvent(await thermostat.getTargetTemperatureHistory(currentSelector)),
-              power: mapNumericEvent(await thermostat.getPowerHistory(currentSelector)),
-              isOn: mapBooleanEvent(await thermostat.getIsOnHistory(currentSelector))
-            };
+              currentTemperature: mapNumericEvent(thermostat.getCurrentTemperatureHistory(currentSelector)),
+              targetTemperature: mapNumericEvent(thermostat.getTargetTemperatureHistory(currentSelector)),
+              power: mapNumericEvent(thermostat.getPowerHistory(currentSelector)),
+              isOn: mapBooleanEvent(thermostat.getIsOnHistory(currentSelector))
+            });
           }
 
           case 'HUMIDITY_SENSOR': {
             const sensor = device.getHumiditySensorCapability();
 
-            return {
+            return awaitPromises({
               type: capability,
-              humidity: mapNumericEvent(await sensor.getHumidityHistory(currentSelector))
-            };
+              humidity: mapNumericEvent(sensor.getHumidityHistory(currentSelector))
+            });
           }
 
           case 'TEMPERATURE_SENSOR': {
             const sensor = device.getTemperatureSensorCapability();
 
-            return {
+            return awaitPromises({
               type: capability,
-              currentTemperature: mapNumericEvent(await sensor.getCurrentTemperatureHistory(currentSelector))
-            };
+              currentTemperature: mapNumericEvent(sensor.getCurrentTemperatureHistory(currentSelector))
+            });
           }
 
           case 'LIGHT_SENSOR': {
             const sensor = device.getLightSensorCapability();
 
-            return {
+            return awaitPromises({
               type: capability,
-              illuminance: mapNumericEvent(await sensor.getIlluminanceHistory(currentSelector))
-            };
+              illuminance: mapNumericEvent(sensor.getIlluminanceHistory(currentSelector))
+            });
           }
 
           case 'MOTION_SENSOR': {
             const sensor = device.getMotionSensorCapability();
 
-            return {
+            return awaitPromises({
               type: capability,
-              hasMotion: mapBooleanEvent(await sensor.getHasMotionHistory(currentSelector))
-            };
+              hasMotion: mapBooleanEvent(sensor.getHasMotionHistory(currentSelector))
+            });
           }
 
           case 'HEAT_PUMP': {
             const heatPump = device.getHeatPumpCapability();
 
-            return {
+            return awaitPromises({
               type: 'HEAT_PUMP' as const,
-              dHWCoP: mapNumericEvent(await heatPump.getDHWCoPHistory(currentSelector)),
-              heatingCoP: mapNumericEvent(await heatPump.getHeatingCoPHistory(currentSelector)),
-              totalDailyYield: mapNumericEvent(await heatPump.getDailyConsumedEnergyHistory(currentSelector)),
-              outsideTemperature: mapNumericEvent(await heatPump.getOutsideTemperatureHistory(currentSelector)),
-              dHWTemperature: mapNumericEvent(await heatPump.getDHWTemperatureHistory(currentSelector)),
-              actualFlowTemperature: mapNumericEvent(await heatPump.getActualFlowTemperatureHistory(currentSelector)),
-              returnTemperature: mapNumericEvent(await heatPump.getReturnTemperatureHistory(currentSelector)),
-              systemPressure: mapNumericEvent(await heatPump.getSystemPressureHistory(currentSelector))
-            };
+              dHWCoP: mapNumericEvent(heatPump.getDHWCoPHistory(currentSelector)),
+              heatingCoP: mapNumericEvent(heatPump.getHeatingCoPHistory(currentSelector)),
+              totalDailyYield: mapNumericEvent(heatPump.getDailyConsumedEnergyHistory(currentSelector)),
+              outsideTemperature: mapNumericEvent(heatPump.getOutsideTemperatureHistory(currentSelector)),
+              dHWTemperature: mapNumericEvent(heatPump.getDHWTemperatureHistory(currentSelector)),
+              actualFlowTemperature: mapNumericEvent(heatPump.getActualFlowTemperatureHistory(currentSelector)),
+              returnTemperature: mapNumericEvent(heatPump.getReturnTemperatureHistory(currentSelector)),
+              systemPressure: mapNumericEvent(heatPump.getSystemPressureHistory(currentSelector))
+            });
           }
 
           default: {

@@ -121,12 +121,6 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
   return (
     <div className="timeline-section">
       <Group justify="flex-end" className="timeline-section__controls">
-        <Checkbox
-          label="Use page date range"
-          checked={usePageRange}
-          onChange={(e) => handleUsePageRangeChange(e.currentTarget.checked)}
-        />
-
         {!usePageRange && localRange && (
           <DateRangeSelector
             preset={localPreset}
@@ -135,6 +129,12 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
             onRangeChange={setLocalRange}
           />
         )}
+
+        <Checkbox
+          label="Use page date range"
+          checked={usePageRange}
+          onChange={(e) => handleUsePageRangeChange(e.currentTarget.checked)}
+        />
       </Group>
 
       {timelineItems.length > 0 ? renderTimeline(timelineItems) : <p>No events in this time range</p>}

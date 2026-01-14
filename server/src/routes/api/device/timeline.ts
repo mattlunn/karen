@@ -1,8 +1,33 @@
-import { Device } from '../../../models';
+import { Device, BooleanEvent, NumericEvent } from '../../../models';
 import expressAsyncWrapper from '../../../helpers/express-async-wrapper';
 import dayjs from '../../../dayjs';
-import { mapBooleanHistoryToResponse, mapEnumHistoryToResponse } from './history-registry';
+import { TimeRangeSelector, HistorySelector } from '../../../models/capabilities/helpers';
 import { TimelineApiResponse, TimelineEventApiResponse } from '../../../api/types';
+
+function mapBooleanHistory(
+  fetchHistory: (hs: HistorySelector) => Promise<BooleanEvent[]>,
+  historySelector: TimeRangeSelector
+): Promise<{ start: string; end: string | null }[]> {
+  return fetchHistory(historySelector).then(events =>
+    events.map((event: BooleanEvent) => ({
+      start: event.start.toISOString(),
+      end: event.end?.toISOString() ?? null
+    }))
+  );
+}
+
+function mapEnumHistory(
+  fetchHistory: (hs: HistorySelector) => Promise<NumericEvent[]>,
+  historySelector: TimeRangeSelector,
+  map: Record<number, string>
+): Promise<{ start: string; value: string }[]> {
+  return fetchHistory(historySelector).then(events =>
+    events.map((event: NumericEvent) => ({
+      start: event.start.toISOString(),
+      value: map[event.value]
+    }))
+  );
+}
 
 export default expressAsyncWrapper(async function (req, res, next) {
   const device = await Device.findById(req.params.id);
@@ -20,63 +45,68 @@ export default expressAsyncWrapper(async function (req, res, next) {
   };
 
   const events: TimelineEventApiResponse[] = [];
+  const historyPromises: Promise<void>[] = [];
 
   for (const capability of device.getCapabilities()) {
     switch (capability) {
       case 'LIGHT': {
         const light = device.getLightCapability();
-        const isOnHistory = await mapBooleanHistoryToResponse(
-          (hs) => light.getIsOnHistory(hs),
-          historySelector
+        historyPromises.push(
+          mapBooleanHistory((hs) => light.getIsOnHistory(hs), historySelector)
+            .then(history => {
+              for (const event of history) {
+                events.push({ type: 'light-on', timestamp: event.start });
+                if (event.end) {
+                  events.push({ type: 'light-off', timestamp: event.end });
+                }
+              }
+            })
         );
-
-        for (const event of isOnHistory.history) {
-          events.push({ type: 'light-on', timestamp: event.start });
-          if (event.end) {
-            events.push({ type: 'light-off', timestamp: event.end });
-          }
-        }
         break;
       }
 
       case 'MOTION_SENSOR': {
         const sensor = device.getMotionSensorCapability();
-        const hasMotionHistory = await mapBooleanHistoryToResponse(
-          (hs) => sensor.getHasMotionHistory(hs),
-          historySelector
+        historyPromises.push(
+          mapBooleanHistory((hs) => sensor.getHasMotionHistory(hs), historySelector)
+            .then(history => {
+              for (const event of history) {
+                events.push({ type: 'motion-start', timestamp: event.start });
+                if (event.end) {
+                  events.push({ type: 'motion-end', timestamp: event.end });
+                }
+              }
+            })
         );
-
-        for (const event of hasMotionHistory.history) {
-          events.push({ type: 'motion-start', timestamp: event.start });
-          if (event.end) {
-            events.push({ type: 'motion-end', timestamp: event.end });
-          }
-        }
         break;
       }
 
       case 'HEAT_PUMP': {
         const heatPump = device.getHeatPumpCapability();
-        const modeHistory = await mapEnumHistoryToResponse(
-          (hs) => heatPump.getModeHistory(hs),
-          historySelector,
-          {
-            0: 'UNKNOWN',
-            1: 'STANDBY',
-            2: 'HEATING',
-            3: 'DHW',
-            4: 'DEICING',
-            5: 'FROST_PROTECTION',
-          }
+        historyPromises.push(
+          mapEnumHistory(
+            (hs) => heatPump.getModeHistory(hs),
+            historySelector,
+            {
+              0: 'UNKNOWN',
+              1: 'STANDBY',
+              2: 'HEATING',
+              3: 'DHW',
+              4: 'DEICING',
+              5: 'FROST_PROTECTION',
+            }
+          ).then(history => {
+            for (const event of history) {
+              events.push({ type: 'heatpump-mode', timestamp: event.start, value: event.value });
+            }
+          })
         );
-
-        for (const event of modeHistory.history) {
-          events.push({ type: 'heatpump-mode', timestamp: event.start, value: event.value });
-        }
         break;
       }
     }
   }
+
+  await Promise.all(historyPromises);
 
   events.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
