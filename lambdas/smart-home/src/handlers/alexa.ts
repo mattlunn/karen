@@ -1,43 +1,10 @@
 import { SmartHomeEndpointRequest, Context, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from "../custom-typings/lambda";
-import { Device, AlarmMode } from "../custom-typings/karen-types";
+import { Device, AlarmMode, DeviceApiResponse, AlarmApiResponse } from "../custom-typings/karen-types";
 import { createResponseProperties as createLightResponseProperties } from '../devices/light';
 import { createResponseProperties as createThermostatResponseProperties } from '../devices/thermostat';
 import { createResponseProperties as createAlarmResponseProperties } from '../devices/alarm';
-import { gql } from '@apollo/client/core';
-import client from '../client';
+import { apiGet } from '../client';
 import { ALARM_ENDPOINT_ID } from "../constants";
-
-const GET_DEVICE = gql`
-  query GetDevice($id: ID!) {
-    getDevice(id: $id) {
-      id
-      name
-      status
-
-      capabilities {
-        ...on Thermostat {
-          targetTemperature
-          currentTemperature
-          isHeating
-          power
-        }
-
-        ...on Light {
-          isOn
-          brightness
-        }
-      }
-    }
-  }
-`;
-
-const GET_SECURITY_STATUS = gql`
-  query GetSecurityStatus {
-    getSecurityStatus {
-      alarmMode
-    }
-  }
-`;
 
 export async function ReportState(request: SmartHomeEndpointRequest, context: Context): Promise<SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
@@ -63,28 +30,25 @@ export async function ReportState(request: SmartHomeEndpointRequest, context: Co
   }
 
   if (endpointId === ALARM_ENDPOINT_ID) {
+    const { alarmMode } = await apiGet<AlarmApiResponse>('/security/alarm');
+
     return createStateReport(
       createAlarmResponseProperties(
-        (await client.query<{ getSecurityStatus: { alarmMode: AlarmMode }}>({ query: GET_SECURITY_STATUS })).data.getSecurityStatus.alarmMode,
+        alarmMode,
         then,
         Date.now() - then.valueOf()
       )
     );
   } else {
-    const device = (await client.query<{ getDevice: Device }>({
-      query: GET_DEVICE,
-      variables: {
-        id: endpointId
-      }
-    })).data.getDevice;
+    const { device } = await apiGet<DeviceApiResponse>(`/device/${endpointId}`);
 
-    const capabilityThatDefinesType = device.capabilities.find(({ __typename: type }) => type === 'Light' || type === 'Thermostat');
+    const capabilityThatDefinesType = device.capabilities.find(({ type }) => type === 'LIGHT' || type === 'THERMOSTAT');
 
-    switch (capabilityThatDefinesType?.__typename) {
-      case 'Light':
+    switch (capabilityThatDefinesType?.type) {
+      case 'LIGHT':
         return createStateReport(createLightResponseProperties(device, then, Date.now() - then.valueOf()));
 
-      case 'Thermostat':
+      case 'THERMOSTAT':
         return createStateReport(createThermostatResponseProperties(device, then, Date.now() - then.valueOf()));
 
       default:

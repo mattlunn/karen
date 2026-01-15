@@ -1,17 +1,8 @@
 import React, { useState } from 'react';
 import { DatePicker } from '@mantine/dates';
-import { useMutation, gql } from '@apollo/client';
 import dayjs, { Dayjs } from '../../dayjs';
 import { range } from '../../helpers/iterable';
-
-const UPDATE_USER_MUTATION = gql`
-  mutation($id: ID!, $eta: Float) {
-    updateUser(id: $id, eta: $eta) {
-      id,
-      until
-    }
-  }
-`;
+import useApiMutation from '../../hooks/api-mutation';
 
 interface EtaPickerProps {
   id: string;
@@ -25,7 +16,7 @@ function pad(n: number): string {
 
 export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
   const [date, setDate] = useState<Dayjs>(eta ?? dayjs().startOf('day'));
-  const [updateUser] = useMutation(UPDATE_USER_MUTATION);
+  const { mutate: updateUser } = useApiMutation(`/user/${id}`);
 
   const handleDateChange = (value: Date | null) => {
     if (value) {
@@ -44,10 +35,7 @@ export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
 
   const handleSetEta = () => {
     updateUser({
-      variables: {
-        id,
-        eta: +date
-      }
+      eta: +date
     }).then(() => {
       closeModal();
     });

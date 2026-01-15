@@ -1,15 +1,15 @@
 type LightCapability = {
-  __typename: 'Light';
+  type: 'LIGHT';
   isOn: boolean;
   brightness: number;
 };
 
 type SpeakerCapability = {
-  __typename: 'Speaker';
+  type: 'SPEAKER';
 };
 
 type ThermostatCapability = {
-  __typename: 'Thermostat';
+  type: 'THERMOSTAT';
   targetTemperature: number;
   currentTemperature: number;
   power: number;
@@ -27,3 +27,24 @@ export type Device = {
 
 export type DeviceStatus = 'OK' | 'OFFLINE';
 export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';
+
+// REST API response types
+export type DevicesApiResponse = {
+  devices: Device[];
+};
+
+export type DeviceApiResponse = {
+  device: Device;
+};
+
+export type AlarmApiResponse = {
+  alarmMode: AlarmMode;
+};
+
+export type LightApiResponse = {
+  device: Device;
+};
+
+export type AlarmUpdateResponse = {
+  alarmMode: AlarmMode;
+};

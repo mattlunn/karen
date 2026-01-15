@@ -1,26 +1,15 @@
 import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { AlarmMode } from '../custom-typings/karen-types';
-import { gql } from '@apollo/client/core';
-import client from '../client';
-
-const MODIFY_ALARM = gql`
-  mutation ModifyAlarm($mode: AlarmMode) {
-    updateAlarm(mode: $mode) {
-      alarmMode
-    }
-  }
-`;
+import { AlarmMode, AlarmUpdateResponse } from '../custom-typings/karen-types';
+import { apiPut } from '../client';
 
 export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { mode: AlarmMode }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
-  const response = await client.mutate<{ updateAlarm: { alarmMode: AlarmMode }}>({
-    mutation: MODIFY_ALARM,
-    variables
-  });
+
+  const response = await apiPut<AlarmUpdateResponse>('/security/alarm', variables);
 
   const now = new Date();
   const uncertaintyInMilliseconds = now.valueOf() - then.valueOf();
-  const mode = response.data?.updateAlarm.alarmMode;
+  const mode = response.alarmMode;
 
   if (mode === variables.mode) {
     return {

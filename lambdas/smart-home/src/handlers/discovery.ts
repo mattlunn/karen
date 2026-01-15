@@ -1,31 +1,8 @@
-import { gql } from '@apollo/client/core';
 import { Context } from 'aws-lambda';
-import { Device } from '../custom-typings/karen-types';
+import { Device, DevicesApiResponse } from '../custom-typings/karen-types';
 import { SmartHomeRequest, SmartHomeResponse } from '../custom-typings/lambda';
-import client from '../client';
+import { apiGet } from '../client';
 import { ALARM_ENDPOINT_ID } from '../constants';
-
-const GET_DEVICES = gql`
-query getDevices {
-  getDevices {
-    id
-    name
-
-    capabilities {
-      ...on Thermostat {
-        targetTemperature
-        currentTemperature
-        isHeating
-        power
-      }
-
-      ...on Light {
-        isOn
-        brightness
-      }
-    }
-  }
-}`;
 
 interface SmartHomeEndpointAdditionalAttributes {
   manufacturer: string;
@@ -245,9 +222,7 @@ function createAlarmEndpoint(): SmartHomeEndpoint {
 }
 
 export async function Discover(request: SmartHomeRequest, context: Context): Promise<SmartHomeDiscoveryResponse> {
-  const devices = (await client.query<{ getDevices: Device[] }>({
-    query: GET_DEVICES
-  })).data.getDevices;
+  const { devices } = await apiGet<DevicesApiResponse>('/devices');
 
   return {
     event: {
@@ -259,18 +234,18 @@ export async function Discover(request: SmartHomeRequest, context: Context): Pro
       },
       payload: {
         endpoints: devices.reduce((allDevices, device) => {
-          for (const { __typename: capability } of device.capabilities) {
-            if (capability === 'Thermostat') {
+          for (const { type: capability } of device.capabilities) {
+            if (capability === 'THERMOSTAT') {
               allDevices.push(mapThermostatToEndpoints(device));
               break;
             }
 
-            if (capability === 'Light') {
+            if (capability === 'LIGHT') {
               allDevices.push(mapLightToEndpoints(device));
               break;
             }
 
-            if (capability === 'Speaker') {
+            if (capability === 'SPEAKER') {
               allDevices.push(mapAlexaToEndpoints(device));
               break;
             }

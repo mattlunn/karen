@@ -1,35 +1,16 @@
 import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { Device } from '../custom-typings/karen-types';
-import { gql } from '@apollo/client/core';
-import client from '../client';
-
-const MODIFY_LIGHT = gql`
-  mutation ModifyLight($id: ID!, $isOn: Boolean, $brightness: Int) {
-    updateLight(id: $id, isOn: $isOn, brightness: $brightness) {
-      id
-
-      status
-
-      capabilities {
-        ...on Light {
-          isOn
-          brightness
-        }
-      }
-    }
-  }
-`;
+import { Device, LightApiResponse } from '../custom-typings/karen-types';
+import { apiPut } from '../client';
 
 export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { id: string, isOn?: boolean, brightness?: number }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
-  const response = await client.mutate<{ updateLight: Device }>({
-    mutation: MODIFY_LIGHT,
-    variables
-  });
+  const { id, ...body } = variables;
+
+  const response = await apiPut<LightApiResponse>(`/device/${id}/light`, body);
 
   const now = new Date();
   const uncertaintyInMilliseconds = now.valueOf() - then.valueOf();
-  const light = response.data?.updateLight;
+  const light = response.device;
 
   if (light) {
     return {
@@ -69,7 +50,7 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
 }
 
 export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
-  const light = device.capabilities.find(x => x.__typename === 'Light');
+  const light = device.capabilities.find(x => x.type === 'LIGHT');
 
   if (!light) {
     throw new Error();

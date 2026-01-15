@@ -1,11 +1,10 @@
 import React from 'react';
-import { useMutation } from '@apollo/client';
-import gql from 'graphql-tag';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DeviceControl from './device-control';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCouch, faHouseFire, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking, faVideo, faDroplet, faToggleOff, faFire, faDoorClosed, faDoorOpen, faShop, faTree } from '@fortawesome/free-solid-svg-icons';
 import Light from './devices/light';
+import Lock from './devices/lock';
 
 library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer, faHouseFire, faDoorClosed, faDoorOpen, faShop, faTree);
 
@@ -17,13 +16,13 @@ function createIfCapabilitySatisfied(device, ...creators) {
       return creators[i+1](device, matchedCapability);
     }
   }
-  
+
   return creators.at(-1)(device);
 }
 
 function buildDeviceControlForDevice(device) {
-  return createIfCapabilitySatisfied(device, 
-    x => x.__typename === 'Thermostat', 
+  return createIfCapabilitySatisfied(device,
+    x => x.type === 'THERMOSTAT',
     (device, capability) => (
       <DeviceControl device={device} icon={faThermometerFull} color="#ff6f22" colorIconBackground={capability.isHeating} values={[
         `${capability.currentTemperature.toFixed(1)}°`,
@@ -31,75 +30,32 @@ function buildDeviceControlForDevice(device) {
         `${capability.power}%`
       ]} />
     ),
-    
-    x => x.__typename === 'Light', 
+
+    x => x.type === 'LIGHT',
     (device, capability) => <Light device={device} capability={capability} />,
 
-    x => x.__typename === 'Camera', 
+    x => x.type === 'CAMERA',
     (device, capability) => (
       <DeviceControl device={device} icon={faVideo} color="#04A7F4" colorIconBackground={false} values={[]} />
     ),
 
-    x => x.__typename === 'HumiditySensor', 
+    x => x.type === 'HUMIDITY_SENSOR',
     (device, capability) => (
       <DeviceControl device={device} icon={faDroplet} color="#04A7F4" colorIconBackground={false} values={[
         `${capability.humidity}%`,
-        `${device.capabilities.find(x => x.__typename === 'TemperatureSensor').currentTemperature.toFixed(1)}°`
+        `${device.capabilities.find(x => x.type === 'TEMPERATURE_SENSOR')?.currentTemperature?.toFixed(1) ?? '?'}°`
       ]} />
     ),
 
-    x => x.__typename === 'Switch', 
+    x => x.type === 'SWITCH',
     (device, capability) => (
       <DeviceControl device={device} icon={faToggleOff} color="#04A7F4" colorIconBackground={capability.isOn} values={[]} />
     ),
 
-    x => x.__typename === 'Lock', 
-    (device, capability) => {
-      const [setDoorLockedStatus, { loading }] = useMutation(gql`
-        mutation updateLock($id: ID!, $isLocked: Boolean) {
-          updateLock(id: $id, isLocked: $isLocked) {
-            id
-            name
+    x => x.type === 'LOCK',
+    (device, capability) => <Lock device={device} capability={capability} />,
 
-            capabilities {
-              ... on Lock {
-                isLocked
-              }
-            }
-          }
-        }
-      `);
-
-      const commonProps = {
-        device,
-        values: [],
-        actionPending: loading,
-        iconOnClick: (e) => {
-          e.preventDefault();
-
-          if (loading) return;
-
-          setDoorLockedStatus({
-            variables: {
-              id: device.id,
-              isLocked: !capability.isLocked
-            }
-          });
-        }
-      };
-
-      if (capability.isLocked) {
-        return (
-          <DeviceControl {...commonProps} icon={faDoorClosed} color="#04A7F4" colorIconBackground={false} />
-        );
-      } else {
-        return (
-          <DeviceControl {...commonProps} icon={faDoorOpen} color="#FF7F22" colorIconBackground={true} />
-        );
-      }
-    },
-
-    x => x.__typename === 'HeatPump', 
+    x => x.type === 'HEAT_PUMP',
     (device, capability) => (
       <DeviceControl device={device} icon={faFire} color="#04A7F4" colorIconBackground={capability.mode !== 'STANDBY'} values={[
         `${capability.mode[0]}${capability.mode.slice(1).toLowerCase()}`,
@@ -110,7 +66,7 @@ function buildDeviceControlForDevice(device) {
     ),
 
     (device) => {
-      const motionSensor = device.capabilities.find(x => x.__typename === 'MotionSensor');
+      const motionSensor = device.capabilities.find(x => x.type === 'MOTION_SENSOR');
 
       let icon;
       let colorIconBackground;
@@ -126,10 +82,10 @@ function buildDeviceControlForDevice(device) {
       return (
         <DeviceControl device={device} icon={icon} color="#04A7F4" colorIconBackground={colorIconBackground} values={
           device.capabilities.map((capability) => {
-            switch (capability.__typename) {
-              case 'TemperatureSensor':
+            switch (capability.type) {
+              case 'TEMPERATURE_SENSOR':
                 return `${capability.currentTemperature.toFixed(1)}°`;
-              case 'LightSensor':
+              case 'LIGHT_SENSOR':
                 return `${capability.illuminance}lx`;
             }
           }).filter(x => x)
