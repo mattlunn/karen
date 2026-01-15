@@ -4,19 +4,9 @@ import dayjs from '../dayjs';
 import classNames from 'classnames';
 import { AWAY, HOME } from '../constants/status';
 import { humanDate } from '../helpers/date';
-import { useMutation, gql } from '@apollo/client';
+import useApiMutation from '../hooks/api-mutation';
 import EtaPicker from './modals/eta-picker';
 import Modal from './modal';
-
-const UPDATE_USER_MUTATION = gql`
-  mutation($id: ID!, $status: Occupancy) {
-    updateUser(id:$id, status:$status) {
-      id,
-      status,
-      since
-    }
-  }
-`;
 
 function StatusMessage({ status, since, until, id }) {
   const [ showModal, setShowModal ] = React.useState(false);
@@ -64,7 +54,7 @@ function StatusMessage({ status, since, until, id }) {
 
 export default function UserStatus(props) {
   const { status, id, avatar } = props;
-  const [updateUser] = useMutation(UPDATE_USER_MUTATION);
+  const { mutate: updateUser } = useApiMutation(`/user/${id}`);
 
   return (
     <div className="user-status">
@@ -72,10 +62,7 @@ export default function UserStatus(props) {
         e.preventDefault();
 
         updateUser({
-          variables: {
-            id,
-            status: status === HOME ? AWAY : HOME
-          }
+          status: status === HOME ? AWAY : HOME
         });
       }}>
         <img

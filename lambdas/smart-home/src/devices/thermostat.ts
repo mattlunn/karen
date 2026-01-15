@@ -2,7 +2,7 @@ import { SmartHomeEndpointProperty } from '../custom-typings/lambda';
 import { Device } from '../custom-typings/karen-types';
 
 export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
-  const thermostat = device.capabilities.find(x => x.__typename === 'Thermostat');
+  const thermostat = device.capabilities.find(x => x.type === 'THERMOSTAT');
 
   if (!thermostat) {
     throw new Error();

@@ -1,22 +1,7 @@
 import { SmartHomeEndpointRequest, SmartHomeResponse, Context } from "../custom-typings/lambda";
-import { Device } from "../custom-typings/karen-types";
+import { DeviceApiResponse } from "../custom-typings/karen-types";
 import { modifyAndCreateResponseObject } from '../devices/light';
-import { gql } from '@apollo/client/core';
-import client from '../client';
-
-const GET_LIGHT = gql`
-  query GetLight($id: ID!) {
-    getDevice(id: $id) {
-      id
-
-      capabilities {
-        ...on Light {
-          brightness
-        }
-      }
-    }
-  }
-`;
+import { apiGet } from '../client';
 
 export function SetBrightness(request: SmartHomeEndpointRequest<{ brightness: number }>, context: Context): Promise<SmartHomeResponse> {
   return modifyAndCreateResponseObject(request, {
@@ -27,14 +12,9 @@ export function SetBrightness(request: SmartHomeEndpointRequest<{ brightness: nu
 
 export async function AdjustBrightness(request: SmartHomeEndpointRequest<{ brightnessDelta: number }>, context: Context): Promise<SmartHomeResponse> {
   const id = request.directive.endpoint.endpointId;
-  const { data: { getDevice }} = await client.query<{ getDevice: Device}>({
-    query: GET_LIGHT,
-    variables: {
-      id
-    }
-  });
+  const { device } = await apiGet<DeviceApiResponse>(`/device/${id}`);
 
-  const lightCapability = getDevice.capabilities.find(x => x.__typename === 'Light');
+  const lightCapability = device.capabilities.find(x => x.type === 'LIGHT');
 
   if (lightCapability === undefined) {
     throw new Error(`Device ${id} does not have 'Light' capability`);
