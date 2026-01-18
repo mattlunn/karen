@@ -149,7 +149,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
           </SimpleGrid>
         </Grid.Col>
         <Grid.Col span={4}>
-          <Paper className="device__info" withBorder p="md" radius="md">
+          <Paper className="device__info" withBorder p="md" radius="md" h="100%">
             <dl>
               <dt>Provider</dt>
               <dd>{device.provider}</dd>
