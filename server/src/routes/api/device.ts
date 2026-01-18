@@ -1,51 +1,13 @@
-import { BooleanEvent, Device, NumericEvent } from '../../models';
+import { Device, NumericEvent, BooleanEvent } from '../../models';
 import expressAsyncWrapper from '../../helpers/express-async-wrapper';
 import { Capability } from '../../models/capabilities';
-import dayjs from '../../dayjs';
-import { BooleanEventApiResponse, DeviceApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
-import { HistorySelector, TimeRangeSelector } from '../../models/capabilities/helpers';
-
-async function mapBooleanHistoryToResponse(fetchHistory: (hs: HistorySelector) => Promise<BooleanEvent[]>, historySelector: TimeRangeSelector): Promise<HistoryDetailsApiResponse<BooleanEventApiResponse>> {
-  return {
-    history: (await fetchHistory(historySelector)).map((event: BooleanEvent) => ({
-      start: event.start.toISOString(),
-      end: event.end?.toISOString() ?? null,
-      value: true
-    })),
-    since: historySelector.since.toISOString(),
-    until: historySelector.until.toISOString()
-  };
-}
-
-async function mapNumericHistoryToResponse(fetchHistory: (hs: HistorySelector) => Promise<NumericEvent[]>, historySelector: TimeRangeSelector): Promise<HistoryDetailsApiResponse<NumericEventApiResponse>> {
-  return {
-    history: (await fetchHistory(historySelector)).map((event: NumericEvent) => ({
-      start: event.start.toISOString(),
-      end: event.end?.toISOString() ?? null,
-      value: event.value
-    })),
-    since: historySelector.since.toISOString(),
-    until: historySelector.until.toISOString()
-  };
-}
-
-async function mapEnumHistoryToResponse(fetchHistory: (hs: HistorySelector) => Promise<NumericEvent[]>, historySelector: TimeRangeSelector, map: Record<number, string>): Promise<HistoryDetailsApiResponse<EnumEventApiResponse>> {
-  return {
-    history: (await fetchHistory(historySelector)).map((event: NumericEvent) => ({
-      start: event.start.toISOString(),
-      end: event.end?.toISOString() ?? null,
-      value: map[event.value]
-    })),
-    since: historySelector.since.toISOString(),
-    until: historySelector.until.toISOString()
-  };
-}
+import { DeviceApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
 
 type AwaitedObject<T> = {
   [K in keyof T]: T[K] extends Promise<infer U> ? U : T[K];
-}
+};
 
-async function awaitPromises<T extends Record<string, any>>(obj: T): Promise<AwaitedObject<T>> {
+async function awaitPromises<T extends Record<string, unknown>>(obj: T): Promise<AwaitedObject<T>> {
   const entries = await Promise.all(
     Object.entries(obj).map(async ([key, value]) => [key, await value])
   );
@@ -53,14 +15,46 @@ async function awaitPromises<T extends Record<string, any>>(obj: T): Promise<Awa
   return Object.fromEntries(entries) as AwaitedObject<T>;
 }
 
+function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise<NumericEventApiResponse> {
+  return eventsPromise.then(events => {
+    const event = events[0];
+
+    if (!event) {
+      throw new Error('Missing an initial event');
+    }
+
+    return {
+      start: event.start.toISOString(),
+      end: event.end?.toISOString() ?? null,
+      value: event.value
+    };
+  });
+}
+
+function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise<BooleanEventApiResponse> {
+  return eventsPromise.then(events => {
+    const event = events[0];
+    
+    if (!event) {
+      throw new Error('Missing an initial event');
+    }
+    
+    return {
+      start: event.start.toISOString(),
+      end: event.end?.toISOString() ?? null,
+      value: true
+    };
+  });
+}
+
 export default expressAsyncWrapper(async function (req, res, next) {
   const device = await Device.findById(req.params.id);
-  const historySelector = { until: new Date(), since: dayjs().startOf('day').toDate() };
 
   if (!device) {
     return next('route');
   }
 
+  const currentSelector = { limit: 1, until: new Date() };
   const response: DeviceApiResponse = {
     device: {
       id: device.id,
@@ -71,87 +65,76 @@ export default expressAsyncWrapper(async function (req, res, next) {
       capabilities: await Promise.all(device.getCapabilities().map(async (capability: Capability) => {
         switch (capability) {
           case 'LIGHT': {
-            const light = await device.getLightCapability();
+            const light = device.getLightCapability();
 
-            return await awaitPromises({
+            return awaitPromises({
               type: 'LIGHT' as const,
-              isOnHistory: mapBooleanHistoryToResponse((hs) => light.getIsOnHistory(hs), historySelector),
-              brightnessHistory: mapNumericHistoryToResponse((hs) => light.getBrightnessHistory(hs), historySelector)
+              brightness: mapNumericEvent(light.getBrightnessHistory(currentSelector)),
+              isOn: mapBooleanEvent(light.getIsOnHistory(currentSelector))
             });
-          };
+          }
 
           case 'THERMOSTAT': {
-            const thermostat = await device.getThermostatCapability();
-            
-            return await awaitPromises({ 
+            const thermostat = device.getThermostatCapability();
+
+            return awaitPromises({
               type: capability,
-              currentTemperatureHistory: mapNumericHistoryToResponse((hs) => thermostat.getCurrentTemperatureHistory(hs), historySelector),
-              targetTemperatureHistory: mapNumericHistoryToResponse((hs) => thermostat.getTargetTemperatureHistory(hs), historySelector),
-              powerHistory: mapNumericHistoryToResponse((hs) => thermostat.getPowerHistory(hs), historySelector),
-              isOnHistory: mapBooleanHistoryToResponse((hs) => thermostat.getIsOnHistory(hs), historySelector),
+              currentTemperature: mapNumericEvent(thermostat.getCurrentTemperatureHistory(currentSelector)),
+              targetTemperature: mapNumericEvent(thermostat.getTargetTemperatureHistory(currentSelector)),
+              power: mapNumericEvent(thermostat.getPowerHistory(currentSelector)),
+              isOn: mapBooleanEvent(thermostat.getIsOnHistory(currentSelector))
             });
           }
 
           case 'HUMIDITY_SENSOR': {
-            const sensor = await device.getHumiditySensorCapability();
-            
-            return await awaitPromises({ 
+            const sensor = device.getHumiditySensorCapability();
+
+            return awaitPromises({
               type: capability,
-              humidityHistory: mapNumericHistoryToResponse((hs) => sensor.getHumidityHistory(hs), historySelector),
+              humidity: mapNumericEvent(sensor.getHumidityHistory(currentSelector))
             });
           }
 
           case 'TEMPERATURE_SENSOR': {
-            const sensor = await device.getTemperatureSensorCapability();
-            
-            return await awaitPromises({ 
+            const sensor = device.getTemperatureSensorCapability();
+
+            return awaitPromises({
               type: capability,
-              currentTemperatureHistory: mapNumericHistoryToResponse((hs) => sensor.getCurrentTemperatureHistory(hs), historySelector),
+              currentTemperature: mapNumericEvent(sensor.getCurrentTemperatureHistory(currentSelector))
             });
           }
 
           case 'LIGHT_SENSOR': {
-            const sensor = await device.getLightSensorCapability();
-            
-            return await awaitPromises({ 
+            const sensor = device.getLightSensorCapability();
+
+            return awaitPromises({
               type: capability,
-              illuminanceHistory: mapNumericHistoryToResponse((hs) => sensor.getIlluminanceHistory(hs), historySelector),
+              illuminance: mapNumericEvent(sensor.getIlluminanceHistory(currentSelector))
             });
           }
 
           case 'MOTION_SENSOR': {
-            const sensor = await device.getMotionSensorCapability();
-            
-            return await awaitPromises({ 
+            const sensor = device.getMotionSensorCapability();
+
+            return awaitPromises({
               type: capability,
-              hasMotionHistory: mapBooleanHistoryToResponse((hs) => sensor.getHasMotionHistory(hs), historySelector),
+              hasMotion: mapBooleanEvent(sensor.getHasMotionHistory(currentSelector))
             });
           }
 
           case 'HEAT_PUMP': {
-            const heatPump = await device.getHeatPumpCapability();
+            const heatPump = device.getHeatPumpCapability();
 
-            return await awaitPromises({
-              type: 'HEAT_PUMP',
-              dHWCoP: heatPump.getDHWCoP(),
-              heatingCoP: heatPump.getHeatingCoP(),
-              dailyCoPHistory: mapNumericHistoryToResponse((hs) => heatPump.getDayCoPHistory(hs), { since: dayjs().startOf('day').subtract(30, 'days').toDate(), until: dayjs().toDate() }),
-              dHWTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getDHWTemperatureHistory(hs), historySelector),
-              actualFlowTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getActualFlowTemperatureHistory(hs), historySelector),
-              returnTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getReturnTemperatureHistory(hs), historySelector),
-              powerHistory: mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), historySelector),
-              yieldHistory: mapNumericHistoryToResponse((hs) => heatPump.getCurrentYieldHistory(hs), historySelector),
-              systemPressureHistory: mapNumericHistoryToResponse((hs) => heatPump.getSystemPressureHistory(hs), historySelector),
-              totalDailyYield: heatPump.getDailyConsumedEnergy(),
-              outsideTemperatureHistory: mapNumericHistoryToResponse((hs) => heatPump.getOutsideTemperatureHistory(hs), historySelector),
-              modeHistory: mapEnumHistoryToResponse((hs) => heatPump.getModeHistory(hs), historySelector, {
-                0: 'UNKNOWN',
-                1: 'STANDBY',
-                2: 'HEATING',
-                3: 'DHW',
-                4: 'DEICING',
-                5: 'FROST_PROTECTION',
-              }),
+            return awaitPromises({
+              type: 'HEAT_PUMP' as const,
+              dHWCoP: mapNumericEvent(heatPump.getDHWCoPHistory(currentSelector)),
+              heatingCoP: mapNumericEvent(heatPump.getHeatingCoPHistory(currentSelector)),
+              totalDailyYield: mapNumericEvent(heatPump.getDailyConsumedEnergyHistory(currentSelector)),
+              outsideTemperature: mapNumericEvent(heatPump.getOutsideTemperatureHistory(currentSelector)),
+              dHWTemperature: mapNumericEvent(heatPump.getDHWTemperatureHistory(currentSelector)),
+              actualFlowTemperature: mapNumericEvent(heatPump.getActualFlowTemperatureHistory(currentSelector)),
+              returnTemperature: mapNumericEvent(heatPump.getReturnTemperatureHistory(currentSelector)),
+              systemPressure: mapNumericEvent(heatPump.getSystemPressureHistory(currentSelector))
             });
           }
 

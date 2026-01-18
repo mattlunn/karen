@@ -5,10 +5,14 @@ import { makeSynologyRequest } from '../../services/synology';
 import dayjs from '../../dayjs';
 import s3 from '../../services/s3';
 import deviceRouteHander from './device';
+import deviceHistoryHandler from './device/history';
+import deviceTimelineHandler from './device/timeline';
 
 const router = express.Router();
 
 router.get('/device/:id', deviceRouteHander);
+router.get('/device/:id/history', deviceHistoryHandler);
+router.get('/device/:id/timeline', deviceTimelineHandler);
 
 router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
   res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {

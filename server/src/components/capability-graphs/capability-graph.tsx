@@ -21,6 +21,7 @@ import { Chart } from 'react-chartjs-2';
 import 'chartjs-adapter-dayjs-4';
 import { BooleanEventApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
 import { clampAndSortHistory } from '../../helpers/history';
+import { Box } from '@mantine/core';
 
 ChartJS.register(
   LinearScale,
@@ -141,6 +142,10 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     plugins: {
       annotation: {
         annotations: {}
+      },
+
+      colors: {
+        forceOverride: true
       }
     },
 
@@ -238,7 +243,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }
 
   return (
-    <div style={{ height: '600px' }}>
+    <Box style={{ height: '600px' }} mb="lg">
       <Chart 
         type="line"
         data={{
@@ -247,6 +252,6 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         
         options={chartOptions}
       />
-    </div>
+    </Box>
   );
 }

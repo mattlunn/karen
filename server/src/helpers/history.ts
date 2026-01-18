@@ -8,7 +8,7 @@ export function clampAndSortHistory<U, T extends HistoryEvent<U>>(history: T[], 
     return history;
   }
 
-  const sortedHistory = history.toSorted((a, b) => {
+  const sortedHistory = history.map(x => ({ ...x })).toSorted((a, b) => {
     return a.start > b.start ? 1 : -1;
   });
 
@@ -38,7 +38,7 @@ export function clampAndSortHistory<U, T extends HistoryEvent<U>>(history: T[], 
   // Having fixed the above, we can end up in scenarios where there were multiple open events
   // prior to the time range selected, so we now have a number of events at the start of the
   // array which aren't for the time period requested.
-  while (sortedHistory[0].start < start && sortedHistory[0].end! < start) {
+  while (sortedHistory[0].end! <= start) {
     sortedHistory.shift();
   }
 
