@@ -15,10 +15,14 @@ async function awaitPromises<T extends Record<string, unknown>>(obj: T): Promise
   return Object.fromEntries(entries) as AwaitedObject<T>;
 }
 
-function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise<NumericEventApiResponse | null> {
+function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise<NumericEventApiResponse> {
   return eventsPromise.then(events => {
     const event = events[0];
-    if (!event) return null;
+
+    if (!event) {
+      throw new Error('Missing an initial event');
+    }
+
     return {
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
@@ -27,10 +31,14 @@ function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise<Numeri
   });
 }
 
-function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise<BooleanEventApiResponse | null> {
+function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise<BooleanEventApiResponse> {
   return eventsPromise.then(events => {
     const event = events[0];
-    if (!event) return null;
+    
+    if (!event) {
+      throw new Error('Missing an initial event');
+    }
+    
     return {
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
