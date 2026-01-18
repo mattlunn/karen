@@ -142,6 +142,10 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     plugins: {
       annotation: {
         annotations: {}
+      },
+
+      colors: {
+        forceOverride: true
       }
     },
 
