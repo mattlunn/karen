@@ -158,7 +158,7 @@ const getNextTargetForThermostatGenerator = (isSomeoneAtHome: boolean, client: T
   if (isSomeoneAtHome) {
     const { nextScheduleChange } = zoneState;
 
-    if (nextScheduleChange.setting.power === 'ON') {
+    if (nextScheduleChange && nextScheduleChange.setting.power === 'ON') {
       return {
         nextTargetTime: dayjs(nextScheduleChange.start),
         nextTargetTemperature: nextScheduleChange.setting.temperature.celsius

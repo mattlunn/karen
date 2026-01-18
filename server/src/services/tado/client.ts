@@ -38,13 +38,6 @@ export type ZoneState = {
   tadoMode: "HOME",
   setting: ZoneSetting,
   openWindow: null,
-  nextScheduleChange: {
-    start: ISODateTime,
-    setting: ZoneSetting
-  },
-  nextTimeBlock: {
-    start: ISODateTime
-  },
   link: {
     state: "ONLINE"
   },
@@ -73,7 +66,18 @@ export type ZoneState = {
       timestamp: ISODateTime
     }
   }
- } & ({
+} & ({
+ nextScheduleChange: {
+    start: ISODateTime,
+    setting: ZoneSetting
+  },
+  nextTimeBlock: {
+    start: ISODateTime
+  }
+} | {
+  nextScheduleChange: null,
+  nextTimeBlock: null
+}) & ({
   overlayType: "MANUAL",
   overlay: {
     type: "MANUAL",
