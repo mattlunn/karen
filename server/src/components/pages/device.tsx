@@ -3,11 +3,9 @@ import SideBar from '../sidebar';
 import Header from '../header';
 import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faThermometerQuarter,
   faDroplet,
-  IconDefinition,
   faFire,
   faLightbulb,
   faCircleHalfStroke,
@@ -24,42 +22,17 @@ import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
-import dayjs from '../../dayjs';
-import { humanDate } from '../../helpers/date';
-import { Box } from '@mantine/core';
-
-function formatSince(isoString: string): string {
-  const date = dayjs(isoString);
-  return `since ${date.format('HH:mm')} ${humanDate(date)}`;
-}
-
-function StatusItem({ icon, title, value, since, color }: { icon: IconDefinition; title: string; value: string; since?: string; color?: string }) {
-  return (
-    <li className="device__status-item">
-      <div className="device__status-item-title">
-        {title}
-
-        <div className="device__status-item-icon">
-          <FontAwesomeIcon icon={icon} color={color}/>
-        </div>
-      </div>
-
-      <div className="device__status-item-details">
-        <div className="device__status-item-value">{value}</div>
-        {since && <div className="device__status-item-since">{formatSince(since)}</div>}
-      </div>
-    </li>
-  );
-}
+import { Box, Grid, Paper, SimpleGrid } from '@mantine/core';
+import { StatusItem } from '../status-item';
 
 function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
   const hasCapability = (type: string) => device.capabilities.some(c => c.type === type);
 
   return (
     <>
-      <div className="device__top">
-        <div className="device__status">
-          <ul>
+      <Grid>
+        <Grid.Col span={8}>
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
             {device.capabilities.map((capability: CapabilityApiResponse, idx: number) => {
               switch (capability.type) {
                 case 'TEMPERATURE_SENSOR': {
@@ -173,21 +146,23 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                   return null;
               }
             }).flat()}
-          </ul>
-        </div>
-        <div className="device__info">
-          <dl>
-            <dt>Provider</dt>
-            <dd>{device.provider}</dd>
-            <dt>Provider Identifier</dt>
-            <dd>{device.providerId}</dd>
-            <dt>Manufacturer</dt>
-            <dd>N/A</dd>
-            <dt>Model</dt>
-            <dd>N/A</dd>
-          </dl>
-        </div>
-      </div>
+          </SimpleGrid>
+        </Grid.Col>
+        <Grid.Col span={4}>
+          <Paper className="device__info" withBorder p="md" radius="md" h="100%">
+            <dl>
+              <dt>Provider</dt>
+              <dd>{device.provider}</dd>
+              <dt>Provider Identifier</dt>
+              <dd>{device.providerId}</dd>
+              <dt>Manufacturer</dt>
+              <dd>N/A</dd>
+              <dt>Model</dt>
+              <dd>N/A</dd>
+            </dl>
+          </Paper>
+        </Grid.Col>
+      </Grid>
 
       <Box mt="md">
         <DateRangeSelector />

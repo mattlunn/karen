@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, ReactNode } from 'react';
 import dayjs from '../../dayjs';
 import { DateRange, DateRangePreset, DateRangeContextValue } from './types';
 
@@ -31,14 +31,11 @@ export function DateRangeProvider({ children }: DateRangeProviderProps) {
   const [activePreset, setActivePreset] = useState<DateRangePreset>('last6hours');
   const [globalRange, setGlobalRange] = useState<DateRange>(() => getPresetRange('last6hours'));
 
-  useEffect(() => {
-    if (activePreset !== 'custom') {
-      setGlobalRange(getPresetRange(activePreset));
-    }
-  }, [activePreset]);
-
   const handleSetActivePreset = (preset: DateRangePreset) => {
     setActivePreset(preset);
+    if (preset !== 'custom') {
+      setGlobalRange(getPresetRange(preset));
+    }
   };
 
   const handleSetGlobalRange = (range: DateRange) => {
