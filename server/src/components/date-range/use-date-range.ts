@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { DateRangeContext } from './DateRangeContext';
+import { DateRangeContext } from './date-range-context';
 import { DateRangeContextValue } from './types';
 
 export function useDateRange(): DateRangeContextValue {

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { NativeSelect, Group, Button } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import dayjs, { Dayjs } from '../../dayjs';
-import { useDateRange } from './useDateRange';
-import { getPresetRange } from './DateRangeContext';
+import { useDateRange } from './use-date-range';
+import { getPresetRange } from './date-range-context';
 import { DateRangePreset, DateRange } from './types';
 
 const presetOptions = [

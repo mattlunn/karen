@@ -1,5 +1,5 @@
 import React, { useState, useMemo, ReactNode } from 'react';
-import { Checkbox, Group } from '@mantine/core';
+import { Checkbox, Group, Title } from '@mantine/core';
 import { faLightbulb, faPersonWalking, faFireBurner } from '@fortawesome/free-solid-svg-icons';
 import useApiCall from '../../hooks/api';
 import { useDateRange, DateRangeSelector } from '../date-range';
@@ -120,21 +120,24 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
 
   return (
     <div className="timeline-section">
-      <Group justify="flex-end" className="timeline-section__controls">
-        {!usePageRange && localRange && (
-          <DateRangeSelector
-            preset={localPreset}
-            range={localRange}
-            onPresetChange={setLocalPreset}
-            onRangeChange={setLocalRange}
-          />
-        )}
+      <Group justify="space-between" className="device-graph__controls" mt="lg">
+        <Title order={3}>Timeline</Title>
+        <Group justify="flex-end" className="timeline-section__controls">
+          {!usePageRange && localRange && (
+            <DateRangeSelector
+              preset={localPreset}
+              range={localRange}
+              onPresetChange={setLocalPreset}
+              onRangeChange={setLocalRange}
+            />
+          )}
 
-        <Checkbox
-          label="Use page date range"
-          checked={usePageRange}
-          onChange={(e) => handleUsePageRangeChange(e.currentTarget.checked)}
-        />
+          <Checkbox
+            label="Use page date range"
+            checked={usePageRange}
+            onChange={(e) => handleUsePageRangeChange(e.currentTarget.checked)}
+          />
+        </Group>
       </Group>
 
       {timelineItems.length > 0 ? renderTimeline(timelineItems) : <p>No events in this time range</p>}

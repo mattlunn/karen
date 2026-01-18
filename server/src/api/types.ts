@@ -1,36 +1,36 @@
 // Device API response - current status values with timestamps
 export type CapabilityApiResponse = {
   type: 'LIGHT';
-  brightness: NumericEventApiResponse | null;
-  isOn: BooleanEventApiResponse | null;
+  brightness: NumericEventApiResponse;
+  isOn: BooleanEventApiResponse;
 } | {
   type: 'THERMOSTAT';
-  currentTemperature: NumericEventApiResponse | null;
-  targetTemperature: NumericEventApiResponse | null;
-  power: NumericEventApiResponse | null;
-  isOn: BooleanEventApiResponse | null;
+  currentTemperature: NumericEventApiResponse;
+  targetTemperature: NumericEventApiResponse;
+  power: NumericEventApiResponse;
+  isOn: BooleanEventApiResponse;
 } | {
   type: 'HUMIDITY_SENSOR';
-  humidity: NumericEventApiResponse | null;
+  humidity: NumericEventApiResponse;
 } | {
   type: 'TEMPERATURE_SENSOR';
-  currentTemperature: NumericEventApiResponse | null;
+  currentTemperature: NumericEventApiResponse;
 } | {
   type: 'LIGHT_SENSOR';
-  illuminance: NumericEventApiResponse | null;
+  illuminance: NumericEventApiResponse;
 } | {
   type: 'MOTION_SENSOR';
-  hasMotion: BooleanEventApiResponse | null;
+  hasMotion: BooleanEventApiResponse;
 } | {
   type: 'HEAT_PUMP';
-  dHWCoP: NumericEventApiResponse | null;
-  heatingCoP: NumericEventApiResponse | null;
-  totalDailyYield: NumericEventApiResponse | null;
-  outsideTemperature: NumericEventApiResponse | null;
-  dHWTemperature: NumericEventApiResponse | null;
-  actualFlowTemperature: NumericEventApiResponse | null;
-  returnTemperature: NumericEventApiResponse | null;
-  systemPressure: NumericEventApiResponse | null;
+  dHWCoP: NumericEventApiResponse;
+  heatingCoP: NumericEventApiResponse;
+  totalDailyYield: NumericEventApiResponse;
+  outsideTemperature: NumericEventApiResponse;
+  dHWTemperature: NumericEventApiResponse;
+  actualFlowTemperature: NumericEventApiResponse;
+  returnTemperature: NumericEventApiResponse;
+  systemPressure: NumericEventApiResponse;
 } | {
   type: null;
 };

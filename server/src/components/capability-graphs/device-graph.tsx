@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Checkbox, Group } from '@mantine/core';
+import { Checkbox, Group, Title } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 import { useDateRange, DateRangeSelector } from '../date-range';
 import { CapabilityGraph, CapabilityGraphProps } from './capability-graph';
@@ -9,13 +9,14 @@ import { DateRange, DateRangePreset } from '../date-range/types';
 type DeviceGraphProps = {
   graphId: string;
   deviceId: number;
+  title: string;
   zones?: CapabilityGraphProps['zones'];
   yMin?: number;
   yMax?: number;
   yAxis?: CapabilityGraphProps['yAxis'];
 };
 
-export function DeviceGraph({ graphId, deviceId, zones, yMin, yMax, yAxis }: DeviceGraphProps) {
+export function DeviceGraph({ graphId, deviceId, title, zones, yMin, yMax, yAxis }: DeviceGraphProps) {
   const { globalRange } = useDateRange();
   const [usePageRange, setUsePageRange] = useState(true);
   const [localPreset, setLocalPreset] = useState<DateRangePreset>('last6hours');
@@ -65,7 +66,9 @@ export function DeviceGraph({ graphId, deviceId, zones, yMin, yMax, yAxis }: Dev
 
   return (
     <div className="device-graph">
-      <Group justify="flex-end" className="device-graph__controls">
+      <Group justify="space-between" className="device-graph__controls" mt="lg">
+        <Title order={4}>{title}</Title>
+        <Group gap="sm">
         {!usePageRange && localRange && (
           <DateRangeSelector
             preset={localPreset}
@@ -80,6 +83,7 @@ export function DeviceGraph({ graphId, deviceId, zones, yMin, yMax, yAxis }: Dev
           checked={usePageRange}
           onChange={(e) => handleUsePageRangeChange(e.currentTarget.checked)}
         />
+        </Group>
       </Group>
 
       <CapabilityGraph {...graphProps} />

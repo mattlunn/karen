@@ -22,10 +22,11 @@ import {
 
 import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
-import { DeviceGraph } from '../capability-graphs/DeviceGraph';
-import { TimelineSection } from '../timeline/TimelineSection';
+import { DeviceGraph } from '../capability-graphs/device-graph';
+import { TimelineSection } from '../timeline/timeline-section';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
+import { Box } from '@mantine/core';
 
 function formatSince(isoString: string): string {
   const date = dayjs(isoString);
@@ -76,7 +77,6 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                 }
 
                 case 'HUMIDITY_SENSOR': {
-                  if (!capability.humidity) return null;
                   return (
                     <StatusItem
                       key={idx}
@@ -90,8 +90,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                 }
 
                 case 'THERMOSTAT': {
-                  return [
-                    capability.targetTemperature && (
+                  return [(
                       <StatusItem
                         key={`${idx}-target`}
                         icon={faThermometerQuarter}
@@ -100,8 +99,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                         since={capability.targetTemperature.start}
                         color="#ff6f22"
                       />
-                    ),
-                    capability.power && (
+                    ), (
                       <StatusItem
                         key={`${idx}-power`}
                         icon={faFire}
@@ -111,34 +109,30 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                         color="#ff6f22"
                       />
                     )
-                  ].filter(Boolean);
+                  ];
                 }
 
                 case 'LIGHT': {
-                  return [
-                    capability.brightness && (
-                      <StatusItem
-                        key={`${idx}-brightness`}
-                        icon={faLightbulb}
-                        title="Brightness"
-                        value={`${capability.brightness.value}%`}
-                        since={capability.brightness.start}
-                      />
-                    ),
-                    capability.isOn && (
-                      <StatusItem
-                        key={`${idx}-status`}
-                        icon={faCircleHalfStroke}
-                        title="Status"
-                        value="On"
-                        since={capability.isOn.start}
-                      />
-                    )
-                  ].filter(Boolean);
+                  return [(
+                    <StatusItem
+                      key={`${idx}-brightness`}
+                      icon={faLightbulb}
+                      title="Brightness"
+                      value={`${capability.brightness.value}%`}
+                      since={capability.brightness.start}
+                    />
+                  ), (
+                    <StatusItem
+                      key={`${idx}-status`}
+                      icon={faCircleHalfStroke}
+                      title="Status"
+                      value="On"
+                      since={capability.isOn.start}
+                    />
+                  )];
                 }
 
                 case 'MOTION_SENSOR': {
-                  if (!capability.hasMotion) return null;
                   return (
                     <StatusItem
                       key={idx}
@@ -151,7 +145,6 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                 }
 
                 case 'LIGHT_SENSOR': {
-                  if (!capability.illuminance) return null;
                   return (
                     <StatusItem
                       key={idx}
@@ -165,15 +158,15 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
 
                 case 'HEAT_PUMP': {
                   return [
-                    capability.dHWCoP && <StatusItem key={`${idx}-dhwcop`} icon={faFaucet} title="Hot Water CoP" value={`${capability.dHWCoP.value.toFixed(1)} CoP`} since={capability.dHWCoP.start} />,
-                    capability.heatingCoP && <StatusItem key={`${idx}-heatingcop`} icon={faFire} title="Heating CoP" value={`${capability.heatingCoP.value.toFixed(1)} CoP`} since={capability.heatingCoP.start} />,
-                    capability.outsideTemperature && <StatusItem key={`${idx}-outside`} icon={faTree} title="Outside Temperature" value={`${capability.outsideTemperature.value.toFixed(1)}°C`} since={capability.outsideTemperature.start} />,
-                    capability.dHWTemperature && <StatusItem key={`${idx}-dhw`} icon={faFaucetDrip} title="Hot Water Temperature" value={`${capability.dHWTemperature.value.toFixed(1)}°C`} since={capability.dHWTemperature.start} />,
-                    capability.totalDailyYield && <StatusItem key={`${idx}-yield`} icon={faFire} title="Daily Yield" value={`${capability.totalDailyYield.value}kWh`} since={capability.totalDailyYield.start} />,
-                    capability.actualFlowTemperature && <StatusItem key={`${idx}-flow`} icon={faThermometer4} title="Flow Temperature" value={`${capability.actualFlowTemperature.value.toFixed(1)}°C`} since={capability.actualFlowTemperature.start} />,
-                    capability.returnTemperature && <StatusItem key={`${idx}-return`} icon={faThermometer2} title="Return Temperature" value={`${capability.returnTemperature.value.toFixed(1)}°C`} since={capability.returnTemperature.start} />,
-                    capability.systemPressure && <StatusItem key={`${idx}-pressure`} icon={faGauge} title="System Pressure" value={`${capability.systemPressure.value.toFixed(1)} bar`} since={capability.systemPressure.start} />
-                  ].filter(Boolean);
+                    <StatusItem key={`${idx}-dhwcop`} icon={faFaucet} title="Hot Water CoP" value={`${capability.dHWCoP.value.toFixed(1)} CoP`} since={capability.dHWCoP.start} />,
+                    <StatusItem key={`${idx}-heatingcop`} icon={faFire} title="Heating CoP" value={`${capability.heatingCoP.value.toFixed(1)} CoP`} since={capability.heatingCoP.start} />,
+                    <StatusItem key={`${idx}-outside`} icon={faTree} title="Outside Temperature" value={`${capability.outsideTemperature.value.toFixed(1)}°C`} since={capability.outsideTemperature.start} />,
+                    <StatusItem key={`${idx}-dhw`} icon={faFaucetDrip} title="Hot Water Temperature" value={`${capability.dHWTemperature.value.toFixed(1)}°C`} since={capability.dHWTemperature.start} />,
+                    <StatusItem key={`${idx}-yield`} icon={faFire} title="Daily Yield" value={`${capability.totalDailyYield.value}kWh`} since={capability.totalDailyYield.start} />,
+                    <StatusItem key={`${idx}-flow`} icon={faThermometer4} title="Flow Temperature" value={`${capability.actualFlowTemperature.value.toFixed(1)}°C`} since={capability.actualFlowTemperature.start} />,
+                    <StatusItem key={`${idx}-return`} icon={faThermometer2} title="Return Temperature" value={`${capability.returnTemperature.value.toFixed(1)}°C`} since={capability.returnTemperature.start} />,
+                    <StatusItem key={`${idx}-pressure`} icon={faGauge} title="System Pressure" value={`${capability.systemPressure.value.toFixed(1)} bar`} since={capability.systemPressure.start} />
+                  ];
                 }
 
                 default:
@@ -196,13 +189,16 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
         </div>
       </div>
 
-      <DateRangeSelector />
+      <Box mt="md">
+        <DateRangeSelector />
+      </Box>
 
       <div className="device__graph">
         <h3 className="device__section-header">Graph</h3>
 
         {hasCapability('THERMOSTAT') && (
           <DeviceGraph
+            title="Temperature &amp; Power"
             graphId="thermostat"
             deviceId={device.id}
             yAxis={{
@@ -214,11 +210,12 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
 
         {hasCapability('HEAT_PUMP') && (
           <>
-            <DeviceGraph graphId="heatpump-power" deviceId={device.id} />
-            <DeviceGraph graphId="heatpump-outside-temp" deviceId={device.id} yMin={-10} />
-            <DeviceGraph graphId="heatpump-dhw-temp" deviceId={device.id} />
-            <DeviceGraph graphId="heatpump-flow-temp" deviceId={device.id} />
+            <DeviceGraph title="Power" graphId="heatpump-power" deviceId={device.id} />
+            <DeviceGraph title="Outside Temperature" graphId="heatpump-outside-temp" deviceId={device.id} yMin={-10} />
+            <DeviceGraph title="DHW Temperature" graphId="heatpump-dhw-temp" deviceId={device.id} />
+            <DeviceGraph title="Flow/ Return Temperatures" graphId="heatpump-flow-temp" deviceId={device.id} />
             <DeviceGraph
+              title="System Pressure"
               graphId="heatpump-pressure"
               deviceId={device.id}
               zones={[
@@ -232,12 +229,11 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
         )}
 
         {hasCapability('LIGHT') && (
-          <DeviceGraph graphId="light" deviceId={device.id} />
+          <DeviceGraph title="Activity" graphId="light" deviceId={device.id} />
         )}
       </div>
 
       <div className="device__timeline">
-        <h3 className="device__section-header">Timeline</h3>
         <TimelineSection deviceId={device.id} />
       </div>
     </>
