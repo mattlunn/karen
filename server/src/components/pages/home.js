@@ -6,7 +6,7 @@ import Groups from '../groups';
 import useApiCall from '../../hooks/api';
 
 export default function Home() {
-  const { data, loading } = useApiCall('/home');
+  const { data, loading } = useApiCall('/devices');
 
   return (
     <div>

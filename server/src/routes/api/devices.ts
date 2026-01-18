@@ -1,6 +1,6 @@
 import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
-import { Device } from '../../models';
+import { Device, Room } from '../../models';
 import { Capability } from '../../models/capabilities';
 
 const router = express.Router();
@@ -13,12 +13,28 @@ interface CapabilityData {
 interface DeviceResponse {
   id: number;
   name: string;
+  roomId: number | null;
   status: 'OK' | 'OFFLINE';
   capabilities: CapabilityData[];
 }
 
+interface HomeRoom {
+  id: number;
+  name: string;
+  displayIconName: string | null;
+  displayWeight: number | null;
+}
+
+interface HomeCamera {
+  id: number;
+  name: string;
+  snapshotUrl: string;
+}
+
 interface DevicesApiResponse {
+  rooms: HomeRoom[];
   devices: DeviceResponse[];
+  cameras: HomeCamera[];
 }
 
 async function getCapabilityData(device: Device, capability: Capability): Promise<CapabilityData> {
@@ -151,26 +167,51 @@ async function getCapabilityData(device: Device, capability: Capability): Promis
 }
 
 router.get('/', asyncWrapper(async (req, res) => {
-  const allDevices = await Device.findAll();
+  const [allDevices, allRooms] = await Promise.all([
+    Device.findAll(),
+    Room.findAll()
+  ]);
+
+  const rooms: HomeRoom[] = allRooms
+    .sort((a, b) => ((a.displayWeight as number | null) ?? 0) - ((b.displayWeight as number | null) ?? 0))
+    .map(room => ({
+      id: room.id as number,
+      name: room.name,
+      displayIconName: room.displayIconName as string | null,
+      displayWeight: room.displayWeight as number | null
+    }));
 
   const devices: DeviceResponse[] = await Promise.all(
     allDevices.map(async device => {
       const capabilities = device.getCapabilities();
-      const capabilityData = await Promise.all(
-        capabilities.map(cap => getCapabilityData(device, cap))
-      );
-      const isConnected = await device.getIsConnected();
+      const [capabilityData, isConnected] = await Promise.all([
+        Promise.all(capabilities.map(cap => getCapabilityData(device, cap))),
+        device.getIsConnected()
+      ]);
 
       return {
         id: device.id,
         name: device.name,
+        roomId: device.roomId,
         status: isConnected ? 'OK' : 'OFFLINE',
         capabilities: capabilityData
       };
     })
   );
 
-  const response: DevicesApiResponse = { devices };
+  const cameras: HomeCamera[] = allDevices
+    .filter(device => device.type === 'camera')
+    .map(device => ({
+      id: device.id,
+      name: device.name,
+      snapshotUrl: `/api/snapshot/${device.providerId}`
+    }));
+
+  const response: DevicesApiResponse = {
+    rooms,
+    devices,
+    cameras
+  };
 
   res.json(response);
 }));
