@@ -1,21 +1,9 @@
 import express from 'express';
 import asyncWrapper from '../../../helpers/express-async-wrapper';
 import { Device } from '../../../models';
+import { LockUpdateRequest, LockResponse } from '../../../api/types';
 
 const router = express.Router({ mergeParams: true });
-
-interface LockUpdateRequest {
-  isLocked: boolean;
-}
-
-interface LockResponse {
-  id: number;
-  name: string;
-  status: 'OK' | 'OFFLINE';
-  lock: {
-    isLocked: boolean;
-  };
-}
 
 router.put('/', asyncWrapper(async (req, res) => {
   const device = await Device.findById(req.params.id);

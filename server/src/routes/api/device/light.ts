@@ -1,23 +1,9 @@
 import express from 'express';
 import asyncWrapper from '../../../helpers/express-async-wrapper';
 import { Device } from '../../../models';
+import { LightUpdateRequest, LightResponse } from '../../../api/types';
 
 const router = express.Router({ mergeParams: true });
-
-interface LightUpdateRequest {
-  isOn?: boolean;
-  brightness?: number;
-}
-
-interface LightResponse {
-  id: number;
-  name: string;
-  status: 'OK' | 'OFFLINE';
-  light: {
-    isOn: boolean;
-    brightness: number | null;
-  };
-}
 
 router.put('/', asyncWrapper(async (req, res) => {
   const device = await Device.findById(req.params.id);

@@ -2,14 +2,9 @@ import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Arming } from '../../models';
 import { ArmingMode } from '../../models/arming';
+import { AlarmMode, AlarmStatusResponse } from '../../api/types';
 
 const router = express.Router();
-
-type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';
-
-interface AlarmStatusResponse {
-  alarmMode: AlarmMode;
-}
 
 router.get('/alarm', asyncWrapper(async (req, res) => {
   const activeArming = await Arming.getActiveArming();

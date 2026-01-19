@@ -2,35 +2,15 @@ import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { User, Stay, Device, Arming } from '../../models';
 import { getDHWMode } from '../../services/ebusd';
+import {
+  UserStatus,
+  SidebarUser,
+  SidebarThermostat,
+  SidebarApiResponse,
+  AlarmMode
+} from '../../api/types';
 
 const router = express.Router();
-
-type UserStatus = 'HOME' | 'AWAY';
-
-interface SidebarUser {
-  id: string;
-  avatar: string;
-  status: UserStatus;
-  since: number;
-  until: number | null;
-}
-
-interface SidebarThermostat {
-  id: number;
-  targetTemperature: number;
-  setbackTemperature: number;
-}
-
-interface SidebarApiResponse {
-  users: SidebarUser[];
-  security: {
-    alarmMode: 'OFF' | 'AWAY' | 'NIGHT';
-  };
-  heating: {
-    dhwHeatingMode: 'ON' | 'OFF';
-    thermostats: SidebarThermostat[];
-  };
-}
 
 router.get('/', asyncWrapper(async (req, res) => {
   const users = await User.findAll();
@@ -99,7 +79,7 @@ router.get('/', asyncWrapper(async (req, res) => {
   const response: SidebarApiResponse = {
     users: sidebarUsers,
     security: {
-      alarmMode: activeArming ? activeArming.mode as 'AWAY' | 'NIGHT' : 'OFF'
+      alarmMode: activeArming ? activeArming.mode as AlarmMode : 'OFF'
     },
     heating: {
       dhwHeatingMode: dhwMode ? 'ON' : 'OFF',
