@@ -16,7 +16,7 @@ export default function Home() {
       return {
         id: device.id,
         name: device.name,
-        snapshotUrl: cameraCapability.snapshotUrl
+        snapshotUrl: cameraCapability.snapshotUrl.value
       };
     });
 

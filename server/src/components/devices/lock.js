@@ -9,10 +9,10 @@ export default function Lock({ device, capability }) {
   return (
     <DeviceControl
       device={device}
-      icon={capability.isLocked ? faDoorClosed : faDoorOpen}
+      icon={capability.isLocked.value ? faDoorClosed : faDoorOpen}
       color="#04A7F4"
-      colorIconBackground={capability.isLocked}
-      values={[capability.isLocked ? 'Locked' : 'Unlocked']}
+      colorIconBackground={capability.isLocked.value}
+      values={[capability.isLocked.value ? 'Locked' : 'Unlocked']}
       actionPending={loading}
       iconOnClick={(e) => {
         e.preventDefault();
@@ -20,7 +20,7 @@ export default function Lock({ device, capability }) {
         if (loading) return;
 
         setDoorLockedStatus({
-          isLocked: !capability.isLocked
+          isLocked: !capability.isLocked.value
         });
       }}
     />

@@ -8,7 +8,7 @@ export type CapabilityApiResponse = {
   currentTemperature: NumericEventApiResponse;
   targetTemperature: NumericEventApiResponse;
   power: NumericEventApiResponse;
-  isOn: BooleanEventApiResponse;
+  isHeating: BooleanEventApiResponse;
 } | {
   type: 'HUMIDITY_SENSOR';
   humidity: NumericEventApiResponse;
@@ -23,14 +23,33 @@ export type CapabilityApiResponse = {
   hasMotion: BooleanEventApiResponse;
 } | {
   type: 'HEAT_PUMP';
-  dHWCoP: NumericEventApiResponse;
+  mode: EnumEventApiResponse;
+  dailyConsumedEnergy: NumericEventApiResponse;
   heatingCoP: NumericEventApiResponse;
-  totalDailyYield: NumericEventApiResponse;
+  compressorModulation: NumericEventApiResponse;
+  dhwTemperature: NumericEventApiResponse;
+  dHWCoP: NumericEventApiResponse;
   outsideTemperature: NumericEventApiResponse;
-  dHWTemperature: NumericEventApiResponse;
   actualFlowTemperature: NumericEventApiResponse;
   returnTemperature: NumericEventApiResponse;
   systemPressure: NumericEventApiResponse;
+} | {
+  type: 'CAMERA';
+  snapshotUrl: EnumEventApiResponse;
+} | {
+  type: 'LOCK';
+  isLocked: BooleanEventApiResponse;
+} | {
+  type: 'SPEAKER';
+} | {
+  type: 'SWITCH';
+  isOn: BooleanEventApiResponse;
+} | {
+  type: 'BATTERY_LEVEL_INDICATOR';
+  batteryPercentage: NumericEventApiResponse;
+} | {
+  type: 'BATTERY_LOW_INDICATOR';
+  isLow: BooleanEventApiResponse;
 } | {
   type: null;
 };
@@ -125,57 +144,6 @@ export type UserStatus = 'HOME' | 'AWAY';
 export type CentralHeatingMode = 'ON' | 'OFF' | 'SETBACK';
 export type DHWHeatingMode = 'ON' | 'OFF';
 
-// Capability data types (discriminated union for type safety)
-export type RestCapabilityData = {
-  type: 'CAMERA';
-  snapshotUrl: string;
-} | {
-  type: 'LIGHT_SENSOR';
-  illuminance: number;
-} | {
-  type: 'HUMIDITY_SENSOR';
-  humidity: number;
-} | {
-  type: 'LIGHT';
-  isOn: boolean;
-  brightness: number | null;
-} | {
-  type: 'HEAT_PUMP';
-  mode: string;
-  dailyConsumedEnergy: number;
-  heatingCoP: number;
-  compressorModulation: number;
-  dhwTemperature: number;
-} | {
-  type: 'LOCK';
-  isLocked: boolean;
-} | {
-  type: 'MOTION_SENSOR';
-  motionDetected: boolean;
-} | {
-  type: 'TEMPERATURE_SENSOR';
-  currentTemperature: number;
-} | {
-  type: 'THERMOSTAT';
-  targetTemperature: number;
-  currentTemperature: number;
-  isHeating: boolean;
-  power: number;
-} | {
-  type: 'SPEAKER';
-} | {
-  type: 'SWITCH';
-  isOn: boolean;
-} | {
-  type: 'BATTERY_LEVEL_INDICATOR';
-  batteryPercentage: number;
-} | {
-  type: 'BATTERY_LOW_INDICATOR';
-  isLow: boolean;
-} | {
-  type: string; // Fallback for unknown capability types
-};
-
 // /api/devices endpoint
 export interface HomeRoom {
   id: number;
@@ -195,7 +163,7 @@ export interface RestDeviceResponse {
   name: string;
   roomId: number | null;
   status: DeviceStatus;
-  capabilities: RestCapabilityData[];
+  capabilities: CapabilityApiResponse[];
 }
 
 export interface DevicesApiResponse {
