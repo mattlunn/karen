@@ -2,6 +2,7 @@ import express from 'express';
 import asyncWrapper from '../../../helpers/express-async-wrapper';
 import { Device } from '../../../models';
 import { LightUpdateRequest, LightResponse } from '../../../api/types';
+import { mapDeviceToResponse } from '../device-helpers';
 
 const router = express.Router({ mergeParams: true });
 
@@ -33,15 +34,12 @@ router.put('/', asyncWrapper(async (req, res) => {
     device.getIsConnected()
   ]);
 
-  const response: LightResponse = {
-    id: device.id,
-    name: device.name,
-    status: isConnected ? 'OK' : 'OFFLINE',
+  const response: LightResponse = mapDeviceToResponse(device, isConnected, {
     light: {
       isOn,
       brightness
     }
-  };
+  });
 
   res.json(response);
 }));

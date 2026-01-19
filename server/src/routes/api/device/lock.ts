@@ -2,6 +2,7 @@ import express from 'express';
 import asyncWrapper from '../../../helpers/express-async-wrapper';
 import { Device } from '../../../models';
 import { LockUpdateRequest, LockResponse } from '../../../api/types';
+import { mapDeviceToResponse } from '../device-helpers';
 
 const router = express.Router({ mergeParams: true });
 
@@ -30,14 +31,11 @@ router.put('/', asyncWrapper(async (req, res) => {
     device.getIsConnected()
   ]);
 
-  const response: LockResponse = {
-    id: device.id,
-    name: device.name,
-    status: isConnected ? 'OK' : 'OFFLINE',
+  const response: LockResponse = mapDeviceToResponse(device, isConnected, {
     lock: {
       isLocked
     }
-  };
+  });
 
   res.json(response);
 }));
