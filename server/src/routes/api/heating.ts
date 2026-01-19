@@ -13,8 +13,8 @@ import {
 
 const router = express.Router();
 
-router.put('/central', asyncWrapper(async (req, res) => {
-  const mode = req.body.mode as CentralHeatingMode;
+router.put<Record<string, never>, CentralHeatingResponse, CentralHeatingUpdateRequest>('/central', asyncWrapper(async (req, res) => {
+  const mode = req.body.mode;
 
   if (!['ON', 'OFF', 'SETBACK'].includes(mode)) {
     res.status(400).json({ error: 'Invalid mode. Must be ON, OFF, or SETBACK.' });
@@ -58,16 +58,14 @@ router.put('/central', asyncWrapper(async (req, res) => {
     })
   );
 
-  const response: CentralHeatingResponse = {
+  res.json({
     mode,
     thermostats
-  };
-
-  res.json(response);
+  });
 }));
 
-router.put('/dhw', asyncWrapper(async (req, res) => {
-  const mode = req.body.mode as DHWHeatingMode;
+router.put<Record<string, never>, DHWHeatingResponse, DHWHeatingUpdateRequest>('/dhw', asyncWrapper(async (req, res) => {
+  const mode = req.body.mode;
 
   if (!['ON', 'OFF'].includes(mode)) {
     res.status(400).json({ error: 'Invalid mode. Must be ON or OFF.' });
@@ -77,21 +75,17 @@ router.put('/dhw', asyncWrapper(async (req, res) => {
   // setDHWMode has incorrect type signature (only accepts true but works with false too)
   await setDHWMode((mode === 'ON') as unknown as true);
 
-  const response: DHWHeatingResponse = {
+  res.json({
     dhwHeatingMode: mode
-  };
-
-  res.json(response);
+  });
 }));
 
-router.get('/dhw', asyncWrapper(async (req, res) => {
+router.get<Record<string, never>, DHWHeatingResponse>('/dhw', asyncWrapper(async (req, res) => {
   const isOn = await getDHWMode();
 
-  const response: DHWHeatingResponse = {
+  res.json({
     dhwHeatingMode: isOn ? 'ON' : 'OFF'
-  };
-
-  res.json(response);
+  });
 }));
 
 export default router;

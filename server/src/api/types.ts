@@ -275,3 +275,17 @@ export interface DHWHeatingUpdateRequest {
 export interface DHWHeatingResponse {
   dhwHeatingMode: DHWHeatingMode;
 }
+
+// /api/user/:id endpoint
+export interface UserUpdateRequest {
+  status?: UserStatus;
+  eta?: number;
+}
+
+export interface UserResponse {
+  id: string;
+  avatar: string;
+  status: UserStatus;
+  since: number;
+  until: number | null;
+}

@@ -2,22 +2,20 @@ import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Arming } from '../../models';
 import { ArmingMode } from '../../models/arming';
-import { AlarmMode, AlarmStatusResponse } from '../../api/types';
+import { AlarmMode, AlarmStatusResponse, AlarmUpdateRequest } from '../../api/types';
 
 const router = express.Router();
 
-router.get('/alarm', asyncWrapper(async (req, res) => {
+router.get<Record<string, never>, AlarmStatusResponse>('/alarm', asyncWrapper(async (req, res) => {
   const activeArming = await Arming.getActiveArming();
 
-  const response: AlarmStatusResponse = {
+  res.json({
     alarmMode: activeArming ? activeArming.mode as AlarmMode : 'OFF'
-  };
-
-  res.json(response);
+  });
 }));
 
-router.put('/alarm', asyncWrapper(async (req, res) => {
-  const desiredMode = req.body.mode as AlarmMode;
+router.put<Record<string, never>, AlarmStatusResponse, AlarmUpdateRequest>('/alarm', asyncWrapper(async (req, res) => {
+  const desiredMode = req.body.mode;
 
   if (!['OFF', 'AWAY', 'NIGHT'].includes(desiredMode)) {
     res.status(400).json({ error: 'Invalid alarm mode. Must be OFF, AWAY, or NIGHT.' });
@@ -28,10 +26,9 @@ router.put('/alarm', asyncWrapper(async (req, res) => {
   const now = new Date();
 
   if ((currentArming === null && desiredMode === 'OFF') || currentArming?.mode === desiredMode) {
-    const response: AlarmStatusResponse = {
+    res.json({
       alarmMode: desiredMode
-    };
-    res.json(response);
+    });
     return;
   }
 
@@ -47,11 +44,9 @@ router.put('/alarm', asyncWrapper(async (req, res) => {
     });
   }
 
-  const response: AlarmStatusResponse = {
+  res.json({
     alarmMode: desiredMode
-  };
-
-  res.json(response);
+  });
 }));
 
 export default router;

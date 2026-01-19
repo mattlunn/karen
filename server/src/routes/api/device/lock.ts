@@ -6,7 +6,7 @@ import { mapDeviceToResponse } from '../device-helpers';
 
 const router = express.Router({ mergeParams: true });
 
-router.put('/', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, LockResponse, LockUpdateRequest>('/', asyncWrapper(async (req, res) => {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
@@ -20,7 +20,7 @@ router.put('/', asyncWrapper(async (req, res) => {
     return;
   }
 
-  const body = req.body as LockUpdateRequest;
+  const body = req.body;
 
   if ('isLocked' in body) {
     await lock.setIsLocked(body.isLocked);
@@ -31,13 +31,11 @@ router.put('/', asyncWrapper(async (req, res) => {
     device.getIsConnected()
   ]);
 
-  const response: LockResponse = mapDeviceToResponse(device, isConnected, {
+  res.json(mapDeviceToResponse(device, isConnected, {
     lock: {
       isLocked
     }
-  });
-
-  res.json(response);
+  }));
 }));
 
 export default router;

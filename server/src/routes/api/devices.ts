@@ -206,7 +206,7 @@ async function getCapabilityData(device: Device, capability: Capability): Promis
   }
 }
 
-router.get('/', asyncWrapper(async (req, res) => {
+router.get<Record<string, never>, DevicesApiResponse>('/', asyncWrapper(async (req, res) => {
   const [allDevices, allRooms] = await Promise.all([
     Device.findAll(),
     Room.findAll()
@@ -239,12 +239,10 @@ router.get('/', asyncWrapper(async (req, res) => {
     })
   );
 
-  const response: DevicesApiResponse = {
+  res.json({
     rooms,
     devices
-  };
-
-  res.json(response);
+  });
 }));
 
 export default router;
