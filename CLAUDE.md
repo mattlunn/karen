@@ -67,7 +67,7 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 This file serves as the single source of truth for:
 1. **Request body types** (PUT/POST payloads sent by browser/lambda)
 2. **Response types** (JSON returned by each route)
-3. **Shared types** (capabilities, devices, status enums)
+3. **Shared types** (capabilities, devices, status enums
 
 **Critical Requirements:**
 

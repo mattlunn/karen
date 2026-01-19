@@ -3,7 +3,7 @@ import asyncWrapper from '../../helpers/express-async-wrapper';
 import { User, Stay } from '../../models';
 import { HOME, AWAY } from '../../constants/status';
 import dayjs from '../../dayjs';
-import { UserStatus, UserUpdateRequest, UserResponse } from '../../api/types';
+import { UserUpdateRequest, UserResponse } from '../../api/types';
 
 const router = express.Router();
 
@@ -18,14 +18,13 @@ router.put<{ id: string }, UserResponse, UserUpdateRequest>('/:id', asyncWrapper
   }
 
   const body = req.body;
-
   const [[currentStay], [upcomingStay]] = await Promise.all([
     Stay.findCurrentOrLastStays([user.id]),
     Stay.findUpcomingStays([user.id])
   ]);
 
-  let current: Stay | null = currentStay ?? null;
-  let upcoming: Stay | null = upcomingStay ?? null;
+  let current = currentStay ?? null;
+  let upcoming = upcomingStay ?? null;
 
   if (body.status) {
     switch (body.status) {
@@ -77,21 +76,13 @@ router.put<{ id: string }, UserResponse, UserUpdateRequest>('/:id', asyncWrapper
     await upcoming.save();
   }
 
-  const isAway = upcoming || current?.departure;
-  const status: UserStatus = isAway ? 'AWAY' : 'HOME';
-
-  const since = isAway 
-    ? (current?.departure ? +current.departure : 0)
-    : (current?.arrival ? +current.arrival : 0);
-
-  const until = isAway && upcoming?.eta ? +upcoming.eta : null;
-
+  const isAway = !current || !!current.departure;
   res.json({
     id: user.handle,
     avatar: user.avatar,
-    status,
-    since,
-    until
+    status: isAway ? 'AWAY' : 'HOME',
+    since: isAway ? null : current?.arrival,
+    until: upcoming?.eta ?? null
   });
 }));
 

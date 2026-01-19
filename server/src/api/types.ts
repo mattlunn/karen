@@ -282,10 +282,15 @@ export interface UserUpdateRequest {
   eta?: number;
 }
 
-export interface UserResponse {
+export type UserResponse = {
   id: string;
   avatar: string;
-  status: UserStatus;
-  since: number;
-  until: number | null;
-}
+} & ({
+  status: 'HOME',
+  since: number,
+  until: null
+} | {
+  status: 'AWAY',
+  since: null,
+  until: number | null
+});
