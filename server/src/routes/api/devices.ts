@@ -6,7 +6,6 @@ import {
   RestCapabilityData,
   RestDeviceResponse,
   HomeRoom,
-  HomeCamera,
   DevicesApiResponse
 } from '../../api/types';
 
@@ -174,18 +173,9 @@ router.get('/', asyncWrapper(async (req, res) => {
     })
   );
 
-  const cameras: HomeCamera[] = allDevices
-    .filter(device => device.type === 'camera')
-    .map(device => ({
-      id: device.id,
-      name: device.name,
-      snapshotUrl: `/api/snapshot/${device.providerId}`
-    }));
-
   const response: DevicesApiResponse = {
     rooms,
-    devices,
-    cameras
+    devices
   };
 
   res.json(response);

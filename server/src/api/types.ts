@@ -201,7 +201,6 @@ export interface RestDeviceResponse {
 export interface DevicesApiResponse {
   rooms: HomeRoom[];
   devices: RestDeviceResponse[];
-  cameras: HomeCamera[];
 }
 
 // /api/device/:id/light endpoint
