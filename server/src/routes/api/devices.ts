@@ -2,42 +2,17 @@ import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Device, Room } from '../../models';
 import { Capability } from '../../models/capabilities';
+import {
+  RestCapabilityData,
+  RestDeviceResponse,
+  HomeRoom,
+  HomeCamera,
+  DevicesApiResponse
+} from '../../api/types';
 
 const router = express.Router();
 
-interface CapabilityData {
-  type: string;
-  [key: string]: unknown;
-}
-
-interface DeviceResponse {
-  id: number;
-  name: string;
-  roomId: number | null;
-  status: 'OK' | 'OFFLINE';
-  capabilities: CapabilityData[];
-}
-
-interface HomeRoom {
-  id: number;
-  name: string;
-  displayIconName: string | null;
-  displayWeight: number | null;
-}
-
-interface HomeCamera {
-  id: number;
-  name: string;
-  snapshotUrl: string;
-}
-
-interface DevicesApiResponse {
-  rooms: HomeRoom[];
-  devices: DeviceResponse[];
-  cameras: HomeCamera[];
-}
-
-async function getCapabilityData(device: Device, capability: Capability): Promise<CapabilityData> {
+async function getCapabilityData(device: Device, capability: Capability): Promise<RestCapabilityData> {
   switch (capability) {
     case 'CAMERA':
       return {
@@ -181,7 +156,7 @@ router.get('/', asyncWrapper(async (req, res) => {
       displayWeight: room.displayWeight as number | null
     }));
 
-  const devices: DeviceResponse[] = await Promise.all(
+  const devices: RestDeviceResponse[] = await Promise.all(
     allDevices.map(async device => {
       const capabilities = device.getCapabilities();
       const [capabilityData, isConnected] = await Promise.all([

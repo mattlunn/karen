@@ -2,25 +2,16 @@ import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Device } from '../../models';
 import { setDHWMode, getDHWMode } from '../../services/ebusd';
+import {
+  CentralHeatingMode,
+  DHWHeatingMode,
+  CentralHeatingUpdateRequest,
+  CentralHeatingResponse,
+  DHWHeatingUpdateRequest,
+  DHWHeatingResponse
+} from '../../api/types';
 
 const router = express.Router();
-
-type CentralHeatingMode = 'ON' | 'OFF' | 'SETBACK';
-type DHWHeatingMode = 'ON' | 'OFF';
-
-interface CentralHeatingResponse {
-  mode: CentralHeatingMode;
-  thermostats: {
-    id: number;
-    targetTemperature: number;
-    setbackTemperature: number;
-    isHeating: boolean;
-  }[];
-}
-
-interface DHWHeatingResponse {
-  dhwHeatingMode: DHWHeatingMode;
-}
 
 router.put('/central', asyncWrapper(async (req, res) => {
   const mode = req.body.mode as CentralHeatingMode;

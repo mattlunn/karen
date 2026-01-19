@@ -1,24 +1,9 @@
 import express from 'express';
 import asyncWrapper from '../../../helpers/express-async-wrapper';
 import { Device } from '../../../models';
+import { ThermostatUpdateRequest, ThermostatResponse } from '../../../api/types';
 
 const router = express.Router({ mergeParams: true });
-
-interface ThermostatUpdateRequest {
-  targetTemperature: number;
-}
-
-interface ThermostatResponse {
-  id: number;
-  name: string;
-  status: 'OK' | 'OFFLINE';
-  thermostat: {
-    targetTemperature: number;
-    currentTemperature: number;
-    isHeating: boolean;
-    power: number;
-  };
-}
 
 router.put('/', asyncWrapper(async (req, res) => {
   const device = await Device.findById(req.params.id);
