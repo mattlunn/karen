@@ -5,8 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 Karen is a full-stack TypeScript/Node.js smart home automation platform with:
-- **Backend**: Express.js server with Apollo GraphQL API
-- **Frontend**: React 18 SPA with Apollo Client
+- **Backend**: Express.js server with REST API
+- **Frontend**: React 18 SPA
 - **Database**: MySQL with Sequelize ORM
 - **Real-time**: WebSocket subscriptions for live device updates
 - **Integrations**: Alexa, Z-Wave, Tado, Shelly, TP-Link, UniFi, Synology, HomeConnect, eBUSd
@@ -41,7 +41,7 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 
 ### Directory Structure (`server/src/`)
 
-- `api/` - GraphQL server setup, type definitions, resolvers, and DataLoaders
+- `api/` - API type definitions (single source of truth for REST API types)
 - `models/` - Sequelize ORM models (Device, User, Room, Event, etc.)
 - `models/capabilities/` - Device capability system (Light, Lock, Thermostat, etc.)
 - `services/` - Integration services for each IoT platform (alexa/, tado/, shelly/, etc.)
@@ -54,11 +54,80 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 ### Entry Points
 
 - `server.ts` - Express server startup, middleware, route setup
-- `client.js` - React app entry, Apollo Client initialization
+- `client.js` - React app entry point
 
 ### Naming Conventions
 
 - **Component files**: Use hyphenated lowercase names (e.g., `date-range-context.tsx`, not `DateRangeContext.tsx`)
+
+### REST API Type System
+
+**All TypeScript definitions for REST API endpoints MUST be centralized in `/server/src/api/types.ts`**.
+
+This file serves as the single source of truth for:
+1. **Request body types** (PUT/POST payloads sent by browser/lambda)
+2. **Response types** (JSON returned by each route)
+3. **Shared types** (capabilities, devices, status enums)
+
+**Critical Requirements:**
+
+- Use **discriminated union types** for capabilities (NOT `Record<string, unknown>`)
+- Export all request/response interfaces
+- Import these types in:
+  - Server route handlers (`/routes/api/**/*.ts`)
+  - React components and hooks (`/components/**/*.js`, `/hooks/**/*.js`)
+  - Lambda functions (`/lambdas/**/*.ts`)
+
+**Example Pattern:**
+
+```typescript
+// In /server/src/api/types.ts
+export interface LightUpdateRequest {
+  isOn?: boolean;
+  brightness?: number;
+}
+
+export interface LightResponse {
+  id: number;
+  name: string;
+  status: DeviceStatus;
+  light: {
+    isOn: boolean;
+    brightness: number | null;
+  };
+}
+
+// Discriminated union for type safety
+export type RestCapabilityData = {
+  type: 'LIGHT';
+  isOn: boolean;
+  brightness: number | null;
+} | {
+  type: 'THERMOSTAT';
+  targetTemperature: number;
+  currentTemperature: number;
+  isHeating: boolean;
+  power: number;
+} | {
+  type: 'CAMERA';
+  snapshotUrl: string;
+}; // etc.
+
+// In route handler
+import { LightUpdateRequest, LightResponse } from '../../../api/types';
+```
+
+**Device Response Mapping:**
+
+Use the `mapDeviceToResponse()` helper from `/routes/api/device-helpers.ts` to standardize device responses:
+
+```typescript
+import { mapDeviceToResponse } from '../device-helpers';
+
+const response = mapDeviceToResponse(device, isConnected, {
+  light: { isOn, brightness }
+});
+```
 
 ### Key Patterns
 
