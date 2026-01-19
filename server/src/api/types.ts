@@ -120,17 +120,17 @@ export type HistoryApiResponse = {
   bar?: HistoryBarApiResponse;
 };
 
-// Timeline API response types
-export type TimelineEventApiResponse = {
+// Device Timeline API response types (/api/device/:id/timeline)
+export type DeviceTimelineEventApiResponse = {
   type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode';
   timestamp: string;
   value?: string;
 };
 
-export type TimelineApiResponse = {
+export type DeviceTimelineApiResponse = {
   since: string;
   until: string;
-  events: TimelineEventApiResponse[];
+  events: DeviceTimelineEventApiResponse[];
 };
 
 // ============================================================================
@@ -253,27 +253,20 @@ export interface AlarmUpdateRequest {
   mode: AlarmMode;
 }
 
-// /api/heating endpoints
-export interface CentralHeatingUpdateRequest {
-  mode: CentralHeatingMode;
+// /api/heating endpoint
+export interface HeatingUpdateRequest {
+  centralHeating?: CentralHeatingMode;
+  dhw?: DHWHeatingMode;
 }
 
-export interface CentralHeatingResponse {
-  mode: CentralHeatingMode;
-  thermostats: {
+export interface HeatingResponse {
+  dhwHeatingMode?: DHWHeatingMode;
+  thermostats?: {
     id: number;
     targetTemperature: number;
     setbackTemperature: number;
     isHeating: boolean;
   }[];
-}
-
-export interface DHWHeatingUpdateRequest {
-  mode: DHWHeatingMode;
-}
-
-export interface DHWHeatingResponse {
-  dhwHeatingMode: DHWHeatingMode;
 }
 
 // /api/user/:id endpoint
@@ -294,3 +287,18 @@ export type UserResponse = {
   since: null,
   until: number | null
 });
+
+// Timeline Feed API response types (/api/timeline)
+export type TimelineFeedEvent =
+  | { type: 'motion'; id: number; timestamp: number; deviceId: number; deviceName: string; recordingId: number | null; }
+  | { type: 'arrival'; id: number; timestamp: number; userId: string; }
+  | { type: 'departure'; id: number; timestamp: number; userId: string; }
+  | { type: 'light-on'; id: number; timestamp: number; deviceId: number; deviceName: string; }
+  | { type: 'light-off'; id: number; timestamp: number; deviceId: number; deviceName: string; duration: number; }
+  | { type: 'alarm-arming'; id: number; timestamp: number; mode: AlarmMode; }
+  | { type: 'doorbell-ring'; id: number; timestamp: number; };
+
+export interface TimelineFeedApiResponse {
+  events: TimelineFeedEvent[];
+  hasMore: boolean;
+}
