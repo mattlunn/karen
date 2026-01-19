@@ -1,25 +1,12 @@
 import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Event, Stay, Arming, Device, Recording, User, Op } from '../../models';
+import { TimelineFeedEvent, TimelineFeedApiResponse } from '../../api/types';
 
 const router = express.Router();
 
-type TimelineEvent =
-  | { type: 'motion'; id: number; timestamp: number; deviceId: number; deviceName: string; recordingId: number | null; }
-  | { type: 'arrival'; id: number; timestamp: number; userId: string; }
-  | { type: 'departure'; id: number; timestamp: number; userId: string; }
-  | { type: 'light-on'; id: number; timestamp: number; deviceId: number; deviceName: string; }
-  | { type: 'light-off'; id: number; timestamp: number; deviceId: number; deviceName: string; duration: number; }
-  | { type: 'alarm-arming'; id: number; timestamp: number; mode: 'OFF' | 'AWAY' | 'NIGHT'; }
-  | { type: 'doorbell-ring'; id: number; timestamp: number; };
-
-interface TimelineApiResponse {
-  events: TimelineEvent[];
-  hasMore: boolean;
-}
-
 interface EventWithTimestamp {
-  event: TimelineEvent;
+  event: TimelineFeedEvent;
   timestamp: number;
 }
 
@@ -211,7 +198,7 @@ router.get('/', asyncWrapper(async (req, res) => {
   const limitedEvents = allEvents.slice(0, limit);
   const hasMore = allEvents.length > limit;
 
-  const response: TimelineApiResponse = {
+  const response: TimelineFeedApiResponse = {
     events: limitedEvents.map(e => e.event),
     hasMore
   };
