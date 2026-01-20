@@ -90,6 +90,132 @@ export function mapHeatPumpModeEvent(eventsPromise: Promise<NumericEvent[]>): Pr
 export const currentSelector = { limit: 1, until: new Date() };
 
 /**
+ * Maps a device capability to its API response format with historical event data.
+ */
+export async function getCapabilityData(device: Device, capability: string): Promise<any> {
+  switch (capability) {
+    case 'CAMERA': {
+      const now = new Date().toISOString();
+      return {
+        type: 'CAMERA',
+        snapshotUrl: {
+          start: now,
+          end: null,
+          value: `/api/snapshot/${device.providerId}`
+        }
+      };
+    }
+
+    case 'LIGHT_SENSOR': {
+      const sensor = device.getLightSensorCapability();
+      return awaitPromises({
+        type: 'LIGHT_SENSOR' as const,
+        illuminance: mapNumericEvent(sensor.getIlluminanceHistory(currentSelector))
+      });
+    }
+
+    case 'HUMIDITY_SENSOR': {
+      const sensor = device.getHumiditySensorCapability();
+      return awaitPromises({
+        type: 'HUMIDITY_SENSOR' as const,
+        humidity: mapNumericEvent(sensor.getHumidityHistory(currentSelector))
+      });
+    }
+
+    case 'LIGHT': {
+      const light = device.getLightCapability();
+      return awaitPromises({
+        type: 'LIGHT' as const,
+        isOn: mapBooleanEvent(light.getIsOnHistory(currentSelector)),
+        brightness: mapNumericEvent(light.getBrightnessHistory(currentSelector))
+      });
+    }
+
+    case 'HEAT_PUMP': {
+      const heatPump = device.getHeatPumpCapability();
+      return awaitPromises({
+        type: 'HEAT_PUMP' as const,
+        mode: mapHeatPumpModeEvent(heatPump.getModeHistory(currentSelector)),
+        dailyConsumedEnergy: mapNumericEvent(heatPump.getDailyConsumedEnergyHistory(currentSelector)),
+        heatingCoP: mapNumericEvent(heatPump.getHeatingCoPHistory(currentSelector)),
+        compressorModulation: mapNumericEvent(heatPump.getCompressorModulationHistory(currentSelector)),
+        dhwTemperature: mapNumericEvent(heatPump.getDHWTemperatureHistory(currentSelector)),
+        dHWCoP: mapNumericEvent(heatPump.getDHWCoPHistory(currentSelector)),
+        outsideTemperature: mapNumericEvent(heatPump.getOutsideTemperatureHistory(currentSelector)),
+        actualFlowTemperature: mapNumericEvent(heatPump.getActualFlowTemperatureHistory(currentSelector)),
+        returnTemperature: mapNumericEvent(heatPump.getReturnTemperatureHistory(currentSelector)),
+        systemPressure: mapNumericEvent(heatPump.getSystemPressureHistory(currentSelector))
+      });
+    }
+
+    case 'LOCK': {
+      const lock = device.getLockCapability();
+      return awaitPromises({
+        type: 'LOCK' as const,
+        isLocked: mapBooleanEvent(lock.getIsLockedHistory(currentSelector))
+      });
+    }
+
+    case 'MOTION_SENSOR': {
+      const sensor = device.getMotionSensorCapability();
+      return awaitPromises({
+        type: 'MOTION_SENSOR' as const,
+        hasMotion: mapBooleanEvent(sensor.getHasMotionHistory(currentSelector))
+      });
+    }
+
+    case 'TEMPERATURE_SENSOR': {
+      const sensor = device.getTemperatureSensorCapability();
+      return awaitPromises({
+        type: 'TEMPERATURE_SENSOR' as const,
+        currentTemperature: mapNumericEvent(sensor.getCurrentTemperatureHistory(currentSelector))
+      });
+    }
+
+    case 'THERMOSTAT': {
+      const thermostat = device.getThermostatCapability();
+      return awaitPromises({
+        type: 'THERMOSTAT' as const,
+        targetTemperature: mapNumericEvent(thermostat.getTargetTemperatureHistory(currentSelector)),
+        currentTemperature: mapNumericEvent(thermostat.getCurrentTemperatureHistory(currentSelector)),
+        isHeating: mapBooleanEvent(thermostat.getIsOnHistory(currentSelector)),
+        power: mapNumericEvent(thermostat.getPowerHistory(currentSelector))
+      });
+    }
+
+    case 'SPEAKER':
+      return { type: 'SPEAKER' };
+
+    case 'SWITCH': {
+      const switchCapability = device.getSwitchCapability();
+      return awaitPromises({
+        type: 'SWITCH' as const,
+        isOn: mapBooleanEvent(switchCapability.getIsOnHistory(currentSelector))
+      });
+    }
+
+    case 'BATTERY_LEVEL_INDICATOR': {
+      const battery = device.getBatteryLevelIndicatorCapability();
+      return awaitPromises({
+        type: 'BATTERY_LEVEL_INDICATOR' as const,
+        batteryPercentage: mapNumericEvent(battery.getBatteryPercentageHistory(currentSelector))
+      });
+    }
+
+    case 'BATTERY_LOW_INDICATOR': {
+      const battery = device.getBatteryLowIndicatorCapability();
+      return awaitPromises({
+        type: 'BATTERY_LOW_INDICATOR' as const,
+        isLow: mapBooleanEvent(battery.getIsBatteryLowHistory(currentSelector))
+      });
+    }
+
+    default:
+      return { type: null };
+  }
+}
+
+/**
  * Maps a device to a standardized API response structure.
  *
  * This helper reduces code duplication across device capability endpoints by
