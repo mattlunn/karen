@@ -218,24 +218,44 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 /**
  * Maps a device to a standardized API response structure.
  *
- * This helper reduces code duplication across device capability endpoints by
- * providing a consistent base response format (id, name, status) that each
- * endpoint can extend with capability-specific data.
+ * This helper provides a unified way to serialize devices for API responses.
+ * It internally fetches the device's connection status and optionally includes
+ * capability data with historical events.
  *
  * @param device - The device model instance
- * @param isConnected - Whether the device is currently connected
- * @param capabilityData - Capability-specific data to merge into the response
- * @returns Object with id, name, status, and capability-specific data
+ * @param options - Configuration options
+ * @param options.includeCapabilities - Whether to include capability data (default: false)
+ * @returns Promise resolving to device response object
  */
-export function mapDeviceToResponse<T extends Record<string, unknown>>(
+export async function mapDeviceToResponse(
   device: Device,
-  isConnected: boolean,
-  capabilityData: T
-): { id: number; name: string; status: DeviceStatus } & T {
-  return {
+  options: {
+    includeCapabilities?: boolean;
+  } = {}
+): Promise<any> {
+  const isConnected = await device.getIsConnected();
+
+  const baseResponse = {
     id: device.id,
     name: device.name,
-    status: isConnected ? 'OK' : 'OFFLINE',
-    ...capabilityData
+    type: device.type,
+    provider: device.provider,
+    providerId: device.providerId,
+    roomId: device.roomId,
+    status: isConnected ? 'OK' : 'OFFLINE' as DeviceStatus
+  };
+
+  if (!options.includeCapabilities) {
+    return baseResponse;
+  }
+
+  const capabilities = device.getCapabilities();
+  const capabilityData = await Promise.all(
+    capabilities.map(cap => getCapabilityData(device, cap))
+  );
+
+  return {
+    ...baseResponse,
+    capabilities: capabilityData
   };
 }
