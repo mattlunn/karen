@@ -17,7 +17,7 @@ export async function apiGet<T>(endpoint: string): Promise<T> {
   return res.json();
 }
 
-export async function apiPut<T>(endpoint: string, body: object): Promise<T> {
+export async function apiPut(endpoint: string, body: object): Promise<void> {
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     method: 'PUT',
     headers: {
@@ -31,5 +31,5 @@ export async function apiPut<T>(endpoint: string, body: object): Promise<T> {
     throw new Error(`API PUT ${endpoint} failed: ${res.status}`);
   }
 
-  return res.json();
+  // Mutations return 204 No Content, no response body to parse
 }
