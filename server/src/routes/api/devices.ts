@@ -8,7 +8,7 @@ import {
   HomeRoom,
   DevicesApiResponse
 } from '../../api/types';
-import { getCapabilityData } from './device-helpers';
+import { mapDeviceToResponse } from './device-helpers';
 
 const router = express.Router();
 
@@ -28,21 +28,9 @@ router.get<Record<string, never>, DevicesApiResponse>('/', asyncWrapper(async (r
     }));
 
   const devices: RestDeviceResponse[] = await Promise.all(
-    allDevices.map(async device => {
-      const capabilities = device.getCapabilities();
-      const [capabilityData, isConnected] = await Promise.all([
-        Promise.all(capabilities.map(cap => getCapabilityData(device, cap))),
-        device.getIsConnected()
-      ]);
-
-      return {
-        id: device.id,
-        name: device.name,
-        roomId: device.roomId,
-        status: isConnected ? 'OK' : 'OFFLINE',
-        capabilities: capabilityData
-      };
-    })
+    allDevices.map(device =>
+      mapDeviceToResponse(device, { includeCapabilities: true })
+    )
   );
 
   res.json({
