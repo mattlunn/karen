@@ -12,7 +12,7 @@ import {
 
 const router = express.Router();
 
-router.get('/', asyncWrapper(async (req, res) => {
+router.get<Record<string, never>, SidebarApiResponse>('/', asyncWrapper(async (req, res) => {
   const users = await User.findAll();
   const userIds = users.map(u => u.id);
 
@@ -76,7 +76,7 @@ router.get('/', asyncWrapper(async (req, res) => {
     })
   );
 
-  const response: SidebarApiResponse = {
+  res.json({
     users: sidebarUsers,
     security: {
       alarmMode: activeArming ? activeArming.mode as AlarmMode : 'OFF'
@@ -85,9 +85,7 @@ router.get('/', asyncWrapper(async (req, res) => {
       dhwHeatingMode: dhwMode ? 'ON' : 'OFF',
       thermostats
     }
-  };
-
-  res.json(response);
+  });
 }));
 
 export default router;

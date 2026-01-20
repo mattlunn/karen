@@ -4,7 +4,7 @@ import { faLightbulb } from '@fortawesome/free-solid-svg-icons';
 import useApiMutation from '../../hooks/api-mutation';
 
 function BrightnessControl({ device, capability }) {
-  const brightness = capability.brightness;
+  const brightness = capability.brightness.value;
   const options = [];
   const { mutate: setBrightness, loading } = useApiMutation(`/device/${device.id}/light`);
 
@@ -37,8 +37,8 @@ export default function Light({ device, capability }) {
   const { mutate: setLightSwitchStatus, loading } = useApiMutation(`/device/${device.id}/light`);
 
   return (
-    <DeviceControl device={device} icon={faLightbulb} color="#ffa24d" colorIconBackground={capability.isOn} values={[
-      capability.isOn ? 'On' : 'Off',
+    <DeviceControl device={device} icon={faLightbulb} color="#ffa24d" colorIconBackground={capability.isOn.value} values={[
+      capability.isOn.value ? 'On' : 'Off',
       <BrightnessControl device={device} capability={capability} key={1}/>
     ]} actionPending={loading} iconOnClick={(e) => {
       e.preventDefault();
@@ -46,7 +46,7 @@ export default function Light({ device, capability }) {
       if (loading) return;
 
       setLightSwitchStatus({
-        isOn: !capability.isOn
+        isOn: !capability.isOn.value
       });
     }} />
   );

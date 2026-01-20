@@ -6,7 +6,7 @@ import { mapDeviceToResponse } from '../device-helpers';
 
 const router = express.Router({ mergeParams: true });
 
-router.put('/', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, ThermostatResponse, ThermostatUpdateRequest>('/', asyncWrapper(async (req, res) => {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
@@ -20,7 +20,7 @@ router.put('/', asyncWrapper(async (req, res) => {
     return;
   }
 
-  const body = req.body as ThermostatUpdateRequest;
+  const body = req.body;
 
   if ('targetTemperature' in body) {
     await thermostat.setTargetTemperature(body.targetTemperature);
@@ -34,16 +34,14 @@ router.put('/', asyncWrapper(async (req, res) => {
     device.getIsConnected()
   ]);
 
-  const response: ThermostatResponse = mapDeviceToResponse(device, isConnected, {
+  res.json(mapDeviceToResponse(device, isConnected, {
     thermostat: {
       targetTemperature,
       currentTemperature,
       isHeating,
       power
     }
-  });
-
-  res.json(response);
+  }));
 }));
 
 export default router;

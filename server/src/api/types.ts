@@ -8,7 +8,7 @@ export type CapabilityApiResponse = {
   currentTemperature: NumericEventApiResponse;
   targetTemperature: NumericEventApiResponse;
   power: NumericEventApiResponse;
-  isOn: BooleanEventApiResponse;
+  isHeating: BooleanEventApiResponse;
 } | {
   type: 'HUMIDITY_SENSOR';
   humidity: NumericEventApiResponse;
@@ -23,14 +23,33 @@ export type CapabilityApiResponse = {
   hasMotion: BooleanEventApiResponse;
 } | {
   type: 'HEAT_PUMP';
-  dHWCoP: NumericEventApiResponse;
+  mode: EnumEventApiResponse;
+  dailyConsumedEnergy: NumericEventApiResponse;
   heatingCoP: NumericEventApiResponse;
-  totalDailyYield: NumericEventApiResponse;
+  compressorModulation: NumericEventApiResponse;
+  dhwTemperature: NumericEventApiResponse;
+  dHWCoP: NumericEventApiResponse;
   outsideTemperature: NumericEventApiResponse;
-  dHWTemperature: NumericEventApiResponse;
   actualFlowTemperature: NumericEventApiResponse;
   returnTemperature: NumericEventApiResponse;
   systemPressure: NumericEventApiResponse;
+} | {
+  type: 'CAMERA';
+  snapshotUrl: EnumEventApiResponse;
+} | {
+  type: 'LOCK';
+  isLocked: BooleanEventApiResponse;
+} | {
+  type: 'SPEAKER';
+} | {
+  type: 'SWITCH';
+  isOn: BooleanEventApiResponse;
+} | {
+  type: 'BATTERY_LEVEL_INDICATOR';
+  batteryPercentage: NumericEventApiResponse;
+} | {
+  type: 'BATTERY_LOW_INDICATOR';
+  isLow: BooleanEventApiResponse;
 } | {
   type: null;
 };
@@ -101,17 +120,17 @@ export type HistoryApiResponse = {
   bar?: HistoryBarApiResponse;
 };
 
-// Timeline API response types
-export type TimelineEventApiResponse = {
+// Device Timeline API response types (/api/device/:id/timeline)
+export type DeviceTimelineEventApiResponse = {
   type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode';
   timestamp: string;
   value?: string;
 };
 
-export type TimelineApiResponse = {
+export type DeviceTimelineApiResponse = {
   since: string;
   until: string;
-  events: TimelineEventApiResponse[];
+  events: DeviceTimelineEventApiResponse[];
 };
 
 // ============================================================================
@@ -124,57 +143,6 @@ export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';
 export type UserStatus = 'HOME' | 'AWAY';
 export type CentralHeatingMode = 'ON' | 'OFF' | 'SETBACK';
 export type DHWHeatingMode = 'ON' | 'OFF';
-
-// Capability data types (discriminated union for type safety)
-export type RestCapabilityData = {
-  type: 'CAMERA';
-  snapshotUrl: string;
-} | {
-  type: 'LIGHT_SENSOR';
-  illuminance: number;
-} | {
-  type: 'HUMIDITY_SENSOR';
-  humidity: number;
-} | {
-  type: 'LIGHT';
-  isOn: boolean;
-  brightness: number | null;
-} | {
-  type: 'HEAT_PUMP';
-  mode: string;
-  dailyConsumedEnergy: number;
-  heatingCoP: number;
-  compressorModulation: number;
-  dhwTemperature: number;
-} | {
-  type: 'LOCK';
-  isLocked: boolean;
-} | {
-  type: 'MOTION_SENSOR';
-  motionDetected: boolean;
-} | {
-  type: 'TEMPERATURE_SENSOR';
-  currentTemperature: number;
-} | {
-  type: 'THERMOSTAT';
-  targetTemperature: number;
-  currentTemperature: number;
-  isHeating: boolean;
-  power: number;
-} | {
-  type: 'SPEAKER';
-} | {
-  type: 'SWITCH';
-  isOn: boolean;
-} | {
-  type: 'BATTERY_LEVEL_INDICATOR';
-  batteryPercentage: number;
-} | {
-  type: 'BATTERY_LOW_INDICATOR';
-  isLow: boolean;
-} | {
-  type: string; // Fallback for unknown capability types
-};
 
 // /api/devices endpoint
 export interface HomeRoom {
@@ -195,7 +163,7 @@ export interface RestDeviceResponse {
   name: string;
   roomId: number | null;
   status: DeviceStatus;
-  capabilities: RestCapabilityData[];
+  capabilities: CapabilityApiResponse[];
 }
 
 export interface DevicesApiResponse {
@@ -285,14 +253,15 @@ export interface AlarmUpdateRequest {
   mode: AlarmMode;
 }
 
-// /api/heating endpoints
-export interface CentralHeatingUpdateRequest {
-  mode: CentralHeatingMode;
+// /api/heating endpoint
+export interface HeatingUpdateRequest {
+  centralHeating?: CentralHeatingMode;
+  dhw?: DHWHeatingMode;
 }
 
-export interface CentralHeatingResponse {
-  mode: CentralHeatingMode;
-  thermostats: {
+export interface HeatingResponse {
+  dhwHeatingMode?: DHWHeatingMode;
+  thermostats?: {
     id: number;
     targetTemperature: number;
     setbackTemperature: number;
@@ -300,10 +269,36 @@ export interface CentralHeatingResponse {
   }[];
 }
 
-export interface DHWHeatingUpdateRequest {
-  mode: DHWHeatingMode;
+// /api/user/:id endpoint
+export interface UserUpdateRequest {
+  status?: UserStatus;
+  eta?: number;
 }
 
-export interface DHWHeatingResponse {
-  dhwHeatingMode: DHWHeatingMode;
+export type UserResponse = {
+  id: string;
+  avatar: string;
+} & ({
+  status: 'HOME',
+  since: number,
+  until: null
+} | {
+  status: 'AWAY',
+  since: null,
+  until: number | null
+});
+
+// Timeline Feed API response types (/api/timeline)
+export type TimelineFeedEvent =
+  | { type: 'motion'; id: number; timestamp: number; deviceId: number; deviceName: string; recordingId: number | null; }
+  | { type: 'arrival'; id: number; timestamp: number; userId: string; }
+  | { type: 'departure'; id: number; timestamp: number; userId: string; }
+  | { type: 'light-on'; id: number; timestamp: number; deviceId: number; deviceName: string; }
+  | { type: 'light-off'; id: number; timestamp: number; deviceId: number; deviceName: string; duration: number; }
+  | { type: 'alarm-arming'; id: number; timestamp: number; mode: AlarmMode; }
+  | { type: 'doorbell-ring'; id: number; timestamp: number; };
+
+export interface TimelineFeedApiResponse {
+  events: TimelineFeedEvent[];
+  hasMore: boolean;
 }

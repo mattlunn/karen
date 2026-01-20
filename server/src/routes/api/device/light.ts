@@ -6,7 +6,7 @@ import { mapDeviceToResponse } from '../device-helpers';
 
 const router = express.Router({ mergeParams: true });
 
-router.put('/', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, LightResponse, LightUpdateRequest>('/', asyncWrapper(async (req, res) => {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
@@ -20,7 +20,7 @@ router.put('/', asyncWrapper(async (req, res) => {
     return;
   }
 
-  const body = req.body as LightUpdateRequest;
+  const body = req.body;
 
   if ('brightness' in body && body.brightness !== undefined) {
     await light.setBrightness(body.brightness);
@@ -34,14 +34,12 @@ router.put('/', asyncWrapper(async (req, res) => {
     device.getIsConnected()
   ]);
 
-  const response: LightResponse = mapDeviceToResponse(device, isConnected, {
+  res.json(mapDeviceToResponse(device, isConnected, {
     light: {
       isOn,
       brightness
     }
-  });
-
-  res.json(response);
+  }));
 }));
 
 export default router;

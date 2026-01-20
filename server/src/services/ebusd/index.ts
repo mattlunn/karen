@@ -26,7 +26,7 @@ Device.registerProvider('ebusd', {
   }
 });
 
-export async function setDHWMode(isOn: true) {
+export async function setDHWMode(isOn: boolean) {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
   await client.setIsDHWOn(isOn);
 }

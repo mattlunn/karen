@@ -3,25 +3,11 @@ import asyncWrapper from '../../helpers/express-async-wrapper';
 import { User, Stay } from '../../models';
 import { HOME, AWAY } from '../../constants/status';
 import dayjs from '../../dayjs';
+import { UserUpdateRequest, UserResponse } from '../../api/types';
 
 const router = express.Router();
 
-type UserStatus = 'HOME' | 'AWAY';
-
-interface UserUpdateRequest {
-  status?: UserStatus;
-  eta?: number;
-}
-
-interface UserResponse {
-  id: string;
-  avatar: string;
-  status: UserStatus;
-  since: number;
-  until: number | null;
-}
-
-router.put('/:id', asyncWrapper(async (req, res) => {
+router.put<{ id: string }, UserResponse, UserUpdateRequest>('/:id', asyncWrapper(async (req, res) => {
   const user = await User.findOne({
     where: { handle: req.params.id }
   });
@@ -31,15 +17,14 @@ router.put('/:id', asyncWrapper(async (req, res) => {
     return;
   }
 
-  const body = req.body as UserUpdateRequest;
-
+  const body = req.body;
   const [[currentStay], [upcomingStay]] = await Promise.all([
     Stay.findCurrentOrLastStays([user.id]),
     Stay.findUpcomingStays([user.id])
   ]);
 
-  let current: Stay | null = currentStay ?? null;
-  let upcoming: Stay | null = upcomingStay ?? null;
+  let current = currentStay ?? null;
+  let upcoming = upcomingStay ?? null;
 
   if (body.status) {
     switch (body.status) {
@@ -91,24 +76,14 @@ router.put('/:id', asyncWrapper(async (req, res) => {
     await upcoming.save();
   }
 
-  const isAway = upcoming || current?.departure;
-  const status: UserStatus = isAway ? 'AWAY' : 'HOME';
-
-  const since = isAway
-    ? (current?.departure ? +current.departure : 0)
-    : (current?.arrival ? +current.arrival : 0);
-
-  const until = isAway && upcoming?.eta ? +upcoming.eta : null;
-
-  const response: UserResponse = {
+  const isAway = !current || !!current.departure;
+  res.json({
     id: user.handle,
     avatar: user.avatar,
-    status,
-    since,
-    until
-  };
-
-  res.json(response);
+    status: isAway ? 'AWAY' : 'HOME',
+    since: isAway ? null : current?.arrival,
+    until: upcoming?.eta ?? null
+  });
 }));
 
 export default router;

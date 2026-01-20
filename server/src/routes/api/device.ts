@@ -1,7 +1,7 @@
 import { Device, NumericEvent, BooleanEvent } from '../../models';
 import expressAsyncWrapper from '../../helpers/express-async-wrapper';
 import { Capability } from '../../models/capabilities';
-import { DeviceApiResponse, NumericEventApiResponse, BooleanEventApiResponse } from '../../api/types';
+import { DeviceApiResponse, NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse } from '../../api/types';
 
 type AwaitedObject<T> = {
   [K in keyof T]: T[K] extends Promise<infer U> ? U : T[K];
@@ -34,15 +34,38 @@ function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise<Numeri
 function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise<BooleanEventApiResponse> {
   return eventsPromise.then(events => {
     const event = events[0];
-    
+
     if (!event) {
       throw new Error('Missing an initial event');
     }
-    
+
     return {
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
       value: true
+    };
+  });
+}
+
+const HEAT_PUMP_MODES: Record<number, string> = {
+  0: 'STANDBY',
+  1: 'HEATING',
+  2: 'DHW',
+  3: 'COOLING'
+};
+
+function mapHeatPumpModeEvent(eventsPromise: Promise<NumericEvent[]>): Promise<EnumEventApiResponse> {
+  return eventsPromise.then(events => {
+    const event = events[0];
+
+    if (!event) {
+      throw new Error('Missing an initial event');
+    }
+
+    return {
+      start: event.start.toISOString(),
+      end: event.end?.toISOString() ?? null,
+      value: HEAT_PUMP_MODES[event.value] ?? 'UNKNOWN'
     };
   });
 }
@@ -82,7 +105,7 @@ export default expressAsyncWrapper(async function (req, res, next) {
               currentTemperature: mapNumericEvent(thermostat.getCurrentTemperatureHistory(currentSelector)),
               targetTemperature: mapNumericEvent(thermostat.getTargetTemperatureHistory(currentSelector)),
               power: mapNumericEvent(thermostat.getPowerHistory(currentSelector)),
-              isOn: mapBooleanEvent(thermostat.getIsOnHistory(currentSelector))
+              isHeating: mapBooleanEvent(thermostat.getIsOnHistory(currentSelector))
             });
           }
 
@@ -127,11 +150,13 @@ export default expressAsyncWrapper(async function (req, res, next) {
 
             return awaitPromises({
               type: 'HEAT_PUMP' as const,
-              dHWCoP: mapNumericEvent(heatPump.getDHWCoPHistory(currentSelector)),
+              mode: mapHeatPumpModeEvent(heatPump.getModeHistory(currentSelector)),
+              dailyConsumedEnergy: mapNumericEvent(heatPump.getDailyConsumedEnergyHistory(currentSelector)),
               heatingCoP: mapNumericEvent(heatPump.getHeatingCoPHistory(currentSelector)),
-              totalDailyYield: mapNumericEvent(heatPump.getDailyConsumedEnergyHistory(currentSelector)),
+              compressorModulation: mapNumericEvent(heatPump.getCompressorModulationHistory(currentSelector)),
+              dhwTemperature: mapNumericEvent(heatPump.getDHWTemperatureHistory(currentSelector)),
+              dHWCoP: mapNumericEvent(heatPump.getDHWCoPHistory(currentSelector)),
               outsideTemperature: mapNumericEvent(heatPump.getOutsideTemperatureHistory(currentSelector)),
-              dHWTemperature: mapNumericEvent(heatPump.getDHWTemperatureHistory(currentSelector)),
               actualFlowTemperature: mapNumericEvent(heatPump.getActualFlowTemperatureHistory(currentSelector)),
               returnTemperature: mapNumericEvent(heatPump.getReturnTemperatureHistory(currentSelector)),
               systemPressure: mapNumericEvent(heatPump.getSystemPressureHistory(currentSelector))

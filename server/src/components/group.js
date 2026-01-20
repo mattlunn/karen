@@ -24,10 +24,10 @@ function buildDeviceControlForDevice(device) {
   return createIfCapabilitySatisfied(device,
     x => x.type === 'THERMOSTAT',
     (device, capability) => (
-      <DeviceControl device={device} icon={faThermometerFull} color="#ff6f22" colorIconBackground={capability.isHeating} values={[
-        `${capability.currentTemperature.toFixed(1)}°`,
-        `${capability.targetTemperature.toFixed(1)}°`,
-        `${capability.power}%`
+      <DeviceControl device={device} icon={faThermometerFull} color="#ff6f22" colorIconBackground={capability.isHeating.value} values={[
+        `${capability.currentTemperature.value.toFixed(1)}°`,
+        `${capability.targetTemperature.value.toFixed(1)}°`,
+        `${capability.power.value}%`
       ]} />
     ),
 
@@ -42,14 +42,14 @@ function buildDeviceControlForDevice(device) {
     x => x.type === 'HUMIDITY_SENSOR',
     (device, capability) => (
       <DeviceControl device={device} icon={faDroplet} color="#04A7F4" colorIconBackground={false} values={[
-        `${capability.humidity}%`,
-        `${device.capabilities.find(x => x.type === 'TEMPERATURE_SENSOR')?.currentTemperature?.toFixed(1) ?? '?'}°`
+        `${capability.humidity.value}%`,
+        `${device.capabilities.find(x => x.type === 'TEMPERATURE_SENSOR')?.currentTemperature?.value?.toFixed(1) ?? '?'}°`
       ]} />
     ),
 
     x => x.type === 'SWITCH',
     (device, capability) => (
-      <DeviceControl device={device} icon={faToggleOff} color="#04A7F4" colorIconBackground={capability.isOn} values={[]} />
+      <DeviceControl device={device} icon={faToggleOff} color="#04A7F4" colorIconBackground={capability.isOn.value} values={[]} />
     ),
 
     x => x.type === 'LOCK',
@@ -57,11 +57,11 @@ function buildDeviceControlForDevice(device) {
 
     x => x.type === 'HEAT_PUMP',
     (device, capability) => (
-      <DeviceControl device={device} icon={faFire} color="#04A7F4" colorIconBackground={capability.mode !== 'STANDBY'} values={[
-        `${capability.mode[0]}${capability.mode.slice(1).toLowerCase()}`,
-        `${capability.dailyConsumedEnergy}kW`,
-        `${capability.heatingCoP} CoP`,
-        `${capability.compressorModulation}%`
+      <DeviceControl device={device} icon={faFire} color="#04A7F4" colorIconBackground={capability.mode.value !== 'STANDBY'} values={[
+        `${capability.mode.value[0]}${capability.mode.value.slice(1).toLowerCase()}`,
+        `${capability.dailyConsumedEnergy.value}kW`,
+        `${capability.heatingCoP.value} CoP`,
+        `${capability.compressorModulation.value}%`
       ]} />
     ),
 
@@ -76,7 +76,7 @@ function buildDeviceControlForDevice(device) {
         colorIconBackground = false;
       } else {
         icon = faPersonWalking;
-        colorIconBackground = motionSensor.motionDetected;
+        colorIconBackground = motionSensor.hasMotion.value;
       }
 
       return (
@@ -84,9 +84,9 @@ function buildDeviceControlForDevice(device) {
           device.capabilities.map((capability) => {
             switch (capability.type) {
               case 'TEMPERATURE_SENSOR':
-                return `${capability.currentTemperature.toFixed(1)}°`;
+                return `${capability.currentTemperature.value.toFixed(1)}°`;
               case 'LIGHT_SENSOR':
-                return `${capability.illuminance}lx`;
+                return `${capability.illuminance.value}lx`;
             }
           }).filter(x => x)
         } />
