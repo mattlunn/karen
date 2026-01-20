@@ -219,22 +219,35 @@ export async function getCapabilityData(device: Device, capability: string): Pro
  * Maps a device to a standardized API response structure.
  *
  * This helper provides a unified way to serialize devices for API responses.
- * It internally fetches the device's connection status and optionally includes
- * capability data with historical events.
+ * It can generate either full device responses (with all capabilities) or
+ * mutation-specific responses (with single capability data).
  *
  * @param device - The device model instance
  * @param options - Configuration options
- * @param options.includeCapabilities - Whether to include capability data (default: false)
+ * @param options.includeCapabilities - Whether to include all capability data (for GET endpoints)
+ * @param options.capabilitySpecificData - Specific capability data for mutations (for PUT endpoints)
  * @returns Promise resolving to device response object
  */
 export async function mapDeviceToResponse(
   device: Device,
   options: {
     includeCapabilities?: boolean;
+    capabilitySpecificData?: Record<string, unknown>;
   } = {}
 ): Promise<any> {
   const isConnected = await device.getIsConnected();
 
+  // For mutation endpoints: return {id, name, status, ...capabilitySpecificData}
+  if (options.capabilitySpecificData) {
+    return {
+      id: device.id,
+      name: device.name,
+      status: isConnected ? 'OK' : 'OFFLINE' as DeviceStatus,
+      ...options.capabilitySpecificData
+    };
+  }
+
+  // For GET endpoints: return full device info
   const baseResponse = {
     id: device.id,
     name: device.name,

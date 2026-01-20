@@ -177,14 +177,45 @@ export interface LightUpdateRequest {
   brightness?: number;
 }
 
+export interface LightResponse {
+  id: number;
+  name: string;
+  status: DeviceStatus;
+  light: {
+    isOn: boolean;
+    brightness: number | null;
+  };
+}
+
 // /api/device/:id/lock endpoint
 export interface LockUpdateRequest {
   isLocked: boolean;
 }
 
+export interface LockResponse {
+  id: number;
+  name: string;
+  status: DeviceStatus;
+  lock: {
+    isLocked: boolean;
+  };
+}
+
 // /api/device/:id/thermostat endpoint
 export interface ThermostatUpdateRequest {
   targetTemperature: number;
+}
+
+export interface ThermostatResponse {
+  id: number;
+  name: string;
+  status: DeviceStatus;
+  thermostat: {
+    targetTemperature: number;
+    currentTemperature: number;
+    isHeating: boolean;
+    power: number;
+  };
 }
 
 // /api/sidebar endpoint

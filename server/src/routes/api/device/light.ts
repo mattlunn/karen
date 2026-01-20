@@ -1,11 +1,12 @@
 import express from 'express';
 import asyncWrapper from '../../../helpers/express-async-wrapper';
 import { Device } from '../../../models';
-import { LightUpdateRequest } from '../../../api/types';
+import { LightUpdateRequest, LightResponse } from '../../../api/types';
+import { mapDeviceToResponse } from '../device-helpers';
 
 const router = express.Router({ mergeParams: true });
 
-router.put<Record<string, never>, void, LightUpdateRequest>('/', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, LightResponse, LightUpdateRequest>('/', asyncWrapper(async (req, res) => {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
@@ -27,7 +28,21 @@ router.put<Record<string, never>, void, LightUpdateRequest>('/', asyncWrapper(as
     await light.setIsOn(body.isOn);
   }
 
-  res.status(204).send();
+  const [isOn, brightness] = await Promise.all([
+    light.getIsOn(),
+    light.getBrightness()
+  ]);
+
+  const response: LightResponse = await mapDeviceToResponse(device, {
+    capabilitySpecificData: {
+      light: {
+        isOn,
+        brightness
+      }
+    }
+  });
+
+  res.json(response);
 }));
 
 export default router;
