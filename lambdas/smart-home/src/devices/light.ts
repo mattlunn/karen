@@ -1,18 +1,17 @@
 import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { Device, LightApiResponse } from '../custom-typings/karen-types';
+import { LightResponse } from '../custom-typings/karen-types';
 import { apiPut } from '../client';
 
 export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { id: string, isOn?: boolean, brightness?: number }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
   const { id, ...body } = variables;
 
-  const response = await apiPut<LightApiResponse>(`/device/${id}/light`, body);
+  const response = await apiPut<LightResponse>(`/device/${id}/light`, body);
 
   const now = new Date();
   const uncertaintyInMilliseconds = now.valueOf() - then.valueOf();
-  const light = response.device;
 
-  if (light) {
+  if (response.light) {
     return {
       event: {
         header: {
@@ -25,7 +24,7 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
         }
       },
       context: {
-        properties: createResponseProperties(light, now, uncertaintyInMilliseconds)
+        properties: createResponseProperties(response, now, uncertaintyInMilliseconds)
       }
     };
   } else {
@@ -49,8 +48,8 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
   }
 }
 
-export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
-  const light = device.capabilities.find(x => x.type === 'LIGHT');
+export function createResponseProperties(response: LightResponse, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+  const { light, status } = response;
 
   if (!light) {
     throw new Error();
@@ -72,7 +71,7 @@ export function createResponseProperties(device: Device, sampleTime: Date, uncer
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
     value: {
-      value: device.status === 'OK' ? 'OK' : 'UNREACHABLE'
+      value: status === 'OK' ? 'OK' : 'UNREACHABLE'
     },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds

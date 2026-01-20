@@ -1,11 +1,11 @@
 import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { AlarmMode, AlarmUpdateResponse } from '../custom-typings/karen-types';
+import { AlarmMode, AlarmApiResponse } from '../custom-typings/karen-types';
 import { apiPut } from '../client';
 
 export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { mode: AlarmMode }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
 
-  const response = await apiPut<AlarmUpdateResponse>('/security/alarm', variables);
+  const response = await apiPut<AlarmApiResponse>('/security/alarm', variables);
 
   const now = new Date();
   const uncertaintyInMilliseconds = now.valueOf() - then.valueOf();

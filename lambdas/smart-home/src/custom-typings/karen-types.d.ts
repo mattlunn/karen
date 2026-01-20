@@ -1,17 +1,25 @@
 // Import basic shared types from server API
-// Note: Full capability type migration requires extensive lambda code updates
-// due to server using event-based structure {start, end, value} vs simple values
 import type {
   DeviceStatus,
   AlarmMode,
-  AlarmStatusResponse as AlarmApiResponse
+  AlarmStatusResponse as AlarmApiResponse,
+  LightResponse,
+  LockResponse,
+  ThermostatResponse
 } from '../../../../server/src/api/types';
 
 // Re-export shared types
-export type { DeviceStatus, AlarmMode, AlarmApiResponse };
+export type {
+  DeviceStatus,
+  AlarmMode,
+  AlarmApiResponse,
+  LightResponse,
+  LockResponse,
+  ThermostatResponse
+};
 
-// Lambda-specific capability types (simplified from server's event-based structure)
-// TODO: Migrate to server's CapabilityApiResponse structure with event data
+// Lambda-specific capability types (for Alexa response properties)
+// Note: Mutation endpoints return simple values (not event-based), so no migration needed
 type LightCapability = {
   type: 'LIGHT';
   isOn: boolean;
@@ -50,8 +58,4 @@ export type DeviceApiResponse = {
 
 export type LightApiResponse = {
   device: Device;
-};
-
-export type AlarmUpdateResponse = {
-  alarmMode: AlarmMode;
 };
