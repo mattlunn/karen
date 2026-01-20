@@ -1,74 +1,14 @@
-import { Device, NumericEvent, BooleanEvent } from '../../models';
+import { Device } from '../../models';
 import expressAsyncWrapper from '../../helpers/express-async-wrapper';
 import { Capability } from '../../models/capabilities';
-import { DeviceApiResponse, NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse } from '../../api/types';
-
-type AwaitedObject<T> = {
-  [K in keyof T]: T[K] extends Promise<infer U> ? U : T[K];
-};
-
-async function awaitPromises<T extends Record<string, unknown>>(obj: T): Promise<AwaitedObject<T>> {
-  const entries = await Promise.all(
-    Object.entries(obj).map(async ([key, value]) => [key, await value])
-  );
-
-  return Object.fromEntries(entries) as AwaitedObject<T>;
-}
-
-function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise<NumericEventApiResponse> {
-  return eventsPromise.then(events => {
-    const event = events[0];
-
-    if (!event) {
-      throw new Error('Missing an initial event');
-    }
-
-    return {
-      start: event.start.toISOString(),
-      end: event.end?.toISOString() ?? null,
-      value: event.value
-    };
-  });
-}
-
-function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise<BooleanEventApiResponse> {
-  return eventsPromise.then(events => {
-    const event = events[0];
-
-    if (!event) {
-      throw new Error('Missing an initial event');
-    }
-
-    return {
-      start: event.start.toISOString(),
-      end: event.end?.toISOString() ?? null,
-      value: true
-    };
-  });
-}
-
-const HEAT_PUMP_MODES: Record<number, string> = {
-  0: 'STANDBY',
-  1: 'HEATING',
-  2: 'DHW',
-  3: 'COOLING'
-};
-
-function mapHeatPumpModeEvent(eventsPromise: Promise<NumericEvent[]>): Promise<EnumEventApiResponse> {
-  return eventsPromise.then(events => {
-    const event = events[0];
-
-    if (!event) {
-      throw new Error('Missing an initial event');
-    }
-
-    return {
-      start: event.start.toISOString(),
-      end: event.end?.toISOString() ?? null,
-      value: HEAT_PUMP_MODES[event.value] ?? 'UNKNOWN'
-    };
-  });
-}
+import { DeviceApiResponse } from '../../api/types';
+import {
+  awaitPromises,
+  mapNumericEvent,
+  mapBooleanEvent,
+  mapHeatPumpModeEvent,
+  currentSelector
+} from './device-helpers';
 
 export default expressAsyncWrapper(async function (req, res, next) {
   const device = await Device.findById(req.params.id);
@@ -76,8 +16,6 @@ export default expressAsyncWrapper(async function (req, res, next) {
   if (!device) {
     return next('route');
   }
-
-  const currentSelector = { limit: 1, until: new Date() };
   const response: DeviceApiResponse = {
     device: {
       id: device.id,
