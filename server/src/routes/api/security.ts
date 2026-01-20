@@ -14,7 +14,7 @@ router.get<Record<string, never>, AlarmStatusResponse>('/alarm', asyncWrapper(as
   });
 }));
 
-router.put<Record<string, never>, AlarmStatusResponse, AlarmUpdateRequest>('/alarm', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, void, AlarmUpdateRequest>('/alarm', asyncWrapper(async (req, res) => {
   const desiredMode = req.body.mode;
 
   if (!['OFF', 'AWAY', 'NIGHT'].includes(desiredMode)) {
@@ -26,9 +26,7 @@ router.put<Record<string, never>, AlarmStatusResponse, AlarmUpdateRequest>('/ala
   const now = new Date();
 
   if ((currentArming === null && desiredMode === 'OFF') || currentArming?.mode === desiredMode) {
-    res.json({
-      alarmMode: desiredMode
-    });
+    res.status(204).send();
     return;
   }
 
@@ -44,9 +42,7 @@ router.put<Record<string, never>, AlarmStatusResponse, AlarmUpdateRequest>('/ala
     });
   }
 
-  res.json({
-    alarmMode: desiredMode
-  });
+  res.status(204).send();
 }));
 
 export default router;

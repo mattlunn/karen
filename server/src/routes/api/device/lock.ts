@@ -1,12 +1,11 @@
 import express from 'express';
 import asyncWrapper from '../../../helpers/express-async-wrapper';
 import { Device } from '../../../models';
-import { LockUpdateRequest, LockResponse } from '../../../api/types';
-import { mapDeviceToResponse } from '../device-helpers';
+import { LockUpdateRequest } from '../../../api/types';
 
 const router = express.Router({ mergeParams: true });
 
-router.put<Record<string, never>, LockResponse, LockUpdateRequest>('/', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, void, LockUpdateRequest>('/', asyncWrapper(async (req, res) => {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
@@ -26,16 +25,7 @@ router.put<Record<string, never>, LockResponse, LockUpdateRequest>('/', asyncWra
     await lock.setIsLocked(body.isLocked);
   }
 
-  const [isLocked, isConnected] = await Promise.all([
-    lock.getIsLocked(),
-    device.getIsConnected()
-  ]);
-
-  res.json(mapDeviceToResponse(device, isConnected, {
-    lock: {
-      isLocked
-    }
-  }));
+  res.status(204).send();
 }));
 
 export default router;

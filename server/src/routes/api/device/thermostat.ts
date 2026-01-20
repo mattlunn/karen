@@ -1,12 +1,11 @@
 import express from 'express';
 import asyncWrapper from '../../../helpers/express-async-wrapper';
 import { Device } from '../../../models';
-import { ThermostatUpdateRequest, ThermostatResponse } from '../../../api/types';
-import { mapDeviceToResponse } from '../device-helpers';
+import { ThermostatUpdateRequest } from '../../../api/types';
 
 const router = express.Router({ mergeParams: true });
 
-router.put<Record<string, never>, ThermostatResponse, ThermostatUpdateRequest>('/', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, void, ThermostatUpdateRequest>('/', asyncWrapper(async (req, res) => {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
@@ -26,22 +25,7 @@ router.put<Record<string, never>, ThermostatResponse, ThermostatUpdateRequest>('
     await thermostat.setTargetTemperature(body.targetTemperature);
   }
 
-  const [targetTemperature, currentTemperature, isHeating, power, isConnected] = await Promise.all([
-    thermostat.getTargetTemperature(),
-    thermostat.getCurrentTemperature(),
-    thermostat.getIsOn(),
-    thermostat.getPower(),
-    device.getIsConnected()
-  ]);
-
-  res.json(mapDeviceToResponse(device, isConnected, {
-    thermostat: {
-      targetTemperature,
-      currentTemperature,
-      isHeating,
-      power
-    }
-  }));
+  res.status(204).send();
 }));
 
 export default router;
