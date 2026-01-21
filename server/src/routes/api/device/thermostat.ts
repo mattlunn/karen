@@ -1,12 +1,12 @@
 import express from 'express';
 import asyncWrapper from '../../../helpers/express-async-wrapper';
 import { Device } from '../../../models';
-import { ThermostatUpdateRequest, ThermostatResponse } from '../../../api/types';
+import { ThermostatUpdateRequest, DeviceApiResponse } from '../../../api/types';
 import { mapDeviceToResponse } from '../device-helpers';
 
 const router = express.Router({ mergeParams: true });
 
-router.put<Record<string, never>, ThermostatResponse, ThermostatUpdateRequest>('/', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, DeviceApiResponse, ThermostatUpdateRequest>('/', asyncWrapper(async (req, res) => {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
@@ -26,23 +26,13 @@ router.put<Record<string, never>, ThermostatResponse, ThermostatUpdateRequest>('
     await thermostat.setTargetTemperature(body.targetTemperature);
   }
 
-  const [targetTemperature, currentTemperature, isHeating, power] = await Promise.all([
-    thermostat.getTargetTemperature(),
-    thermostat.getCurrentTemperature(),
-    thermostat.getIsOn(),
-    thermostat.getPower()
-  ]);
-
-  const response: ThermostatResponse = await mapDeviceToResponse(device, {
-    capabilitySpecificData: {
-      thermostat: {
-        targetTemperature,
-        currentTemperature,
-        isHeating,
-        power
-      }
-    }
+  const deviceResponse = await mapDeviceToResponse(device, {
+    includeCapabilities: true
   });
+
+  const response: DeviceApiResponse = {
+    device: deviceResponse
+  };
 
   res.json(response);
 }));

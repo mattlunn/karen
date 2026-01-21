@@ -3,9 +3,9 @@ import type {
   DeviceStatus,
   AlarmMode,
   AlarmStatusResponse as AlarmApiResponse,
-  LightResponse,
-  LockResponse,
-  ThermostatResponse
+  CapabilityApiResponse,
+  BooleanEventApiResponse,
+  NumericEventApiResponse
 } from '../../../../server/src/api/types';
 
 // Re-export shared types
@@ -13,38 +13,16 @@ export type {
   DeviceStatus,
   AlarmMode,
   AlarmApiResponse,
-  LightResponse,
-  LockResponse,
-  ThermostatResponse
+  BooleanEventApiResponse,
+  NumericEventApiResponse
 };
 
-// Lambda-specific capability types (for Alexa response properties)
-// Note: Mutation endpoints return simple values (not event-based), so no migration needed
-type LightCapability = {
-  type: 'LIGHT';
-  isOn: boolean;
-  brightness: number;
-};
-
-type SpeakerCapability = {
-  type: 'SPEAKER';
-};
-
-type ThermostatCapability = {
-  type: 'THERMOSTAT';
-  targetTemperature: number;
-  currentTemperature: number;
-  power: number;
-  isHeating: boolean;
-};
-
-type Capability = LightCapability | ThermostatCapability | SpeakerCapability;
-
+// Device type using server's event-based capability structure
 export type Device = {
-  id: string;
+  id: number;
   name: string;
   status: DeviceStatus;
-  capabilities: Capability[];
+  capabilities: CapabilityApiResponse[];
 }
 
 // Lambda-specific API response types
@@ -53,9 +31,5 @@ export type DevicesApiResponse = {
 };
 
 export type DeviceApiResponse = {
-  device: Device;
-};
-
-export type LightApiResponse = {
   device: Device;
 };

@@ -1,17 +1,19 @@
 import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { LightResponse } from '../custom-typings/karen-types';
+import { DeviceApiResponse, Device } from '../custom-typings/karen-types';
 import { apiPut } from '../client';
 
 export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { id: string, isOn?: boolean, brightness?: number }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
   const { id, ...body } = variables;
 
-  const response = await apiPut<LightResponse>(`/device/${id}/light`, body);
+  const response = await apiPut<DeviceApiResponse>(`/device/${id}/light`, body);
 
   const now = new Date();
   const uncertaintyInMilliseconds = now.valueOf() - then.valueOf();
 
-  if (response.light) {
+  const lightCapability = response.device.capabilities.find(c => c.type === 'LIGHT');
+
+  if (lightCapability && lightCapability.type === 'LIGHT') {
     return {
       event: {
         header: {
@@ -24,7 +26,7 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
         }
       },
       context: {
-        properties: createResponseProperties(response, now, uncertaintyInMilliseconds)
+        properties: createResponseProperties(response.device, now, uncertaintyInMilliseconds)
       }
     };
   } else {
@@ -48,30 +50,30 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
   }
 }
 
-export function createResponseProperties(response: LightResponse, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
-  const { light, status } = response;
+export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+  const lightCapability = device.capabilities.find(c => c.type === 'LIGHT');
 
-  if (!light) {
-    throw new Error();
+  if (!lightCapability || lightCapability.type !== 'LIGHT') {
+    throw new Error('Light capability not found');
   }
 
   return [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
-    value: light.isOn ? 'ON' : 'OFF',
+    value: lightCapability.isOn.value ? 'ON' : 'OFF',
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }, {
     namespace: 'Alexa.BrightnessController',
     name: 'brightness',
-    value: light.brightness,
+    value: lightCapability.brightness.value,
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }, {
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
     value: {
-      value: status === 'OK' ? 'OK' : 'UNREACHABLE'
+      value: device.status === 'OK' ? 'OK' : 'UNREACHABLE'
     },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
