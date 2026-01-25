@@ -54,7 +54,7 @@ function StatusMessage({ status, since, until, id }) {
 
 export default function UserStatus(props) {
   const { status, id, avatar } = props;
-  const { mutate: updateUser } = useApiMutation(`/user/${id}`);
+  const { mutate: updateUser } = useApiMutation(`/users/${id}`);
 
   return (
     <div className="user-status">

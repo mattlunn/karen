@@ -210,7 +210,7 @@ export interface HeatingStatusResponse {
 // /api/users endpoint
 export type UsersApiResponse = UserResponse[];
 
-// /api/user/:id endpoint
+// /api/users/:id endpoint
 export interface UserUpdateRequest {
   status?: UserStatus;
   eta?: number;

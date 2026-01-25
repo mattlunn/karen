@@ -16,7 +16,7 @@ function pad(n: number): string {
 
 export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
   const [date, setDate] = useState<Dayjs>(eta ?? dayjs().startOf('day'));
-  const { mutate: updateUser } = useApiMutation(`/user/${id}`);
+  const { mutate: updateUser } = useApiMutation(`/users/${id}`);
 
   const handleDateChange = (value: Date | null) => {
     if (value) {
