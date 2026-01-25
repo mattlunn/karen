@@ -1,5 +1,5 @@
 import { SmartHomeEndpointRequest, Context, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from "../custom-typings/lambda";
-import { Device, AlarmMode, DeviceApiResponse, AlarmApiResponse } from "../custom-typings/karen-types";
+import { AlarmMode, DeviceApiResponse, AlarmApiResponse } from "../custom-typings/karen-types";
 import { createResponseProperties as createLightResponseProperties } from '../devices/light';
 import { createResponseProperties as createThermostatResponseProperties } from '../devices/thermostat';
 import { createResponseProperties as createAlarmResponseProperties } from '../devices/alarm';

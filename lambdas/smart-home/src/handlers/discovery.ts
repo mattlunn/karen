@@ -1,5 +1,5 @@
 import { Context } from 'aws-lambda';
-import { Device, DevicesApiResponse } from '../custom-typings/karen-types';
+import { RestDeviceResponse, DevicesApiResponse } from '../custom-typings/karen-types';
 import { SmartHomeRequest, SmartHomeResponse } from '../custom-typings/lambda';
 import { apiGet } from '../client';
 import { ALARM_ENDPOINT_ID } from '../constants';
@@ -46,10 +46,10 @@ type SmartHomeDiscoveryResponse = SmartHomeResponse<{
   endpoints: SmartHomeEndpoint[]
 }>
 
-function mapThermostatToEndpoints(device: Device): SmartHomeEndpoint {
+function mapThermostatToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
   return {
     friendlyName: device.name,
-    endpointId: device.id,
+    endpointId: String(device.id),
     displayCategories: ['THERMOSTAT', 'TEMPERATURE_SENSOR'],
     manufacturerName: 'Tado',
     description: 'Tado Thermostat',
@@ -98,10 +98,10 @@ function mapThermostatToEndpoints(device: Device): SmartHomeEndpoint {
   };
 }
 
-function mapLightToEndpoints(device: Device): SmartHomeEndpoint {
+function mapLightToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
   return {
     friendlyName: device.name,
-    endpointId: device.id,
+    endpointId: String(device.id),
     displayCategories: ['LIGHT'],
     manufacturerName: 'Karen',
     description: `${device.name} light`,
@@ -135,7 +135,7 @@ function mapLightToEndpoints(device: Device): SmartHomeEndpoint {
   };
 }
 
-function mapAlexaToEndpoints(device: Device): SmartHomeEndpoint {
+function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
   return {
     friendlyName: device.name,
     endpointId: device.name,

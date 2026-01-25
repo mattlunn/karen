@@ -1,5 +1,5 @@
 import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { DeviceApiResponse, Device } from '../custom-typings/karen-types';
+import { DeviceApiResponse, RestDeviceResponse } from '../custom-typings/karen-types';
 import { apiPut } from '../client';
 
 export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { id: string, isOn?: boolean, brightness?: number }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
@@ -47,7 +47,7 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
   }
 }
 
-export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+export function createResponseProperties(device: RestDeviceResponse, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
   const lightCapability = device.capabilities.find(c => c.type === 'LIGHT');
 
   if (!lightCapability) {

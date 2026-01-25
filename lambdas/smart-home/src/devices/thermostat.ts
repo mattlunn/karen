@@ -1,7 +1,7 @@
 import { SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { Device } from '../custom-typings/karen-types';
+import { RestDeviceResponse } from '../custom-typings/karen-types';
 
-export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+export function createResponseProperties(device: RestDeviceResponse, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
   const thermostatCapability = device.capabilities.find(x => x.type === 'THERMOSTAT');
 
   if (!thermostatCapability) {
