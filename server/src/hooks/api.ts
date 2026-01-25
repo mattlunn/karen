@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 
 export default function useApiCall<T>(endpoint: string, params?: Record<string, string>) {
   const [data, setData] = useState<null | T>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<null | Error>(null);
   const controllerRef = useRef<null | AbortController>(null);
 

@@ -7,6 +7,7 @@ import {
   DevicesApiResponse
 } from '../../api/types';
 import { mapDeviceToResponse } from './device-helpers';
+import logger from '../../logger';
 
 const router = express.Router();
 
@@ -25,9 +26,13 @@ router.get<Record<string, never>, DevicesApiResponse>('/', asyncWrapper(async (r
       displayWeight: room.displayWeight as number | null
     }));
 
-  const devices: RestDeviceResponse[] = await Promise.all(
-    allDevices.map(device => mapDeviceToResponse(device))
-  );
+  const devices: RestDeviceResponse[] = (await Promise.all(
+    allDevices.map(device => mapDeviceToResponse(device).catch((e) => {
+      logger.error(e, `Failed to map device with ID ${device.id} (${device.name})`);
+
+      return null;
+    }))
+  )).filter(x => !!x);
 
   res.json({
     rooms,
