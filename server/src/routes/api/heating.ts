@@ -27,11 +27,17 @@ router.get<Record<string, never>, HeatingStatusResponse>('/', asyncWrapper(async
     if (mode === null && currIndex !== 0) return null;
 
     const { targetTemperature, setbackTemperature } = curr;
-    const currMode: CentralHeatingMode = (() => {
-      if (targetTemperature === 0) return 'OFF';
-      if (targetTemperature === setbackTemperature) return 'SETBACK';
-      return 'ON';
-    })();
+    const currMode = (() => {
+        if (targetTemperature === 0) {
+          return 'OFF';
+        }
+
+        if (targetTemperature === setbackTemperature) {
+          return 'SETBACK';
+        }
+
+        return 'ON';
+      })();
 
     return mode === null || mode === currMode ? currMode : null;
   }, null);
