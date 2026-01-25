@@ -16,25 +16,13 @@ router.get<Record<string, never>, UsersApiResponse>('/', asyncWrapper(async (_re
     Stay.findUpcomingStays(userIds)
   ]);
 
-  const currentStaysByUserId = new Map<number, Stay>();
-  for (const stay of currentOrLastStays) {
-    if (stay && stay.userId !== null) {
-      currentStaysByUserId.set(stay.userId as number, stay);
-    }
-  }
-
-  const upcomingStaysByUserId = new Map<number, Stay>();
-  for (const stay of upcomingStays) {
-    if (stay && stay.userId !== null) {
-      upcomingStaysByUserId.set(stay.userId as number, stay);
-    }
-  }
+  const currentStaysByUserId = new Map<number, Stay>(currentOrLastStays.map(stay => [stay.userId as number, stay]));
+  const upcomingStaysByUserId = new Map<number, Stay>(upcomingStays.map(stay => [stay.userId as number, stay]));
 
   const usersResponse: UsersApiResponse = users.map(user => {
     const currentOrLast = currentStaysByUserId.get(user.id);
     const upcoming = upcomingStaysByUserId.get(user.id);
-
-    const isAway = upcoming || currentOrLast?.departure;
+    const isAway = !currentOrLast || currentOrLast.departure !== null;
 
     if (isAway) {
       return {
@@ -49,7 +37,7 @@ router.get<Record<string, never>, UsersApiResponse>('/', asyncWrapper(async (_re
         id: user.handle,
         avatar: user.avatar,
         status: 'HOME' as const,
-        since: currentOrLast?.arrival ? +currentOrLast.arrival : 0,
+        since: +currentOrLast.arrival!,
         until: null
       };
     }
@@ -73,9 +61,9 @@ router.put<{ id: string }, UserResponse, UserUpdateRequest>('/:id', asyncWrapper
     Stay.findCurrentOrLastStays([user.id]),
     Stay.findUpcomingStays([user.id])
   ]);
-
+  
+  let upcoming: Stay | null = upcomingStay ?? null;
   let current = currentStay ?? null;
-  let upcoming = upcomingStay ?? null;
 
   if (body.status) {
     switch (body.status) {

@@ -14,7 +14,7 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
 
   declare getUser: HasOneGetAssociationMixin<User>;
 
-  static async findUpcomingStays(userIds: Number[]) {
+  static async findUpcomingStays(userIds: Number[]): Promise<Stay[]> {
     const stays = await Promise.all(userIds.map(userId => this.findOne({
       where: {
         arrival: null,
@@ -22,7 +22,7 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
       }
     })));
 
-    return stays.filter(stay => stay);
+    return stays.filter(stay => !!stay);
   };
 
   static findNextUpcomingEta() {
@@ -41,7 +41,7 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
     });
   };
 
-  static async findCurrentOrLastStays(userIds: Number[]) {
+  static async findCurrentOrLastStays(userIds: Number[]): Promise<Stay[]> {
     const stays = await Promise.all(userIds.map((userId) => this.findOne({
       where: {
         arrival: {
@@ -55,7 +55,7 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
       ]
     })));
 
-    return stays.filter(stay => stay);
+    return stays.filter(stay => !!stay);
   };
 
   static findCurrentStay(userId: Number) {
