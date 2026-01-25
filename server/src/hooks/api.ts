@@ -23,6 +23,11 @@ export default function useApiCall<T>(endpoint: string, params?: Record<string, 
       const res = await fetch(`/api${fullEndpoint}`, { signal });
 
       if (!res.ok) {
+        if (res.status === 401) {
+          window.location.assign('/login');
+          return;
+        }
+
         throw new Error(res.status.toString());
       }
 
