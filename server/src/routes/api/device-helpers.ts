@@ -37,9 +37,17 @@ export function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise
       throw new Error('Missing an initial event');
     }
 
+    if (event.end) {
+      return {
+        start: event.end.toISOString(),
+        end: null,
+        value: false
+      };
+    }
+
     return {
       start: event.start.toISOString(),
-      end: event.end?.toISOString() ?? null,
+      end: null,
       value: true
     };
   });

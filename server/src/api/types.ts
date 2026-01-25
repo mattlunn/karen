@@ -58,7 +58,7 @@ export type CapabilityApiResponse = {
 export type BooleanEventApiResponse = {
   start: string;
   end: string | null;
-  value: true;
+  value: boolean;
 };
 
 export type NumericEventApiResponse = {

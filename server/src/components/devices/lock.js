@@ -11,7 +11,7 @@ export default function Lock({ device, capability }) {
       device={device}
       icon={capability.isLocked.value ? faDoorClosed : faDoorOpen}
       color="#04A7F4"
-      colorIconBackground={capability.isLocked.value}
+      colorIconBackground={!capability.isLocked.value}
       values={[capability.isLocked.value ? 'Locked' : 'Unlocked']}
       actionPending={loading}
       iconOnClick={(e) => {

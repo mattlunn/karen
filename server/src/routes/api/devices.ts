@@ -28,7 +28,7 @@ router.get<Record<string, never>, DevicesApiResponse>('/', asyncWrapper(async (r
 
   const devices: RestDeviceResponse[] = (await Promise.all(
     allDevices.map(device => mapDeviceToResponse(device).catch((e) => {
-      logger.error(e, `Failed to map device with ID ${device.id} (${device.name})`);
+      logger.error(e, `Failed to map ${device.provider} device with ID ${device.id} (${device.name})`);
 
       return null;
     }))

@@ -1,6 +1,7 @@
 import { Device } from '../../models';
 import DeviceClient from './client/device';
 import config from '../../config';
+import logger from '../../logger';
 
 Device.registerProvider('shelly', {
   getCapabilities(device) {
@@ -45,14 +46,29 @@ Device.registerProvider('shelly', {
     const devices = await Device.findByProvider('shelly');
 
     for (const device of devices) {
-      const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
-      const newName = await shellyDevice.getDeviceName();
+      try {
+        const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
+        const newName = await shellyDevice.getDeviceName();
 
-      if (newName !== null) {
-        device.name = newName;
+        if (newName !== null) {
+          device.name = newName;
+        }
+        
+        // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)
+        if (device.getCapabilities().includes('LIGHT')) {
+          const brightnessHistory = await device.getLightCapability().getBrightnessHistory({ until: new Date(), limit : 1 });
+
+          if (brightnessHistory.length === 0) {
+            await device.getLightCapability().setBrightnessState(100, device.createdAt);
+
+            logger.info(`Initialized brightness for Shelly light device ${device.id}`);
+          }
+        }
+
+        await device.save();
+      } catch (e) {
+        logger.error(e, `Failed to synchronize Shelly device ${device.id} (${device.name})`);
       }
-
-      await device.save();
     }
   }
 });
