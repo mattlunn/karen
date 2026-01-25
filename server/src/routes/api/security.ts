@@ -6,7 +6,7 @@ import { AlarmMode, AlarmStatusResponse, AlarmUpdateRequest } from '../../api/ty
 
 const router = express.Router();
 
-router.get<Record<string, never>, AlarmStatusResponse>('/alarm', asyncWrapper(async (req, res) => {
+router.get<Record<string, never>, AlarmStatusResponse>('/', asyncWrapper(async (req, res) => {
   const activeArming = await Arming.getActiveArming();
 
   res.json({
@@ -14,7 +14,7 @@ router.get<Record<string, never>, AlarmStatusResponse>('/alarm', asyncWrapper(as
   });
 }));
 
-router.put<Record<string, never>, AlarmStatusResponse, AlarmUpdateRequest>('/alarm', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, AlarmStatusResponse, AlarmUpdateRequest>('/', asyncWrapper(async (req, res) => {
   const desiredMode = req.body.mode;
 
   if (!['OFF', 'AWAY', 'NIGHT'].includes(desiredMode)) {

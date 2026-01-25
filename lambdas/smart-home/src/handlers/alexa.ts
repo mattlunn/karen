@@ -30,7 +30,7 @@ export async function ReportState(request: SmartHomeEndpointRequest, context: Co
   }
 
   if (endpointId === ALARM_ENDPOINT_ID) {
-    const { alarmMode } = await apiGet<AlarmApiResponse>('/security/alarm');
+    const { alarmMode } = await apiGet<AlarmApiResponse>('/security');
 
     return createStateReport(
       createAlarmResponseProperties(

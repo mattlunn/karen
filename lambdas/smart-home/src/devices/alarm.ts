@@ -5,7 +5,7 @@ import { apiPut } from '../client';
 export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { mode: AlarmMode }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
 
-  const response = await apiPut<AlarmApiResponse>('/security/alarm', variables);
+  const response = await apiPut<AlarmApiResponse>('/security', variables);
 
   const now = new Date();
   const uncertaintyInMilliseconds = now.valueOf() - then.valueOf();

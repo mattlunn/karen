@@ -16,10 +16,10 @@ function HomeControlButton({ onClick, value, currentValue, label, loading }) {
 export default function Sidebar({ hideOnMobile}) {
   const { loading: usersLoading, data: usersData } = useApiCall('/users');
   const { loading: heatingLoading, data: heatingData } = useApiCall('/heating');
-  const { loading: securityLoading, data: securityData } = useApiCall('/security/alarm');
+  const { loading: securityLoading, data: securityData } = useApiCall('/security');
 
   const { mutate: updateHeating, loading: heatingMutating } = useApiMutation('/heating');
-  const { mutate: updateAlarmMode, loading: alarmMutating } = useApiMutation('/security/alarm');
+  const { mutate: updateAlarmMode, loading: alarmMutating } = useApiMutation('/security');
 
   const loading = usersLoading || heatingLoading || securityLoading;
 

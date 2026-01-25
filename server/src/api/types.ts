@@ -187,7 +187,7 @@ export interface ThermostatUpdateRequest {
   targetTemperature: number;
 }
 
-// /api/security/alarm endpoint
+// /api/security endpoint
 export interface AlarmStatusResponse {
   alarmMode: AlarmMode;
 }
