@@ -16,7 +16,7 @@ export async function AdjustBrightness(request: SmartHomeEndpointRequest<{ brigh
 
   const lightCapability = device.capabilities.find(x => x.type === 'LIGHT');
 
-  if (!lightCapability || lightCapability.type !== 'LIGHT') {
+  if (!lightCapability) {
     throw new Error(`Device ${id} does not have 'Light' capability`);
   }
 
