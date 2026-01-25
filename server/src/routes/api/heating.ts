@@ -1,10 +1,46 @@
 import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Device } from '../../models';
-import { setDHWMode } from '../../services/ebusd';
-import { HeatingUpdateRequest } from '../../api/types';
+import { setDHWMode, getDHWMode } from '../../services/ebusd';
+import { HeatingUpdateRequest, HeatingStatusResponse, CentralHeatingMode } from '../../api/types';
 
 const router = express.Router();
+
+router.get<Record<string, never>, HeatingStatusResponse>('/', asyncWrapper(async (_req, res) => {
+  const [dhwIsOn, thermostatDevices] = await Promise.all([
+    getDHWMode(),
+    Device.findByCapability('THERMOSTAT')
+  ]);
+
+  const thermostatData = await Promise.all(
+    thermostatDevices.map(async device => {
+      const thermostat = device.getThermostatCapability();
+      const [targetTemperature, setbackTemperature] = await Promise.all([
+        thermostat.getTargetTemperature(),
+        thermostat.getSetbackTemperature()
+      ]);
+      return { targetTemperature, setbackTemperature };
+    })
+  );
+
+  const centralHeating = thermostatData.reduce<CentralHeatingMode | null>((mode, curr, currIndex) => {
+    if (mode === null && currIndex !== 0) return null;
+
+    const { targetTemperature, setbackTemperature } = curr;
+    const currMode: CentralHeatingMode = (() => {
+      if (targetTemperature === 0) return 'OFF';
+      if (targetTemperature === setbackTemperature) return 'SETBACK';
+      return 'ON';
+    })();
+
+    return mode === null || mode === currMode ? currMode : null;
+  }, null);
+
+  res.json({
+    centralHeating,
+    dhw: dhwIsOn ? 'ON' : 'OFF'
+  });
+}));
 
 router.put<Record<string, never>, void, HeatingUpdateRequest>('/', asyncWrapper(async (req, res) => {
   const { centralHeating, dhw } = req.body;

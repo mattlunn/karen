@@ -187,32 +187,6 @@ export interface ThermostatUpdateRequest {
   targetTemperature: number;
 }
 
-// /api/sidebar endpoint
-export interface SidebarUser {
-  id: string;
-  avatar: string;
-  status: UserStatus;
-  since: number;
-  until: number | null;
-}
-
-export interface SidebarThermostat {
-  id: number;
-  targetTemperature: number;
-  setbackTemperature: number;
-}
-
-export interface SidebarApiResponse {
-  users: SidebarUser[];
-  security: {
-    alarmMode: AlarmMode;
-  };
-  heating: {
-    dhwHeatingMode: DHWHeatingMode;
-    thermostats: SidebarThermostat[];
-  };
-}
-
 // /api/security/alarm endpoint
 export interface AlarmStatusResponse {
   alarmMode: AlarmMode;
@@ -227,6 +201,14 @@ export interface HeatingUpdateRequest {
   centralHeating?: CentralHeatingMode;
   dhw?: DHWHeatingMode;
 }
+
+export interface HeatingStatusResponse {
+  centralHeating: CentralHeatingMode | null;
+  dhw: DHWHeatingMode;
+}
+
+// /api/users endpoint
+export type UsersApiResponse = UserResponse[];
 
 // /api/user/:id endpoint
 export interface UserUpdateRequest {

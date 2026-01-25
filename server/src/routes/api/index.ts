@@ -7,20 +7,20 @@ import s3 from '../../services/s3';
 import deviceRouteHander from './device';
 import deviceHistoryHandler from './device/history';
 import deviceTimelineHandler from './device/timeline';
-import sidebarRouter from './sidebar';
 import devicesRouter from './devices';
 import timelineRouter from './timeline';
 import securityRouter from './security';
 import heatingRouter from './heating';
 import userRouter from './user';
+import usersRouter from './users';
 import deviceLightRouter from './device/light';
 import deviceLockRouter from './device/lock';
 import deviceThermostatRouter from './device/thermostat';
 
 const router = express.Router();
 
-router.use('/sidebar', sidebarRouter);
 router.use('/devices', devicesRouter);
+router.use('/users', usersRouter);
 router.use('/timeline', timelineRouter);
 router.use('/security', securityRouter);
 router.use('/heating', heatingRouter);

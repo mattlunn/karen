@@ -14,35 +14,21 @@ function HomeControlButton({ onClick, value, currentValue, label, loading }) {
 }
 
 export default function Sidebar({ hideOnMobile}) {
-  const { loading, data } = useApiCall('/sidebar');
-  const { mutate: updateHeating, loading: heatingLoading } = useApiMutation('/heating');
-  const { mutate: updateAlarmMode, loading: alarmLoading } = useApiMutation('/security/alarm');
+  const { loading: usersLoading, data: usersData } = useApiCall('/users');
+  const { loading: heatingLoading, data: heatingData } = useApiCall('/heating');
+  const { loading: securityLoading, data: securityData } = useApiCall('/security/alarm');
+
+  const { mutate: updateHeating, loading: heatingMutating } = useApiMutation('/heating');
+  const { mutate: updateAlarmMode, loading: alarmMutating } = useApiMutation('/security/alarm');
+
+  const loading = usersLoading || heatingLoading || securityLoading;
 
   let body = null;
 
-  if (loading === false && data) {
-    const stays = data.users;
-    const alarmMode = data.security.alarmMode;
-    const { dhwHeatingMode, thermostats } = data.heating;
-
-    const commonThermostatMode = thermostats.reduce((mode, curr, currIndex) => {
-      if (mode === null && currIndex !== 0) return null;
-
-      const { targetTemperature, setbackTemperature } = curr;
-      const currMode = (() => {
-        if (targetTemperature === 0) {
-          return 'OFF';
-        }
-
-        if (targetTemperature === setbackTemperature) {
-          return 'SETBACK';
-        }
-
-        return 'ON';
-      })();
-
-      return mode === null || mode === currMode ? currMode : null;
-    }, null);
+  if (!loading && usersData && heatingData && securityData) {
+    const stays = usersData;
+    const alarmMode = securityData.alarmMode;
+    const { centralHeating: commonThermostatMode, dhw: dhwHeatingMode } = heatingData;
 
     body = (
       <>
@@ -65,26 +51,26 @@ export default function Sidebar({ hideOnMobile}) {
         <div className="sidebar__home-controls">
           <h3 className="home-controls__title"><FontAwesomeIcon icon={faShieldHalved} /></h3>
           <div>
-            <HomeControlButton currentValue={alarmMode} label="Home" onClick={(mode) => updateAlarmMode({ mode })} value="OFF" loading={alarmLoading} />
-            <HomeControlButton currentValue={alarmMode} label="Away" onClick={(mode) => updateAlarmMode({ mode })} value="AWAY" loading={alarmLoading} />
-            <HomeControlButton currentValue={alarmMode} label="Night" onClick={(mode) => updateAlarmMode({ mode })} value="NIGHT" loading={alarmLoading} />
+            <HomeControlButton currentValue={alarmMode} label="Home" onClick={(mode) => updateAlarmMode({ mode })} value="OFF" loading={alarmMutating} />
+            <HomeControlButton currentValue={alarmMode} label="Away" onClick={(mode) => updateAlarmMode({ mode })} value="AWAY" loading={alarmMutating} />
+            <HomeControlButton currentValue={alarmMode} label="Night" onClick={(mode) => updateAlarmMode({ mode })} value="NIGHT" loading={alarmMutating} />
           </div>
         </div>
 
         <div className="sidebar__home-controls">
           <h3 className="home-controls__title"><FontAwesomeIcon icon={faFire} /></h3>
           <div>
-            <HomeControlButton currentValue={commonThermostatMode} label="On" onClick={(mode) => updateHeating({ centralHeating: mode })} value="ON" loading={heatingLoading} />
-            <HomeControlButton currentValue={commonThermostatMode} label="Setback" onClick={(mode) => updateHeating({ centralHeating: mode })} value="SETBACK" loading={heatingLoading} />
-            <HomeControlButton currentValue={commonThermostatMode} label="Off" onClick={(mode) => updateHeating({ centralHeating: mode })} value="OFF" loading={heatingLoading} />
+            <HomeControlButton currentValue={commonThermostatMode} label="On" onClick={(mode) => updateHeating({ centralHeating: mode })} value="ON" loading={heatingMutating} />
+            <HomeControlButton currentValue={commonThermostatMode} label="Setback" onClick={(mode) => updateHeating({ centralHeating: mode })} value="SETBACK" loading={heatingMutating} />
+            <HomeControlButton currentValue={commonThermostatMode} label="Off" onClick={(mode) => updateHeating({ centralHeating: mode })} value="OFF" loading={heatingMutating} />
           </div>
         </div>
 
         <div className="sidebar__home-controls">
           <h3 className="home-controls__title"><FontAwesomeIcon icon={faDroplet} /></h3>
           <div>
-            <HomeControlButton currentValue={dhwHeatingMode} label="On" onClick={(mode) => updateHeating({ dhw: mode })} value="ON" loading={heatingLoading} />
-            <HomeControlButton currentValue={dhwHeatingMode} label="Off" onClick={(mode) => updateHeating({ dhw: mode })} value="OFF" loading={heatingLoading} />
+            <HomeControlButton currentValue={dhwHeatingMode} label="On" onClick={(mode) => updateHeating({ dhw: mode })} value="ON" loading={heatingMutating} />
+            <HomeControlButton currentValue={dhwHeatingMode} label="Off" onClick={(mode) => updateHeating({ dhw: mode })} value="OFF" loading={heatingMutating} />
           </div>
         </div>
       </>
