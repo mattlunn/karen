@@ -51,9 +51,9 @@ export default function Sidebar({ hideOnMobile}) {
         <div className="sidebar__home-controls">
           <h3 className="home-controls__title"><FontAwesomeIcon icon={faShieldHalved} /></h3>
           <div>
-            <HomeControlButton currentValue={alarmMode} label="Home" onClick={(mode) => updateAlarmMode({ mode })} value="OFF" loading={alarmMutating} />
-            <HomeControlButton currentValue={alarmMode} label="Away" onClick={(mode) => updateAlarmMode({ mode })} value="AWAY" loading={alarmMutating} />
-            <HomeControlButton currentValue={alarmMode} label="Night" onClick={(mode) => updateAlarmMode({ mode })} value="NIGHT" loading={alarmMutating} />
+            <HomeControlButton currentValue={alarmMode} label="Home" onClick={(alarmMode) => updateAlarmMode({ alarmMode })} value="OFF" loading={alarmMutating} />
+            <HomeControlButton currentValue={alarmMode} label="Away" onClick={(alarmMode) => updateAlarmMode({ alarmMode })} value="AWAY" loading={alarmMutating} />
+            <HomeControlButton currentValue={alarmMode} label="Night" onClick={(alarmMode) => updateAlarmMode({ alarmMode })} value="NIGHT" loading={alarmMutating} />
           </div>
         </div>
 

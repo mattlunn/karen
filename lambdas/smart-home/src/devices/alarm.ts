@@ -2,7 +2,7 @@ import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndP
 import { AlarmMode, AlarmApiResponse } from '../custom-typings/karen-types';
 import { apiPut } from '../client';
 
-export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { mode: AlarmMode }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
+export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { alarmMode: AlarmMode }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
 
   const response = await apiPut<AlarmApiResponse>('/security', variables);
@@ -11,7 +11,7 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
   const uncertaintyInMilliseconds = now.valueOf() - then.valueOf();
   const mode = response.alarmMode;
 
-  if (mode === variables.mode) {
+  if (mode === variables.alarmMode) {
     return {
       event: {
         header: {
@@ -41,7 +41,7 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
         },
         payload: {
           type: 'INTERNAL_ERROR',
-          message: `Unable to set the Alarm to ${variables.mode}`
+          message: `Unable to set the Alarm to ${variables.alarmMode}`
         }
       }
     }

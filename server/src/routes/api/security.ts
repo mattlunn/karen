@@ -15,7 +15,7 @@ router.get<Record<string, never>, AlarmStatusResponse>('/', asyncWrapper(async (
 }));
 
 router.put<Record<string, never>, AlarmStatusResponse, AlarmUpdateRequest>('/', asyncWrapper(async (req, res) => {
-  const desiredMode = req.body.mode;
+  const desiredMode = req.body.alarmMode;
 
   if (!['OFF', 'AWAY', 'NIGHT'].includes(desiredMode)) {
     res.status(400).json({ error: 'Invalid alarm mode. Must be OFF, AWAY, or NIGHT.' });

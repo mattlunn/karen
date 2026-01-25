@@ -179,7 +179,7 @@ export interface AlarmStatusResponse {
 }
 
 export interface AlarmUpdateRequest {
-  mode: AlarmMode;
+  alarmMode: AlarmMode;
 }
 
 // /api/heating endpoint
