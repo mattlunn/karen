@@ -44,7 +44,7 @@ router.get('/', asyncWrapper(async (req, res) => {
     }),
 
     Stay.findAll({
-      where: { departure: { [Op.lt]: since, [Op.not]: null } },
+      where: { departure: { [Op.lt]: since, [Op.not]: null }, userId: { [Op.not]: null } },
       limit,
       order: [['departure', 'DESC']]
     }),
@@ -61,18 +61,8 @@ router.get('/', asyncWrapper(async (req, res) => {
     })
   ]);
 
-  const allUserIds = new Set<number>();
-  arrivals.forEach(stay => { if (stay.userId) allUserIds.add(stay.userId as number); });
-  departures.forEach(stay => { if (stay.userId) allUserIds.add(stay.userId as number); });
-
-  const users = await User.findAllById(Array.from(allUserIds));
-  const usersById = new Map(users.map(u => [u.id, u]));
-
-  const recordingsByEventId = new Map<number, Recording>();
-  recordings.forEach(recording => {
-    recordingsByEventId.set(recording.eventId, recording);
-  });
-
+  const usersById = new Map((await User.findAll()).map(u => [u.id, u]));
+  const recordingsByEventId = new Map<number, Recording>(recordings.map(x => [x.eventId, x]));
   const allEvents: EventWithTimestamp[] = [];
 
   for (const event of dbEvents) {
@@ -140,33 +130,31 @@ router.get('/', asyncWrapper(async (req, res) => {
   }
 
   for (const stay of arrivals) {
-    const user = stay.userId ? usersById.get(stay.userId as number) : null;
-    if (stay.arrival && user) {
-      allEvents.push({
-        timestamp: +stay.arrival,
-        event: {
-          type: 'arrival',
-          id: stay.id as number,
-          timestamp: +stay.arrival,
-          userId: user.handle
-        }
-      });
-    }
+    const user = usersById.get(stay.userId as number)!;
+
+    allEvents.push({
+      timestamp: +stay.arrival!,
+      event: {
+        type: 'arrival',
+        id: stay.id as number,
+        timestamp: +stay.arrival!,
+        userId: user.handle
+      }
+    });
   }
 
   for (const stay of departures) {
-    const user = stay.userId ? usersById.get(stay.userId as number) : null;
-    if (stay.departure && user) {
-      allEvents.push({
-        timestamp: +stay.departure,
-        event: {
-          type: 'departure',
-          id: stay.id as number,
-          timestamp: +stay.departure,
-          userId: user.handle
-        }
-      });
-    }
+    const user = usersById.get(stay.userId as number)!;
+
+    allEvents.push({
+      timestamp: +stay.departure!,
+      event: {
+        type: 'departure',
+        id: stay.id as number,
+        timestamp: +stay.departure!,
+        userId: user.handle
+      }
+    });
   }
 
   for (const arming of armings) {
