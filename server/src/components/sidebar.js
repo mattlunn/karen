@@ -4,8 +4,11 @@ import classnames from 'classnames';
 import { HOME, AWAY } from '../constants/status';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDroplet, faFire, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
-import useApiCall from '../hooks/api';
-import useApiMutation from '../hooks/api-mutation';
+import { useUsers } from '../hooks/queries/use-users';
+import { useHeating } from '../hooks/queries/use-heating';
+import { useSecurity } from '../hooks/queries/use-security';
+import { useAlarmMutation } from '../hooks/mutations/use-security-mutations';
+import { useHeatingMutation } from '../hooks/mutations/use-heating-mutations';
 
 function HomeControlButton({ onClick, value, currentValue, label, loading }) {
   return (
@@ -14,12 +17,12 @@ function HomeControlButton({ onClick, value, currentValue, label, loading }) {
 }
 
 export default function Sidebar({ hideOnMobile}) {
-  const { loading: usersLoading, data: usersData } = useApiCall('/users');
-  const { loading: heatingLoading, data: heatingData } = useApiCall('/heating');
-  const { loading: securityLoading, data: securityData } = useApiCall('/security');
+  const { isLoading: usersLoading, data: usersData } = useUsers();
+  const { isLoading: heatingLoading, data: heatingData } = useHeating();
+  const { isLoading: securityLoading, data: securityData } = useSecurity();
 
-  const { mutate: updateHeating, loading: heatingMutating } = useApiMutation('/heating');
-  const { mutate: updateAlarmMode, loading: alarmMutating } = useApiMutation('/security');
+  const { mutate: updateHeating, isPending: heatingMutating } = useHeatingMutation();
+  const { mutate: updateAlarmMode, isPending: alarmMutating } = useAlarmMutation();
 
   const loading = usersLoading || heatingLoading || securityLoading;
 

@@ -15,6 +15,7 @@ import usersRouter from './users';
 import deviceLightRouter from './device/light';
 import deviceLockRouter from './device/lock';
 import deviceThermostatRouter from './device/thermostat';
+import eventsRouter from './events';
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.use('/users', usersRouter);
 router.use('/timeline', timelineRouter);
 router.use('/security', securityRouter);
 router.use('/heating', heatingRouter);
+router.use(eventsRouter);
 router.get('/device/:id', deviceRouteHander);
 router.get('/device/:id/history', deviceHistoryHandler);
 router.get('/device/:id/timeline', deviceTimelineHandler);
