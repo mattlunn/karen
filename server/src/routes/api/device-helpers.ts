@@ -1,14 +1,10 @@
 import { Device, NumericEvent, BooleanEvent } from '../../models';
 import { DeviceStatus, NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse } from '../../api/types';
 
-// Type helper to await all promise values in an object
 type AwaitedObject<T> = {
   [K in keyof T]: T[K] extends Promise<infer U> ? U : T[K];
 };
 
-/**
- * Awaits all promise values in an object and returns the resolved object.
- */
 export async function awaitPromises<T extends Record<string, unknown>>(obj: T): Promise<AwaitedObject<T>> {
   const entries = await Promise.all(
     Object.entries(obj).map(async ([key, value]) => [key, await value])
@@ -17,9 +13,6 @@ export async function awaitPromises<T extends Record<string, unknown>>(obj: T): 
   return Object.fromEntries(entries) as AwaitedObject<T>;
 }
 
-/**
- * Maps a numeric event promise to API response format.
- */
 export function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise<NumericEventApiResponse> {
   return eventsPromise.then(events => {
     const event = events[0];
@@ -36,9 +29,6 @@ export function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise
   });
 }
 
-/**
- * Maps a boolean event promise to API response format.
- */
 export function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise<BooleanEventApiResponse> {
   return eventsPromise.then(events => {
     const event = events[0];
@@ -55,9 +45,6 @@ export function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise
   });
 }
 
-/**
- * Heat pump mode mappings from numeric values to strings.
- */
 export const HEAT_PUMP_MODES: Record<number, string> = {
   0: 'STANDBY',
   1: 'HEATING',
@@ -65,9 +52,6 @@ export const HEAT_PUMP_MODES: Record<number, string> = {
   3: 'COOLING'
 };
 
-/**
- * Maps a heat pump mode event promise to API response format.
- */
 export function mapHeatPumpModeEvent(eventsPromise: Promise<NumericEvent[]>): Promise<EnumEventApiResponse> {
   return eventsPromise.then(events => {
     const event = events[0];
@@ -84,14 +68,8 @@ export function mapHeatPumpModeEvent(eventsPromise: Promise<NumericEvent[]>): Pr
   });
 }
 
-/**
- * Standard selector for retrieving the most recent event.
- */
 export const currentSelector = { limit: 1, until: new Date() };
 
-/**
- * Maps a device capability to its API response format with historical event data.
- */
 export async function getCapabilityData(device: Device, capability: string): Promise<any> {
   switch (capability) {
     case 'CAMERA': {
@@ -215,17 +193,6 @@ export async function getCapabilityData(device: Device, capability: string): Pro
   }
 }
 
-/**
- * Maps a device to a standardized API response structure.
- *
- * This helper provides a unified way to serialize devices for API responses,
- * with consistent event-based capability data across all endpoints.
- *
- * @param device - The device model instance
- * @param options - Configuration options
- * @param options.includeCapabilities - Whether to include all capability data
- * @returns Promise resolving to device response object
- */
 export async function mapDeviceToResponse(
   device: Device,
   options: {

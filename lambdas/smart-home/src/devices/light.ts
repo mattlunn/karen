@@ -5,15 +5,12 @@ import { apiPut } from '../client';
 export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { id: string, isOn?: boolean, brightness?: number }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
   const { id, ...body } = variables;
-
   const response = await apiPut<DeviceApiResponse>(`/device/${id}/light`, body);
-
   const now = new Date();
   const uncertaintyInMilliseconds = now.valueOf() - then.valueOf();
-
   const lightCapability = response.device.capabilities.find(c => c.type === 'LIGHT');
 
-  if (lightCapability && lightCapability.type === 'LIGHT') {
+  if (lightCapability) {
     return {
       event: {
         header: {
@@ -53,7 +50,7 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
 export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
   const lightCapability = device.capabilities.find(c => c.type === 'LIGHT');
 
-  if (!lightCapability || lightCapability.type !== 'LIGHT') {
+  if (!lightCapability) {
     throw new Error('Light capability not found');
   }
 

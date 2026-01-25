@@ -4,7 +4,7 @@ import { Device } from '../custom-typings/karen-types';
 export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
   const thermostatCapability = device.capabilities.find(x => x.type === 'THERMOSTAT');
 
-  if (!thermostatCapability || thermostatCapability.type !== 'THERMOSTAT') {
+  if (!thermostatCapability) {
     throw new Error('Thermostat capability not found');
   }
 
