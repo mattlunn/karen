@@ -1,5 +1,5 @@
 import { Device, NumericEvent, BooleanEvent } from '../../models';
-import { DeviceStatus, NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse } from '../../api/types';
+import { DeviceStatus, NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 
 type AwaitedObject<T> = {
   [K in keyof T]: T[K] extends Promise<infer U> ? U : T[K];
@@ -70,7 +70,7 @@ export function mapHeatPumpModeEvent(eventsPromise: Promise<NumericEvent[]>): Pr
 
 export const currentSelector = { limit: 1, until: new Date() };
 
-export async function getCapabilityData(device: Device, capability: string): Promise<any> {
+export async function getCapabilityData(device: Device, capability: string): Promise<CapabilityApiResponse> {
   switch (capability) {
     case 'CAMERA': {
       const now = new Date().toISOString();
@@ -193,27 +193,8 @@ export async function getCapabilityData(device: Device, capability: string): Pro
   }
 }
 
-export async function mapDeviceToResponse(
-  device: Device,
-  options: {
-    includeCapabilities?: boolean;
-  } = {}
-): Promise<any> {
+export async function mapDeviceToResponse(device: Device): Promise<RestDeviceResponse> {
   const isConnected = await device.getIsConnected();
-
-  const baseResponse = {
-    id: device.id,
-    name: device.name,
-    type: device.type,
-    provider: device.provider,
-    providerId: device.providerId,
-    roomId: device.roomId,
-    status: isConnected ? 'OK' : 'OFFLINE' as DeviceStatus
-  };
-
-  if (!options.includeCapabilities) {
-    return baseResponse;
-  }
 
   const capabilities = device.getCapabilities();
   const capabilityData = await Promise.all(
@@ -221,7 +202,13 @@ export async function mapDeviceToResponse(
   );
 
   return {
-    ...baseResponse,
+    id: device.id,
+    name: device.name,
+    type: device.type,
+    provider: device.provider,
+    providerId: device.providerId,
+    roomId: device.roomId,
+    status: (isConnected ? 'OK' : 'OFFLINE') as DeviceStatus,
     capabilities: capabilityData
   };
 }

@@ -80,14 +80,7 @@ export type HistoryDetailsApiResponse<T> = {
 };
 
 export type DeviceApiResponse = {
-  device: {
-    capabilities: CapabilityApiResponse[];
-    id: number;
-    name: string;
-    type: string;
-    provider: string;
-    providerId: string;
-  };
+  device: RestDeviceResponse;
 };
 
 // History API response types
@@ -133,10 +126,6 @@ export type DeviceTimelineApiResponse = {
   events: DeviceTimelineEventApiResponse[];
 };
 
-// ============================================================================
-// REST API Types - Single source of truth for all REST endpoints
-// ============================================================================
-
 // Common types
 export type DeviceStatus = 'OK' | 'OFFLINE';
 export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';
@@ -152,15 +141,12 @@ export interface HomeRoom {
   displayWeight: number | null;
 }
 
-export interface HomeCamera {
-  id: number;
-  name: string;
-  snapshotUrl: string;
-}
-
 export interface RestDeviceResponse {
   id: number;
   name: string;
+  type: string;
+  provider: string;
+  providerId: string;
   roomId: number | null;
   status: DeviceStatus;
   capabilities: CapabilityApiResponse[];

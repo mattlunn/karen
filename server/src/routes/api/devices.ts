@@ -1,9 +1,7 @@
 import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Device, Room } from '../../models';
-import { Capability } from '../../models/capabilities';
 import {
-  CapabilityApiResponse,
   RestDeviceResponse,
   HomeRoom,
   DevicesApiResponse
@@ -28,9 +26,7 @@ router.get<Record<string, never>, DevicesApiResponse>('/', asyncWrapper(async (r
     }));
 
   const devices: RestDeviceResponse[] = await Promise.all(
-    allDevices.map(device =>
-      mapDeviceToResponse(device, { includeCapabilities: true })
-    )
+    allDevices.map(device => mapDeviceToResponse(device))
   );
 
   res.json({

@@ -26,9 +26,7 @@ router.put<Record<string, never>, DeviceApiResponse, LockUpdateRequest>('/', asy
     await lock.setIsLocked(body.isLocked);
   }
 
-  const deviceResponse = await mapDeviceToResponse(device, {
-    includeCapabilities: true
-  });
+  const deviceResponse = await mapDeviceToResponse(device);
 
   const response: DeviceApiResponse = {
     device: deviceResponse

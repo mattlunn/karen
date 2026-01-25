@@ -28,9 +28,7 @@ router.put<Record<string, never>, DeviceApiResponse, LightUpdateRequest>('/', as
     await light.setIsOn(body.isOn);
   }
 
-  const deviceResponse = await mapDeviceToResponse(device, {
-    includeCapabilities: true
-  });
+  const deviceResponse = await mapDeviceToResponse(device);
 
   const response: DeviceApiResponse = {
     device: deviceResponse

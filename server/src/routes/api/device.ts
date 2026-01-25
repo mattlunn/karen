@@ -10,9 +10,7 @@ export default expressAsyncWrapper(async function (req, res, next) {
     return next('route');
   }
 
-  const deviceResponse = await mapDeviceToResponse(device, {
-    includeCapabilities: true
-  });
+  const deviceResponse = await mapDeviceToResponse(device);
 
   const response: DeviceApiResponse = {
     device: deviceResponse

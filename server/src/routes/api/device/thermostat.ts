@@ -26,9 +26,7 @@ router.put<Record<string, never>, DeviceApiResponse, ThermostatUpdateRequest>('/
     await thermostat.setTargetTemperature(body.targetTemperature);
   }
 
-  const deviceResponse = await mapDeviceToResponse(device, {
-    includeCapabilities: true
-  });
+  const deviceResponse = await mapDeviceToResponse(device);
 
   const response: DeviceApiResponse = {
     device: deviceResponse
