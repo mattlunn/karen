@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import dayjs from '../dayjs';
 import { AWAY, HOME } from '../constants/status';
 import { humanDate } from '../helpers/date';
-import { Avatar, Box, LoadingOverlay } from '@mantine/core';
+import { Anchor, Avatar, Box, Group, LoadingOverlay, Stack, Text } from '@mantine/core';
 import { useUserMutation } from '../hooks/mutations/use-user-mutations';
 import EtaPicker from './modals/eta-picker';
 import Modal from './modal';
@@ -17,8 +17,9 @@ function StatusMessage({ status, since, until, id }) {
   } else {
     const untilMoment = until ? dayjs(until) : null;
     const untilMessage = (
-      <a
+      <Anchor
         href="#"
+        c="inherit"
         onClick={(e) => {
           e.preventDefault();
           setShowModal(true);
@@ -33,7 +34,7 @@ function StatusMessage({ status, since, until, id }) {
         ) : (
           'unknown'
         )}
-      </a>
+      </Anchor>
     );
 
     return (
@@ -57,8 +58,8 @@ export default function UserStatus(props) {
   const { mutate: updateUser, isPending } = useUserMutation(id);
 
   return (
-    <div className="user-status">
-      <Box pos="relative" mr={10} h="fit-content">
+    <Group align="center" gap="xs" className="user-status">
+      <Box pos="relative">
         <LoadingOverlay visible={isPending} overlayProps={{ radius: 'xl' }} loaderProps={{ size: 'sm' }} />
         <a href="#" onClick={(e) => {
           e.preventDefault();
@@ -80,12 +81,12 @@ export default function UserStatus(props) {
           />
         </a>
       </Box>
-      <div>
-        <h3 className="user-status__user-name">{id}</h3>
-        <p className="user-status__about">
+      <Stack gap={0}>
+        <Text>{id}</Text>
+        <Text size="sm" c="dimmed">
           <StatusMessage {...props} />
-        </p>
-      </div>
-    </div>
+        </Text>
+      </Stack>
+    </Group>
   );
 }
