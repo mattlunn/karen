@@ -4,6 +4,7 @@ import { User, Stay } from '../../models';
 import { HOME, AWAY } from '../../constants/status';
 import dayjs from '../../dayjs';
 import { UsersApiResponse, UserUpdateRequest, UserResponse } from '../../api/types';
+import { mapUserToResponse } from './user-helpers';
 
 const router = express.Router();
 
@@ -22,25 +23,7 @@ router.get<Record<string, never>, UsersApiResponse>('/', asyncWrapper(async (_re
   const usersResponse: UsersApiResponse = users.map(user => {
     const currentOrLast = currentStaysByUserId.get(user.id);
     const upcoming = upcomingStaysByUserId.get(user.id);
-    const isAway = !currentOrLast || currentOrLast.departure !== null;
-
-    if (isAway) {
-      return {
-        id: user.handle,
-        avatar: user.avatar,
-        status: 'AWAY' as const,
-        since: null,
-        until: upcoming?.eta ? +upcoming.eta : null
-      };
-    } else {
-      return {
-        id: user.handle,
-        avatar: user.avatar,
-        status: 'HOME' as const,
-        since: +currentOrLast.arrival!,
-        until: null
-      };
-    }
+    return mapUserToResponse(user, currentOrLast ?? null, upcoming ?? null);
   });
 
   res.json(usersResponse);
@@ -115,14 +98,7 @@ router.put<{ id: string }, UserResponse, UserUpdateRequest>('/:id', asyncWrapper
     await upcoming.save();
   }
 
-  const isAway = !current || !!current.departure;
-  res.json({
-    id: user.handle,
-    avatar: user.avatar,
-    status: isAway ? 'AWAY' : 'HOME',
-    since: isAway ? null : current?.arrival,
-    until: upcoming?.eta ?? null
-  });
+  res.json(mapUserToResponse(user, current, upcoming));
 }));
 
 export default router;

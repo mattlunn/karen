@@ -1,8 +1,10 @@
 import express from 'express';
 import bus from '../../bus';
 import type { NumericEvent, BooleanEvent, Device } from '../../models';
+import { Stay } from '../../models';
 import { DeviceCapabilityEvents, type DeviceCapabilityEvent } from '../../models/capabilities';
 import { mapDeviceToResponse } from './device-helpers';
+import { mapUserToResponse } from './user-helpers';
 
 const router = express.Router();
 
@@ -54,13 +56,14 @@ router.get('/', (req, res) => {
   DeviceCapabilityEvents.onDeviceCapabilityPropertyChanged(handleDeviceCapabilityPropertyChanged);
 
   // User arrival/departure event handler
-  const userEventHandler = (stay: any) => {
+  const userEventHandler = async (stay: Stay) => {
+    const user = await stay.getUser();
+    const isHome = stay.departure === null;
+    const upcoming = isHome ? null : await Stay.findUpcomingStays([stay.userId as number]).then(s => s[0] ?? null);
+
     const message = {
       type: 'user_update',
-      userId: stay.userId,
-      status: stay.status,
-      since: stay.since,
-      until: stay.until,
+      user: mapUserToResponse(user, isHome ? stay : null, upcoming),
     };
 
     clients.forEach(client => {

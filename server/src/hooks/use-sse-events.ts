@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { DevicesApiResponse, RestDeviceResponse } from '../api/types';
+import { DevicesApiResponse, RestDeviceResponse, UserResponse } from '../api/types';
 
 interface DeviceUpdateEvent {
   type: 'device_update';
@@ -9,10 +9,7 @@ interface DeviceUpdateEvent {
 
 interface UserUpdateEvent {
   type: 'user_update';
-  userId: string;
-  status: 'HOME' | 'AWAY';
-  since: number | null;
-  until: number | null;
+  user: UserResponse;
 }
 
 type SSEEvent = DeviceUpdateEvent | UserUpdateEvent | { type: 'connected'; clientId: string };
@@ -100,20 +97,12 @@ export function useSSEEvents() {
     };
 
     const handleUserUpdate = (event: UserUpdateEvent) => {
-      const { userId, status: userStatus, since, until } = event;
-
-      queryClient.setQueryData(['users'], (old: any) => {
+      queryClient.setQueryData(['users'], (old: UserResponse[] | undefined) => {
         if (!Array.isArray(old)) return old;
 
-        return old.map((user: any) => {
-          if (user.id !== userId) return user;
-
-          return {
-            ...user,
-            status: userStatus,
-            since,
-            until,
-          };
+        return old.map((user) => {
+          if (user.id !== event.user.id) return user;
+          return event.user;
         });
       });
     };
