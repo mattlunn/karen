@@ -11,6 +11,8 @@
     "@mantine/core": "^7.17.8",
     "@mantine/dates": "^7.17.8",
     "@mantine/hooks": "^7.17.8",
+    "@tanstack/react-query": "^5.90.20",
+    "@tanstack/react-query-devtools": "^5.91.2",
     "@tuyapi/cli": "^1.18.3",
     "auth-header": "^1.0.0",
     "aws-sdk": "^2.779.0",

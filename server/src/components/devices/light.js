@@ -1,12 +1,12 @@
 import React from 'react';
 import DeviceControl from '../device-control';
 import { faLightbulb } from '@fortawesome/free-solid-svg-icons';
-import useApiMutation from '../../hooks/api-mutation';
+import { useLightMutation } from '../../hooks/mutations/use-device-mutations';
 
 function BrightnessControl({ device, capability }) {
   const brightness = capability.brightness.value;
   const options = [];
-  const { mutate: setBrightness, loading } = useApiMutation(`/device/${device.id}/light`);
+  const { mutate: setBrightness, isPending: loading } = useLightMutation(device.id);
 
   let selectedValue = null;
 
@@ -34,7 +34,7 @@ function BrightnessControl({ device, capability }) {
 }
 
 export default function Light({ device, capability }) {
-  const { mutate: setLightSwitchStatus, loading } = useApiMutation(`/device/${device.id}/light`);
+  const { mutate: setLightSwitchStatus, isPending: loading } = useLightMutation(device.id);
 
   return (
     <DeviceControl device={device} icon={faLightbulb} color="#ffa24d" colorIconBackground={capability.isOn.value} values={[

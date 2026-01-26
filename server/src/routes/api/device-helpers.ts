@@ -76,9 +76,9 @@ export function mapHeatPumpModeEvent(eventsPromise: Promise<NumericEvent[]>): Pr
   });
 }
 
-export const currentSelector = { limit: 1, until: new Date() };
-
 export async function getCapabilityData(device: Device, capability: string): Promise<CapabilityApiResponse> {
+  const currentSelector = { limit: 1, until: new Date() };
+
   switch (capability) {
     case 'CAMERA': {
       const now = new Date().toISOString();

@@ -1,10 +1,10 @@
 import React from 'react';
 import DeviceControl from '../device-control';
 import { faDoorClosed, faDoorOpen } from '@fortawesome/free-solid-svg-icons';
-import useApiMutation from '../../hooks/api-mutation';
+import { useLockMutation } from '../../hooks/mutations/use-device-mutations';
 
 export default function Lock({ device, capability }) {
-  const { mutate: setDoorLockedStatus, loading } = useApiMutation(`/device/${device.id}/lock`);
+  const { mutate: setDoorLockedStatus, isPending: loading } = useLockMutation(device.id);
 
   return (
     <DeviceControl

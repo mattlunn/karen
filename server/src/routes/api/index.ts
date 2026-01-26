@@ -15,9 +15,11 @@ import usersRouter from './users';
 import deviceLightRouter from './device/light';
 import deviceLockRouter from './device/lock';
 import deviceThermostatRouter from './device/thermostat';
+import eventsRouter from './events';
 
 const router = express.Router();
 
+router.use('/events', eventsRouter);
 router.use('/devices', devicesRouter);
 router.use('/users', usersRouter);
 router.use('/timeline', timelineRouter);

@@ -3,13 +3,14 @@ import SideBar from '../sidebar';
 import Header from '../header';
 import Security from '../security';
 import Groups from '../groups';
-import useApiCall from '../../hooks/api';
+import { useDevices } from '../../hooks/queries/use-devices';
 
 export default function Home() {
-  const { data, loading } = useApiCall('/devices');
-  let content = <></>;
+  const { data, isLoading } = useDevices();
 
-  if (!loading) {
+  let content = null;
+
+  if (!isLoading && data) {
     const cameras = data.devices.reduce((acc, device) => {
       const cameraCapability = device.capabilities.find(cap => cap.type === 'CAMERA');
 
@@ -30,7 +31,7 @@ export default function Home() {
         <Groups
           rooms={data.rooms}
           devices={data.devices}
-          loading={loading}
+          loading={isLoading}
         />
       </>
     );

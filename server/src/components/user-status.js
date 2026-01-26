@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import dayjs from '../dayjs';
-import classNames from 'classnames';
 import { AWAY, HOME } from '../constants/status';
 import { humanDate } from '../helpers/date';
-import useApiMutation from '../hooks/api-mutation';
+import { Anchor, Avatar, Box, Group, LoadingOverlay, Stack, Text } from '@mantine/core';
+import { useUserMutation } from '../hooks/mutations/use-user-mutations';
 import EtaPicker from './modals/eta-picker';
 import Modal from './modal';
 
@@ -17,8 +17,9 @@ function StatusMessage({ status, since, until, id }) {
   } else {
     const untilMoment = until ? dayjs(until) : null;
     const untilMessage = (
-      <a
+      <Anchor
         href="#"
+        c="inherit"
         onClick={(e) => {
           e.preventDefault();
           setShowModal(true);
@@ -33,7 +34,7 @@ function StatusMessage({ status, since, until, id }) {
         ) : (
           'unknown'
         )}
-      </a>
+      </Anchor>
     );
 
     return (
@@ -44,7 +45,7 @@ function StatusMessage({ status, since, until, id }) {
           <Modal>
             <EtaPicker id={id} eta={untilMoment} closeModal={() => setShowModal(false)} />
           </Modal>,
-          
+
           document.body)
         }
       </>
@@ -54,30 +55,38 @@ function StatusMessage({ status, since, until, id }) {
 
 export default function UserStatus(props) {
   const { status, id, avatar } = props;
-  const { mutate: updateUser } = useApiMutation(`/users/${id}`);
+  const { mutate: updateUser, isPending } = useUserMutation(id);
 
   return (
-    <div className="user-status">
-      <a href="#" onClick={(e) => {
-        e.preventDefault();
+    <Group align="center" gap="xs" className="user-status">
+      <Box pos="relative">
+        <LoadingOverlay visible={isPending} overlayProps={{ radius: 'xl' }} loaderProps={{ size: 'sm' }} />
+        <a href="#" onClick={(e) => {
+          e.preventDefault();
 
-        updateUser({
-          status: status === HOME ? AWAY : HOME
-        });
-      }}>
-        <img
-          className={classNames('user-status__avatar', {
-            'user-status__avatar--away': status === AWAY
-          })}
-          src={avatar}
-        />
-      </a>
-      <div>
-        <h3 className="user-status__user-name">{id}</h3>
-        <p className="user-status__about">
+          updateUser({
+            status: status === HOME ? AWAY : HOME
+          });
+        }}>
+          <Avatar
+            src={avatar}
+            size="md"
+            radius="xl"
+            styles={{
+              root: {
+                border: `1px solid ${status === AWAY ? 'red' : '#5eef00'}`,
+                padding: '1px'
+              }
+            }}
+          />
+        </a>
+      </Box>
+      <Stack gap={0}>
+        <Text>{id}</Text>
+        <Text size="sm" c="dimmed">
           <StatusMessage {...props} />
-        </p>
-      </div>
-    </div>
+        </Text>
+      </Stack>
+    </Group>
   );
 }
