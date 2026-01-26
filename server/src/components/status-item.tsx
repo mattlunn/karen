@@ -10,15 +10,29 @@ function formatSince(isoString: string): string {
   return `since ${date.format('HH:mm')} ${humanDate(date)}`;
 }
 
+function formatTimestamp(start: string, lastReported?: string): string {
+  const startDate = dayjs(start);
+  const lastReportedDate = lastReported ? dayjs(lastReported) : null;
+
+  // If lastReported is more than 5 seconds after start, show "as of" with relative time
+  if (lastReportedDate && lastReportedDate.diff(startDate, 'second') > 5) {
+    return `as of ${lastReportedDate.fromNow()}`;
+  }
+
+  // Otherwise show "since" with absolute time
+  return formatSince(start);
+}
+
 interface StatusItemProps {
   icon: IconDefinition;
   title: string;
   value: string;
   since?: string;
+  lastReported?: string;
   color?: string;
 }
 
-export function StatusItem({ icon, title, value, since, color }: StatusItemProps) {
+export function StatusItem({ icon, title, value, since, lastReported, color }: StatusItemProps) {
   return (
     <Paper withBorder p="md" radius="md" className="status-item">
       <Group justify="space-between">
@@ -34,7 +48,7 @@ export function StatusItem({ icon, title, value, since, color }: StatusItemProps
 
       {since && (
         <Text fz="xs" c="dimmed" mt={7}>
-          {formatSince(since)}
+          {formatTimestamp(since, lastReported)}
         </Text>
       )}
     </Paper>

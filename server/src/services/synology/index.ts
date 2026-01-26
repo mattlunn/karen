@@ -41,6 +41,7 @@ async function createEvent(device: Device, now: Dayjs) {
   if (!activeCameraEvent) {
     activeCameraEvent = await Event.create({
       start: now.toDate(),
+      lastReported: now.toDate(),
       deviceId: device.id,
       type: 'motion'
     });
@@ -130,6 +131,7 @@ export async function onDoorbellRing(cameraId: string) {
     deviceId: device.id,
     start: now,
     end: now,
+    lastReported: now,
     type: 'ring',
     value: 1
   });

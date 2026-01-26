@@ -58,18 +58,21 @@ export type CapabilityApiResponse = {
 export type BooleanEventApiResponse = {
   start: string;
   end: string | null;
+  lastReported: string;
   value: boolean;
 };
 
 export type NumericEventApiResponse = {
   start: string;
   end: string | null;
+  lastReported: string;
   value: number;
 };
 
 export type EnumEventApiResponse = {
   start: string;
   end: string | null;
+  lastReported: string;
   value: string;
 };
 

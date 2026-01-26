@@ -44,6 +44,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                       title="Current Temperature"
                       value={`${capability.currentTemperature.value.toFixed(1)}°C`}
                       since={capability.currentTemperature.start}
+                      lastReported={capability.currentTemperature.lastReported}
                       color="#ff6f22"
                     />
                   );
@@ -57,6 +58,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                       title="Humidity"
                       value={`${capability.humidity.value}%`}
                       since={capability.humidity.start}
+                      lastReported={capability.humidity.lastReported}
                       color="#04A7F4"
                     />
                   );
@@ -70,6 +72,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                         title="Target Temperature"
                         value={`${capability.targetTemperature.value.toFixed(1)}°C`}
                         since={capability.targetTemperature.start}
+                        lastReported={capability.targetTemperature.lastReported}
                         color="#ff6f22"
                       />
                     ), (
@@ -79,6 +82,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                         title="Power"
                         value={`${capability.power.value}%`}
                         since={capability.power.start}
+                        lastReported={capability.power.lastReported}
                         color="#ff6f22"
                       />
                     )
@@ -93,6 +97,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                       title="Brightness"
                       value={`${capability.brightness.value}%`}
                       since={capability.brightness.start}
+                      lastReported={capability.brightness.lastReported}
                     />
                   ), (
                     <StatusItem
@@ -101,6 +106,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                       title="Status"
                       value="On"
                       since={capability.isOn.start}
+                      lastReported={capability.isOn.lastReported}
                     />
                   )];
                 }
@@ -113,6 +119,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                       title="Status"
                       value="Motion"
                       since={capability.hasMotion.start}
+                      lastReported={capability.hasMotion.lastReported}
                     />
                   );
                 }
@@ -125,20 +132,21 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                       title="Illuminance"
                       value={`${capability.illuminance.value} lx`}
                       since={capability.illuminance.start}
+                      lastReported={capability.illuminance.lastReported}
                     />
                   );
                 }
 
                 case 'HEAT_PUMP': {
                   return [
-                    <StatusItem key={`${idx}-dhwcop`} icon={faFaucet} title="Hot Water CoP" value={`${capability.dHWCoP.value.toFixed(1)} CoP`} since={capability.dHWCoP.start} />,
-                    <StatusItem key={`${idx}-heatingcop`} icon={faFire} title="Heating CoP" value={`${capability.heatingCoP.value.toFixed(1)} CoP`} since={capability.heatingCoP.start} />,
-                    <StatusItem key={`${idx}-outside`} icon={faTree} title="Outside Temperature" value={`${capability.outsideTemperature.value.toFixed(1)}°C`} since={capability.outsideTemperature.start} />,
-                    <StatusItem key={`${idx}-dhw`} icon={faFaucetDrip} title="Hot Water Temperature" value={`${capability.dhwTemperature.value.toFixed(1)}°C`} since={capability.dhwTemperature.start} />,
-                    <StatusItem key={`${idx}-yield`} icon={faFire} title="Daily Yield" value={`${capability.dailyConsumedEnergy.value}kWh`} since={capability.dailyConsumedEnergy.start} />,
-                    <StatusItem key={`${idx}-flow`} icon={faThermometer4} title="Flow Temperature" value={`${capability.actualFlowTemperature.value.toFixed(1)}°C`} since={capability.actualFlowTemperature.start} />,
-                    <StatusItem key={`${idx}-return`} icon={faThermometer2} title="Return Temperature" value={`${capability.returnTemperature.value.toFixed(1)}°C`} since={capability.returnTemperature.start} />,
-                    <StatusItem key={`${idx}-pressure`} icon={faGauge} title="System Pressure" value={`${capability.systemPressure.value.toFixed(1)} bar`} since={capability.systemPressure.start} />
+                    <StatusItem key={`${idx}-dhwcop`} icon={faFaucet} title="Hot Water CoP" value={`${capability.dHWCoP.value.toFixed(1)} CoP`} since={capability.dHWCoP.start} lastReported={capability.dHWCoP.lastReported} />,
+                    <StatusItem key={`${idx}-heatingcop`} icon={faFire} title="Heating CoP" value={`${capability.heatingCoP.value.toFixed(1)} CoP`} since={capability.heatingCoP.start} lastReported={capability.heatingCoP.lastReported} />,
+                    <StatusItem key={`${idx}-outside`} icon={faTree} title="Outside Temperature" value={`${capability.outsideTemperature.value.toFixed(1)}°C`} since={capability.outsideTemperature.start} lastReported={capability.outsideTemperature.lastReported} />,
+                    <StatusItem key={`${idx}-dhw`} icon={faFaucetDrip} title="Hot Water Temperature" value={`${capability.dhwTemperature.value.toFixed(1)}°C`} since={capability.dhwTemperature.start} lastReported={capability.dhwTemperature.lastReported} />,
+                    <StatusItem key={`${idx}-yield`} icon={faFire} title="Daily Yield" value={`${capability.dailyConsumedEnergy.value}kWh`} since={capability.dailyConsumedEnergy.start} lastReported={capability.dailyConsumedEnergy.lastReported} />,
+                    <StatusItem key={`${idx}-flow`} icon={faThermometer4} title="Flow Temperature" value={`${capability.actualFlowTemperature.value.toFixed(1)}°C`} since={capability.actualFlowTemperature.start} lastReported={capability.actualFlowTemperature.lastReported} />,
+                    <StatusItem key={`${idx}-return`} icon={faThermometer2} title="Return Temperature" value={`${capability.returnTemperature.value.toFixed(1)}°C`} since={capability.returnTemperature.start} lastReported={capability.returnTemperature.lastReported} />,
+                    <StatusItem key={`${idx}-pressure`} icon={faGauge} title="System Pressure" value={`${capability.systemPressure.value.toFixed(1)} bar`} since={capability.systemPressure.start} lastReported={capability.systemPressure.lastReported} />
                   ];
                 }
 

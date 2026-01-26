@@ -24,6 +24,7 @@ export function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise
     return {
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
+      lastReported: event.lastReported.toISOString(),
       value: event.value
     };
   });
@@ -41,6 +42,7 @@ export function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise
       return {
         start: event.end.toISOString(),
         end: null,
+        lastReported: event.lastReported.toISOString(),
         value: false
       };
     }
@@ -48,6 +50,7 @@ export function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise
     return {
       start: event.start.toISOString(),
       end: null,
+      lastReported: event.lastReported.toISOString(),
       value: true
     };
   });
@@ -71,6 +74,7 @@ export function mapHeatPumpModeEvent(eventsPromise: Promise<NumericEvent[]>): Pr
     return {
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
+      lastReported: event.lastReported.toISOString(),
       value: HEAT_PUMP_MODES[event.value] ?? 'UNKNOWN'
     };
   });
@@ -87,6 +91,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         snapshotUrl: {
           start: now,
           end: null,
+          lastReported: now,
           value: `/api/snapshot/${device.providerId}`
         }
       };
