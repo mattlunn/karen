@@ -19,12 +19,12 @@ import eventsRouter from './events';
 
 const router = express.Router();
 
+router.use('/events', eventsRouter);
 router.use('/devices', devicesRouter);
 router.use('/users', usersRouter);
 router.use('/timeline', timelineRouter);
 router.use('/security', securityRouter);
 router.use('/heating', heatingRouter);
-router.use(eventsRouter);
 router.get('/device/:id', deviceRouteHander);
 router.get('/device/:id/history', deviceHistoryHandler);
 router.get('/device/:id/timeline', deviceTimelineHandler);

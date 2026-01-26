@@ -12,18 +12,11 @@ interface SSEClient {
 const clients: Set<SSEClient> = new Set();
 
 router.get('/events', (req, res) => {
-  // Authentication check - uses existing session cookie
-  if (!req.session?.userId) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
-
   // Set SSE headers
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
     'Connection': 'keep-alive',
-    'X-Accel-Buffering': 'no', // Disable nginx buffering
   });
 
   // Generate client ID
