@@ -1,6 +1,7 @@
 import express from 'express';
 import bus from '../../bus';
 import type { NumericEvent, BooleanEvent } from '../../models';
+import type { DeviceCapabilityEvent } from '../../models/capabilities';
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ interface SSEClient {
 
 const clients: Set<SSEClient> = new Set();
 
-router.get('/events', (req, res) => {
+router.get('/', (req, res) => {
   // Set SSE headers
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -73,47 +74,47 @@ router.get('/events', (req, res) => {
   };
 
   // Listen to all device capability events
-  // Pattern: {CAPABILITY}:{field}:start
-  const eventHandlers: Array<{ pattern: string; handler: (event: any) => void }> = [
+  // Uses DeviceCapabilityEvent patterns from capabilities.gen.ts
+  const eventHandlers: Array<{ event: DeviceCapabilityEvent; handler: (event: any) => void }> = [
     // LIGHT capability events
-    { pattern: 'LIGHT:isOn:start', handler: createDeviceEventHandler('LIGHT', 'isOn') },
-    { pattern: 'LIGHT:brightness:start', handler: createDeviceEventHandler('LIGHT', 'brightness') },
+    { event: 'ON_LIGHT_IS_ON_START', handler: createDeviceEventHandler('LIGHT', 'isOn') },
+    { event: 'ON_LIGHT_BRIGHTNESS_CHANGED', handler: createDeviceEventHandler('LIGHT', 'brightness') },
 
     // LOCK capability events
-    { pattern: 'LOCK:isLocked:start', handler: createDeviceEventHandler('LOCK', 'isLocked') },
-    { pattern: 'LOCK:isJammed:start', handler: createDeviceEventHandler('LOCK', 'isJammed') },
+    { event: 'ON_LOCK_IS_LOCKED_START', handler: createDeviceEventHandler('LOCK', 'isLocked') },
+    { event: 'ON_LOCK_IS_JAMMED_START', handler: createDeviceEventHandler('LOCK', 'isJammed') },
 
     // THERMOSTAT capability events
-    { pattern: 'THERMOSTAT:targetTemperature:start', handler: createDeviceEventHandler('THERMOSTAT', 'targetTemperature') },
-    { pattern: 'THERMOSTAT:currentTemperature:start', handler: createDeviceEventHandler('THERMOSTAT', 'currentTemperature') },
-    { pattern: 'THERMOSTAT:isHeating:start', handler: createDeviceEventHandler('THERMOSTAT', 'isHeating') },
-    { pattern: 'THERMOSTAT:power:start', handler: createDeviceEventHandler('THERMOSTAT', 'power') },
+    { event: 'ON_THERMOSTAT_TARGET_TEMPERATURE_CHANGED', handler: createDeviceEventHandler('THERMOSTAT', 'targetTemperature') },
+    { event: 'ON_THERMOSTAT_CURRENT_TEMPERATURE_CHANGED', handler: createDeviceEventHandler('THERMOSTAT', 'currentTemperature') },
+    { event: 'ON_THERMOSTAT_IS_ON_START', handler: createDeviceEventHandler('THERMOSTAT', 'isHeating') },
+    { event: 'ON_THERMOSTAT_POWER_CHANGED', handler: createDeviceEventHandler('THERMOSTAT', 'power') },
 
     // SWITCH capability events
-    { pattern: 'SWITCH:isOn:start', handler: createDeviceEventHandler('SWITCH', 'isOn') },
+    { event: 'ON_SWITCH_IS_ON_START', handler: createDeviceEventHandler('SWITCH', 'isOn') },
 
     // MOTION_SENSOR capability events
-    { pattern: 'MOTION_SENSOR:hasMotion:start', handler: createDeviceEventHandler('MOTION_SENSOR', 'hasMotion') },
+    { event: 'ON_MOTION_SENSOR_HAS_MOTION_START', handler: createDeviceEventHandler('MOTION_SENSOR', 'hasMotion') },
 
     // TEMPERATURE_SENSOR capability events
-    { pattern: 'TEMPERATURE_SENSOR:currentTemperature:start', handler: createDeviceEventHandler('TEMPERATURE_SENSOR', 'currentTemperature') },
+    { event: 'ON_TEMPERATURE_SENSOR_CURRENT_TEMPERATURE_CHANGED', handler: createDeviceEventHandler('TEMPERATURE_SENSOR', 'currentTemperature') },
 
     // HUMIDITY_SENSOR capability events
-    { pattern: 'HUMIDITY_SENSOR:humidity:start', handler: createDeviceEventHandler('HUMIDITY_SENSOR', 'humidity') },
+    { event: 'ON_HUMIDITY_SENSOR_HUMIDITY_CHANGED', handler: createDeviceEventHandler('HUMIDITY_SENSOR', 'humidity') },
 
     // LIGHT_SENSOR capability events
-    { pattern: 'LIGHT_SENSOR:illuminance:start', handler: createDeviceEventHandler('LIGHT_SENSOR', 'illuminance') },
+    { event: 'ON_LIGHT_SENSOR_ILLUMINANCE_CHANGED', handler: createDeviceEventHandler('LIGHT_SENSOR', 'illuminance') },
 
     // BATTERY_LEVEL_INDICATOR capability events
-    { pattern: 'BATTERY_LEVEL_INDICATOR:batteryPercentage:start', handler: createDeviceEventHandler('BATTERY_LEVEL_INDICATOR', 'batteryPercentage') },
+    { event: 'ON_BATTERY_LEVEL_INDICATOR_BATTERY_PERCENTAGE_CHANGED', handler: createDeviceEventHandler('BATTERY_LEVEL_INDICATOR', 'batteryPercentage') },
 
     // BATTERY_LOW_INDICATOR capability events
-    { pattern: 'BATTERY_LOW_INDICATOR:isLow:start', handler: createDeviceEventHandler('BATTERY_LOW_INDICATOR', 'isLow') },
+    { event: 'ON_BATTERY_LOW_INDICATOR_IS_BATTERY_LOW_START', handler: createDeviceEventHandler('BATTERY_LOW_INDICATOR', 'isLow') },
   ];
 
   // Register all event listeners
-  eventHandlers.forEach(({ pattern, handler }) => {
-    bus.on(pattern, handler);
+  eventHandlers.forEach(({ event, handler }) => {
+    bus.on(event, handler);
   });
 
   // User arrival/departure event handler
@@ -147,8 +148,8 @@ router.get('/events', (req, res) => {
     clearInterval(heartbeat);
 
     // Remove all event listeners
-    eventHandlers.forEach(({ pattern, handler }) => {
-      bus.off(pattern, handler);
+    eventHandlers.forEach(({ event, handler }) => {
+      bus.off(event, handler);
     });
 
     // Remove user event listeners

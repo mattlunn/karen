@@ -40,6 +40,10 @@ export default class EbusClient {
 
         socket.write(`${command}\n`);
       });
+
+      socket.on('error', (err) => {
+        rej(err);
+      });
     });
   }
 
