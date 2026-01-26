@@ -45,7 +45,7 @@ router.get('/', (req, res) => {
       try {
         client.response.write(`data: ${JSON.stringify(message)}\n\n`);
       } catch (err) {
-        console.error(`Failed to send to client ${client.id}:`, err);
+        console.error('Failed to send SSE message to client:', err);
         clients.delete(client);
       }
     });
@@ -67,7 +67,7 @@ router.get('/', (req, res) => {
       try {
         client.response.write(`data: ${JSON.stringify(message)}\n\n`);
       } catch (err) {
-        console.error(`Failed to send to client ${client.id}:`, err);
+        console.error('Failed to send SSE message to client:', err);
         clients.delete(client);
       }
     });
