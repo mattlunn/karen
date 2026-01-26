@@ -11,6 +11,7 @@ import { Switch, BrowserRouter } from 'react-router-dom';
 import { MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { RealtimeProvider } from './components/realtime-provider';
 
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
@@ -24,15 +25,17 @@ window.onload = () => {
   root.render(
     <QueryClientProvider client={queryClient}>
       <MantineProvider>
-        <BrowserRouter>
-          <Switch>
-            <Route exact path="/" component={Home}/>
-            <Route exact path="/login" component={Login}/>
-            <Route exact path="/timeline" component={Timeline}/>
-            <Route exact path="/device/:id" component={Device}/>
-            <Route exact path="/device" component={Devices}/>
-          </Switch>
-        </BrowserRouter>
+        <RealtimeProvider>
+          <BrowserRouter>
+            <Switch>
+              <Route exact path="/" component={Home}/>
+              <Route exact path="/login" component={Login}/>
+              <Route exact path="/timeline" component={Timeline}/>
+              <Route exact path="/device/:id" component={Device}/>
+              <Route exact path="/device" component={Devices}/>
+            </Switch>
+          </BrowserRouter>
+        </RealtimeProvider>
       </MantineProvider>
       {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
     </QueryClientProvider>,

@@ -4,11 +4,9 @@ import Header from '../header';
 import Security from '../security';
 import Groups from '../groups';
 import { useDevices } from '../../hooks/queries/use-devices';
-import { useSSEEvents } from '../../hooks/use-sse-events';
 
 export default function Home() {
   const { data, isLoading } = useDevices();
-  useSSEEvents();
 
   let content = null;
 
