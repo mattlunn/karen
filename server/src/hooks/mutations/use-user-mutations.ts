@@ -14,8 +14,11 @@ export function useUserMutation(userId: string) {
       if (!res.ok) throw new Error(`Failed to update user: ${res.status}`);
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(['users'], (old: UserResponse[] | undefined) => {
+        if (!old) return old;
+        return old.map(user => user.id === userId ? data : user);
+      });
     },
   });
 }
