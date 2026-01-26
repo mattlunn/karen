@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { DeviceApiResponse } from '../../api/types';
+import type { DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, ThermostatUpdateRequest } from '../../api/types';
 
 export function useLightMutation(deviceId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { isOn?: boolean; brightness?: number }): Promise<DeviceApiResponse> => {
+    mutationFn: async (data: LightUpdateRequest): Promise<DeviceApiResponse> => {
       const res = await fetch(`/api/device/${deviceId}/light`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -33,7 +33,7 @@ export function useLockMutation(deviceId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { isLocked: boolean }): Promise<DeviceApiResponse> => {
+    mutationFn: async (data: LockUpdateRequest): Promise<DeviceApiResponse> => {
       const res = await fetch(`/api/device/${deviceId}/lock`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -61,7 +61,7 @@ export function useThermostatMutation(deviceId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { targetTemperature: number }): Promise<DeviceApiResponse> => {
+    mutationFn: async (data: ThermostatUpdateRequest): Promise<DeviceApiResponse> => {
       const res = await fetch(`/api/device/${deviceId}/thermostat`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { UserStatus, UserResponse } from '../../api/types';
+import type { UserResponse, UserUpdateRequest } from '../../api/types';
 
 export function useUserMutation(userId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { status?: UserStatus; eta?: number }): Promise<UserResponse> => {
+    mutationFn: async (data: UserUpdateRequest): Promise<UserResponse> => {
       const res = await fetch(`/api/users/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

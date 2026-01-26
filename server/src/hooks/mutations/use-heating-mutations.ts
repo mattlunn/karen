@@ -1,21 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { CentralHeatingMode, DHWHeatingMode } from '../../api/types';
-
-interface HeatingUpdateRequest {
-  centralHeating?: CentralHeatingMode;
-  dhw?: DHWHeatingMode;
-}
-
-interface HeatingResponse {
-  centralHeating: CentralHeatingMode;
-  dhw: DHWHeatingMode;
-}
+import type { HeatingUpdateRequest, HeatingStatusResponse } from '../../api/types';
 
 export function useHeatingMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: HeatingUpdateRequest): Promise<HeatingResponse> => {
+    mutationFn: async (data: HeatingUpdateRequest): Promise<HeatingStatusResponse> => {
       const res = await fetch('/api/heating', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
