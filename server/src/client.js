@@ -17,7 +17,14 @@ import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import './styles/app.less';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const theme = createTheme({
   scale: 0.8,
