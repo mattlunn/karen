@@ -1,14 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { DevicesApiResponse, RestDeviceResponse } from '../api/types';
 
 interface DeviceUpdateEvent {
   type: 'device_update';
-  deviceId: number;
-  capability: string;
-  field: string;
-  value: any;
-  start: string;
-  end: string | null;
+  device: RestDeviceResponse;
 }
 
 interface UserUpdateEvent {
@@ -87,56 +83,17 @@ export function useSSEEvents() {
     };
 
     const handleDeviceUpdate = (event: DeviceUpdateEvent) => {
-      const { deviceId, capability, field, value, start, end } = event;
+      queryClient.setQueryData(['device', event.device.id], event.device);
 
-      // Update individual device cache
-      queryClient.setQueryData(['device', deviceId], (old: any) => {
+      queryClient.setQueryData(['devices'], (old: DevicesApiResponse) => {
         if (!old) return old;
 
         return {
           ...old,
-          device: {
-            ...old.device,
-            capabilities: old.device.capabilities.map((cap: any) => {
-              if (cap.type !== capability) return cap;
+          devices: old.devices.map((device: RestDeviceResponse) => {
+            if (device.id !== event.device.id) return device;
 
-              return {
-                ...cap,
-                [field]: {
-                  start,
-                  end,
-                  value,
-                },
-              };
-            }),
-          },
-        };
-      });
-
-      // Update devices list cache
-      queryClient.setQueryData(['devices'], (old: any) => {
-        if (!old) return old;
-
-        return {
-          ...old,
-          devices: old.devices.map((device: any) => {
-            if (device.id !== deviceId) return device;
-
-            return {
-              ...device,
-              capabilities: device.capabilities.map((cap: any) => {
-                if (cap.type !== capability) return cap;
-
-                return {
-                  ...cap,
-                  [field]: {
-                    start,
-                    end,
-                    value,
-                  },
-                };
-              }),
-            };
+            return event.device;
           }),
         };
       });
