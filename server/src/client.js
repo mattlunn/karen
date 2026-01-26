@@ -16,20 +16,7 @@ import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import './styles/app.less';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60000, // Consider data fresh for 1 minute
-      gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
-      retry: 3, // Retry failed requests 3 times
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
-    },
-    mutations: {
-      retry: 1, // Retry failed mutations once
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 window.onload = () => {
   const root = createRoot(document.getElementById('main'));
