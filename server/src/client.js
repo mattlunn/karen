@@ -8,7 +8,7 @@ import Device from './components/pages/device';
 import Login from './components/pages/login';
 import { Route } from 'react-router';
 import { Switch, BrowserRouter } from 'react-router-dom';
-import { MantineProvider } from '@mantine/core';
+import { createTheme, MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RealtimeProvider } from './components/realtime-provider';
@@ -19,12 +19,16 @@ import './styles/app.less';
 
 const queryClient = new QueryClient();
 
+const theme = createTheme({
+  scale: 0.8,
+});
+
 window.onload = () => {
   const root = createRoot(document.getElementById('main'));
 
   root.render(
     <QueryClientProvider client={queryClient}>
-      <MantineProvider>
+      <MantineProvider theme={theme}>
         <RealtimeProvider>
           <BrowserRouter>
             <Switch>
