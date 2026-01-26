@@ -5,11 +5,10 @@ import Security from '../security';
 import Groups from '../groups';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { useSSEEvents } from '../../hooks/use-sse-events';
-import ConnectionStatus from '../connection-status';
 
 export default function Home() {
   const { data, isLoading } = useDevices();
-  const { status: sseStatus } = useSSEEvents();
+  useSSEEvents();
 
   let content = null;
 
@@ -43,7 +42,6 @@ export default function Home() {
   return (
     <div>
       <Header />
-      <ConnectionStatus status={sseStatus} />
       <div>
         <SideBar/>
         <div className='body'>
