@@ -27,7 +27,7 @@ export default function Home() {
 
     content = (
       <>
-        <Security cameras={cameras} />
+        {/* <Security cameras={cameras} /> */}
         <Groups
           rooms={data.rooms}
           devices={data.devices}

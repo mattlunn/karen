@@ -1,10 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import dayjs from '../dayjs';
-import classNames from 'classnames';
 import { AWAY, HOME } from '../constants/status';
 import { humanDate } from '../helpers/date';
-import { LoadingOverlay } from '@mantine/core';
+import { Avatar, Box, LoadingOverlay } from '@mantine/core';
 import { useUserMutation } from '../hooks/mutations/use-user-mutations';
 import EtaPicker from './modals/eta-picker';
 import Modal from './modal';
@@ -59,8 +58,8 @@ export default function UserStatus(props) {
 
   return (
     <div className="user-status">
-      <div style={{ position: 'relative' }}>
-        <LoadingOverlay visible={isPending} />
+      <Box pos="relative" mr={10} h="fit-content">
+        <LoadingOverlay visible={isPending} overlayProps={{ radius: 'xl' }} loaderProps={{ size: 'sm' }} />
         <a href="#" onClick={(e) => {
           e.preventDefault();
 
@@ -68,14 +67,19 @@ export default function UserStatus(props) {
             status: status === HOME ? AWAY : HOME
           });
         }}>
-          <img
-            className={classNames('user-status__avatar', {
-              'user-status__avatar--away': status === AWAY
-            })}
+          <Avatar
             src={avatar}
+            size="md"
+            radius="xl"
+            styles={{
+              root: {
+                border: `1px solid ${status === AWAY ? 'red' : '#5eef00'}`,
+                padding: '1px'
+              }
+            }}
           />
         </a>
-      </div>
+      </Box>
       <div>
         <h3 className="user-status__user-name">{id}</h3>
         <p className="user-status__about">

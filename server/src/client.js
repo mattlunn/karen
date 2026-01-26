@@ -21,6 +21,21 @@ const queryClient = new QueryClient();
 
 const theme = createTheme({
   scale: 0.8,
+  colors: {
+    karen: [
+      '#f2f3f8',
+      '#e2e4e9',
+      '#c1c7d5',
+      '#9ea8c1',
+      '#808db0',
+      '#6d7da6',
+      '#6374a3',
+      '#52638f',
+      '#485880',
+      '#1d2538'
+    ]
+  },
+  primaryColor: 'karen'
 });
 
 window.onload = () => {

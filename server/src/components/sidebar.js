@@ -4,18 +4,12 @@ import classnames from 'classnames';
 import { HOME, AWAY } from '../constants/status';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDroplet, faFire, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
-import { Button } from '@mantine/core';
+import { SegmentedControl } from '@mantine/core';
 import { useUsers } from '../hooks/queries/use-users';
 import { useHeating } from '../hooks/queries/use-heating';
 import { useSecurity } from '../hooks/queries/use-security';
 import { useAlarmMutation } from '../hooks/mutations/use-security-mutations';
 import { useHeatingMutation } from '../hooks/mutations/use-heating-mutations';
-
-function HomeControlButton({ onClick, value, currentValue, label, loading }) {
-  return (
-    <Button loading={loading} disabled={currentValue === value} onClick={() => onClick(value)}>{label}</Button>
-  );
-}
 
 export default function Sidebar({ hideOnMobile}) {
   const { isLoading: usersLoading, data: usersData } = useUsers();
@@ -54,28 +48,43 @@ export default function Sidebar({ hideOnMobile}) {
 
         <div className="sidebar__home-controls">
           <h3 className="home-controls__title"><FontAwesomeIcon icon={faShieldHalved} /></h3>
-          <div>
-            <HomeControlButton currentValue={alarmMode} label="Home" onClick={(alarmMode) => updateAlarmMode({ alarmMode })} value="OFF" loading={alarmMutating} />
-            <HomeControlButton currentValue={alarmMode} label="Away" onClick={(alarmMode) => updateAlarmMode({ alarmMode })} value="AWAY" loading={alarmMutating} />
-            <HomeControlButton currentValue={alarmMode} label="Night" onClick={(alarmMode) => updateAlarmMode({ alarmMode })} value="NIGHT" loading={alarmMutating} />
-          </div>
+          <SegmentedControl
+            value={alarmMode}
+            onChange={(alarmMode) => updateAlarmMode({ alarmMode })}
+            disabled={alarmMutating}
+            data={[
+              { label: 'Home', value: 'OFF' },
+              { label: 'Away', value: 'AWAY' },
+              { label: 'Night', value: 'NIGHT' },
+            ]}
+          />
         </div>
 
         <div className="sidebar__home-controls">
           <h3 className="home-controls__title"><FontAwesomeIcon icon={faFire} /></h3>
-          <div>
-            <HomeControlButton currentValue={commonThermostatMode} label="On" onClick={(mode) => updateHeating({ centralHeating: mode })} value="ON" loading={heatingMutating} />
-            <HomeControlButton currentValue={commonThermostatMode} label="Setback" onClick={(mode) => updateHeating({ centralHeating: mode })} value="SETBACK" loading={heatingMutating} />
-            <HomeControlButton currentValue={commonThermostatMode} label="Off" onClick={(mode) => updateHeating({ centralHeating: mode })} value="OFF" loading={heatingMutating} />
-          </div>
+          <SegmentedControl
+            value={commonThermostatMode}
+            onChange={(mode) => updateHeating({ centralHeating: mode })}
+            disabled={heatingMutating}
+            data={[
+              { label: 'On', value: 'ON' },
+              { label: 'Setback', value: 'SETBACK' },
+              { label: 'Off', value: 'OFF' },
+            ]}
+          />
         </div>
 
         <div className="sidebar__home-controls">
           <h3 className="home-controls__title"><FontAwesomeIcon icon={faDroplet} /></h3>
-          <div>
-            <HomeControlButton currentValue={dhwHeatingMode} label="On" onClick={(mode) => updateHeating({ dhw: mode })} value="ON" loading={heatingMutating} />
-            <HomeControlButton currentValue={dhwHeatingMode} label="Off" onClick={(mode) => updateHeating({ dhw: mode })} value="OFF" loading={heatingMutating} />
-          </div>
+          <SegmentedControl
+            value={dhwHeatingMode}
+            onChange={(mode) => updateHeating({ dhw: mode })}
+            disabled={heatingMutating}
+            data={[
+              { label: 'On', value: 'ON' },
+              { label: 'Off', value: 'OFF' },
+            ]}
+          />
         </div>
       </>
     );
