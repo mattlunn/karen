@@ -1,27 +1,12 @@
 import React from 'react';
-import { useMutation } from '@apollo/client';
-import gql from 'graphql-tag';
 import DeviceControl from '../device-control';
 import { faLightbulb } from '@fortawesome/free-solid-svg-icons';
+import useApiMutation from '../../hooks/api-mutation';
 
 function BrightnessControl({ device, capability }) {
-  const brightness = capability.brightness;
+  const brightness = capability.brightness.value;
   const options = [];
-  const [setBrightness, { loading }] = useMutation(gql`
-    mutation updateLight($id: ID!, $brightness: Int) {
-      updateLight(id: $id, brightness: $brightness) {
-        id
-        name
-
-        capabilities {
-          ... on Light {
-            brightness
-            isOn
-          }
-        }
-      }
-    }
-  `);
+  const { mutate: setBrightness, loading } = useApiMutation(`/device/${device.id}/light`);
 
   let selectedValue = null;
 
@@ -38,12 +23,9 @@ function BrightnessControl({ device, capability }) {
   return (
     <select onChange={(e) => {
       setBrightness({
-        variables: {
-          id: device.id,
-          brightness: Number(e.target.value)
-        }
+        brightness: Number(e.target.value)
       });
-      
+
       e.preventDefault();
     }} defaultValue={selectedValue}>
       {options}
@@ -52,24 +34,11 @@ function BrightnessControl({ device, capability }) {
 }
 
 export default function Light({ device, capability }) {
-  const [setLightSwitchStatus, { loading }] = useMutation(gql`
-    mutation updateLight($id: ID!, $isOn: Boolean) {
-      updateLight(id: $id, isOn: $isOn) {
-        id
-        name
-
-        capabilities {
-          ... on Light {
-            isOn
-          }
-        }
-      }
-    }
-  `);
+  const { mutate: setLightSwitchStatus, loading } = useApiMutation(`/device/${device.id}/light`);
 
   return (
-    <DeviceControl device={device} icon={faLightbulb} color="#ffa24d" colorIconBackground={capability.isOn} values={[
-      capability.isOn ? 'On' : 'Off',
+    <DeviceControl device={device} icon={faLightbulb} color="#ffa24d" colorIconBackground={capability.isOn.value} values={[
+      capability.isOn.value ? 'On' : 'Off',
       <BrightnessControl device={device} capability={capability} key={1}/>
     ]} actionPending={loading} iconOnClick={(e) => {
       e.preventDefault();
@@ -77,10 +46,7 @@ export default function Light({ device, capability }) {
       if (loading) return;
 
       setLightSwitchStatus({
-        variables: {
-          id: device.id,
-          isOn: !capability.isOn
-        }
+        isOn: !capability.isOn.value
       });
     }} />
   );

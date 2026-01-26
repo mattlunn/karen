@@ -1,29 +1,22 @@
-type LightCapability = {
-  __typename: 'Light';
-  isOn: boolean;
-  brightness: number;
+// Import and re-export shared types from server API
+import type {
+  DeviceStatus,
+  AlarmMode,
+  AlarmStatusResponse as AlarmApiResponse,
+  BooleanEventApiResponse,
+  NumericEventApiResponse,
+  RestDeviceResponse,
+  DevicesApiResponse,
+  DeviceApiResponse
+} from '../../../../server/src/api/types';
+
+export type {
+  DeviceStatus,
+  AlarmMode,
+  AlarmApiResponse,
+  BooleanEventApiResponse,
+  NumericEventApiResponse,
+  RestDeviceResponse,
+  DevicesApiResponse,
+  DeviceApiResponse
 };
-
-type SpeakerCapability = {
-  __typename: 'Speaker';
-};
-
-type ThermostatCapability = {
-  __typename: 'Thermostat';
-  targetTemperature: number;
-  currentTemperature: number;
-  power: number;
-  isHeating: boolean;
-};
-
-type Capability = LightCapability | ThermostatCapability | SpeakerCapability;
-
-export type Device = {
-  id: string;
-  name: string;
-  status: DeviceStatus;
-  capabilities: Capability[];
-}
-
-export type DeviceStatus = 'OK' | 'OFFLINE';
-export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';

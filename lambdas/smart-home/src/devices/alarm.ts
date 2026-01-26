@@ -1,28 +1,17 @@
 import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { AlarmMode } from '../custom-typings/karen-types';
-import { gql } from '@apollo/client/core';
-import client from '../client';
+import { AlarmMode, AlarmApiResponse } from '../custom-typings/karen-types';
+import { apiPut } from '../client';
 
-const MODIFY_ALARM = gql`
-  mutation ModifyAlarm($mode: AlarmMode) {
-    updateAlarm(mode: $mode) {
-      alarmMode
-    }
-  }
-`;
-
-export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { mode: AlarmMode }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
+export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { alarmMode: AlarmMode }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
-  const response = await client.mutate<{ updateAlarm: { alarmMode: AlarmMode }}>({
-    mutation: MODIFY_ALARM,
-    variables
-  });
+
+  const response = await apiPut<AlarmApiResponse>('/security', variables);
 
   const now = new Date();
   const uncertaintyInMilliseconds = now.valueOf() - then.valueOf();
-  const mode = response.data?.updateAlarm.alarmMode;
+  const mode = response.alarmMode;
 
-  if (mode === variables.mode) {
+  if (mode === variables.alarmMode) {
     return {
       event: {
         header: {
@@ -52,7 +41,7 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
         },
         payload: {
           type: 'INTERNAL_ERROR',
-          message: `Unable to set the Alarm to ${variables.mode}`
+          message: `Unable to set the Alarm to ${variables.alarmMode}`
         }
       }
     }

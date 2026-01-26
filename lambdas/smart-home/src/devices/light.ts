@@ -1,37 +1,16 @@
 import { SmartHomeErrorResponse, SmartHomeEndpointRequest, SmartHomeEndpointAndPropertiesResponse, SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { Device } from '../custom-typings/karen-types';
-import { gql } from '@apollo/client/core';
-import client from '../client';
-
-const MODIFY_LIGHT = gql`
-  mutation ModifyLight($id: ID!, $isOn: Boolean, $brightness: Int) {
-    updateLight(id: $id, isOn: $isOn, brightness: $brightness) {
-      id
-
-      status
-
-      capabilities {
-        ...on Light {
-          isOn
-          brightness
-        }
-      }
-    }
-  }
-`;
+import { DeviceApiResponse, RestDeviceResponse } from '../custom-typings/karen-types';
+import { apiPut } from '../client';
 
 export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpointRequest<T>, variables: { id: string, isOn?: boolean, brightness?: number }): Promise<SmartHomeErrorResponse | SmartHomeEndpointAndPropertiesResponse> {
   const then = new Date();
-  const response = await client.mutate<{ updateLight: Device }>({
-    mutation: MODIFY_LIGHT,
-    variables
-  });
-
+  const { id, ...body } = variables;
+  const response = await apiPut<DeviceApiResponse>(`/device/${id}/light`, body);
   const now = new Date();
   const uncertaintyInMilliseconds = now.valueOf() - then.valueOf();
-  const light = response.data?.updateLight;
+  const lightCapability = response.device.capabilities.find(c => c.type === 'LIGHT');
 
-  if (light) {
+  if (lightCapability) {
     return {
       event: {
         header: {
@@ -44,7 +23,7 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
         }
       },
       context: {
-        properties: createResponseProperties(light, now, uncertaintyInMilliseconds)
+        properties: createResponseProperties(response.device, now, uncertaintyInMilliseconds)
       }
     };
   } else {
@@ -68,23 +47,23 @@ export async function modifyAndCreateResponseObject<T>(request: SmartHomeEndpoin
   }
 }
 
-export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
-  const light = device.capabilities.find(x => x.__typename === 'Light');
+export function createResponseProperties(device: RestDeviceResponse, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+  const lightCapability = device.capabilities.find(c => c.type === 'LIGHT');
 
-  if (!light) {
-    throw new Error();
+  if (!lightCapability) {
+    throw new Error('Light capability not found');
   }
 
   return [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
-    value: light.isOn ? 'ON' : 'OFF',
+    value: lightCapability.isOn.value ? 'ON' : 'OFF',
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }, {
     namespace: 'Alexa.BrightnessController',
     name: 'brightness',
-    value: light.brightness,
+    value: lightCapability.brightness.value,
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }, {

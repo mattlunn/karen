@@ -7,12 +7,28 @@ import s3 from '../../services/s3';
 import deviceRouteHander from './device';
 import deviceHistoryHandler from './device/history';
 import deviceTimelineHandler from './device/timeline';
+import devicesRouter from './devices';
+import timelineRouter from './timeline';
+import securityRouter from './security';
+import heatingRouter from './heating';
+import usersRouter from './users';
+import deviceLightRouter from './device/light';
+import deviceLockRouter from './device/lock';
+import deviceThermostatRouter from './device/thermostat';
 
 const router = express.Router();
 
+router.use('/devices', devicesRouter);
+router.use('/users', usersRouter);
+router.use('/timeline', timelineRouter);
+router.use('/security', securityRouter);
+router.use('/heating', heatingRouter);
 router.get('/device/:id', deviceRouteHander);
 router.get('/device/:id/history', deviceHistoryHandler);
 router.get('/device/:id/timeline', deviceTimelineHandler);
+router.use('/device/:id/light', deviceLightRouter);
+router.use('/device/:id/lock', deviceLockRouter);
+router.use('/device/:id/thermostat', deviceThermostatRouter);
 
 router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
   res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {

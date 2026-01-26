@@ -2,7 +2,7 @@ import { Device, BooleanEvent, NumericEvent } from '../../../models';
 import expressAsyncWrapper from '../../../helpers/express-async-wrapper';
 import dayjs from '../../../dayjs';
 import { TimeRangeSelector, HistorySelector } from '../../../models/capabilities/helpers';
-import { TimelineApiResponse, TimelineEventApiResponse } from '../../../api/types';
+import { DeviceTimelineApiResponse, DeviceTimelineEventApiResponse } from '../../../api/types';
 
 function mapBooleanHistory(
   fetchHistory: (hs: HistorySelector) => Promise<BooleanEvent[]>,
@@ -44,7 +44,7 @@ export default expressAsyncWrapper(async function (req, res, next) {
     until: untilParam ? new Date(untilParam) : new Date()
   };
 
-  const events: TimelineEventApiResponse[] = [];
+  const events: DeviceTimelineEventApiResponse[] = [];
   const historyPromises: Promise<void>[] = [];
 
   for (const capability of device.getCapabilities()) {
@@ -114,5 +114,5 @@ export default expressAsyncWrapper(async function (req, res, next) {
     since: historySelector.since.toISOString(),
     until: historySelector.until.toISOString(),
     events
-  } satisfies TimelineApiResponse);
+  } satisfies DeviceTimelineApiResponse);
 });

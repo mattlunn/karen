@@ -30,6 +30,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare id: CreationOptional<number>;
   declare provider: string;
   declare providerId: string;
+  declare createdAt: CreationOptional<Date>;
   declare type: CreationOptional<string>;
   declare name: CreationOptional<string>;
   declare roomId: CreationOptional<number>;
@@ -246,7 +247,11 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     for (const [name, { synchronize }] of Device._providers) {
       logger.info(`Synchronizing ${name}`);
 
-      await synchronize();
+      try {
+        await synchronize();
+      } catch (e) {
+        logger.error(e, `Unable to synchronize devices for provider ${name}`);
+      }
     }
   };
 
@@ -288,6 +293,11 @@ export default function (sequelize: Sequelize) {
       unique: true,
       primaryKey: true,
       autoIncrement: true
+    },
+
+    createdAt: {
+      type: DataTypes.STRING,
+      allowNull: false
     },
 
     type: {

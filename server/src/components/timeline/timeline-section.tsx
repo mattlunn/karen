@@ -6,7 +6,7 @@ import { useDateRange, DateRangeSelector } from '../date-range';
 import dayjs, { Dayjs } from '../../dayjs';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import Event from '../event';
-import { TimelineApiResponse, TimelineEventApiResponse } from '../../api/types';
+import { DeviceTimelineApiResponse, DeviceTimelineEventApiResponse } from '../../api/types';
 
 type TimelineSectionProps = {
   deviceId: number;
@@ -59,7 +59,7 @@ function renderTimeline(events: TimelineItem[]): ReactNode {
   );
 }
 
-function mapEventToComponent(event: TimelineEventApiResponse): ReactNode {
+function mapEventToComponent(event: DeviceTimelineEventApiResponse): ReactNode {
   switch (event.type) {
     case 'light-on':
       return <Event icon={faLightbulb} title="Light turned on" timestamp={event.timestamp} iconColor='#ffa24d' />;
@@ -89,7 +89,7 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
     until: effectiveRange.until.toISOString()
   }), [effectiveRange.since.valueOf(), effectiveRange.until.valueOf()]);
 
-  const { data, loading, error } = useApiCall<TimelineApiResponse>(
+  const { data, loading, error } = useApiCall<DeviceTimelineApiResponse>(
     `/device/${deviceId}/timeline`,
     params
   );

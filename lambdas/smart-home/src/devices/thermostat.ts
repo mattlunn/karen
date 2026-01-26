@@ -1,18 +1,18 @@
 import { SmartHomeEndpointProperty } from '../custom-typings/lambda';
-import { Device } from '../custom-typings/karen-types';
+import { RestDeviceResponse } from '../custom-typings/karen-types';
 
-export function createResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
-  const thermostat = device.capabilities.find(x => x.__typename === 'Thermostat');
+export function createResponseProperties(device: RestDeviceResponse, sampleTime: Date, uncertaintyInMilliseconds: number): SmartHomeEndpointProperty[] {
+  const thermostatCapability = device.capabilities.find(x => x.type === 'THERMOSTAT');
 
-  if (!thermostat) {
-    throw new Error();
+  if (!thermostatCapability) {
+    throw new Error('Thermostat capability not found');
   }
 
   return [{
     namespace: 'Alexa.TemperatureSensor',
     name: 'temperature',
     value: {
-      value: thermostat.currentTemperature,
+      value: thermostatCapability.currentTemperature.value,
       scale: 'CELSIUS'
     },
     timeOfSample: sampleTime.toISOString(),
@@ -21,7 +21,7 @@ export function createResponseProperties(device: Device, sampleTime: Date, uncer
   {
     namespace: 'Alexa.ThermostatController',
     name: 'thermostatMode',
-    value: thermostat.isHeating ? 'HEAT' : 'OFF',
+    value: thermostatCapability.isHeating.value ? 'HEAT' : 'OFF',
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   },
@@ -29,7 +29,7 @@ export function createResponseProperties(device: Device, sampleTime: Date, uncer
     namespace: 'Alexa.ThermostatController',
     name: 'targetSetpoint',
     value: {
-      value: thermostat.targetTemperature,
+      value: thermostatCapability.targetTemperature.value,
       'scale': 'CELSIUS'
     },
     timeOfSample: sampleTime.toISOString(),
