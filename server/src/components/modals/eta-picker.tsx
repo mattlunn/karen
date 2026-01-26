@@ -70,7 +70,7 @@ export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
         </div>
       </div>
       <div className="eta-picker__footer">
-        <Button variant="default" onClick={closeModal}>Cancel</Button>
+        <Button variant="default" onClick={closeModal} mr="sm">Cancel</Button>
         <Button loading={isPending} onClick={handleSetEta}>Ok</Button>
       </div>
     </div>
