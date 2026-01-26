@@ -229,3 +229,10 @@ export interface TimelineFeedApiResponse {
   events: TimelineFeedEvent[];
   hasMore: boolean;
 }
+
+export interface DeviceUpdateEvent {
+  type: 'device_update';
+  device: RestDeviceResponse;
+}
+
+export type SSEEvent = DeviceUpdateEvent | { type: 'connected' };

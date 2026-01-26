@@ -1,10 +1,9 @@
 import express from 'express';
-import bus from '../../bus';
-import type { NumericEvent, BooleanEvent, Device } from '../../models';
-import { Stay } from '../../models';
-import { DeviceCapabilityEvents, type DeviceCapabilityEvent } from '../../models/capabilities';
+import type { NumericEvent, BooleanEvent } from '../../models';
+import { DeviceCapabilityEvents } from '../../models/capabilities';
 import { mapDeviceToResponse } from './device-helpers';
-import { mapUserToResponse } from './user-helpers';
+import logger from '../../logger';
+import { SSEEvent } from '../../api/types';
 
 const router = express.Router();
 
@@ -13,6 +12,15 @@ interface SSEClient {
 }
 
 const clients: Set<SSEClient> = new Set();
+
+function sendMessage(client: SSEClient, message: SSEEvent) {
+  try {
+    client.response.write(`data: ${JSON.stringify(message)}\n\n`);
+  } catch (err) {
+    logger.error('Failed to send SSE message to client:', err);
+    clients.delete(client);
+  }
+}
 
 router.get('/', (req, res) => {
   res.writeHead(200, {
@@ -24,70 +32,37 @@ router.get('/', (req, res) => {
   const client = { response: res };
   clients.add(client);
 
-  // Send initial connection event
-  res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
-
-  // Heartbeat to keep connection alive (every 30s)
-  const heartbeat = setInterval(() => {
-    try {
-      res.write(':heartbeat\n\n');
-    } catch (err) {
-      clearInterval(heartbeat);
-    }
-  }, 30000);
+  sendMessage(client, { type: 'connected' });
 
   const handleDeviceCapabilityPropertyChanged = async (e: NumericEvent | BooleanEvent) => {
     const message = {
-      type: 'device_update',
+      type: 'device_update' as const,
       device: await mapDeviceToResponse(await e.getDevice())
     };
 
-    // Send to all connected clients
-    clients.forEach(client => {
-      try {
-        client.response.write(`data: ${JSON.stringify(message)}\n\n`);
-      } catch (err) {
-        console.error('Failed to send SSE message to client:', err);
-        clients.delete(client);
-      }
-    });
+    clients.forEach(client => sendMessage(client, message));
   };
 
   DeviceCapabilityEvents.onDeviceCapabilityPropertyChanged(handleDeviceCapabilityPropertyChanged);
 
-  // User arrival/departure event handler
-  const userEventHandler = async (stay: Stay) => {
-    const user = await stay.getUser();
-    const isHome = stay.departure === null;
-    const upcoming = isHome ? null : await Stay.findUpcomingStays([stay.userId as number]).then(s => s[0] ?? null);
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(':heartbeat\n\n');
+    } catch (err) {
+      cleanup();
+    }
+  }, 30000);
 
-    const message = {
-      type: 'user_update',
-      user: mapUserToResponse(user, isHome ? stay : null, upcoming),
-    };
-
-    clients.forEach(client => {
-      try {
-        client.response.write(`data: ${JSON.stringify(message)}\n\n`);
-      } catch (err) {
-        console.error('Failed to send SSE message to client:', err);
-        clients.delete(client);
-      }
-    });
-  };
-
-  bus.on('STAY_START', userEventHandler);
-  bus.on('STAY_END', userEventHandler);
-
-  req.on('close', () => {
+  const cleanup = () => {
     clearInterval(heartbeat);
 
     DeviceCapabilityEvents.offDeviceCapabilityPropertyChanged(handleDeviceCapabilityPropertyChanged);
 
-    bus.off('STAY_START', userEventHandler);
-    bus.off('STAY_END', userEventHandler);
-    
     clients.delete(client);
+  };
+
+  req.on('close', () => {
+    cleanup();
     res.end();
   });
 });

@@ -1,18 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { DevicesApiResponse, RestDeviceResponse, UserResponse } from '../api/types';
-
-interface DeviceUpdateEvent {
-  type: 'device_update';
-  device: RestDeviceResponse;
-}
-
-interface UserUpdateEvent {
-  type: 'user_update';
-  user: UserResponse;
-}
-
-type SSEEvent = DeviceUpdateEvent | UserUpdateEvent | { type: 'connected'; clientId: string };
+import { DevicesApiResponse, DeviceUpdateEvent, RestDeviceResponse, SSEEvent } from '../api/types';
 
 type SSEStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -35,7 +23,6 @@ export function useSSEEvents() {
       eventSource.onopen = () => {
         if (!mounted) return;
         setStatus('connected');
-        console.log('SSE connected');
       };
 
       eventSource.onmessage = (event) => {
@@ -44,17 +31,8 @@ export function useSSEEvents() {
         try {
           const data = JSON.parse(event.data) as SSEEvent;
 
-          if (data.type === 'connected') {
-            console.log('SSE session established:', data.clientId);
-            return;
-          }
-
           if (data.type === 'device_update') {
             handleDeviceUpdate(data);
-          }
-
-          if (data.type === 'user_update') {
-            handleUserUpdate(data);
           }
         } catch (err) {
           console.error('Failed to parse SSE message:', err);
@@ -81,10 +59,7 @@ export function useSSEEvents() {
 
     const handleDeviceUpdate = (event: DeviceUpdateEvent) => {
       queryClient.setQueryData(['device', event.device.id], event.device);
-
       queryClient.setQueryData(['devices'], (old: DevicesApiResponse) => {
-        if (!old) return old;
-
         return {
           ...old,
           devices: old.devices.map((device: RestDeviceResponse) => {
@@ -93,17 +68,6 @@ export function useSSEEvents() {
             return event.device;
           }),
         };
-      });
-    };
-
-    const handleUserUpdate = (event: UserUpdateEvent) => {
-      queryClient.setQueryData(['users'], (old: UserResponse[] | undefined) => {
-        if (!Array.isArray(old)) return old;
-
-        return old.map((user) => {
-          if (user.id !== event.user.id) return user;
-          return event.user;
-        });
       });
     };
 
