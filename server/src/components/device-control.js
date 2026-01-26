@@ -3,14 +3,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ThermostatHeatMap from './thermostat-heat-map';
 import classNames from 'classnames';
 import { faSync } from '@fortawesome/free-solid-svg-icons';
+import { Indicator } from '@mantine/core';
 
-export default function DeviceControl({ icon, iconOnClick = (e) => e.preventDefault(), actionPending = false, colorIconBackground, color, device, values = [], showMap }) {
+export default function DeviceControl({ icon, iconOnClick = (e) => e.preventDefault(), actionPending = false, colorIconBackground, color, device, values = [], showMap, isBatteryLow = false }) {
   return (
     <>
       <div className="device-control__header">
-        <a className={classNames('device-control__icon-container', actionPending && 'device-control__icon-container--disabled')} style={{ backgroundColor: colorIconBackground ? color + '50' : 'transparent' }} onClick={iconOnClick} href="#">
-          <FontAwesomeIcon icon={actionPending ? faSync : icon} spin={actionPending} color={color} />
-        </a>
+        <Indicator color="red" disabled={!isBatteryLow} size={12} offset={4}>
+          <a className={classNames('device-control__icon-container', actionPending && 'device-control__icon-container--disabled')} style={{ backgroundColor: colorIconBackground ? color + '50' : 'transparent' }} onClick={iconOnClick} href="#">
+            <FontAwesomeIcon icon={actionPending ? faSync : icon} spin={actionPending} color={color} />
+          </a>
+        </Indicator>
         <div className="device-control__body">
           <h4 className="device-control__name">{device.name}</h4>
           <ul className="device-control__values">

@@ -7,9 +7,9 @@ import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
 
 const deviceCapabilitiesMap = new Map<string, Capability[]>([
-  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR']],
+  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'BATTERY_LEVEL_INDICATOR']],
   ['Fibargroup FGD212', ['LIGHT']],
-  ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR']],
+  ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR']],
   ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']]
 ]);
 
@@ -34,19 +34,19 @@ deviceHandlers.set('Fibargroup FGMS001', [
       return device.getMotionSensorCapability().setHasMotionState(value !== 0);
     }
   },
-  { 
+  {
     propertyKey: 'Multilevel Sensor.Air temperature',
     propertyMapper(device: Device, value: number) {
       return device.getTemperatureSensorCapability().setCurrentTemperatureState(value);
     }
   },
-  { 
+  {
     propertyKey: 'Multilevel Sensor.Illuminance',
     propertyMapper(device: Device, value: number) {
       return device.getLightSensorCapability().setIlluminanceState(value);
     }
   },
-  { 
+  {
     propertyKey: 'Battery.level',
     propertyMapper(device: Device, value: number) {
       return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
@@ -61,19 +61,19 @@ deviceHandlers.set('AEON Labs ZW100', [
       return device.getMotionSensorCapability().setHasMotionState(value);
     }
   },
-  { 
+  {
     propertyKey: 'Multilevel Sensor.Air temperature',
     propertyMapper(device: Device, value: number) {
       return device.getTemperatureSensorCapability().setCurrentTemperatureState(value);
     }
   },
-  { 
+  {
     propertyKey: 'Multilevel Sensor.Humidity',
     propertyMapper(device: Device, value: number) {
       return device.getHumiditySensorCapability().setHumidityState(value);
     }
   },
-  { 
+  {
     propertyKey: 'Multilevel Sensor.Illuminance',
     propertyMapper(device: Device, value: number) {
       return device.getLightSensorCapability().setIlluminanceState(value);
@@ -82,7 +82,7 @@ deviceHandlers.set('AEON Labs ZW100', [
 ]);
 
 deviceHandlers.set('Fibargroup FGD212', [
-  { 
+  {
     propertyKey: 'Multilevel Switch.currentValue',
     propertyMapper(device: Device, value: number) {
       return Promise.all([
@@ -106,7 +106,7 @@ deviceHandlers.set('Zooz ZSE44', [
       return device.getTemperatureSensorCapability().setCurrentTemperatureState(value);
     }
   },
-  { 
+  {
     propertyKey: 'Battery.level',
     propertyMapper(device: Device, value: number) {
       return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
@@ -152,13 +152,14 @@ async function getClient() {
   const BACKOFFS = [1, 5, 60];
   let backoffIndex = 0;
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     logger.info('Starting ZWave client...');
 
     try {
       await new Promise((_, rej) => {
         const client = new ZWaveClient(config.zwave);
-        
+
         client.on('disconnected', (e: Error) => {
           rej(e);
         });
@@ -223,7 +224,7 @@ Device.registerProvider('zwave', {
           value: Math.min(brightness, 99)
         });
       }
-    }
+    };
   },
 
   provideLockCapability() {
@@ -340,7 +341,7 @@ Device.registerProvider('zwave', {
 
           knownDevice.manufacturer = manufacturer;
           knownDevice.model = model;
-          
+
           await knownDevice.save();
 
           // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)

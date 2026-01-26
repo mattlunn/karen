@@ -33,11 +33,11 @@ function BrightnessControl({ device, capability }) {
   );
 }
 
-export default function Light({ device, capability }) {
+export default function Light({ device, capability, isBatteryLow = false }) {
   const { mutate: setLightSwitchStatus, isPending: loading } = useLightMutation(device.id);
 
   return (
-    <DeviceControl device={device} icon={faLightbulb} color="#ffa24d" colorIconBackground={capability.isOn.value} values={[
+    <DeviceControl device={device} icon={faLightbulb} color="#ffa24d" colorIconBackground={capability.isOn.value} isBatteryLow={isBatteryLow} values={[
       capability.isOn.value ? 'On' : 'Off',
       <BrightnessControl device={device} capability={capability} key={1}/>
     ]} actionPending={loading} iconOnClick={(e) => {

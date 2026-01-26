@@ -15,7 +15,11 @@ import {
   faTree,
   faThermometer2,
   faThermometer4,
-  faGauge
+  faGauge,
+  faBatteryFull,
+  faBatteryHalf,
+  faBatteryQuarter,
+  faBatteryEmpty
 } from '@fortawesome/free-solid-svg-icons';
 
 import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
@@ -148,6 +152,45 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                     <StatusItem key={`${idx}-return`} icon={faThermometer2} title="Return Temperature" value={`${capability.returnTemperature.value.toFixed(1)}°C`} since={capability.returnTemperature.start} lastReported={capability.returnTemperature.lastReported} />,
                     <StatusItem key={`${idx}-pressure`} icon={faGauge} title="System Pressure" value={`${capability.systemPressure.value.toFixed(1)} bar`} since={capability.systemPressure.start} lastReported={capability.systemPressure.lastReported} />
                   ];
+                }
+
+                case 'BATTERY_LEVEL_INDICATOR': {
+                  const percentage = capability.batteryPercentage.value;
+                  const getBatteryIcon = () => {
+                    if (percentage > 75) return faBatteryFull;
+                    if (percentage > 50) return faBatteryHalf;
+                    if (percentage > 25) return faBatteryQuarter;
+                    return faBatteryEmpty;
+                  };
+                  const getBatteryColor = () => {
+                    if (percentage > 50) return '#2ecc71';
+                    if (percentage > 25) return '#f39c12';
+                    return '#e74c3c';
+                  };
+                  return (
+                    <StatusItem
+                      key={idx}
+                      icon={getBatteryIcon()}
+                      title="Battery"
+                      value={`${percentage}%`}
+                      since={capability.batteryPercentage.start}
+                      color={getBatteryColor()}
+                    />
+                  );
+                }
+
+                case 'BATTERY_LOW_INDICATOR': {
+                  const isLow = capability.isLow.value;
+                  return (
+                    <StatusItem
+                      key={idx}
+                      icon={isLow ? faBatteryEmpty : faBatteryFull}
+                      title="Battery"
+                      value={isLow ? 'Low' : 'OK'}
+                      since={capability.isLow.start}
+                      color={isLow ? '#e74c3c' : '#2ecc71'}
+                    />
+                  );
                 }
 
                 default:
