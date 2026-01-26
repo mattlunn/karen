@@ -14,23 +14,6 @@ export function useAlarmMutation() {
       if (!res.ok) throw new Error(`Failed to update alarm: ${res.status}`);
       return res.json();
     },
-    onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['security'] });
-      const previous = queryClient.getQueryData(['security']);
-
-      queryClient.setQueryData(['security'], (old: any) => ({
-        ...old,
-        alarmMode: newData.alarmMode
-      }));
-
-      return { previous };
-    },
-    onError: (err, newData, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(['security'], context.previous);
-      }
-      console.error('Alarm mutation failed:', err);
-    },
     onSuccess: (data) => {
       queryClient.setQueryData(['security'], data);
     },

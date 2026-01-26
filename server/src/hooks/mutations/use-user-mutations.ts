@@ -14,26 +14,6 @@ export function useUserMutation(userId: string) {
       if (!res.ok) throw new Error(`Failed to update user: ${res.status}`);
       return res.json();
     },
-    onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['users'] });
-      const previous = queryClient.getQueryData(['users']);
-
-      queryClient.setQueryData(['users'], (old: any) => {
-        if (!Array.isArray(old)) return old;
-        return old.map((user: any) => {
-          if (user.id !== userId) return user;
-          return { ...user, ...newData };
-        });
-      });
-
-      return { previous };
-    },
-    onError: (err, newData, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(['users'], context.previous);
-      }
-      console.error('User mutation failed:', err);
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },

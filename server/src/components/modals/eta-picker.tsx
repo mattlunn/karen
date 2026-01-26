@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { DatePicker } from '@mantine/dates';
+import { Button } from '@mantine/core';
 import dayjs, { Dayjs } from '../../dayjs';
 import { range } from '../../helpers/iterable';
-import useApiMutation from '../../hooks/api-mutation';
+import { useUserMutation } from '../../hooks/mutations/use-user-mutations';
 
 interface EtaPickerProps {
   id: string;
@@ -16,7 +17,7 @@ function pad(n: number): string {
 
 export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
   const [date, setDate] = useState<Dayjs>(eta ?? dayjs().startOf('day'));
-  const { mutate: updateUser } = useApiMutation(`/users/${id}`);
+  const { mutate: updateUser, isPending } = useUserMutation(id);
 
   const handleDateChange = (value: Date | null) => {
     if (value) {
@@ -34,10 +35,8 @@ export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
   };
 
   const handleSetEta = () => {
-    updateUser({
-      eta: +date
-    }).then(() => {
-      closeModal();
+    updateUser({ eta: +date }, {
+      onSuccess: () => closeModal()
     });
   };
 
@@ -71,8 +70,8 @@ export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
         </div>
       </div>
       <div className="eta-picker__footer">
-        <button className="secondary" onClick={closeModal}>Cancel</button>
-        <button className="primary" onClick={handleSetEta}>Ok</button>
+        <Button variant="default" onClick={closeModal}>Cancel</Button>
+        <Button loading={isPending} onClick={handleSetEta}>Ok</Button>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import classnames from 'classnames';
 import { HOME, AWAY } from '../constants/status';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDroplet, faFire, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
+import { Button } from '@mantine/core';
 import { useUsers } from '../hooks/queries/use-users';
 import { useHeating } from '../hooks/queries/use-heating';
 import { useSecurity } from '../hooks/queries/use-security';
@@ -12,7 +13,7 @@ import { useHeatingMutation } from '../hooks/mutations/use-heating-mutations';
 
 function HomeControlButton({ onClick, value, currentValue, label, loading }) {
   return (
-    <button disabled={loading || currentValue === value} onClick={() => onClick(value)}>{label}</button>
+    <Button loading={loading} disabled={currentValue === value} onClick={() => onClick(value)}>{label}</Button>
   );
 }
 

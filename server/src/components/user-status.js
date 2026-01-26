@@ -4,7 +4,8 @@ import dayjs from '../dayjs';
 import classNames from 'classnames';
 import { AWAY, HOME } from '../constants/status';
 import { humanDate } from '../helpers/date';
-import useApiMutation from '../hooks/api-mutation';
+import { LoadingOverlay } from '@mantine/core';
+import { useUserMutation } from '../hooks/mutations/use-user-mutations';
 import EtaPicker from './modals/eta-picker';
 import Modal from './modal';
 
@@ -44,7 +45,7 @@ function StatusMessage({ status, since, until, id }) {
           <Modal>
             <EtaPicker id={id} eta={untilMoment} closeModal={() => setShowModal(false)} />
           </Modal>,
-          
+
           document.body)
         }
       </>
@@ -54,24 +55,27 @@ function StatusMessage({ status, since, until, id }) {
 
 export default function UserStatus(props) {
   const { status, id, avatar } = props;
-  const { mutate: updateUser } = useApiMutation(`/users/${id}`);
+  const { mutate: updateUser, isPending } = useUserMutation(id);
 
   return (
     <div className="user-status">
-      <a href="#" onClick={(e) => {
-        e.preventDefault();
+      <div style={{ position: 'relative' }}>
+        <LoadingOverlay visible={isPending} />
+        <a href="#" onClick={(e) => {
+          e.preventDefault();
 
-        updateUser({
-          status: status === HOME ? AWAY : HOME
-        });
-      }}>
-        <img
-          className={classNames('user-status__avatar', {
-            'user-status__avatar--away': status === AWAY
-          })}
-          src={avatar}
-        />
-      </a>
+          updateUser({
+            status: status === HOME ? AWAY : HOME
+          });
+        }}>
+          <img
+            className={classNames('user-status__avatar', {
+              'user-status__avatar--away': status === AWAY
+            })}
+            src={avatar}
+          />
+        </a>
+      </div>
       <div>
         <h3 className="user-status__user-name">{id}</h3>
         <p className="user-status__about">

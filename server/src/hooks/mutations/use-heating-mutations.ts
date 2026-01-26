@@ -24,23 +24,6 @@ export function useHeatingMutation() {
       if (!res.ok) throw new Error(`Failed to update heating: ${res.status}`);
       return res.json();
     },
-    onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ['heating'] });
-      const previous = queryClient.getQueryData(['heating']);
-
-      queryClient.setQueryData(['heating'], (old: any) => ({
-        ...old,
-        ...newData
-      }));
-
-      return { previous };
-    },
-    onError: (err, newData, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(['heating'], context.previous);
-      }
-      console.error('Heating mutation failed:', err);
-    },
     onSuccess: (data) => {
       queryClient.setQueryData(['heating'], data);
     },
