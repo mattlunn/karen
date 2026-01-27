@@ -10,6 +10,11 @@ module.exports = {
     'eslint:recommended',
     'plugin:react-hooks/recommended'
   ],
+  settings: {
+    react: {
+      version: 'detect'
+    }
+  },
   globals: {
     Atomics: 'readonly',
     SharedArrayBuffer: 'readonly'
@@ -39,6 +44,19 @@ module.exports = {
       ],
       env: {
         jest: true
+      }
+    },
+    {
+      files: ["**/*.ts", "**/*.tsx"],
+      parser: '@typescript-eslint/parser',
+      plugins: ['@typescript-eslint'],
+      extends: [
+        'plugin:@typescript-eslint/recommended'
+      ],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 0,
+        '@typescript-eslint/no-non-null-assertion': 0,
+        '@typescript-eslint/no-unused-vars': 0
       }
     }
   ],
