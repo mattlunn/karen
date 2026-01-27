@@ -62,7 +62,6 @@ const getAccessToken = (() => {
 })();
 
 Device.registerProvider('tado', {
-  // All Tado devices are thermostats (only HEATING zones are synced)
   getCapabilities() {
     return [
       'HUMIDITY_SENSOR',

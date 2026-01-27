@@ -2,7 +2,6 @@ import { Device } from '../../models';
 import DeviceClient from './client/device';
 import config from '../../config';
 import logger from '../../logger';
-import model from 'sequelize/lib/model';
 
 Device.registerProvider('shelly', {
   getCapabilities(device) {
