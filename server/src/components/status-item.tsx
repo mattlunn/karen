@@ -5,19 +5,16 @@ import { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import dayjs from '../dayjs';
 import { humanDate } from '../helpers/date';
 
-function formatSince(isoString: string): string {
-  const date = dayjs(isoString);
-  return `since ${date.format('HH:mm')} ${humanDate(date)}`;
-}
-
 function formatTimestamp(start: string, lastReported: string): string {
-  // If lastReported differs from start, show "as of" with relative time
+  let lead = 'since';
+  let date = dayjs(start);
+
   if (lastReported !== start) {
-    return `as of ${dayjs(lastReported).fromNow()}`;
+    lead = 'as of';
+    date = dayjs(lastReported);
   }
 
-  // Otherwise show "since" with absolute time
-  return formatSince(start);
+  return `${lead} ${date.format('HH:mm')} ${humanDate(date)}`;
 }
 
 interface StatusItemProps {
