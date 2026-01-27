@@ -7,7 +7,12 @@ import { Indicator } from '@mantine/core';
 
 function getIsBatteryLow(device) {
   const batteryLowCapability = device.capabilities.find(x => x.type === 'BATTERY_LOW_INDICATOR');
-  return batteryLowCapability?.isLow.value ?? false;
+
+  if (batteryLowCapability) {
+    return batteryLowCapability.isLow.value;
+  }
+
+  return false;
 }
 
 export default function DeviceControl({ icon, iconOnClick = (e) => e.preventDefault(), actionPending = false, colorIconBackground, color, device, values = [], showMap }) {

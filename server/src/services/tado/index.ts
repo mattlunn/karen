@@ -105,6 +105,7 @@ Device.registerProvider('tado', {
 
     for (const zone of zones) {
       if (zone.type === 'HEATING') {
+        const hasLowBattery = zone.devices.some(d => d.batteryState === 'LOW');
         let knownDevice = await Device.findByProviderId('tado', zone.id);
 
         if (!knownDevice) {
@@ -120,6 +121,7 @@ Device.registerProvider('tado', {
 
         await knownDevice.save();
         await knownDevice.getThermostatCapability().setSetbackTemperatureState(await client.getMinimumAwayTemperatureForZone(zone.id));
+        await knownDevice.getBatteryLowIndicatorCapability().setIsBatteryLowState(hasLowBattery)
       }
     }
   }
@@ -128,34 +130,23 @@ Device.registerProvider('tado', {
 nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);
   const devices = await Device.findByProvider('tado');
-  const [zonesState, zones] = await Promise.all([
-    client.getZonesState(),
-    client.getZones()
-  ]);
-
-  const zonesById = new Map<number, Zone>(zones.map(zone => [zone.id, zone]));
+  const zonesState = await client.getZonesState();
 
   for (const device of devices) {
     const deviceCapability = device.getThermostatCapability();
-    const zoneId = Number(device.providerId);
-    const zoneState = zonesState[zoneId];
-    const zone = zonesById.get(zoneId);
+    const zoneState = zonesState[Number(device.providerId)];
 
     if (zoneState === undefined) {
       logger.warn(`Tado: No zone state found for device ${device.name} (provider id ${device.providerId})`);
       continue;
     }
 
-    // Check if any device in this zone has low battery
-    const hasLowBattery = zone?.devices.some(d => d.batteryState === 'LOW') ?? false;
-
     await Promise.all([
       deviceCapability.setPowerState(zoneState.activityDataPoints.heatingPower.percentage, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
       deviceCapability.setIsOnState(zoneState.activityDataPoints.heatingPower.percentage > 0, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
       deviceCapability.setHumidityState(zoneState.sensorDataPoints.humidity.percentage, new Date(zoneState.sensorDataPoints.humidity.timestamp)),
       deviceCapability.setCurrentTemperatureState(zoneState.sensorDataPoints.insideTemperature.celsius, new Date(zoneState.sensorDataPoints.insideTemperature.timestamp)),
-      deviceCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date()),
-      device.getBatteryLowIndicatorCapability().setIsBatteryLowState(hasLowBattery)
+      deviceCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date())
     ]);
   }
 }), Math.max(config.tado.sync_interval_seconds, 10) * 1000);
