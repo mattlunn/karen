@@ -178,15 +178,12 @@ Device.registerProvider('synology', {
       if (!knownDevice) {
         knownDevice = Device.build({
           provider: 'synology',
-          providerId: camera.id,
-          manufacturer: camera.vendor || 'Unknown',
-          model: camera.model || 'Camera'
+          providerId: camera.id
         });
-      } else if (knownDevice.manufacturer === 'Unknown') {
-        knownDevice.manufacturer = camera.vendor || 'Unknown';
-        knownDevice.model = camera.model || 'Camera';
       }
 
+      knownDevice.manufacturer = camera.vendor;
+      knownDevice.model = camera.model;
       knownDevice.name = camera.newName;
 
       await knownDevice.save();
