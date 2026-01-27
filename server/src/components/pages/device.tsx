@@ -186,7 +186,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                       key={idx}
                       icon={isLow ? faBatteryEmpty : faBatteryFull}
                       title="Battery"
-                      value={isLow ? 'Low' : 'OK'}
+                      value={isLow ? 'LOW' : 'OK'}
                       since={capability.isLow.start}
                       color={isLow ? '#e74c3c' : '#2ecc71'}
                     />
