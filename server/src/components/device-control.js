@@ -1,5 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Link } from 'react-router-dom';
 import ThermostatHeatMap from './thermostat-heat-map';
 import classNames from 'classnames';
 import { faSync } from '@fortawesome/free-solid-svg-icons';
@@ -13,7 +14,7 @@ export default function DeviceControl({ icon, iconOnClick = (e) => e.preventDefa
           <FontAwesomeIcon icon={actionPending ? faSync : icon} spin={actionPending} color={color} />
         </a>
         <div className="device-control__body">
-          <h4 className="device-control__name">{device.name}</h4>
+          <h4 className="device-control__name"><Link to={`/devices/${device.id}`}>{device.name}</Link></h4>
           <ul className="device-control__values">
             {values.map((value, idx) => <li className="device-control__value" key={idx}>{value}</li>)}
             <li className="device-control__value device-control__value--warning">
