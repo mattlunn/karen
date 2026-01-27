@@ -5,6 +5,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faCouch, faHouseFire, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faThermometerFull, faLightbulb, faBed, faToiletPaper, faPlug, faPersonWalking, faVideo, faDroplet, faToggleOff, faFire, faDoorClosed, faDoorOpen, faShop, faTree } from '@fortawesome/free-solid-svg-icons';
 import Light from './devices/light';
 import Lock from './devices/lock';
+import Thermostat from './devices/thermostat';
 
 library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer, faHouseFire, faDoorClosed, faDoorOpen, faShop, faTree);
 
@@ -23,13 +24,7 @@ function createIfCapabilitySatisfied(device, ...creators) {
 function buildDeviceControlForDevice(device) {
   return createIfCapabilitySatisfied(device,
     x => x.type === 'THERMOSTAT',
-    (device, capability) => (
-      <DeviceControl device={device} icon={faThermometerFull} color="#ff6f22" colorIconBackground={capability.isHeating.value} values={[
-        `${capability.currentTemperature.value.toFixed(1)}°`,
-        `${capability.targetTemperature.value.toFixed(1)}°`,
-        `${capability.power.value}%`
-      ]} />
-    ),
+    (device, capability) => <Thermostat device={device} capability={capability} />,
 
     x => x.type === 'LIGHT',
     (device, capability) => <Light device={device} capability={capability} />,
