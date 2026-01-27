@@ -38,7 +38,7 @@ const capabilities = (JSON.parse(readFileSync(__dirname + '/../capabilities.json
         isWriteable: x.isWriteable,
         eventType: x.type === 'boolean' ? 'BooleanEvent' : 'NumericEvent',
         fieldName: x.eventName,
-      }
+      };
     })
   };
 });

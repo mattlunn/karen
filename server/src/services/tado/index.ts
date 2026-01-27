@@ -121,7 +121,7 @@ Device.registerProvider('tado', {
 
         await knownDevice.save();
         await knownDevice.getThermostatCapability().setSetbackTemperatureState(await client.getMinimumAwayTemperatureForZone(zone.id));
-        await knownDevice.getBatteryLowIndicatorCapability().setIsBatteryLowState(hasLowBattery)
+        await knownDevice.getBatteryLowIndicatorCapability().setIsBatteryLowState(hasLowBattery);
       }
     }
   }

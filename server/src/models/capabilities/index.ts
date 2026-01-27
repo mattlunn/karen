@@ -3,7 +3,7 @@ import { Device } from '../';
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
 export { SpeakerCapability } from './speaker';
-export * from './capabilities.gen'
+export * from './capabilities.gen';
 
 export type ProviderSpeakerCapability = {
   emitSound(device: Device, sound: string | string[], ttlInSeconds?: number): Promise<void>;
@@ -16,4 +16,4 @@ export enum HeatPumpMode {
   DHW = 3, 
   DEICING = 4,
   FROST_PROTECTION = 5
-};
+}

@@ -26,12 +26,11 @@ type NotificationPayload = {
 
 interface KarenEventBus extends EventEmitter {
   emit(event: NotificationEvents, payload: NotificationPayload): boolean;
-  on(event: NotificationEvents, cb: (payload: NotificationPayload) => void): this;
-
   emit(event: StayEvents, payload: Stay): boolean;
-  on(event: StayEvents, cb: (payload: Stay) => void): this;
-
   emit(event: DeviceCapabilityEvent, payload: NumericEvent | BooleanEvent): void;
+
+  on(event: NotificationEvents, cb: (payload: NotificationPayload) => void): this;
+  on(event: StayEvents, cb: (payload: Stay) => void): this;
   on(event: DeviceCapabilityEvent, cb: (payload: NumericEvent) => unknown): this;
   on(event: DeviceCapabilityEvent, cb: (payload: BooleanEvent) => unknown): this;
 }

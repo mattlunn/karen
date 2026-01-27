@@ -35,7 +35,7 @@ nowAndSetInterval(async () => {
 
 Device.registerProvider('tplink', {
   getCapabilities() {
-    return ['LIGHT']
+    return ['LIGHT'];
   },
 
   provideLightCapability() {
@@ -59,7 +59,7 @@ Device.registerProvider('tplink', {
     }).on('device-new', device => {
       logger.info(`Discovered TPLink device: ${device.alias} (${device.host})`);
 
-      newDevices.push(device)
+      newDevices.push(device);
     });
     await sleep(discoveryDuration);
 

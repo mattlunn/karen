@@ -38,7 +38,7 @@ recordingFactory(instance);
 userFactory(instance);
 stayFactory(instance);
 roomFactory(instance);
-alarmActivationFactory(instance)
+alarmActivationFactory(instance);
 armingFactory(instance);
 
 Recording.belongsTo(Event);

@@ -87,7 +87,7 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
   const params = useMemo(() => ({
     since: effectiveRange.since.toISOString(),
     until: effectiveRange.until.toISOString()
-  }), [effectiveRange.since.valueOf(), effectiveRange.until.valueOf()]);
+  }), [effectiveRange.since, effectiveRange.until]);
 
   const { data, loading, error } = useApiCall<DeviceTimelineApiResponse>(
     `/device/${deviceId}/timeline`,

@@ -31,7 +31,7 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     }
 
     return Promise.reject();
-  };
+  }
 
   static findByHandles(handles: string[]) {
     return this.findAll({
@@ -39,7 +39,7 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
         handle: handles
       }
     });
-  };
+  }
 
   static findAllById(ids: number[]) {
     return this.findAll({
@@ -47,7 +47,7 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
         id: ids
       }
     });
-  };
+  }
 
   static getThoseWithPushoverToken() {
     return this.findAll({

@@ -4,7 +4,7 @@ import { AlarmActivation } from './alarm_activation';
 export enum ArmingMode {
   NIGHT = 'NIGHT',
   AWAY = 'AWAY'
-};
+}
 
 export class Arming extends Model<InferAttributes<Arming>, InferCreationAttributes<Arming>> {
   declare id: CreationOptional<number>;
@@ -29,7 +29,7 @@ export class Arming extends Model<InferAttributes<Arming>, InferCreationAttribut
         }
       }
     });
-  };
+  }
 
   async getMostRecentActivation() {
     const activations = await this.getAlarmActivations();
@@ -41,8 +41,8 @@ export class Arming extends Model<InferAttributes<Arming>, InferCreationAttribut
     return activations.reduce((mostRecent, curr) => {
       return mostRecent.startedAt > curr.startedAt ? mostRecent : curr;
     });
-  };
-};
+  }
+}
 
 export default function (sequelize: Sequelize) {
   Arming.init({

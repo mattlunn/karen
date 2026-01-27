@@ -3,18 +3,18 @@ import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, 
 import { User } from './user';
 
 export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<Stay>> {
-  declare public id: CreationOptional<Number>;
+  declare public id: CreationOptional<number>;
   declare public eta: CreationOptional<Date | null>;
   declare public arrival: CreationOptional<Date | null>;
   declare public arrivalTrigger: CreationOptional<string | null>;
   declare public departure: CreationOptional<Date | null>;
-  declare public userId: CreationOptional<Number | null>;
+  declare public userId: CreationOptional<number | null>;
   declare public createdAt: CreationOptional<Date>;
   declare public updatedAt: CreationOptional<Date>;
 
   declare getUser: HasOneGetAssociationMixin<User>;
 
-  static async findUpcomingStays(userIds: Number[]): Promise<Stay[]> {
+  static async findUpcomingStays(userIds: number[]): Promise<Stay[]> {
     const stays = await Promise.all(userIds.map(userId => this.findOne({
       where: {
         arrival: null,
@@ -23,7 +23,7 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
     })));
 
     return stays.filter(stay => !!stay);
-  };
+  }
 
   static findNextUpcomingEta() {
     return this.findOne({
@@ -39,9 +39,9 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
         'eta'
       ]
     });
-  };
+  }
 
-  static async findCurrentOrLastStays(userIds: Number[]): Promise<Stay[]> {
+  static async findCurrentOrLastStays(userIds: number[]): Promise<Stay[]> {
     const stays = await Promise.all(userIds.map((userId) => this.findOne({
       where: {
         arrival: {
@@ -56,9 +56,9 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
     })));
 
     return stays.filter(stay => !!stay);
-  };
+  }
 
-  static findCurrentStay(userId: Number) {
+  static findCurrentStay(userId: number) {
     return this.findOne({
       where: {
         departure: null,
@@ -68,7 +68,7 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
         userId
       }
     });
-  };
+  }
 
   static findCurrentStays() {
     return this.findAll({
@@ -79,7 +79,7 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
         }
       }
     });
-  };
+  }
 
   static findUnclaimedEta(since: Date) {
     return this.findOne({
@@ -97,7 +97,7 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
         ['createdAt', 'ASC']
       ]
     });
-  };
+  }
 
   static async checkIfSomeoneHomeAt(date: Date) {
     return await this.findOne({
@@ -115,7 +115,7 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
         }]
       }
     }) !== null;
-  };
+  }
 }
 
 export default function (sequelize: Sequelize) {

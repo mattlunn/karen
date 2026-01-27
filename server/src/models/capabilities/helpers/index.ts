@@ -43,13 +43,13 @@ export async function setBooleanProperty(device: Device, propertyName: string, p
   return null;
 }
 
-export async function getNumericProperty(device: Device, propertyName: string, defaultValue: number = 0): Promise<number> {
+export async function getNumericProperty(device: Device, propertyName: string, defaultValue = 0): Promise<number> {
   return (await device.getLatestEvent(propertyName))?.value ?? defaultValue;
 }
 
 export async function setNumericProperty(device: Device, propertyName: string, propertyValue: number, timestamp: Date = new Date()): Promise<Event | null> {
   const lastEvent = await device.getLatestEvent(propertyName);
-  const valueHasChanged = !lastEvent || propertyValue !== lastEvent.value
+  const valueHasChanged = !lastEvent || propertyValue !== lastEvent.value;
 
   if (valueHasChanged) {
     if (lastEvent) {
@@ -87,7 +87,7 @@ async function getLastNEventsUntil(device: Device, propertyName: string, timeRan
     order: [['start', 'DESC']],
     limit: timeRangeSelector.limit
   });
-};
+}
 
 async function getEventsInRange(device: Device, propertyName: string, timeRangeSelector: TimeRangeSelector): Promise<Event[]> {
   return Event.findAll({

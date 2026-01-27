@@ -69,10 +69,11 @@ router.put<Record<string, never>, void, HeatingUpdateRequest>('/', asyncWrapper(
         case 'ON':
           await thermostat.setIsOn(true);
           break;
-        case 'SETBACK':
+        case 'SETBACK': {
           const setbackTemp = await thermostat.getSetbackTemperature();
           await thermostat.setTargetTemperature(setbackTemp);
           break;
+        }
       }
     }
   }

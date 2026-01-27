@@ -41,7 +41,7 @@ Device.registerProvider('alexa', {
        * However, there is often substantial latency (10+ seconds) waiting for Alexa to pick up the message,
        * so this promise will often take a long time to resolve; be aware of awaiting it!
        */
-      async emitSound(device: Device, message: string | string[], ttlInSeconds: number = 30): Promise<void> {
+      async emitSound(device: Device, message: string | string[], ttlInSeconds = 30): Promise<void> {
         if (Array.isArray(message) && message.length > 5) {
           throw new Error('Amazon only allow a maximum of 5 speech segments');
         }
@@ -118,7 +118,7 @@ Device.registerProvider('alexa', {
       
         return promise;
       }
-    }
+    };
   },
 
   async synchronize() {
