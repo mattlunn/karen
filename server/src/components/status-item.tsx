@@ -11,12 +11,9 @@ function formatSince(isoString: string): string {
 }
 
 function formatTimestamp(start: string, lastReported?: string): string {
-  const startDate = dayjs(start);
-  const lastReportedDate = lastReported ? dayjs(lastReported) : null;
-
-  // If lastReported is more than 5 seconds after start, show "as of" with relative time
-  if (lastReportedDate && lastReportedDate.diff(startDate, 'second') > 5) {
-    return `as of ${lastReportedDate.fromNow()}`;
+  // If lastReported differs from start, show "as of" with relative time
+  if (lastReported && lastReported !== start) {
+    return `as of ${dayjs(lastReported).fromNow()}`;
   }
 
   // Otherwise show "since" with absolute time
