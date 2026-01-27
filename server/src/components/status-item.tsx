@@ -10,9 +10,9 @@ function formatSince(isoString: string): string {
   return `since ${date.format('HH:mm')} ${humanDate(date)}`;
 }
 
-function formatTimestamp(start: string, lastReported?: string): string {
+function formatTimestamp(start: string, lastReported: string): string {
   // If lastReported differs from start, show "as of" with relative time
-  if (lastReported && lastReported !== start) {
+  if (lastReported !== start) {
     return `as of ${dayjs(lastReported).fromNow()}`;
   }
 
@@ -24,8 +24,8 @@ interface StatusItemProps {
   icon: IconDefinition;
   title: string;
   value: string;
-  since?: string;
-  lastReported?: string;
+  since: string;
+  lastReported: string;
   color?: string;
 }
 
@@ -43,11 +43,9 @@ export function StatusItem({ icon, title, value, since, lastReported, color }: S
         <Text className="status-item__value">{value}</Text>
       </Group>
 
-      {since && (
-        <Text fz="xs" c="dimmed" mt={7}>
-          {formatTimestamp(since, lastReported)}
-        </Text>
-      )}
+      <Text fz="xs" c="dimmed" mt={7}>
+        {formatTimestamp(since, lastReported)}
+      </Text>
     </Paper>
   );
 }
