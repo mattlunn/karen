@@ -91,6 +91,6 @@ export default class Gen1DeviceClient {
   }
 
   async getModel() {
-    return (await this._request('/shelly')).model;
+    return (await this._request('/shelly')).type;
   }
 }

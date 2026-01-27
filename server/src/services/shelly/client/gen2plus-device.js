@@ -67,7 +67,7 @@ export default class Gen2PlusDeviceClient {
   }
 
   async getModel() {
-    return (await this._request('/shelly')).type;
+    return (await this._request('/shelly')).model;
   }
 
   async setLedMode(mode) {

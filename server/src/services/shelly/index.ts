@@ -2,6 +2,7 @@ import { Device } from '../../models';
 import DeviceClient from './client/device';
 import config from '../../config';
 import logger from '../../logger';
+import model from 'sequelize/lib/model';
 
 Device.registerProvider('shelly', {
   getCapabilities(device) {
@@ -64,6 +65,9 @@ Device.registerProvider('shelly', {
             logger.info(`Initialized brightness for Shelly light device ${device.id}`);
           }
         }
+
+        device.manufacturer = 'Shelly';
+        device.model = await shellyDevice.getModel() || 'Unknown';
 
         await device.save();
       } catch (e) {

@@ -334,16 +334,14 @@ Device.registerProvider('zwave', {
             knownDevice = await Device.create({
               provider: 'zwave',
               providerId: deviceId,
-              name: node.name || `${deviceKey} (${deviceId})`,
-              manufacturer,
-              model
+              name: node.name || `${deviceKey} (${deviceId})`
             });
-          } else if (knownDevice.manufacturer === 'Unknown' || knownDevice.model === 'Unknown') {
-            // Backfill existing devices with manufacturer/model
-            knownDevice.manufacturer = manufacturer;
-            knownDevice.model = model;
-            await knownDevice.save();
           }
+
+          knownDevice.manufacturer = manufacturer;
+          knownDevice.model = model;
+          
+          await knownDevice.save();
 
           // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)
           if (knownDevice.getCapabilities().includes('LIGHT')) {

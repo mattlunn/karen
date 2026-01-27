@@ -114,8 +114,8 @@ Device.registerProvider('tado', {
           });
         }
         
-        knownDevice.manufacturer = 'Tado';
-        knownDevice.model = 'Smart Thermostat';
+        knownDevice.manufacturer = 'tado';
+        knownDevice.model = zone.deviceTypes[0];
         knownDevice.name = `${zone.name} Thermostat`;
 
         await knownDevice.save();
