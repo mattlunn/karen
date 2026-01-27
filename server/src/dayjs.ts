@@ -6,6 +6,7 @@ import advancedFormat from 'dayjs/plugin/advancedFormat';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
+import relativeTime from 'dayjs/plugin/relativeTime';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -14,6 +15,7 @@ dayjs.extend(advancedFormat);
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(customParseFormat);
+dayjs.extend(relativeTime);
 
 // We _need_ this to happen before any other imports happen. Unfortunately, babel/ webpack re-arrange imports
 // so that they are before any code; so even if we put the below before other imports in client.js, it gets

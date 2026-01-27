@@ -64,6 +64,7 @@ function mapBooleanHistoryToResponse(
     history: events.map((event: BooleanEvent) => ({
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
+      lastReported: event.lastReported.toISOString(),
       value: true
     })),
     since: historySelector.since.toISOString(),
@@ -79,6 +80,7 @@ function mapNumericHistoryToResponse(
     history: events.map((event: NumericEvent) => ({
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
+      lastReported: event.lastReported.toISOString(),
       value: event.value
     })),
     since: historySelector.since.toISOString(),
@@ -95,6 +97,7 @@ function mapEnumHistoryToResponse(
     history: events.map((event: NumericEvent) => ({
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
+      lastReported: event.lastReported.toISOString(),
       value: map[event.value]
     })),
     since: historySelector.since.toISOString(),

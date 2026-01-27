@@ -7,6 +7,7 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
   declare public deviceId: number;
   declare public start: Date;
   declare public end: Date | null;
+  declare public lastReported: Date;
   declare public type: string;
   declare public value: CreationOptional<number>;
 
@@ -38,6 +39,11 @@ export default function (sequelize: Sequelize) {
       allowNull: true
     },
 
+    lastReported: {
+      type: DataTypes.DATE,
+      allowNull: false
+    },
+
     type: {
       type: DataTypes.STRING,
       allowNull: false
@@ -59,12 +65,14 @@ export class BooleanEvent {
   public value: boolean;
   public start: Date;
   public end: Date | null;
+  public lastReported: Date;
 
   constructor(e: Event) {
     this.event = e;
     this.value = !!e.value;
     this.start = e.start;
     this.end = e.end;
+    this.lastReported = e.lastReported;
   }
 
   hasEnded() {
@@ -82,12 +90,14 @@ export class NumericEvent {
   public value: number;
   public start: Date;
   public end: Date | null;
+  public lastReported: Date;
 
   constructor(e: Event) {
     this.event = e;
     this.value = e.value;
     this.start = e.start;
     this.end = e.end;
+    this.lastReported = e.lastReported;
   }
 
   getDevice() {

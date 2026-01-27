@@ -5,20 +5,28 @@ import { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import dayjs from '../dayjs';
 import { humanDate } from '../helpers/date';
 
-function formatSince(isoString: string): string {
-  const date = dayjs(isoString);
-  return `since ${date.format('HH:mm')} ${humanDate(date)}`;
+function formatTimestamp(start: string, lastReported: string): string {
+  let lead = 'since';
+  let date = dayjs(start);
+
+  if (lastReported !== start) {
+    lead = 'as of';
+    date = dayjs(lastReported);
+  }
+
+  return `${lead} ${date.format('HH:mm')} ${humanDate(date)}`;
 }
 
 interface StatusItemProps {
   icon: IconDefinition;
   title: string;
   value: string;
-  since?: string;
+  since: string;
+  lastReported: string;
   color?: string;
 }
 
-export function StatusItem({ icon, title, value, since, color }: StatusItemProps) {
+export function StatusItem({ icon, title, value, since, lastReported, color }: StatusItemProps) {
   return (
     <Paper withBorder p="md" radius="md" className="status-item">
       <Group justify="space-between">
@@ -32,11 +40,9 @@ export function StatusItem({ icon, title, value, since, color }: StatusItemProps
         <Text className="status-item__value">{value}</Text>
       </Group>
 
-      {since && (
-        <Text fz="xs" c="dimmed" mt={7}>
-          {formatSince(since)}
-        </Text>
-      )}
+      <Text fz="xs" c="dimmed" mt={7}>
+        {formatTimestamp(since, lastReported)}
+      </Text>
     </Paper>
   );
 }
