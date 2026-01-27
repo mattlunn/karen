@@ -3,20 +3,6 @@ import SideBar from '../sidebar';
 import Header from '../header';
 import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
-import {
-  faThermometerQuarter,
-  faDroplet,
-  faFire,
-  faLightbulb,
-  faCircleHalfStroke,
-  faPersonWalking,
-  faFaucetDrip,
-  faFaucet,
-  faTree,
-  faThermometer2,
-  faThermometer4,
-  faGauge
-} from '@fortawesome/free-solid-svg-icons';
 
 import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
@@ -24,9 +10,11 @@ import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
 import { Box, Grid, Paper, SimpleGrid } from '@mantine/core';
 import { StatusItem } from '../status-item';
+import { getCapabilityConfig, getDeviceGraphs } from '../capabilities/registry';
+import type { CapabilityType } from '../capabilities/types';
 
 function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
-  const hasCapability = (type: string) => device.capabilities.some(c => c.type === type);
+  const graphs = getDeviceGraphs(device.capabilities);
 
   return (
     <>
@@ -34,125 +22,22 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
         <Grid.Col span={8}>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
             {device.capabilities.map((capability: CapabilityApiResponse, idx: number) => {
-              switch (capability.type) {
-                case 'TEMPERATURE_SENSOR': {
-                  if (!capability.currentTemperature) return null;
-                  return (
-                    <StatusItem
-                      key={idx}
-                      icon={faThermometerQuarter}
-                      title="Current Temperature"
-                      value={`${capability.currentTemperature.value.toFixed(1)}°C`}
-                      since={capability.currentTemperature.start}
-                      lastReported={capability.currentTemperature.lastReported}
-                      color="#ff6f22"
-                    />
-                  );
-                }
+              if (capability.type === null) return null;
 
-                case 'HUMIDITY_SENSOR': {
-                  return (
-                    <StatusItem
-                      key={idx}
-                      icon={faDroplet}
-                      title="Humidity"
-                      value={`${capability.humidity.value}%`}
-                      since={capability.humidity.start}
-                      lastReported={capability.humidity.lastReported}
-                      color="#04A7F4"
-                    />
-                  );
-                }
+              const config = getCapabilityConfig(capability.type as CapabilityType);
+              const statusItems = config.getStatusItems(capability as never, device);
 
-                case 'THERMOSTAT': {
-                  return [(
-                      <StatusItem
-                        key={`${idx}-target`}
-                        icon={faThermometerQuarter}
-                        title="Target Temperature"
-                        value={`${capability.targetTemperature.value.toFixed(1)}°C`}
-                        since={capability.targetTemperature.start}
-                        lastReported={capability.targetTemperature.lastReported}
-                        color="#ff6f22"
-                      />
-                    ), (
-                      <StatusItem
-                        key={`${idx}-power`}
-                        icon={faFire}
-                        title="Power"
-                        value={`${capability.power.value}%`}
-                        since={capability.power.start}
-                        lastReported={capability.power.lastReported}
-                        color="#ff6f22"
-                      />
-                    )
-                  ];
-                }
-
-                case 'LIGHT': {
-                  return [(
-                    <StatusItem
-                      key={`${idx}-brightness`}
-                      icon={faLightbulb}
-                      title="Brightness"
-                      value={`${capability.brightness.value}%`}
-                      since={capability.brightness.start}
-                      lastReported={capability.brightness.lastReported}
-                    />
-                  ), (
-                    <StatusItem
-                      key={`${idx}-status`}
-                      icon={faCircleHalfStroke}
-                      title="Status"
-                      value="On"
-                      since={capability.isOn.start}
-                      lastReported={capability.isOn.lastReported}
-                    />
-                  )];
-                }
-
-                case 'MOTION_SENSOR': {
-                  return (
-                    <StatusItem
-                      key={idx}
-                      icon={faPersonWalking}
-                      title="Status"
-                      value="Motion"
-                      since={capability.hasMotion.start}
-                      lastReported={capability.hasMotion.lastReported}
-                    />
-                  );
-                }
-
-                case 'LIGHT_SENSOR': {
-                  return (
-                    <StatusItem
-                      key={idx}
-                      icon={faLightbulb}
-                      title="Illuminance"
-                      value={`${capability.illuminance.value} lx`}
-                      since={capability.illuminance.start}
-                      lastReported={capability.illuminance.lastReported}
-                    />
-                  );
-                }
-
-                case 'HEAT_PUMP': {
-                  return [
-                    <StatusItem key={`${idx}-dhwcop`} icon={faFaucet} title="Hot Water CoP" value={`${capability.dHWCoP.value.toFixed(1)} CoP`} since={capability.dHWCoP.start} lastReported={capability.dHWCoP.lastReported} />,
-                    <StatusItem key={`${idx}-heatingcop`} icon={faFire} title="Heating CoP" value={`${capability.heatingCoP.value.toFixed(1)} CoP`} since={capability.heatingCoP.start} lastReported={capability.heatingCoP.lastReported} />,
-                    <StatusItem key={`${idx}-outside`} icon={faTree} title="Outside Temperature" value={`${capability.outsideTemperature.value.toFixed(1)}°C`} since={capability.outsideTemperature.start} lastReported={capability.outsideTemperature.lastReported} />,
-                    <StatusItem key={`${idx}-dhw`} icon={faFaucetDrip} title="Hot Water Temperature" value={`${capability.dhwTemperature.value.toFixed(1)}°C`} since={capability.dhwTemperature.start} lastReported={capability.dhwTemperature.lastReported} />,
-                    <StatusItem key={`${idx}-yield`} icon={faFire} title="Daily Yield" value={`${capability.dailyConsumedEnergy.value}kWh`} since={capability.dailyConsumedEnergy.start} lastReported={capability.dailyConsumedEnergy.lastReported} />,
-                    <StatusItem key={`${idx}-flow`} icon={faThermometer4} title="Flow Temperature" value={`${capability.actualFlowTemperature.value.toFixed(1)}°C`} since={capability.actualFlowTemperature.start} lastReported={capability.actualFlowTemperature.lastReported} />,
-                    <StatusItem key={`${idx}-return`} icon={faThermometer2} title="Return Temperature" value={`${capability.returnTemperature.value.toFixed(1)}°C`} since={capability.returnTemperature.start} lastReported={capability.returnTemperature.lastReported} />,
-                    <StatusItem key={`${idx}-pressure`} icon={faGauge} title="System Pressure" value={`${capability.systemPressure.value.toFixed(1)} bar`} since={capability.systemPressure.start} lastReported={capability.systemPressure.lastReported} />
-                  ];
-                }
-
-                default:
-                  return null;
-              }
+              return statusItems.map((item, itemIdx) => (
+                <StatusItem
+                  key={`${idx}-${itemIdx}`}
+                  icon={item.icon}
+                  title={item.title}
+                  value={item.value}
+                  since={item.since}
+                  lastReported={item.lastReported}
+                  color={item.color}
+                />
+              ));
             }).flat()}
           </SimpleGrid>
         </Grid.Col>
@@ -179,41 +64,18 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
       <div className="device__graph">
         <h3 className="device__section-header">Graph</h3>
 
-        {hasCapability('THERMOSTAT') && (
+        {graphs.map((graph) => (
           <DeviceGraph
-            title="Temperature &amp; Power"
-            graphId="thermostat"
+            key={graph.id}
+            title={graph.title}
+            graphId={graph.id}
             deviceId={device.id}
-            yAxis={{
-              yTemperature: { position: 'left', min: 0, max: 30 },
-              yPercentage: { position: 'right', min: 0, max: 100 }
-            }}
+            yAxis={graph.yAxis}
+            yMin={graph.yMin}
+            yMax={graph.yMax}
+            zones={graph.zones}
           />
-        )}
-
-        {hasCapability('HEAT_PUMP') && (
-          <>
-            <DeviceGraph title="Power" graphId="heatpump-power" deviceId={device.id} />
-            <DeviceGraph title="Outside Temperature" graphId="heatpump-outside-temp" deviceId={device.id} yMin={-10} />
-            <DeviceGraph title="DHW Temperature" graphId="heatpump-dhw-temp" deviceId={device.id} />
-            <DeviceGraph title="Flow/ Return Temperatures" graphId="heatpump-flow-temp" deviceId={device.id} />
-            <DeviceGraph
-              title="System Pressure"
-              graphId="heatpump-pressure"
-              deviceId={device.id}
-              zones={[
-                { min: 0, max: 1, color: 'rgba(255, 0, 55, 0.25)' },
-                { min: 1, max: 2, color: 'rgba(31, 135, 0, 0.25)' }
-              ]}
-              yMin={0}
-              yMax={2}
-            />
-          </>
-        )}
-
-        {hasCapability('LIGHT') && (
-          <DeviceGraph title="Activity" graphId="light" deviceId={device.id} />
-        )}
+        ))}
       </div>
 
       <div className="device__timeline">

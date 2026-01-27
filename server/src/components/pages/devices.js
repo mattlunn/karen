@@ -2,33 +2,9 @@ import React from 'react';
 import SideBar from '../sidebar';
 import Header from '../header';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
-import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
-import { faQuestion } from '@fortawesome/free-solid-svg-icons/faQuestion';
-import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermometerQuarter';
-import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { Link } from 'react-router-dom';
 import useApiCall from '../../hooks/api';
-
-function getDeviceIcon(capabilities) {
-  if (capabilities.some(x => x.type === 'CAMERA')) {
-    return faVideo;
-  }
-
-  if (capabilities.some(x => x.type === 'THERMOSTAT')) {
-    return faThermometerQuarter;
-  }
-
-  if (capabilities.some(x => x.type === 'LIGHT')) {
-    return faLightbulb;
-  }
-
-  if (capabilities.some(x => x.type === 'MOTION_SENSOR')) {
-    return faEye;
-  }
-
-  return faQuestion;
-}
+import { getDeviceIcon } from '../capabilities/registry';
 
 function DeviceLink({ id, name, capabilities }) {
   return (
