@@ -21,6 +21,7 @@ export async function setBooleanProperty(device: Device, propertyName: string, p
     if (lastEvent && propertyValue === false) {
       lastEvent.end = timestamp;
       lastEvent.lastReported = timestamp;
+
       return await lastEvent.save();
     }
 
@@ -33,9 +34,9 @@ export async function setBooleanProperty(device: Device, propertyName: string, p
         type: propertyName
       });
     }
-  } else if (lastEvent && !lastEvent.end) {
-    // Value unchanged and event is ongoing - just update lastReported
+  } else if (lastEvent) {
     lastEvent.lastReported = timestamp;
+
     await lastEvent.save();
   }
 
@@ -54,6 +55,7 @@ export async function setNumericProperty(device: Device, propertyName: string, p
     if (lastEvent) {
       lastEvent.end = timestamp;
       lastEvent.lastReported = timestamp;
+
       await lastEvent.save();
     }
 
@@ -64,9 +66,9 @@ export async function setNumericProperty(device: Device, propertyName: string, p
       value: propertyValue,
       type: propertyName
     });
-  } else if (lastEvent && !lastEvent.end) {
-    // Value unchanged and event is ongoing - just update lastReported
+  } else if (lastEvent) {
     lastEvent.lastReported = timestamp;
+
     await lastEvent.save();
   }
 
