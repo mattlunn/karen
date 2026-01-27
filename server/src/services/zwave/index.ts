@@ -1,15 +1,16 @@
 import { Device } from '../../models';
+import { Capability } from '../../models/capabilities';
 import ZWaveClient from './lib/client';
 import logger from '../../logger';
 import config from '../../config';
 import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
 
-const deviceMap = new Map([
-  ['Fibargroup FGMS001', 'multi_sensor'],
-  ['Fibargroup FGD212', 'light'],
-  ['Zooz ZSE44', 'humidity_sensor'],
-  ['Yale SD-L1000-CH', 'lock']
+const deviceCapabilitiesMap = new Map<string, Capability[]>([
+  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR']],
+  ['Fibargroup FGD212', ['LIGHT']],
+  ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR']],
+  ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']]
 ]);
 
 type DeviceHandler = {
@@ -244,18 +245,14 @@ Device.registerProvider('zwave', {
   },
 
   getCapabilities(device) {
-    switch (device.type) {
-      case 'light':
-        return ['LIGHT'];
-      case 'lock':
-          return ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR'];
-      case 'multi_sensor':
-        return ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR'];
-      case 'humidity_sensor':
-          return ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR'];
-      default:
-        throw new Error(`${device.type} is unrecognised`);
+    const zwaveDeviceName = device.meta.zwaveDeviceName as string | undefined;
+    const capabilities = zwaveDeviceName ? deviceCapabilitiesMap.get(zwaveDeviceName) : undefined;
+
+    if (!capabilities) {
+      throw new Error(`Z-Wave device ${device.id} has unknown zwaveDeviceName: ${zwaveDeviceName}`);
     }
+
+    return capabilities;
   },
 
   async synchronize() {
@@ -322,22 +319,26 @@ Device.registerProvider('zwave', {
 
     for (const node of client.getNodes()) {
       if (node.ready) {
-        const deviceName = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
+        const zwaveDeviceName = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
         const deviceId = node.nodeId;
-        const deviceType = deviceMap.get(deviceName);
+        const deviceCapabilities = deviceCapabilitiesMap.get(zwaveDeviceName);
 
-        if (typeof deviceType === 'undefined') {
-          logger.warn(`ZWave does not know how to handle a device of type "${deviceName}" (Device Id ${deviceId})`);
+        if (typeof deviceCapabilities === 'undefined') {
+          logger.warn(`ZWave does not know how to handle a device of type "${zwaveDeviceName}" (Device Id ${deviceId})`);
         } else {
           let knownDevice = await Device.findByProviderId('zwave', deviceId);
-  
+
           if (!knownDevice) {
             knownDevice = await Device.create({
-              type: deviceType,
               provider: 'zwave',
               providerId: deviceId,
-              name: node.name || `${deviceName} (${deviceId})`
+              name: node.name || `${zwaveDeviceName} (${deviceId})`,
+              metaStringified: JSON.stringify({ zwaveDeviceName })
             });
+          } else if (!knownDevice.meta.zwaveDeviceName) {
+            // Backfill existing devices with zwaveDeviceName
+            knownDevice.metaStringified = JSON.stringify({ ...knownDevice.meta, zwaveDeviceName });
+            await knownDevice.save();
           }
 
           // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)

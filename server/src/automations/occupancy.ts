@@ -9,7 +9,7 @@ type OccupanyAutomationConfiguration = {
 };
 
 async function turnOffLights() {
-  const lights = await Device.findByType('light');
+  const lights = await Device.findByCapability('LIGHT');
   const lightsTurnedOff: Device[] = [];
 
   await Promise.all(lights.map(async (light) => {

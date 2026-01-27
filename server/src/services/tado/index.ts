@@ -62,16 +62,13 @@ const getAccessToken = (() => {
 })();
 
 Device.registerProvider('tado', {
-  getCapabilities(device) {
-    if (device.type === 'thermostat') {
-      return [
-        'HUMIDITY_SENSOR',
-        'TEMPERATURE_SENSOR',
-        'THERMOSTAT'
-      ];
-    }
-
-    return [];
+  // All Tado devices are thermostats (only HEATING zones are synced)
+  getCapabilities() {
+    return [
+      'HUMIDITY_SENSOR',
+      'TEMPERATURE_SENSOR',
+      'THERMOSTAT'
+    ];
   },
 
   provideThermostatCapability() {
@@ -112,7 +109,6 @@ Device.registerProvider('tado', {
 
         if (!knownDevice) {
           knownDevice = Device.build({
-            type: 'thermostat',
             provider: 'tado',
             providerId: zone.id
           });
@@ -133,23 +129,21 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
   const zonesState = await client.getZonesState();
 
   for (const device of devices) {
-    if (device.type === 'thermostat') {
-      const deviceCapability = device.getThermostatCapability();
-      const zoneState = zonesState[Number(device.providerId)];
+    const deviceCapability = device.getThermostatCapability();
+    const zoneState = zonesState[Number(device.providerId)];
 
-      if (zoneState === undefined) {
-        logger.warn(`Tado: No zone state found for device ${device.name} (provider id ${device.providerId})`);
-        continue;
-      }
-
-      await Promise.all([
-        deviceCapability.setPowerState(zoneState.activityDataPoints.heatingPower.percentage, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
-        deviceCapability.setIsOnState(zoneState.activityDataPoints.heatingPower.percentage > 0, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
-        deviceCapability.setHumidityState(zoneState.sensorDataPoints.humidity.percentage, new Date(zoneState.sensorDataPoints.humidity.timestamp)),
-        deviceCapability.setCurrentTemperatureState(zoneState.sensorDataPoints.insideTemperature.celsius, new Date(zoneState.sensorDataPoints.insideTemperature.timestamp)),
-        deviceCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date())
-      ]);
+    if (zoneState === undefined) {
+      logger.warn(`Tado: No zone state found for device ${device.name} (provider id ${device.providerId})`);
+      continue;
     }
+
+    await Promise.all([
+      deviceCapability.setPowerState(zoneState.activityDataPoints.heatingPower.percentage, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
+      deviceCapability.setIsOnState(zoneState.activityDataPoints.heatingPower.percentage > 0, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
+      deviceCapability.setHumidityState(zoneState.sensorDataPoints.humidity.percentage, new Date(zoneState.sensorDataPoints.humidity.timestamp)),
+      deviceCapability.setCurrentTemperatureState(zoneState.sensorDataPoints.insideTemperature.celsius, new Date(zoneState.sensorDataPoints.insideTemperature.timestamp)),
+      deviceCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date())
+    ]);
   }
 }), Math.max(config.tado.sync_interval_seconds, 10) * 1000);
 
@@ -198,56 +192,54 @@ if (config.tado.enable_warm_up) {
     const deviceStates: DeviceState[] = [];
 
     for (const device of await Device.findByProvider('tado')) {
-      if (device.type === 'thermostat') {
-        const zoneState = zoneStates[Number(device.providerId)];
-        const [
-          currentTemperature,
-          targetTemperature,
-        ] = await Promise.all([
-          device.getThermostatCapability().getCurrentTemperature(),
-          device.getThermostatCapability().getTargetTemperature(),
-        ]);
+      const zoneState = zoneStates[Number(device.providerId)];
+      const [
+        currentTemperature,
+        targetTemperature,
+      ] = await Promise.all([
+        device.getThermostatCapability().getCurrentTemperature(),
+        device.getThermostatCapability().getTargetTemperature(),
+      ]);
 
-        let warmupRatePerHour = null;
-    
-        const nextTarget = await getNextTargetForThermostat(device, zoneState);
-        const hasManualOverride = zoneState.overlayType === 'MANUAL';
-    
-        if (nextTarget !== null) {
-          const { nextTargetTemperature, nextTargetTime }  = nextTarget;
-    
-          // Don't make any changes if we have a manual override, or if the current target is more than the 
-          // next target.
-          if (nextTargetTemperature > targetTemperature && !hasManualOverride) {
-            warmupRatePerHour = Math.max(await getWarmupRatePerHour(device), config.tado.min_warm_up_per_hour_degrees);
+      let warmupRatePerHour = null;
 
-            const difference = nextTargetTemperature - currentTemperature;
-            const hoursNeededToWarmUp = difference / warmupRatePerHour;
+      const nextTarget = await getNextTargetForThermostat(device, zoneState);
+      const hasManualOverride = zoneState.overlayType === 'MANUAL';
 
-            if (dayjs().add(hoursNeededToWarmUp, 'h').isAfter(nextTargetTime)) {
-              deviceStates.push({
-                device,
-                linkedZoneDevices: [],
-                shouldScheduleForEarlyStart: true,
-                hasManualOverride,
-                nextTarget,
-                warmupRatePerHour
-              });
-              
-              continue;
-            }
+      if (nextTarget !== null) {
+        const { nextTargetTemperature, nextTargetTime }  = nextTarget;
+
+        // Don't make any changes if we have a manual override, or if the current target is more than the
+        // next target.
+        if (nextTargetTemperature > targetTemperature && !hasManualOverride) {
+          warmupRatePerHour = Math.max(await getWarmupRatePerHour(device), config.tado.min_warm_up_per_hour_degrees);
+
+          const difference = nextTargetTemperature - currentTemperature;
+          const hoursNeededToWarmUp = difference / warmupRatePerHour;
+
+          if (dayjs().add(hoursNeededToWarmUp, 'h').isAfter(nextTargetTime)) {
+            deviceStates.push({
+              device,
+              linkedZoneDevices: [],
+              shouldScheduleForEarlyStart: true,
+              hasManualOverride,
+              nextTarget,
+              warmupRatePerHour
+            });
+
+            continue;
           }
         }
-
-        deviceStates.push({
-          device,
-          linkedZoneDevices: [],
-          shouldScheduleForEarlyStart: false,
-          hasManualOverride,
-          nextTarget,
-          warmupRatePerHour
-        });
       }
+
+      deviceStates.push({
+        device,
+        linkedZoneDevices: [],
+        shouldScheduleForEarlyStart: false,
+        hasManualOverride,
+        nextTarget,
+        warmupRatePerHour
+      });
     }
 
     // Figure out linked zones, so that if a certain thermostat should be turned "on", we can also

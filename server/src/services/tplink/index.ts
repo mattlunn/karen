@@ -73,7 +73,6 @@ Device.registerProvider('tplink', {
         });
       }
 
-      device.type = 'light';
       device.name = newDevice.alias;
 
       await device.save();
