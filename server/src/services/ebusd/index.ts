@@ -13,15 +13,20 @@ Device.registerProvider('ebusd', {
   },
 
   async synchronize() {
-    const device = await Device.findByProviderId('ebusd', 'heatpump');
+    let device = await Device.findByProviderId('ebusd', 'heatpump');
 
     if (device === null) {
       await Device.create({
         provider: 'ebusd',
         providerId: 'heatpump',
         name: 'Heat Pump',
-        type: 'heatpump'
+        manufacturer: config.ebusd.manufacturer || 'Unknown',
+        model: config.ebusd.model || 'Heat Pump'
       });
+    } else if (device.manufacturer === 'Unknown') {
+      device.manufacturer = config.ebusd.manufacturer || 'Unknown';
+      device.model = config.ebusd.model || 'Heat Pump';
+      await device.save();
     }
   }
 });

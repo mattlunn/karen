@@ -110,8 +110,13 @@ Device.registerProvider('tado', {
         if (!knownDevice) {
           knownDevice = Device.build({
             provider: 'tado',
-            providerId: zone.id
+            providerId: zone.id,
+            manufacturer: 'Tado',
+            model: 'Smart Thermostat'
           });
+        } else if (knownDevice.manufacturer === 'Unknown') {
+          knownDevice.manufacturer = 'Tado';
+          knownDevice.model = 'Smart Thermostat';
         }
 
         knownDevice.name = `${zone.name} Thermostat`;

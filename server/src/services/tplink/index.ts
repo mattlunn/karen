@@ -69,8 +69,13 @@ Device.registerProvider('tplink', {
       if (device === null) {
         device = Device.build({
           provider: 'tplink',
-          providerId: newDevice.host
+          providerId: newDevice.host,
+          manufacturer: 'TP-Link',
+          model: newDevice.model || 'Smart Plug'
         });
+      } else if (device.manufacturer === 'Unknown') {
+        device.manufacturer = 'TP-Link';
+        device.model = newDevice.model || 'Smart Plug';
       }
 
       device.name = newDevice.alias;

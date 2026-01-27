@@ -147,6 +147,8 @@ export interface HomeRoom {
 export interface RestDeviceResponse {
   id: number;
   name: string;
+  manufacturer: string;
+  model: string;
   provider: string;
   providerId: string;
   roomId: number | null;

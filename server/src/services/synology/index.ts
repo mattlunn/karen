@@ -179,8 +179,12 @@ Device.registerProvider('synology', {
         knownDevice = Device.build({
           provider: 'synology',
           providerId: camera.id,
-          type: 'camera'
+          manufacturer: camera.vendor || 'Unknown',
+          model: camera.model || 'Camera'
         });
+      } else if (knownDevice.manufacturer === 'Unknown') {
+        knownDevice.manufacturer = camera.vendor || 'Unknown';
+        knownDevice.model = camera.model || 'Camera';
       }
 
       knownDevice.name = camera.newName;

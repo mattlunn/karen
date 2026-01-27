@@ -245,11 +245,11 @@ Device.registerProvider('zwave', {
   },
 
   getCapabilities(device) {
-    const zwaveDeviceName = device.meta.zwaveDeviceName as string | undefined;
-    const capabilities = zwaveDeviceName ? deviceCapabilitiesMap.get(zwaveDeviceName) : undefined;
+    const deviceKey = `${device.manufacturer} ${device.model}`;
+    const capabilities = deviceCapabilitiesMap.get(deviceKey);
 
     if (!capabilities) {
-      throw new Error(`Z-Wave device ${device.id} has unknown zwaveDeviceName: ${zwaveDeviceName}`);
+      throw new Error(`Z-Wave device ${device.id} has unknown manufacturer/model: ${deviceKey}`);
     }
 
     return capabilities;
@@ -319,12 +319,14 @@ Device.registerProvider('zwave', {
 
     for (const node of client.getNodes()) {
       if (node.ready) {
-        const zwaveDeviceName = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
+        const manufacturer = node.deviceConfig.manufacturer;
+        const model = node.deviceConfig.label;
+        const deviceKey = `${manufacturer} ${model}`;
         const deviceId = node.nodeId;
-        const deviceCapabilities = deviceCapabilitiesMap.get(zwaveDeviceName);
+        const deviceCapabilities = deviceCapabilitiesMap.get(deviceKey);
 
         if (typeof deviceCapabilities === 'undefined') {
-          logger.warn(`ZWave does not know how to handle a device of type "${zwaveDeviceName}" (Device Id ${deviceId})`);
+          logger.warn(`ZWave does not know how to handle a device of type "${deviceKey}" (Device Id ${deviceId})`);
         } else {
           let knownDevice = await Device.findByProviderId('zwave', deviceId);
 
@@ -332,22 +334,24 @@ Device.registerProvider('zwave', {
             knownDevice = await Device.create({
               provider: 'zwave',
               providerId: deviceId,
-              name: node.name || `${zwaveDeviceName} (${deviceId})`,
-              metaStringified: JSON.stringify({ zwaveDeviceName })
+              name: node.name || `${deviceKey} (${deviceId})`,
+              manufacturer,
+              model
             });
-          } else if (!knownDevice.meta.zwaveDeviceName) {
-            // Backfill existing devices with zwaveDeviceName
-            knownDevice.metaStringified = JSON.stringify({ ...knownDevice.meta, zwaveDeviceName });
+          } else if (knownDevice.manufacturer === 'Unknown' || knownDevice.model === 'Unknown') {
+            // Backfill existing devices with manufacturer/model
+            knownDevice.manufacturer = manufacturer;
+            knownDevice.model = model;
             await knownDevice.save();
           }
 
           // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)
           if (knownDevice.getCapabilities().includes('LIGHT')) {
             const brightnessHistory = await knownDevice.getLightCapability().getBrightnessHistory({ until: new Date(), limit : 1 });
-    
+
             if (brightnessHistory.length === 0) {
               await knownDevice.getLightCapability().setBrightnessState(100, knownDevice.createdAt);
-    
+
               logger.info(`Initialized brightness for zwave light device ${knownDevice.id}`);
             }
           }

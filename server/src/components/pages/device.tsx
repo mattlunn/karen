@@ -159,14 +159,14 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
         <Grid.Col span={4}>
           <Paper className="device__info" withBorder p="md" radius="md" h="100%">
             <dl>
+              <dt>Manufacturer</dt>
+              <dd>{device.manufacturer}</dd>
+              <dt>Model</dt>
+              <dd>{device.model}</dd>
               <dt>Provider</dt>
               <dd>{device.provider}</dd>
               <dt>Provider Identifier</dt>
               <dd>{device.providerId}</dd>
-              <dt>Manufacturer</dt>
-              <dd>N/A</dd>
-              <dt>Model</dt>
-              <dd>N/A</dd>
             </dl>
           </Paper>
         </Grid.Col>

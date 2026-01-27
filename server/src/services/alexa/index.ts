@@ -127,10 +127,14 @@ Device.registerProvider('alexa', {
 
       if (!knownDevice) {
         knownDevice = Device.build({
-          type: 'alexa',
           provider: 'alexa',
-          providerId: id
+          providerId: id,
+          manufacturer: 'Amazon',
+          model: 'Echo'
         });
+      } else if (knownDevice.manufacturer === 'Unknown') {
+        knownDevice.manufacturer = 'Amazon';
+        knownDevice.model = 'Echo';
       }
 
       knownDevice.name = name;
