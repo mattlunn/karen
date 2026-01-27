@@ -3,7 +3,7 @@ import DeviceControl from '../device-control';
 import { faDoorClosed, faDoorOpen } from '@fortawesome/free-solid-svg-icons';
 import { useLockMutation } from '../../hooks/mutations/use-device-mutations';
 
-export default function Lock({ device, capability, isBatteryLow = false }) {
+export default function Lock({ device, capability }) {
   const { mutate: setDoorLockedStatus, isPending: loading } = useLockMutation(device.id);
 
   return (
@@ -14,7 +14,6 @@ export default function Lock({ device, capability, isBatteryLow = false }) {
       colorIconBackground={!capability.isLocked.value}
       values={[capability.isLocked.value ? 'Locked' : 'Unlocked']}
       actionPending={loading}
-      isBatteryLow={isBatteryLow}
       iconOnClick={(e) => {
         e.preventDefault();
 

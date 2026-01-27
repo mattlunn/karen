@@ -20,27 +20,11 @@ function createIfCapabilitySatisfied(device, ...creators) {
   return creators.at(-1)(device);
 }
 
-function getIsBatteryLow(device) {
-  const batteryLowCapability = device.capabilities.find(x => x.type === 'BATTERY_LOW_INDICATOR');
-  if (batteryLowCapability) {
-    return batteryLowCapability.isLow.value;
-  }
-
-  const batteryLevelCapability = device.capabilities.find(x => x.type === 'BATTERY_LEVEL_INDICATOR');
-  if (batteryLevelCapability) {
-    return batteryLevelCapability.batteryPercentage.value <= 20;
-  }
-
-  return false;
-}
-
 function buildDeviceControlForDevice(device) {
-  const isBatteryLow = getIsBatteryLow(device);
-
   return createIfCapabilitySatisfied(device,
     x => x.type === 'THERMOSTAT',
     (device, capability) => (
-      <DeviceControl device={device} icon={faThermometerFull} color="#ff6f22" colorIconBackground={capability.isHeating.value} isBatteryLow={isBatteryLow} values={[
+      <DeviceControl device={device} icon={faThermometerFull} color="#ff6f22" colorIconBackground={capability.isHeating.value} values={[
         `${capability.currentTemperature.value.toFixed(1)}°`,
         `${capability.targetTemperature.value.toFixed(1)}°`,
         `${capability.power.value}%`
@@ -48,16 +32,16 @@ function buildDeviceControlForDevice(device) {
     ),
 
     x => x.type === 'LIGHT',
-    (device, capability) => <Light device={device} capability={capability} isBatteryLow={isBatteryLow} />,
+    (device, capability) => <Light device={device} capability={capability} />,
 
     x => x.type === 'CAMERA',
     (device, capability) => (
-      <DeviceControl device={device} icon={faVideo} color="#04A7F4" colorIconBackground={false} isBatteryLow={isBatteryLow} values={[]} />
+      <DeviceControl device={device} icon={faVideo} color="#04A7F4" colorIconBackground={false} values={[]} />
     ),
 
     x => x.type === 'HUMIDITY_SENSOR',
     (device, capability) => (
-      <DeviceControl device={device} icon={faDroplet} color="#04A7F4" colorIconBackground={false} isBatteryLow={isBatteryLow} values={[
+      <DeviceControl device={device} icon={faDroplet} color="#04A7F4" colorIconBackground={false} values={[
         `${capability.humidity.value}%`,
         `${device.capabilities.find(x => x.type === 'TEMPERATURE_SENSOR')?.currentTemperature?.value?.toFixed(1) ?? '?'}°`
       ]} />
@@ -65,15 +49,15 @@ function buildDeviceControlForDevice(device) {
 
     x => x.type === 'SWITCH',
     (device, capability) => (
-      <DeviceControl device={device} icon={faToggleOff} color="#04A7F4" colorIconBackground={capability.isOn.value} isBatteryLow={isBatteryLow} values={[]} />
+      <DeviceControl device={device} icon={faToggleOff} color="#04A7F4" colorIconBackground={capability.isOn.value} values={[]} />
     ),
 
     x => x.type === 'LOCK',
-    (device, capability) => <Lock device={device} capability={capability} isBatteryLow={isBatteryLow} />,
+    (device, capability) => <Lock device={device} capability={capability} />,
 
     x => x.type === 'HEAT_PUMP',
     (device, capability) => (
-      <DeviceControl device={device} icon={faFire} color="#04A7F4" colorIconBackground={capability.mode.value !== 'STANDBY'} isBatteryLow={isBatteryLow} values={[
+      <DeviceControl device={device} icon={faFire} color="#04A7F4" colorIconBackground={capability.mode.value !== 'STANDBY'} values={[
         `${capability.mode.value[0]}${capability.mode.value.slice(1).toLowerCase()}`,
         `${capability.dailyConsumedEnergy.value}kW`,
         `${capability.heatingCoP.value} CoP`,
@@ -96,7 +80,7 @@ function buildDeviceControlForDevice(device) {
       }
 
       return (
-        <DeviceControl device={device} icon={icon} color="#04A7F4" colorIconBackground={colorIconBackground} isBatteryLow={isBatteryLow} values={
+        <DeviceControl device={device} icon={icon} color="#04A7F4" colorIconBackground={colorIconBackground} values={
           device.capabilities.map((capability) => {
             switch (capability.type) {
               case 'TEMPERATURE_SENSOR':
