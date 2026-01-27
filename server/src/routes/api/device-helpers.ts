@@ -39,6 +39,7 @@ export function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>, device: 
       return {
         start: device.createdAt.toISOString(),
         end: null,
+        lastReported: device.createdAt.toISOString(),
         value: false
       };
     }
@@ -211,6 +212,31 @@ export async function getCapabilityData(device: Device, capability: string): Pro
   }
 }
 
+function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fallback: Date): string {
+  let latestDate: Date = fallback;
+
+  for (const capability of capabilities) {
+    if (capability.type === null || capability.type === 'SPEAKER') {
+      continue;
+    }
+
+    // Get all event fields from the capability (excluding 'type')
+    for (const [key, value] of Object.entries(capability)) {
+      if (key === 'type') continue;
+
+      const event = value as { lastReported?: string };
+      if (event.lastReported) {
+        const eventDate = new Date(event.lastReported);
+        if (eventDate > latestDate) {
+          latestDate = eventDate;
+        }
+      }
+    }
+  }
+
+  return latestDate.toISOString();
+}
+
 export async function mapDeviceToResponse(device: Device): Promise<RestDeviceResponse> {
   const isConnected = await device.getIsConnected();
 
@@ -218,6 +244,8 @@ export async function mapDeviceToResponse(device: Device): Promise<RestDeviceRes
   const capabilityData = await Promise.all(
     capabilities.map(cap => getCapabilityData(device, cap))
   );
+
+  const lastSeen = getLastSeenFromCapabilities(capabilityData, device.createdAt);
 
   return {
     id: device.id,
@@ -228,6 +256,7 @@ export async function mapDeviceToResponse(device: Device): Promise<RestDeviceRes
     providerId: device.providerId,
     roomId: device.roomId,
     status: (isConnected ? 'OK' : 'OFFLINE') as DeviceStatus,
+    lastSeen,
     capabilities: capabilityData
   };
 }

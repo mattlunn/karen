@@ -174,6 +174,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                       title="Battery"
                       value={`${percentage}%`}
                       since={capability.batteryPercentage.start}
+                      lastReported={capability.batteryPercentage.lastReported}
                       color={getBatteryColor()}
                     />
                   );
@@ -188,6 +189,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                       title="Battery"
                       value={isLow ? 'LOW' : 'OK'}
                       since={capability.isLow.start}
+                      lastReported={capability.isLow.lastReported}
                       color={isLow ? '#e74c3c' : '#2ecc71'}
                     />
                   );
@@ -210,6 +212,8 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
               <dd>{device.provider}</dd>
               <dt>Provider Identifier</dt>
               <dd>{device.providerId}</dd>
+              <dt>Last Seen</dt>
+              <dd>{new Date(device.lastSeen).toLocaleString()}</dd>
             </dl>
           </Paper>
         </Grid.Col>

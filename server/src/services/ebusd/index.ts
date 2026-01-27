@@ -24,7 +24,7 @@ Device.registerProvider('ebusd', {
     }
 
     device.manufacturer = 'Vaillant';
-    device.model = 'aroTHERM Plus'
+    device.model = 'aroTHERM Plus';
 
     await device.save();
   }

@@ -153,6 +153,7 @@ export interface RestDeviceResponse {
   providerId: string;
   roomId: number | null;
   status: DeviceStatus;
+  lastSeen: string;
   capabilities: CapabilityApiResponse[];
 }
 

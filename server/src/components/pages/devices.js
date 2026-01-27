@@ -7,7 +7,9 @@ import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
 import { faQuestion } from '@fortawesome/free-solid-svg-icons/faQuestion';
 import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermometerQuarter';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
+import { faBatteryEmpty, faBatteryFull } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
+import { Table } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 
 function getDeviceIcon(capabilities) {
@@ -30,12 +32,85 @@ function getDeviceIcon(capabilities) {
   return faQuestion;
 }
 
-function DeviceLink({ id, name, capabilities }) {
+function getIsBatteryLow(device) {
+  const batteryLowCapability = device.capabilities.find(x => x.type === 'BATTERY_LOW_INDICATOR');
+
+  if (batteryLowCapability) {
+    return batteryLowCapability.isLow.value;
+  }
+
+  return false;
+}
+
+function formatLastSeen(lastSeen) {
+  const date = new Date(lastSeen);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) {
+    return 'Just now';
+  } else if (diffMins < 60) {
+    return `${diffMins} min${diffMins === 1 ? '' : 's'} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  } else if (diffDays < 7) {
+    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  } else {
+    return date.toLocaleDateString();
+  }
+}
+
+function BatteryIndicator({ device }) {
+  const isBatteryLow = getIsBatteryLow(device);
+  const hasBatteryCapability = device.capabilities.some(
+    x => x.type === 'BATTERY_LOW_INDICATOR' || x.type === 'BATTERY_LEVEL_INDICATOR'
+  );
+
+  if (!hasBatteryCapability) {
+    return <span style={{ color: '#888' }}>-</span>;
+  }
+
+  if (isBatteryLow) {
+    return <FontAwesomeIcon icon={faBatteryEmpty} color="red" title="Battery Low" />;
+  }
+
+  return <FontAwesomeIcon icon={faBatteryFull} color="green" title="Battery OK" />;
+}
+
+function DevicesTable({ devices }) {
   return (
-    <Link to={`/device/${id}`}>
-      <span className="device-icon"><FontAwesomeIcon icon={getDeviceIcon(capabilities)} /></span>
-      {name}
-    </Link>
+    <Table striped highlightOnHover>
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Th>Name</Table.Th>
+          <Table.Th>Manufacturer</Table.Th>
+          <Table.Th>Model</Table.Th>
+          <Table.Th>Last Seen</Table.Th>
+          <Table.Th>Battery</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {devices.map((device) => (
+          <Table.Tr key={device.id}>
+            <Table.Td>
+              <Link to={`/device/${device.id}`}>
+                <span className="device-icon" style={{ marginRight: '8px' }}>
+                  <FontAwesomeIcon icon={getDeviceIcon(device.capabilities)} />
+                </span>
+                {device.name}
+              </Link>
+            </Table.Td>
+            <Table.Td>{device.manufacturer}</Table.Td>
+            <Table.Td>{device.model}</Table.Td>
+            <Table.Td>{formatLastSeen(device.lastSeen)}</Table.Td>
+            <Table.Td><BatteryIndicator device={device} /></Table.Td>
+          </Table.Tr>
+        ))}
+      </Table.Tbody>
+    </Table>
   );
 }
 
@@ -72,25 +147,12 @@ export default function Devices() {
         <div className='body body--with-padding'>
           <h2>Devices</h2>
 
-          <ul className="device-list">
-            {active.map((device) => (
-              <li key={device.id}>
-                <DeviceLink {...device} />
-              </li>
-            ))}
-          </ul>
+          <DevicesTable devices={active} />
 
           {old.length > 0 ? (
             <>
-            <h3>Offline Devices</h3>
-
-            <ul className="device-list">
-              {old.map((device) => (
-                <li key={device.id}>
-                  <DeviceLink {...device} />
-                </li>
-              ))}
-            </ul>
+              <h3>Offline Devices</h3>
+              <DevicesTable devices={old} />
             </>
           ) : null}
 
