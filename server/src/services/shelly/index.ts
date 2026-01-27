@@ -65,6 +65,9 @@ Device.registerProvider('shelly', {
           }
         }
 
+        device.manufacturer = 'Shelly';
+        device.model = await shellyDevice.getModel() || 'Unknown';
+
         await device.save();
       } catch (e) {
         logger.error(e, `Failed to synchronize Shelly device ${device.id} (${device.name})`);

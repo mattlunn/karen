@@ -40,7 +40,8 @@ router.get('/install', asyncWrapper(async (req, res) => {
   }
 
   device.name = ip;
-  device.type = 'light';
+  device.manufacturer = 'Shelly';
+  device.model = model;
   device.meta.endpoint = ip;
   device.meta.generation = client.getGeneration();
   

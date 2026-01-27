@@ -217,7 +217,8 @@ export async function mapDeviceToResponse(device: Device): Promise<RestDeviceRes
   return {
     id: device.id,
     name: device.name,
-    type: device.type,
+    manufacturer: device.manufacturer,
+    model: device.model,
     provider: device.provider,
     providerId: device.providerId,
     roomId: device.roomId,

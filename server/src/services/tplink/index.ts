@@ -73,7 +73,8 @@ Device.registerProvider('tplink', {
         });
       }
 
-      device.type = 'light';
+      device.manufacturer = 'TP-Link';
+      device.model = newDevice.model || 'Unknown';
       device.name = newDevice.alias;
 
       await device.save();

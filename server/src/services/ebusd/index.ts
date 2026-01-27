@@ -13,16 +13,20 @@ Device.registerProvider('ebusd', {
   },
 
   async synchronize() {
-    const device = await Device.findByProviderId('ebusd', 'heatpump');
+    let device = await Device.findByProviderId('ebusd', 'heatpump');
 
     if (device === null) {
-      await Device.create({
+      device = Device.build({
         provider: 'ebusd',
         providerId: 'heatpump',
         name: 'Heat Pump',
-        type: 'heatpump'
       });
     }
+
+    device.manufacturer = 'Vaillant';
+    device.model = 'aroTHERM Plus'
+
+    await device.save();
   }
 });
 

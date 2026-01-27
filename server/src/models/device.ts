@@ -31,8 +31,9 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare provider: string;
   declare providerId: string;
   declare createdAt: CreationOptional<Date>;
-  declare type: CreationOptional<string>;
   declare name: CreationOptional<string>;
+  declare manufacturer: CreationOptional<string>;
+  declare model: CreationOptional<string>;
   declare roomId: CreationOptional<number>;
   declare metaStringified: CreationOptional<string>;
 
@@ -235,14 +236,6 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     });
   };
 
-  static findByType(type: string) {
-    return this.findAll({
-      where: {
-        type
-      }
-    });
-  };
-
   static async synchronize() {
     for (const [name, { synchronize }] of Device._providers) {
       logger.info(`Synchronizing ${name}`);
@@ -300,11 +293,6 @@ export default function (sequelize: Sequelize) {
       allowNull: false
     },
 
-    type: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
-
     name: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -319,6 +307,18 @@ export default function (sequelize: Sequelize) {
     providerId: {
       type: DataTypes.STRING,
       allowNull: true
+    },
+
+    manufacturer: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'Unknown'
+    },
+
+    model: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'Unknown'
     },
 
     roomId: {

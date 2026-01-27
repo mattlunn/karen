@@ -16,7 +16,7 @@ type SecurityAutomationConfiguration = {
 };
 
 async function turnOnAllTheLights() {
-  const lights = await Device.findByType('light');
+  const lights = await Device.findByCapability('LIGHT');
 
   for (const light of lights) {
     light.getLightCapability().setIsOn(true);
