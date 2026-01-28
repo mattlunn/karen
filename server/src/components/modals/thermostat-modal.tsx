@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Slider, Text } from '@mantine/core';
+import { Box, Button, Slider, Text } from '@mantine/core';
 import { useThermostatMutation } from '../../hooks/mutations/use-device-mutations';
 
 interface ThermostatCapability {
@@ -31,12 +31,12 @@ export default function ThermostatModal({ device, capability, closeModal }: Ther
   return (
     <div className="thermostat-modal">
       <div className="thermostat-modal__body">
-        <h2>Set Temperature</h2>
-        <Text size="sm" c="dimmed" mb="md">{device.name}</Text>
-        <Text size="sm" mb="lg">
-          Current: <strong>{capability.currentTemperature.value.toFixed(1)}°</strong>
-        </Text>
-        <div className="thermostat-modal__slider-container">
+        <h2>Set Temperature for {device.name}</h2>
+
+        <Text>Current Temperature: <strong>{capability.currentTemperature.value.toFixed(1)}°</strong></Text>
+        <Text mb="sm">Current Target: <strong>{capability.targetTemperature.value.toFixed(1)}°</strong></Text>
+
+        <Box>
           <Slider
             value={targetTemperature}
             onChange={setTargetTemperature}
@@ -44,7 +44,7 @@ export default function ThermostatModal({ device, capability, closeModal }: Ther
             max={25}
             step={0.5}
             marks={[
-              { value: 0, label: '0°' },
+              { value: 0, label: 'Off' },
               { value: 5, label: '5°' },
               { value: 10, label: '10°' },
               { value: 15, label: '15°' },
@@ -53,7 +53,7 @@ export default function ThermostatModal({ device, capability, closeModal }: Ther
             ]}
             label={(value) => `${value.toFixed(1)}°`}
           />
-        </div>
+        </Box>
         <Text ta="center" size="xl" fw={700} mt="xl">
           {targetTemperature.toFixed(1)}°
         </Text>
