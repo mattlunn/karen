@@ -1,7 +1,7 @@
 import { Device, Stay } from '../../models';
-import TadoClient, { TadoClientError, ZoneState, exchangeRefreshTokenForAccessToken } from './client';
+import TadoClient, { TadoClientError, Zone, ZoneState, exchangeRefreshTokenForAccessToken } from './client';
 import config from '../../config';
-import { saveConfig } from '../../helpers/config'; 
+import { saveConfig } from '../../helpers/config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import dayjs, { Dayjs } from '../../dayjs';
 import getTimetabledTemperature from './helpers/get-timetabled-temperature';
@@ -66,7 +66,8 @@ Device.registerProvider('tado', {
     return [
       'HUMIDITY_SENSOR',
       'TEMPERATURE_SENSOR',
-      'THERMOSTAT'
+      'THERMOSTAT',
+      'BATTERY_LOW_INDICATOR'
     ];
   },
 
@@ -95,7 +96,7 @@ Device.registerProvider('tado', {
           await client.setHeatingPowerForZone(device.providerId, false, false);
         }
       }
-    }
+    };
   },
 
   async synchronize() {
@@ -104,21 +105,24 @@ Device.registerProvider('tado', {
 
     for (const zone of zones) {
       if (zone.type === 'HEATING') {
-        let knownDevice = await Device.findByProviderId('tado', zone.id);
+        const zoneId = String(zone.id);
+        const hasLowBattery = zone.devices.some(d => d.batteryState === 'LOW');
+        let knownDevice = await Device.findByProviderId('tado', zoneId);
 
         if (!knownDevice) {
           knownDevice = Device.build({
             provider: 'tado',
-            providerId: zone.id
+            providerId: zoneId
           });
         }
-        
+
         knownDevice.manufacturer = 'tado';
-        knownDevice.model = zone.deviceTypes[0];
+        knownDevice.model = zone.devices[0]?.deviceType ?? 'Unknown';
         knownDevice.name = `${zone.name} Thermostat`;
 
         await knownDevice.save();
-        await knownDevice.getThermostatCapability().setSetbackTemperatureState(await client.getMinimumAwayTemperatureForZone(zone.id));
+        await knownDevice.getThermostatCapability().setSetbackTemperatureState(await client.getMinimumAwayTemperatureForZone(zoneId));
+        await knownDevice.getBatteryLowIndicatorCapability().setIsBatteryLowState(hasLowBattery);
       }
     }
   }
@@ -180,7 +184,7 @@ if (config.tado.enable_warm_up) {
     const client = new TadoClient(await getAccessToken(), config.tado.home_id);
 
     const [
-      isSomeoneAtHome, 
+      isSomeoneAtHome,
       nextEta,
       zoneStates
     ] = await Promise.all([
@@ -259,17 +263,17 @@ if (config.tado.enable_warm_up) {
 
     for (const deviceState of deviceStates) {
       if (deviceState.shouldScheduleForEarlyStart) {
-        // We don't change a linked zone if it itself is scheduled for switch on, or if it's already got a 
+        // We don't change a linked zone if it itself is scheduled for switch on, or if it's already got a
         // manual configuration (either on from a previous job run, or human override, or if doesn't have a next target)
         const devicesToEnable = [deviceState, ...deviceState.linkedZoneDevices.filter(x => {
-          return !x.shouldScheduleForEarlyStart && !x.hasManualOverride && x.nextTarget !== null
+          return !x.shouldScheduleForEarlyStart && !x.hasManualOverride && x.nextTarget !== null;
         })];
 
         for (const deviceToEnable of devicesToEnable) {
           await client.setHeatingPowerForZone(deviceToEnable.device.providerId, deviceToEnable.nextTarget!.nextTargetTemperature, true);
         }
 
-        const zoneMessage = deviceState.linkedZoneDevices.length > 0 
+        const zoneMessage = deviceState.linkedZoneDevices.length > 0
           ? ` (+${devicesToEnable.length - 1} of ${deviceState.linkedZoneDevices.length} linked zones)`
           : ``;
 

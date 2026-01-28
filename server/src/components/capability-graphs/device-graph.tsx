@@ -28,7 +28,7 @@ export function DeviceGraph({ graphId, deviceId, title, zones, yMin, yMax, yAxis
     id: graphId,
     since: effectiveRange.since.toISOString(),
     until: effectiveRange.until.toISOString()
-  }), [graphId, effectiveRange.since.valueOf(), effectiveRange.until.valueOf()]);
+  }), [graphId, effectiveRange.since, effectiveRange.until]);
 
   const { data, loading, error } = useApiCall<HistoryApiResponse>(
     `/device/${deviceId}/history`,

@@ -1,7 +1,7 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from 'sequelize';
 
 export class Room extends Model<InferAttributes<Room>, InferCreationAttributes<Room>> {
-  declare public id: CreationOptional<Number>;
+  declare public id: CreationOptional<number>;
   declare public createdAt: CreationOptional<Date>;
   declare public updatedAt: CreationOptional<Date>;
 

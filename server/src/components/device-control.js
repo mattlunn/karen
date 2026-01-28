@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ThermostatHeatMap from './thermostat-heat-map';
 import classNames from 'classnames';
 import { faSync } from '@fortawesome/free-solid-svg-icons';
+import IssuesIndicator from './issues-indicator';
 
 export default function DeviceControl({ icon, iconOnClick = (e) => e.preventDefault(), actionPending = false, colorIconBackground, color, device, values = [], showMap }) {
   return (
@@ -15,6 +16,9 @@ export default function DeviceControl({ icon, iconOnClick = (e) => e.preventDefa
           <h4 className="device-control__name">{device.name}</h4>
           <ul className="device-control__values">
             {values.map((value, idx) => <li className="device-control__value" key={idx}>{value}</li>)}
+            <li className="device-control__value device-control__value--warning">
+              <IssuesIndicator device={device} />
+            </li>
           </ul>
         </div>
       </div>

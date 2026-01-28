@@ -11,7 +11,7 @@ export class AlarmActivation extends Model<InferAttributes<AlarmActivation>, Inf
   declare isSuppressed: CreationOptional<boolean>;
 
   declare getArming: HasOneGetAssociationMixin<Arming>;
-};
+}
 
 export default function (sequelize: Sequelize) {
   AlarmActivation.init({

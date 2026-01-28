@@ -41,7 +41,7 @@ export function DateRangeSelector({ preset, range, onPresetChange, onRangeChange
   useEffect(() => {
     setPendingSince(currentRange.since);
     setPendingUntil(currentRange.until);
-  }, [currentRange.since.valueOf(), currentRange.until.valueOf()]);
+  }, [currentRange.since, currentRange.until]);
 
   const handlePresetChange = (newPreset: DateRangePreset) => {
     setActivePreset(newPreset);

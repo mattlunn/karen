@@ -102,6 +102,28 @@ export type ZoneState = {
 
 export type ZonesState = Record<number, ZoneState>;
 
+export type ZoneDevice = {
+  deviceType: string;
+  serialNo: string;
+  shortSerialNo: string;
+  currentFwVersion: string;
+  connectionState: {
+    value: boolean;
+    timestamp: ISODateTime;
+  };
+  characteristics: {
+    capabilities: string[];
+  };
+  batteryState?: 'NORMAL' | 'LOW';
+};
+
+export type Zone = {
+  id: number;
+  name: string;
+  type: 'HEATING' | 'HOT_WATER';
+  devices: ZoneDevice[];
+};
+
 export class TadoClientError extends Error {
   code: string;
 
@@ -179,7 +201,7 @@ export default class TadoClient {
     return json;
   }
 
-  getZones() {
+  getZones(): Promise<Zone[]> {
     return this._request('/zones');
   }
 

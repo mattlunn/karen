@@ -30,12 +30,18 @@ export function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise
   });
 }
 
-export function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>): Promise<BooleanEventApiResponse> {
+export function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>, device: Device): Promise<BooleanEventApiResponse> {
   return eventsPromise.then(events => {
     const event = events[0];
 
+    // For boolean events which have never happened yet, assume they are off (since there is no "on"...)
     if (!event) {
-      throw new Error('Missing an initial event');
+      return {
+        start: device.createdAt.toISOString(),
+        end: null,
+        lastReported: device.createdAt.toISOString(),
+        value: false
+      };
     }
 
     if (event.end) {
@@ -117,7 +123,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const light = device.getLightCapability();
       return awaitPromises({
         type: 'LIGHT' as const,
-        isOn: mapBooleanEvent(light.getIsOnHistory(currentSelector)),
+        isOn: mapBooleanEvent(light.getIsOnHistory(currentSelector), device),
         brightness: mapNumericEvent(light.getBrightnessHistory(currentSelector))
       });
     }
@@ -143,7 +149,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const lock = device.getLockCapability();
       return awaitPromises({
         type: 'LOCK' as const,
-        isLocked: mapBooleanEvent(lock.getIsLockedHistory(currentSelector))
+        isLocked: mapBooleanEvent(lock.getIsLockedHistory(currentSelector), device)
       });
     }
 
@@ -151,7 +157,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const sensor = device.getMotionSensorCapability();
       return awaitPromises({
         type: 'MOTION_SENSOR' as const,
-        hasMotion: mapBooleanEvent(sensor.getHasMotionHistory(currentSelector))
+        hasMotion: mapBooleanEvent(sensor.getHasMotionHistory(currentSelector), device)
       });
     }
 
@@ -169,7 +175,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         type: 'THERMOSTAT' as const,
         targetTemperature: mapNumericEvent(thermostat.getTargetTemperatureHistory(currentSelector)),
         currentTemperature: mapNumericEvent(thermostat.getCurrentTemperatureHistory(currentSelector)),
-        isHeating: mapBooleanEvent(thermostat.getIsOnHistory(currentSelector)),
+        isHeating: mapBooleanEvent(thermostat.getIsOnHistory(currentSelector), device),
         power: mapNumericEvent(thermostat.getPowerHistory(currentSelector))
       });
     }
@@ -181,7 +187,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const switchCapability = device.getSwitchCapability();
       return awaitPromises({
         type: 'SWITCH' as const,
-        isOn: mapBooleanEvent(switchCapability.getIsOnHistory(currentSelector))
+        isOn: mapBooleanEvent(switchCapability.getIsOnHistory(currentSelector), device)
       });
     }
 
@@ -197,13 +203,27 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const battery = device.getBatteryLowIndicatorCapability();
       return awaitPromises({
         type: 'BATTERY_LOW_INDICATOR' as const,
-        isLow: mapBooleanEvent(battery.getIsBatteryLowHistory(currentSelector))
+        isLow: mapBooleanEvent(battery.getIsBatteryLowHistory(currentSelector), device)
       });
     }
 
     default:
       return { type: null };
   }
+}
+
+function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fallback: Date): string {
+  let latestDate: string = fallback.toISOString();
+
+  for (const capability of capabilities) {
+    for (const value of Object.values(capability)) {
+      if (typeof value === 'object' && 'lastReported' in value && latestDate < value.lastReported) {
+        latestDate = value.lastReported;
+      }
+    }
+  }
+
+  return latestDate;
 }
 
 export async function mapDeviceToResponse(device: Device): Promise<RestDeviceResponse> {
@@ -214,6 +234,8 @@ export async function mapDeviceToResponse(device: Device): Promise<RestDeviceRes
     capabilities.map(cap => getCapabilityData(device, cap))
   );
 
+  const lastSeen = getLastSeenFromCapabilities(capabilityData, device.createdAt);
+
   return {
     id: device.id,
     name: device.name,
@@ -223,6 +245,7 @@ export async function mapDeviceToResponse(device: Device): Promise<RestDeviceRes
     providerId: device.providerId,
     roomId: device.roomId,
     status: (isConnected ? 'OK' : 'OFFLINE') as DeviceStatus,
+    lastSeen,
     capabilities: capabilityData
   };
 }

@@ -6,10 +6,8 @@ import { enqueueWorkItem } from '../queue';
 
 export async function markUserAsHome(user: User, trigger: 'wifi' | 'geolocation') {
   await enqueueWorkItem(async () => {
-    let [current, [upcoming]] = await Promise.all([
-      Stay.findCurrentStay(user.id),
-      Stay.findUpcomingStays([user.id])
-    ]);
+    const current = await Stay.findCurrentStay(user.id);
+    let [upcoming] = await Stay.findUpcomingStays([user.id]);
 
     if (current) {
       throw new Error(`Cannot mark ${user.handle} as home when they are already home!`);
@@ -30,10 +28,9 @@ export async function markUserAsHome(user: User, trigger: 'wifi' | 'geolocation'
 export async function markUserAsAway(user: User) {
   await enqueueWorkItem(async () => {
     const userId = user.id;
-    let [ current, unclaimedEta ] = await Promise.all([
-      Stay.findCurrentStay(userId),
-      Stay.findUnclaimedEta(dayjs().subtract(config.location.unclaimed_eta_search_window_in_minutes, 'minutes').toDate())
-    ]);
+    const current = await Stay.findCurrentStay(userId);
+    
+    let unclaimedEta = await Stay.findUnclaimedEta(dayjs().subtract(config.location.unclaimed_eta_search_window_in_minutes, 'minutes').toDate());
 
     if (!current) {
       throw new Error(`Cannot mark ${user.handle} as away when they're already away!`);

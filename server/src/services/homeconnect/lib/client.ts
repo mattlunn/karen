@@ -15,7 +15,7 @@ type OnProgramStartPayload = {
 }
 
 type Appliance = {
-  connected: Boolean;
+  connected: boolean;
   haId: string;
   name: 'Oven' | 'Dishwasher' | 'Microwave'
   type: 'Oven' | 'Dishwasher';
@@ -26,7 +26,7 @@ export default class ApiClient {
   #eventEmitter: EventEmitter;
 
   constructor(config: ApiClientConfig) {
-    this.#accessToken = config.access_token
+    this.#accessToken = config.access_token;
     this.#eventEmitter = new EventEmitter();
   }
 

@@ -22,7 +22,7 @@ export default class EbusClient {
   #command(command: string): Promise<string> {
     return new Promise((res, rej) => {
       const socket = createConnection(this.#port, this.#host, () => {
-        let data: string[] = [];
+        const data: string[] = [];
 
         socket.setTimeout(60000, () => {
           socket.end();
@@ -47,7 +47,7 @@ export default class EbusClient {
     });
   }
 
-  async #write(circuit: string, key: string, value: string = ''): Promise<string> {
+  async #write(circuit: string, key: string, value = ''): Promise<string> {
     const result = await this.#command(`write -c ${circuit} ${key} ${value}`);
 
     if (result !== value) {
@@ -57,7 +57,7 @@ export default class EbusClient {
     return result;
   }
 
-  #read(value: string, circuit?: string, field: string = ''): Promise<string> {
+  #read(value: string, circuit?: string, field = ''): Promise<string> {
     return this.#command(`read${circuit ? ' -f -c ' + circuit : ''} ${value} ${field}`);
   }
 

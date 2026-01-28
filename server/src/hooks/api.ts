@@ -6,12 +6,15 @@ export default function useApiCall<T>(endpoint: string, params?: Record<string, 
   const [error, setError] = useState<null | Error>(null);
   const controllerRef = useRef<null | AbortController>(null);
 
+  const paramsKey = params ? JSON.stringify(params) : '';
+
   const queryString = useMemo(() => {
     if (!params || Object.keys(params).length === 0) {
       return '';
     }
     return '?' + new URLSearchParams(params).toString();
-  }, [params && JSON.stringify(params)]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramsKey]);
 
   const fullEndpoint = endpoint + queryString;
 

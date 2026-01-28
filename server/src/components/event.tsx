@@ -19,7 +19,7 @@ export default function Event({ renderControls, timestamp, icon, title, panels, 
 
     const controlComponnets = renderControls({
       openPanel(p) {
-        setPanel(p)
+        setPanel(p);
       },
 
       closePanel() {

@@ -40,7 +40,7 @@ export default function (config: OccupanyAutomationConfiguration) {
     const abortController = new AbortController();
 
     async function ensureActiveArming(): Promise<Arming> {
-      let activeArming = await Arming.getActiveArming(stay.end);
+      const activeArming = await Arming.getActiveArming(stay.end);
 
       if (activeArming === null) {
         return Arming.create({
@@ -83,7 +83,7 @@ export default function (config: OccupanyAutomationConfiguration) {
         abortController.abort();
       }, config.timeout_for_last_user_leaves_tasks_to_execute);
 
-      let [
+      const [
         activeArming,
         locksUnsecured,
         allThermostatsWereTurnedOff,

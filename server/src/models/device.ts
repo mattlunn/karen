@@ -62,7 +62,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     }
 
     return this.#capabilityCache.get(handler) as T;
-  };
+  }
 
   async getIsConnected(): Promise<boolean> {
     // TODO
@@ -71,51 +71,51 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   getBatteryLowIndicatorCapability(): BatteryLowIndicatorCapability {
     return this.#getCapabilityOrThrow(() => new BatteryLowIndicatorCapability(this));
-  };
+  }
 
   getBatteryLevelIndicatorCapability(): BatteryLevelIndicatorCapability {
     return this.#getCapabilityOrThrow(() => new BatteryLevelIndicatorCapability(this));
-  };
+  }
 
   getLockCapability(): LockCapability {
     return this.#getCapabilityOrThrow(() => new LockCapability(this));
-  };
+  }
 
   getLightCapability(): LightCapability {
     return this.#getCapabilityOrThrow(() => new LightCapability(this));
-  };
+  }
 
   getThermostatCapability(): ThermostatCapability {
     return this.#getCapabilityOrThrow(() => new ThermostatCapability(this));
-  };
+  }
 
   getMotionSensorCapability(): MotionSensorCapability {
     return this.#getCapabilityOrThrow(() => new MotionSensorCapability(this));
-  };
+  }
 
   getTemperatureSensorCapability(): TemperatureSensorCapability {
     return this.#getCapabilityOrThrow(() => new TemperatureSensorCapability(this));
-  };
+  }
 
   getHeatPumpCapability(): HeatPumpCapability {
     return this.#getCapabilityOrThrow(() => new HeatPumpCapability(this));
-  };
+  }
 
   getLightSensorCapability(): LightSensorCapability {
     return this.#getCapabilityOrThrow(() => new LightSensorCapability(this));
-  };
+  }
 
   getHumiditySensorCapability(): HumiditySensorCapability {
     return this.#getCapabilityOrThrow(() => new HumiditySensorCapability(this));
-  };
+  }
 
   getSpeakerCapability(): SpeakerCapability {
     return this.#getCapabilityOrThrow(() => new SpeakerCapability(this));
-  };
+  }
 
   getSwitchCapability(): SwitchCapability {
     return this.#getCapabilityOrThrow(() => new SwitchCapability(this));
-  };
+  }
 
   getCapabilities(): Capability[] {
     const provider = Device._providers.get(this.provider);
@@ -170,7 +170,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     }
 
     return lastLatestEvent.event;
-  };
+  }
 
   static findByName(name: string): Promise<Device | null> {
     return this.findOne({
@@ -178,7 +178,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
         name
       }
     });
-  };
+  }
 
   static async findByNameOrError(name: string): Promise<Device> {
     const device = await this.findByName(name);
@@ -188,7 +188,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     }
 
     return device;
-  };
+  }
 
   static findById(id: string) {
     return this.findOne({
@@ -196,13 +196,13 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
         id
       }
     });
-  };
+  }
 
   static async findByCapability(capability: Capability) {
     const allDevices = await this.findAll();
 
     return allDevices.filter(x => x.getCapabilities().includes(capability));
-  };
+  }
 
   static findByProviderId(provider: string, id: string) {
     return this.findOne({
@@ -211,7 +211,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
         providerId: id
       }
     });
-  };
+  }
 
   static async findByProviderIdOrError(provider: string, id: string) {
     const device = await this.findOne({
@@ -226,7 +226,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     }
 
     return device;
-  };
+  }
 
   static findByProvider(provider: string) {
     return this.findAll({
@@ -234,7 +234,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
         provider
       }
     });
-  };
+  }
 
   static async synchronize() {
     for (const [name, { synchronize }] of Device._providers) {
@@ -246,7 +246,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
         logger.error(e, `Unable to synchronize devices for provider ${name}`);
       }
     }
-  };
+  }
 
   static _providers = new Map<string, ProviderHandler>();
 
@@ -254,7 +254,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     this._providers.set(name, handlers);
 
     handlers.synchronize().catch(e => logger.error(e));
-  };
+  }
 
   static getProviderCapabilities(provider: string): ProviderHandler {
     const providerHandler = this._providers.get(provider);
@@ -265,7 +265,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
     return providerHandler;
   }
-};
+}
 
 type ProviderHandler = {
   provideLightCapability?(): ProviderLightCapability;

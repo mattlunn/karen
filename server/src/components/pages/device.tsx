@@ -15,7 +15,11 @@ import {
   faTree,
   faThermometer2,
   faThermometer4,
-  faGauge
+  faGauge,
+  faBatteryFull,
+  faBatteryHalf,
+  faBatteryQuarter,
+  faBatteryEmpty
 } from '@fortawesome/free-solid-svg-icons';
 
 import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
@@ -24,10 +28,13 @@ import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
 import { Box, Grid, Paper, SimpleGrid } from '@mantine/core';
 import { StatusItem } from '../status-item';
+import dayjs from 'dayjs';
+import { humanDate } from '../../helpers/date';
 
 function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
   const hasCapability = (type: string) => device.capabilities.some(c => c.type === type);
-
+  const lastSeen = dayjs(device.lastSeen);
+  
   return (
     <>
       <Grid>
@@ -150,6 +157,47 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                   ];
                 }
 
+                case 'BATTERY_LEVEL_INDICATOR': {
+                  const percentage = capability.batteryPercentage.value;
+                  const getBatteryIcon = () => {
+                    if (percentage > 75) return faBatteryFull;
+                    if (percentage > 50) return faBatteryHalf;
+                    if (percentage > 25) return faBatteryQuarter;
+                    return faBatteryEmpty;
+                  };
+                  const getBatteryColor = () => {
+                    if (percentage > 50) return '#2ecc71';
+                    if (percentage > 25) return '#f39c12';
+                    return '#e74c3c';
+                  };
+                  return (
+                    <StatusItem
+                      key={idx}
+                      icon={getBatteryIcon()}
+                      title="Battery"
+                      value={`${percentage}%`}
+                      since={capability.batteryPercentage.start}
+                      lastReported={capability.batteryPercentage.lastReported}
+                      color={getBatteryColor()}
+                    />
+                  );
+                }
+
+                case 'BATTERY_LOW_INDICATOR': {
+                  const isLow = capability.isLow.value;
+                  return (
+                    <StatusItem
+                      key={idx}
+                      icon={isLow ? faBatteryEmpty : faBatteryFull}
+                      title="Battery"
+                      value={isLow ? 'LOW' : 'OK'}
+                      since={capability.isLow.start}
+                      lastReported={capability.isLow.lastReported}
+                      color={isLow ? '#e74c3c' : '#2ecc71'}
+                    />
+                  );
+                }
+
                 default:
                   return null;
               }
@@ -167,6 +215,8 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
               <dd>{device.provider}</dd>
               <dt>Provider Identifier</dt>
               <dd>{device.providerId}</dd>
+              <dt>Last Seen</dt>
+              <dd>{`${lastSeen.format('HH:mm')} ${humanDate(lastSeen)}`}</dd>
             </dl>
           </Paper>
         </Grid.Col>

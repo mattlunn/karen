@@ -33,7 +33,7 @@ export function StatusItem({ icon, title, value, since, lastReported, color }: S
         <Text size="xs" c="dimmed" className="status-item__title">
           {title}
         </Text>
-        <FontAwesomeIcon icon={icon} color={color} className="status-item__icon" />
+        <FontAwesomeIcon icon={icon} color={color || 'light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3))'} className="status-item__icon" />
       </Group>
 
       <Group align="flex-end" gap="xs" mt={25}>
