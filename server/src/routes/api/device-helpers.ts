@@ -13,10 +13,8 @@ export async function awaitPromises<T extends Record<string, unknown>>(obj: T): 
   return Object.fromEntries(entries) as AwaitedObject<T>;
 }
 
-export function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise<NumericEventApiResponse> {
-  return eventsPromise.then(events => {
-    const event = events[0];
-
+export function mapNumericEvent(eventPromise: Promise<NumericEvent | null>): Promise<NumericEventApiResponse> {
+  return eventPromise.then(event => {
     if (!event) {
       throw new Error('Missing an initial event');
     }
@@ -30,10 +28,8 @@ export function mapNumericEvent(eventsPromise: Promise<NumericEvent[]>): Promise
   });
 }
 
-export function mapBooleanEvent(eventsPromise: Promise<BooleanEvent[]>, device: Device): Promise<BooleanEventApiResponse> {
-  return eventsPromise.then(events => {
-    const event = events[0];
-
+export function mapBooleanEvent(eventPromise: Promise<BooleanEvent | null>, device: Device): Promise<BooleanEventApiResponse> {
+  return eventPromise.then(event => {
     // For boolean events which have never happened yet, assume they are off (since there is no "on"...)
     if (!event) {
       return {
@@ -69,10 +65,8 @@ export const HEAT_PUMP_MODES: Record<number, string> = {
   3: 'COOLING'
 };
 
-export function mapHeatPumpModeEvent(eventsPromise: Promise<NumericEvent[]>): Promise<EnumEventApiResponse> {
-  return eventsPromise.then(events => {
-    const event = events[0];
-
+export function mapHeatPumpModeEvent(eventPromise: Promise<NumericEvent | null>): Promise<EnumEventApiResponse> {
+  return eventPromise.then(event => {
     if (!event) {
       throw new Error('Missing an initial event');
     }
@@ -87,8 +81,6 @@ export function mapHeatPumpModeEvent(eventsPromise: Promise<NumericEvent[]>): Pr
 }
 
 export async function getCapabilityData(device: Device, capability: string): Promise<CapabilityApiResponse> {
-  const currentSelector = { limit: 1, until: new Date() };
-
   switch (capability) {
     case 'CAMERA': {
       const now = new Date().toISOString();
@@ -107,7 +99,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const sensor = device.getLightSensorCapability();
       return awaitPromises({
         type: 'LIGHT_SENSOR' as const,
-        illuminance: mapNumericEvent(sensor.getIlluminanceHistory(currentSelector))
+        illuminance: mapNumericEvent(sensor.getIlluminanceEvent())
       });
     }
 
@@ -115,7 +107,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const sensor = device.getHumiditySensorCapability();
       return awaitPromises({
         type: 'HUMIDITY_SENSOR' as const,
-        humidity: mapNumericEvent(sensor.getHumidityHistory(currentSelector))
+        humidity: mapNumericEvent(sensor.getHumidityEvent())
       });
     }
 
@@ -123,8 +115,8 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const light = device.getLightCapability();
       return awaitPromises({
         type: 'LIGHT' as const,
-        isOn: mapBooleanEvent(light.getIsOnHistory(currentSelector), device),
-        brightness: mapNumericEvent(light.getBrightnessHistory(currentSelector))
+        isOn: mapBooleanEvent(light.getIsOnEvent(), device),
+        brightness: mapNumericEvent(light.getBrightnessEvent())
       });
     }
 
@@ -132,16 +124,16 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const heatPump = device.getHeatPumpCapability();
       return awaitPromises({
         type: 'HEAT_PUMP' as const,
-        mode: mapHeatPumpModeEvent(heatPump.getModeHistory(currentSelector)),
-        dailyConsumedEnergy: mapNumericEvent(heatPump.getDailyConsumedEnergyHistory(currentSelector)),
-        heatingCoP: mapNumericEvent(heatPump.getHeatingCoPHistory(currentSelector)),
-        compressorModulation: mapNumericEvent(heatPump.getCompressorModulationHistory(currentSelector)),
-        dhwTemperature: mapNumericEvent(heatPump.getDHWTemperatureHistory(currentSelector)),
-        dHWCoP: mapNumericEvent(heatPump.getDHWCoPHistory(currentSelector)),
-        outsideTemperature: mapNumericEvent(heatPump.getOutsideTemperatureHistory(currentSelector)),
-        actualFlowTemperature: mapNumericEvent(heatPump.getActualFlowTemperatureHistory(currentSelector)),
-        returnTemperature: mapNumericEvent(heatPump.getReturnTemperatureHistory(currentSelector)),
-        systemPressure: mapNumericEvent(heatPump.getSystemPressureHistory(currentSelector))
+        mode: mapHeatPumpModeEvent(heatPump.getModeEvent()),
+        dailyConsumedEnergy: mapNumericEvent(heatPump.getDailyConsumedEnergyEvent()),
+        heatingCoP: mapNumericEvent(heatPump.getHeatingCoPEvent()),
+        compressorModulation: mapNumericEvent(heatPump.getCompressorModulationEvent()),
+        dhwTemperature: mapNumericEvent(heatPump.getDHWTemperatureEvent()),
+        dHWCoP: mapNumericEvent(heatPump.getDHWCoPEvent()),
+        outsideTemperature: mapNumericEvent(heatPump.getOutsideTemperatureEvent()),
+        actualFlowTemperature: mapNumericEvent(heatPump.getActualFlowTemperatureEvent()),
+        returnTemperature: mapNumericEvent(heatPump.getReturnTemperatureEvent()),
+        systemPressure: mapNumericEvent(heatPump.getSystemPressureEvent())
       });
     }
 
@@ -149,7 +141,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const lock = device.getLockCapability();
       return awaitPromises({
         type: 'LOCK' as const,
-        isLocked: mapBooleanEvent(lock.getIsLockedHistory(currentSelector), device)
+        isLocked: mapBooleanEvent(lock.getIsLockedEvent(), device)
       });
     }
 
@@ -157,7 +149,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const sensor = device.getMotionSensorCapability();
       return awaitPromises({
         type: 'MOTION_SENSOR' as const,
-        hasMotion: mapBooleanEvent(sensor.getHasMotionHistory(currentSelector), device)
+        hasMotion: mapBooleanEvent(sensor.getHasMotionEvent(), device)
       });
     }
 
@@ -165,7 +157,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const sensor = device.getTemperatureSensorCapability();
       return awaitPromises({
         type: 'TEMPERATURE_SENSOR' as const,
-        currentTemperature: mapNumericEvent(sensor.getCurrentTemperatureHistory(currentSelector))
+        currentTemperature: mapNumericEvent(sensor.getCurrentTemperatureEvent())
       });
     }
 
@@ -173,10 +165,10 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const thermostat = device.getThermostatCapability();
       return awaitPromises({
         type: 'THERMOSTAT' as const,
-        targetTemperature: mapNumericEvent(thermostat.getTargetTemperatureHistory(currentSelector)),
-        currentTemperature: mapNumericEvent(thermostat.getCurrentTemperatureHistory(currentSelector)),
-        isHeating: mapBooleanEvent(thermostat.getIsOnHistory(currentSelector), device),
-        power: mapNumericEvent(thermostat.getPowerHistory(currentSelector))
+        targetTemperature: mapNumericEvent(thermostat.getTargetTemperatureEvent()),
+        currentTemperature: mapNumericEvent(thermostat.getCurrentTemperatureEvent()),
+        isHeating: mapBooleanEvent(thermostat.getIsOnEvent(), device),
+        power: mapNumericEvent(thermostat.getPowerEvent())
       });
     }
 
@@ -187,7 +179,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const switchCapability = device.getSwitchCapability();
       return awaitPromises({
         type: 'SWITCH' as const,
-        isOn: mapBooleanEvent(switchCapability.getIsOnHistory(currentSelector), device)
+        isOn: mapBooleanEvent(switchCapability.getIsOnEvent(), device)
       });
     }
 
@@ -195,7 +187,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const battery = device.getBatteryLevelIndicatorCapability();
       return awaitPromises({
         type: 'BATTERY_LEVEL_INDICATOR' as const,
-        batteryPercentage: mapNumericEvent(battery.getBatteryPercentageHistory(currentSelector))
+        batteryPercentage: mapNumericEvent(battery.getBatteryPercentageEvent())
       });
     }
 
@@ -203,7 +195,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const battery = device.getBatteryLowIndicatorCapability();
       return awaitPromises({
         type: 'BATTERY_LOW_INDICATOR' as const,
-        isLow: mapBooleanEvent(battery.getIsBatteryLowHistory(currentSelector), device)
+        isLow: mapBooleanEvent(battery.getIsBatteryLowEvent(), device)
       });
     }
 

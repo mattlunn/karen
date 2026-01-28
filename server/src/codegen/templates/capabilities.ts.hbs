@@ -1,11 +1,13 @@
 import { Device, NumericEvent, BooleanEvent } from '..';
-import { 
-  getNumericProperty, 
-  setNumericProperty, 
-  getBooleanProperty, 
-  setBooleanProperty, 
-  getBooleanPropertyHistory, 
+import {
+  getNumericProperty,
+  setNumericProperty,
+  getBooleanProperty,
+  setBooleanProperty,
+  getBooleanPropertyHistory,
   getNumericPropertyHistory,
+  getLatestBooleanEvent,
+  getLatestNumericEvent,
   HistorySelector
 } from './helpers';
 
@@ -23,6 +25,10 @@ export class {{className}} {
   {{#if isBoolean}}
   get{{propertyName}}(): Promise<boolean> {
     return getBooleanProperty(this.device, '{{fieldName}}');
+  }
+
+  get{{propertyName}}Event(): Promise<BooleanEvent | null> {
+    return getLatestBooleanEvent(this.device, '{{fieldName}}');
   }
 
   get{{propertyName}}History(selection: HistorySelector): Promise<BooleanEvent[]> {
@@ -51,6 +57,10 @@ export class {{className}} {
   {{else}}
   get{{propertyName}}(): Promise<number> {
     return getNumericProperty(this.device, '{{fieldName}}');
+  }
+
+  get{{propertyName}}Event(): Promise<NumericEvent | null> {
+    return getLatestNumericEvent(this.device, '{{fieldName}}');
   }
 
   get{{propertyName}}History(selection: HistorySelector): Promise<NumericEvent[]> {
