@@ -1,13 +1,21 @@
 import { BooleanEvent, Device, Event, NumericEvent, Op } from "../..";
 
 export type TimeRangeSelector = { since: Date; until: Date };
-export type LastNSelector = { until: Date; limit: number };
-
-export type HistorySelector = TimeRangeSelector | LastNSelector;
+export type HistorySelector = TimeRangeSelector;
 
 export async function getBooleanProperty(device: Device, propertyName: string): Promise<boolean> {
   const latestEvent = await device.getLatestEvent(propertyName);
   return !!latestEvent && !latestEvent.end;
+}
+
+export async function getLatestBooleanEvent(device: Device, propertyName: string): Promise<BooleanEvent | null> {
+  const event = await device.getLatestEvent(propertyName);
+  return event ? new BooleanEvent(event) : null;
+}
+
+export async function getLatestNumericEvent(device: Device, propertyName: string): Promise<NumericEvent | null> {
+  const event = await device.getLatestEvent(propertyName);
+  return event ? new NumericEvent(event) : null;
 }
 
 export async function setBooleanProperty(device: Device, propertyName: string, propertyValue: boolean, timestamp: Date = new Date()): Promise<Event | null> {
@@ -75,20 +83,6 @@ export async function setNumericProperty(device: Device, propertyName: string, p
   return null;
 }
 
-async function getLastNEventsUntil(device: Device, propertyName: string, timeRangeSelector: LastNSelector): Promise<Event[]> {
-  return await Event.findAll({
-    where: {
-      deviceId: device.id,
-      type: propertyName,
-      start: {
-        [Op.lte]: timeRangeSelector.until
-      }
-    },
-    order: [['start', 'DESC']],
-    limit: timeRangeSelector.limit
-  });
-}
-
 async function getEventsInRange(device: Device, propertyName: string, timeRangeSelector: TimeRangeSelector): Promise<Event[]> {
   return Event.findAll({
     where: {
@@ -121,14 +115,10 @@ async function getEventsInRange(device: Device, propertyName: string, timeRangeS
 }
 
 export async function getPropertyHistory<T extends (BooleanEvent | NumericEvent)>(device: Device, propertyName: string, timeRangeSelector: HistorySelector, eventMapper: (event: Event) => T): Promise<T[]> {
-  // If limit, last N events until 'until' date (or current one, where end is null)
-  // If since + until
-  // : all events where start is after since and before until,
-  // : all events where start is before since, and end is null or past since,
-
-  const events = 'since' in timeRangeSelector 
-    ? await getEventsInRange(device, propertyName, timeRangeSelector)
-    : await getLastNEventsUntil(device, propertyName, timeRangeSelector);
+  // Returns all events where:
+  // - start is after since and before until, OR
+  // - start is before since, and end is null or past since
+  const events = await getEventsInRange(device, propertyName, timeRangeSelector);
 
   return events.map((event) => eventMapper(event));
 }

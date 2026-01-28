@@ -56,9 +56,9 @@ Device.registerProvider('shelly', {
         
         // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)
         if (device.getCapabilities().includes('LIGHT')) {
-          const brightnessHistory = await device.getLightCapability().getBrightnessHistory({ until: new Date(), limit : 1 });
+          const brightnessEvent = await device.getLightCapability().getBrightnessEvent();
 
-          if (brightnessHistory.length === 0) {
+          if (brightnessEvent === null) {
             await device.getLightCapability().setBrightnessState(100, device.createdAt);
 
             logger.info(`Initialized brightness for Shelly light device ${device.id}`);

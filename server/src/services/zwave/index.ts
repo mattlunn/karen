@@ -346,9 +346,9 @@ Device.registerProvider('zwave', {
 
           // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)
           if (knownDevice.getCapabilities().includes('LIGHT')) {
-            const brightnessHistory = await knownDevice.getLightCapability().getBrightnessHistory({ until: new Date(), limit : 1 });
+            const brightnessEvent = await knownDevice.getLightCapability().getBrightnessEvent();
 
-            if (brightnessHistory.length === 0) {
+            if (brightnessEvent === null) {
               await knownDevice.getLightCapability().setBrightnessState(100, knownDevice.createdAt);
 
               logger.info(`Initialized brightness for zwave light device ${knownDevice.id}`);
