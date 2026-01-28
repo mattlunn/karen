@@ -13,6 +13,52 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
 
   declare getRecording: HasOneGetAssociationMixin<Recording>;
   declare getDevice: HasOneGetAssociationMixin<Device>;
+
+  // Cache: Map<deviceId, Map<type, Event | null>>
+  static latestEventCache = new Map<number, Map<string, Event | null>>();
+
+  /**
+   * Get the latest event for a device/type combination.
+   * Returns from cache if available, otherwise queries DB once to populate.
+   */
+  static async getLatestForDevice(deviceId: number, type: string): Promise<Event | null> {
+    if (!this.latestEventCache.has(deviceId)) {
+      this.latestEventCache.set(deviceId, new Map());
+    }
+
+    const deviceCache = this.latestEventCache.get(deviceId)!;
+
+    // If we have a cache entry (even if null), return it
+    if (deviceCache.has(type)) {
+      return deviceCache.get(type)!;
+    }
+
+    // First access: query DB to populate cache
+    const latestEvent = await Event.findOne({
+      where: { deviceId, type },
+      order: [['start', 'DESC']]
+    });
+
+    deviceCache.set(type, latestEvent);
+    return latestEvent;
+  }
+
+  /**
+   * Update cache entry. Called automatically by afterSave hook.
+   */
+  static updateCache(event: Event): void {
+    if (!this.latestEventCache.has(event.deviceId)) {
+      this.latestEventCache.set(event.deviceId, new Map());
+    }
+
+    const deviceCache = this.latestEventCache.get(event.deviceId)!;
+    const currentCached = deviceCache.get(event.type);
+
+    // Update cache if this event is newer than cached, or no cache exists
+    if (!currentCached || event.start >= currentCached.start) {
+      deviceCache.set(event.type, event);
+    }
+  }
 }
 
 export default function (sequelize: Sequelize) {
@@ -55,7 +101,12 @@ export default function (sequelize: Sequelize) {
     }
   }, {
     sequelize: sequelize,
-    modelName: 'event'
+    modelName: 'event',
+    hooks: {
+      afterSave: (event: Event) => {
+        Event.updateCache(event);
+      }
+    }
   });
 }
 

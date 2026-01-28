@@ -1,30 +1,27 @@
-import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional, NonAttribute } from 'sequelize';
+import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional, NonAttribute } from 'sequelize';
 import logger from '../logger';
 import { Event } from './event';
-import { 
-  Capability, 
-  ProviderLightCapability, 
-  ProviderLockCapability, 
-  ProviderSpeakerCapability, 
+import {
+  Capability,
+  ProviderLightCapability,
+  ProviderLockCapability,
+  ProviderSpeakerCapability,
   ProviderThermostatCapability,
   ProviderSwitchCapability,
 
-  LightSensorCapability, 
-  HumiditySensorCapability, 
-  LightCapability, 
+  LightSensorCapability,
+  HumiditySensorCapability,
+  LightCapability,
   BatteryLevelIndicatorCapability,
-  BatteryLowIndicatorCapability, 
-  LockCapability, 
-  MotionSensorCapability, 
+  BatteryLowIndicatorCapability,
+  LockCapability,
+  MotionSensorCapability,
   TemperatureSensorCapability,
-  ThermostatCapability, 
-  SwitchCapability, 
+  ThermostatCapability,
+  SwitchCapability,
   HeatPumpCapability,
   SpeakerCapability
 } from './capabilities';
-import dayjs from '../dayjs';
-
-const latestEventCache = new Map();
 
 export class Device extends Model<InferAttributes<Device>, InferCreationAttributes<Device>> {
   declare id: CreationOptional<number>;
@@ -128,48 +125,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   }
 
   async getLatestEvent(type: string): Promise<Event | null> {
-    // We have this caching because MySQL's chosen query execution plan seems to suite EITHER
-    // IDs + types which never change (e.g. the brightness of a non-dimmable light), OR a type
-    // which changes often (e.g. the temperature). The bad query plans resulted in >500ms queries.
-    //
-    // By introducing this caching, the query for both these scenarios should be more similar,
-    // as in both cases they will only have to check cached value -> now, rather than the history
-    // of time.
-    
-    if (!latestEventCache.has(this.id)) {
-      latestEventCache.set(this.id, new Map());
-    }
-
-    let lastLatestEvent = latestEventCache.get(this.id).get(type);
-    const newerLatestEvent = (await this.getEvents({
-      where: {
-        type,
-        start: {
-          [Op.gte]: lastLatestEvent?.start || '1970-01-01T00:00:00.000Z'
-        }
-      },
-
-      limit: 1,
-      order: [['start', 'DESC']]
-    }))[0] || null;
-
-    if (newerLatestEvent) {
-      lastLatestEvent = {
-        start: newerLatestEvent.start,
-        event: newerLatestEvent
-      };
-      
-      latestEventCache.get(this.id).set(type, lastLatestEvent);
-    } else if (!lastLatestEvent) {
-      lastLatestEvent = {
-        start: dayjs().subtract(1, 'day').toDate(), // Arbritrary 1 day ago in case a new event comes in with a slightly past timestamp (e.g. periodic sync),
-        event: null
-      };
-
-      latestEventCache.get(this.id).set(type, lastLatestEvent);
-    }
-
-    return lastLatestEvent.event;
+    return Event.getLatestForDevice(this.id, type);
   }
 
   static findByName(name: string): Promise<Device | null> {
