@@ -28,10 +28,13 @@ import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
 import { Box, Grid, Paper, SimpleGrid } from '@mantine/core';
 import { StatusItem } from '../status-item';
+import dayjs from 'dayjs';
+import { humanDate } from '../../helpers/date';
 
 function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
   const hasCapability = (type: string) => device.capabilities.some(c => c.type === type);
-
+  const lastSeen = dayjs(device.lastSeen);
+  
   return (
     <>
       <Grid>
@@ -213,7 +216,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
               <dt>Provider Identifier</dt>
               <dd>{device.providerId}</dd>
               <dt>Last Seen</dt>
-              <dd>{new Date(device.lastSeen).toLocaleString()}</dd>
+              <dd>{`${lastSeen.format('HH:mm')} ${humanDate(lastSeen)}`}</dd>
             </dl>
           </Paper>
         </Grid.Col>
