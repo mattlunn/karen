@@ -1,5 +1,5 @@
 import { Device, Stay } from '../../models';
-import TadoClient, { TadoClientError, Zone, ZoneState, exchangeRefreshTokenForAccessToken } from './client';
+import TadoClient, { TadoClientError, Zone, ZoneOverlayResponse, ZoneState, exchangeRefreshTokenForAccessToken } from './client';
 import config from '../../config';
 import { saveConfig } from '../../helpers/config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
@@ -61,6 +61,13 @@ const getAccessToken = (() => {
   };
 })();
 
+async function updateTargetTemperatureFromOverlay(device: Device, overlay: ZoneOverlayResponse): Promise<void> {
+  const thermostat = device.getThermostatCapability();
+  const targetTemp = overlay.setting.power === 'ON' ? overlay.setting.temperature.celsius : 0;
+
+  await thermostat.setTargetTemperatureState(targetTemp, new Date());
+}
+
 Device.registerProvider('tado', {
   getCapabilities() {
     return [
@@ -75,8 +82,9 @@ Device.registerProvider('tado', {
     return {
       async setTargetTemperature(device: Device, value: number | null) {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+        const response = await client.setHeatingPowerForZone(device.providerId, value === null ? false : value, false);
 
-        await client.setHeatingPowerForZone(device.providerId, value === null ? false : value, false);
+        await updateTargetTemperatureFromOverlay(device, response);
       },
 
       async setIsOn(device: Device, isOn: boolean) {
@@ -270,7 +278,9 @@ if (config.tado.enable_warm_up) {
         })];
 
         for (const deviceToEnable of devicesToEnable) {
-          await client.setHeatingPowerForZone(deviceToEnable.device.providerId, deviceToEnable.nextTarget!.nextTargetTemperature, true);
+          const response = await client.setHeatingPowerForZone(deviceToEnable.device.providerId, deviceToEnable.nextTarget!.nextTargetTemperature, true);
+
+          await updateTargetTemperatureFromOverlay(deviceToEnable.device, response);
         }
 
         const zoneMessage = deviceState.linkedZoneDevices.length > 0
