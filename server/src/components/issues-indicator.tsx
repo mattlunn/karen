@@ -34,7 +34,7 @@ export default function IssuesIndicator({ device }: { device: RestDeviceResponse
   }
 
   return (
-    <Group gap={8}>
+    <Group gap={8} display="inline-flex">
       {issues}
     </Group>
   );
