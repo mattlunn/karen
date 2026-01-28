@@ -98,19 +98,15 @@ async function storeDailyMetrics(capability: HeatPumpCapability, startOfDay: Dat
 
 // Recalculate historic metrics on startup if configured
 (async function recalculateHistoricMetrics() {
-  const cutoff = config.ebusd.recalculate_cutoff;
-  if (!cutoff) return;
-
-  const cutoffDate = dayjs(cutoff);
-  const device = await Device.findByProviderId('ebusd', 'heatpump');
-  if (!device) return;
-
+  const cutoffDate = dayjs(config.ebusd.recalculate_cutoff);
+  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const capability = device.getHeatPumpCapability();
   const startDate = dayjs(device.createdAt).startOf('day');
+  const endDate = dayjs().startOf('day');
 
-  logger.info(`Recalculating heat pump metrics from ${startDate.format('YYYY-MM-DD')} to ${cutoffDate.format('YYYY-MM-DD')}`);
+  logger.info(`Recalculating heat pump metrics from ${startDate.format('YYYY-MM-DD')} that were generated prior to ${cutoffDate.toISOString()}`);
 
-  for (let day = startDate; day.isBefore(cutoffDate); day = day.add(1, 'day')) {
+  for (let day = startDate; day.isBefore(endDate); day = day.add(1, 'day')) {
     const dayStart = day.toDate();
     const dayEnd = day.add(1, 'day').toDate();
 
