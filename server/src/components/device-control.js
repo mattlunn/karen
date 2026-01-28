@@ -2,21 +2,10 @@ import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ThermostatHeatMap from './thermostat-heat-map';
 import classNames from 'classnames';
-import { faBatteryEmpty, faSync } from '@fortawesome/free-solid-svg-icons';
-
-function getIsBatteryLow(device) {
-  const batteryLowCapability = device.capabilities.find(x => x.type === 'BATTERY_LOW_INDICATOR');
-
-  if (batteryLowCapability) {
-    return batteryLowCapability.isLow.value;
-  }
-
-  return false;
-}
+import { faSync } from '@fortawesome/free-solid-svg-icons';
+import IssuesIndicator from './issues-indicator';
 
 export default function DeviceControl({ icon, iconOnClick = (e) => e.preventDefault(), actionPending = false, colorIconBackground, color, device, values = [], showMap }) {
-  const isBatteryLow = getIsBatteryLow(device);
-
   return (
     <>
       <div className="device-control__header">
@@ -27,12 +16,9 @@ export default function DeviceControl({ icon, iconOnClick = (e) => e.preventDefa
           <h4 className="device-control__name">{device.name}</h4>
           <ul className="device-control__values">
             {values.map((value, idx) => <li className="device-control__value" key={idx}>{value}</li>)}
-            
-            {isBatteryLow && (
-              <li className="device-control__value device-control__value--warning">
-                <FontAwesomeIcon icon={faBatteryEmpty} color="red" />
-              </li>
-            )}
+            <li className="device-control__value device-control__value--warning">
+              <IssuesIndicator device={device} />
+            </li>
           </ul>
         </div>
       </div>

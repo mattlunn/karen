@@ -7,12 +7,12 @@ import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
 import { faQuestion } from '@fortawesome/free-solid-svg-icons/faQuestion';
 import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermometerQuarter';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
-import { faBatteryEmpty, faSignal } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
 import { Anchor, Table } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 import dayjs from 'dayjs';
 import { humanDate } from '../../helpers/date';
+import IssuesIndicator from '../issues-indicator';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import type { CapabilityApiResponse, DevicesApiResponse, RestDeviceResponse } from '../../api/types';
 
@@ -36,46 +36,10 @@ function getDeviceIcon(capabilities: CapabilityApiResponse[]): IconDefinition {
   return faQuestion;
 }
 
-function getIsBatteryLow(device: RestDeviceResponse): boolean {
-  const batteryLowCapability = device.capabilities.find(x => x.type === 'BATTERY_LOW_INDICATOR');
-
-  if (batteryLowCapability) {
-    return batteryLowCapability.isLow.value;
-  }
-
-  return false;
-}
-
 function formatLastSeen(lastSeen: string): string {
   const date = dayjs(lastSeen);
   
   return `${date.format('HH:mm')} ${humanDate(date)}`;
-}
-
-function IssuesIndicator({ device }: { device: RestDeviceResponse }) {
-  const issues: React.ReactNode[] = [];
-
-  // Check if lastSeen > 1 hour
-  const lastSeenDate = new Date(device.lastSeen);
-  const hourAgo = new Date(Date.now() - 3600000);
-  if (lastSeenDate < hourAgo) {
-    issues.push(<FontAwesomeIcon key="signal" icon={faSignal} color="red" title="Not seen recently" />);
-  }
-
-  // Check for low battery
-  if (getIsBatteryLow(device)) {
-    issues.push(<FontAwesomeIcon key="battery" icon={faBatteryEmpty} color="red" title="Battery Low" />);
-  }
-
-  if (issues.length === 0) {
-    return null;
-  }
-
-  return (
-    <span style={{ display: 'flex', gap: '8px' }}>
-      {issues}
-    </span>
-  );
 }
 
 function DevicesTable({ devices }: { devices: RestDeviceResponse[] }) {
