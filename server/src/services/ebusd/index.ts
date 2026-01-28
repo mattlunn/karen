@@ -1,11 +1,12 @@
-import { Device, NumericEvent } from '../../models';
+import { Device } from '../../models';
 import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 import setIntervalForTime from '../../helpers/set-interval-for-time';
 import dayjs from '../../dayjs';
-import { clampAndSortHistory } from '../../helpers/history';
+import { calculateDailyHeatPumpMetrics } from './aggregation';
+import { HeatPumpCapability } from '../../models/capabilities';
 
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
@@ -76,23 +77,54 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   ]);
 }), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);
 
+async function storeDailyMetrics(capability: HeatPumpCapability, startOfDay: Date, endOfDay: Date): Promise<void> {
+  const metrics = await calculateDailyHeatPumpMetrics(capability, startOfDay, endOfDay);
+
+  await Promise.all([
+    capability.setDayCoPState(metrics.dayCoP, endOfDay),
+    capability.setDayPowerState(metrics.dayPower, endOfDay),
+    capability.setDayYieldState(metrics.dayYield, endOfDay),
+    capability.setDayHeatingCoPState(metrics.heatingCoP, endOfDay),
+    capability.setDayHeatingPowerState(metrics.heatingPower, endOfDay),
+    capability.setDayHeatingYieldState(metrics.heatingYield, endOfDay),
+    capability.setDayDHWCoPState(metrics.dhwCoP, endOfDay),
+    capability.setDayDHWPowerState(metrics.dhwPower, endOfDay),
+    capability.setDayDHWYieldState(metrics.dhwYield, endOfDay),
+  ]);
+
+  console.log(`Daily metrics for ${dayjs(startOfDay).format('DD/MM/YYYY')}: CoP=${metrics.dayCoP.toFixed(1)}, HeatingCoP=${metrics.heatingCoP.toFixed(1)}, DHWCoP=${metrics.dhwCoP.toFixed(1)}`);
+}
+
+// Recalculate historic metrics on startup if configured
+(async function recalculateHistoricMetrics() {
+  const cutoff = config.ebusd.recalculateCutoff;
+  if (!cutoff) return;
+
+  const cutoffDate = dayjs(cutoff);
+  const device = await Device.findByProviderId('ebusd', 'heatpump');
+  if (!device) return;
+
+  const capability = device.getHeatPumpCapability();
+  const startDate = dayjs(device.createdAt).startOf('day');
+
+  console.log(`Recalculating heat pump metrics from ${startDate.format('YYYY-MM-DD')} to ${cutoffDate.format('YYYY-MM-DD')}`);
+
+  for (let day = startDate; day.isBefore(cutoffDate); day = day.add(1, 'day')) {
+    const dayStart = day.toDate();
+    const dayEnd = day.add(1, 'day').toDate();
+
+    await storeDailyMetrics(capability, dayStart, dayEnd);
+  }
+
+  console.log('Historic heat pump metrics recalculation complete');
+})();
+
+// Calculate daily metrics at midnight
 setIntervalForTime(async () => {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
-  const capability = await device.getHeatPumpCapability();
+  const capability = device.getHeatPumpCapability();
   const endOfDay = dayjs().toDate();
   const startOfDay = dayjs(endOfDay).subtract(1, 'd').toDate();
 
-  function dailyWattHours(events: NumericEvent[]) {
-    return events.reduce((acc, curr) => {
-      return acc + (curr.value * dayjs(curr.end).diff(curr.start, 'minute'));
-    }, 0) / 60;
-  }
-
-  const dayPower = dailyWattHours(clampAndSortHistory(await capability.getCurrentPowerHistory({ since: startOfDay, until: endOfDay }), startOfDay, endOfDay, false));
-  const dayYield = dailyWattHours(clampAndSortHistory(await capability.getCurrentYieldHistory({ since: startOfDay, until: endOfDay }), startOfDay, endOfDay, false));
-
-  const calculatedCoP = (dayPower + dayYield) / dayPower;
-
-  await capability.setDayCoPState(calculatedCoP, endOfDay);
-  console.log(`Calculated CoP is ${calculatedCoP.toFixed(1)} (dayPower: ${dayPower}, dayYield: ${dayYield}) for ${dayjs(startOfDay).format('DD/MM/YYYY')}`);
+  await storeDailyMetrics(capability, startOfDay, endOfDay);
 }, '00:00');

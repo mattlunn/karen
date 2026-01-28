@@ -28,7 +28,7 @@ import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
 import { Box, Grid, Paper, SimpleGrid } from '@mantine/core';
 import { StatusItem } from '../status-item';
-import dayjs from 'dayjs';
+import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 
 function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
@@ -257,6 +257,42 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
               ]}
               yMin={0}
               yMax={2}
+            />
+            <DeviceGraph
+              title="Daily Overall Metrics"
+              graphId="heatpump-daily-metrics"
+              deviceId={device.id}
+              overridePageDateRange="custom"
+              overridePageDateRangeStart={dayjs().subtract(14, 'days').startOf('day').toISOString()}
+              overridePageDateRangeEnd={dayjs().toISOString()}
+              yAxis={{
+                yCoP: { position: 'left', min: 0, max: 10 },
+                yEnergy: { position: 'right', min: 0, max: 50000 }
+              }}
+            />
+            <DeviceGraph
+              title="Daily Heating Metrics"
+              graphId="heatpump-daily-heating"
+              deviceId={device.id}
+              overridePageDateRange="custom"
+              overridePageDateRangeStart={dayjs().subtract(14, 'days').startOf('day').toISOString()}
+              overridePageDateRangeEnd={dayjs().toISOString()}
+              yAxis={{
+                yCoP: { position: 'left', min: 0, max: 10 },
+                yEnergy: { position: 'right', min: 0, max: 50000 }
+              }}
+            />
+            <DeviceGraph
+              title="Daily DHW Metrics"
+              graphId="heatpump-daily-dhw"
+              deviceId={device.id}
+              overridePageDateRange="custom"
+              overridePageDateRangeStart={dayjs().subtract(14, 'days').startOf('day').toISOString()}
+              overridePageDateRangeEnd={dayjs().toISOString()}
+              yAxis={{
+                yCoP: { position: 'left', min: 0, max: 10 },
+                yEnergy: { position: 'right', min: 0, max: 50000 }
+              }}
             />
           </>
         )}
