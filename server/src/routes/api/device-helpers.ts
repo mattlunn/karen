@@ -213,28 +213,17 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 }
 
 function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fallback: Date): string {
-  let latestDate: Date = fallback;
+  let latestDate: string = fallback.toISOString();
 
   for (const capability of capabilities) {
-    if (capability.type === null || capability.type === 'SPEAKER') {
-      continue;
-    }
-
-    // Get all event fields from the capability (excluding 'type')
-    for (const [key, value] of Object.entries(capability)) {
-      if (key === 'type') continue;
-
-      const event = value as { lastReported?: string };
-      if (event.lastReported) {
-        const eventDate = new Date(event.lastReported);
-        if (eventDate > latestDate) {
-          latestDate = eventDate;
-        }
+    for (const value of Object.values(capability)) {
+      if (typeof value === 'object' && 'lastReported' in value && latestDate < value.lastReported) {
+        latestDate = value.lastReported;
       }
     }
   }
 
-  return latestDate.toISOString();
+  return latestDate;
 }
 
 export async function mapDeviceToResponse(device: Device): Promise<RestDeviceResponse> {
