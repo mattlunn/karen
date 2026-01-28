@@ -75,7 +75,7 @@ declare namespace _default {
     const host: string;
     const port: number;
     const poll_interval_minutes: number;
-    const recalculateCutoff: string | undefined;
+    const recalculate_cutoff: string | undefined;
   }
   export namespace homeconnect {
     const client_id: string;

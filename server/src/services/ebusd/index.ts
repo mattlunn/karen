@@ -7,6 +7,7 @@ import setIntervalForTime from '../../helpers/set-interval-for-time';
 import dayjs from '../../dayjs';
 import { calculateDailyHeatPumpMetrics } from './aggregation';
 import { HeatPumpCapability } from '../../models/capabilities';
+import logger from '../../logger';
 
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
@@ -92,12 +93,12 @@ async function storeDailyMetrics(capability: HeatPumpCapability, startOfDay: Dat
     capability.setDayDHWYieldState(metrics.dhwYield, endOfDay),
   ]);
 
-  console.log(`Daily metrics for ${dayjs(startOfDay).format('DD/MM/YYYY')}: CoP=${metrics.dayCoP.toFixed(1)}, HeatingCoP=${metrics.heatingCoP.toFixed(1)}, DHWCoP=${metrics.dhwCoP.toFixed(1)}`);
+  logger.info(`Daily metrics for ${dayjs(startOfDay).format('DD/MM/YYYY')}: CoP=${metrics.dayCoP.toFixed(1)}, HeatingCoP=${metrics.heatingCoP.toFixed(1)}, DHWCoP=${metrics.dhwCoP.toFixed(1)}`);
 }
 
 // Recalculate historic metrics on startup if configured
 (async function recalculateHistoricMetrics() {
-  const cutoff = config.ebusd.recalculateCutoff;
+  const cutoff = config.ebusd.recalculate_cutoff;
   if (!cutoff) return;
 
   const cutoffDate = dayjs(cutoff);
@@ -107,16 +108,18 @@ async function storeDailyMetrics(capability: HeatPumpCapability, startOfDay: Dat
   const capability = device.getHeatPumpCapability();
   const startDate = dayjs(device.createdAt).startOf('day');
 
-  console.log(`Recalculating heat pump metrics from ${startDate.format('YYYY-MM-DD')} to ${cutoffDate.format('YYYY-MM-DD')}`);
+  logger.info(`Recalculating heat pump metrics from ${startDate.format('YYYY-MM-DD')} to ${cutoffDate.format('YYYY-MM-DD')}`);
 
   for (let day = startDate; day.isBefore(cutoffDate); day = day.add(1, 'day')) {
     const dayStart = day.toDate();
     const dayEnd = day.add(1, 'day').toDate();
 
+    logger.info(`Recalculating heat pump metrics for ${day.format('YYYY-MM-DD')}`);
+
     await storeDailyMetrics(capability, dayStart, dayEnd);
   }
 
-  console.log('Historic heat pump metrics recalculation complete');
+  logger.info('Historic heat pump metrics recalculation complete');
 })();
 
 // Calculate daily metrics at midnight

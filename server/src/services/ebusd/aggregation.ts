@@ -77,10 +77,17 @@ export function filterEventsToModeWindows(
  * Calculates watt-hours from a series of events by integrating power over time
  */
 export function calculateWattHours(events: NumericEvent[]): number {
-  return events.reduce((acc, curr) => {
+  return Math.round(100 * events.reduce((acc, curr) => {
     const minutes = dayjs(curr.end).diff(curr.start, 'minute');
     return acc + (curr.value * minutes);
-  }, 0) / 60;
+  }, 0) / 60) / 100;
+}
+
+/**
+ * Calculates COP from power and yield values
+ */
+export function calculateCoP(powerValue: number, yieldValue: number): number {
+  return Math.round(powerValue > 0 ? (powerValue + yieldValue) / powerValue : 0) / 100;
 }
 
 /**
@@ -114,21 +121,21 @@ export async function calculateDailyHeatPumpMetrics(
   const activeYield = filterEventsToModeWindows(clampedYield, activeWindows);
   const dayPower = calculateWattHours(activePower);
   const dayYield = calculateWattHours(activeYield);
-  const dayCoP = dayPower > 0 ? (dayPower + dayYield) / dayPower : NaN;
+  const dayCoP = calculateCoP(dayPower, dayYield);
 
   // Calculate heating-specific metrics
   const heatingPowerEvents = filterEventsToModeWindows(clampedPower, heatingWindows);
   const heatingYieldEvents = filterEventsToModeWindows(clampedYield, heatingWindows);
   const heatingPower = calculateWattHours(heatingPowerEvents);
   const heatingYield = calculateWattHours(heatingYieldEvents);
-  const heatingCoP = heatingPower > 0 ? (heatingPower + heatingYield) / heatingPower : NaN;
+  const heatingCoP = calculateCoP(heatingPower, heatingYield);
 
   // Calculate DHW-specific metrics
   const dhwPowerEvents = filterEventsToModeWindows(clampedPower, dhwWindows);
   const dhwYieldEvents = filterEventsToModeWindows(clampedYield, dhwWindows);
   const dhwPower = calculateWattHours(dhwPowerEvents);
   const dhwYield = calculateWattHours(dhwYieldEvents);
-  const dhwCoP = dhwPower > 0 ? (dhwPower + dhwYield) / dhwPower : NaN;
+  const dhwCoP = calculateCoP(dhwPower, dhwYield);
 
   return {
     dayPower,
