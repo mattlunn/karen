@@ -35,7 +35,7 @@ export default function getTimetabledTemperature(timetable, time) {
     return dayjs(block.start, 'HH:mm').isSameOrBefore(time) && blockEnd.isAfter(time);
   });
 
-  if (matchingBlock.setting.power === 'ON') {
+  if (matchingBlock?.setting.power === 'ON') {
     return matchingBlock.setting.temperature.celsius;
   }
 
