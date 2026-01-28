@@ -105,14 +105,14 @@ Device.registerProvider('tado', {
 
     for (const zone of zones) {
       if (zone.type === 'HEATING') {
-        const zoneIdStr = String(zone.id);
+        const zoneId = String(zone.id);
         const hasLowBattery = zone.devices.some(d => d.batteryState === 'LOW');
-        let knownDevice = await Device.findByProviderId('tado', zoneIdStr);
+        let knownDevice = await Device.findByProviderId('tado', zoneId);
 
         if (!knownDevice) {
           knownDevice = Device.build({
             provider: 'tado',
-            providerId: zoneIdStr
+            providerId: zoneId
           });
         }
 
@@ -121,7 +121,7 @@ Device.registerProvider('tado', {
         knownDevice.name = `${zone.name} Thermostat`;
 
         await knownDevice.save();
-        await knownDevice.getThermostatCapability().setSetbackTemperatureState(await client.getMinimumAwayTemperatureForZone(zoneIdStr));
+        await knownDevice.getThermostatCapability().setSetbackTemperatureState(await client.getMinimumAwayTemperatureForZone(zoneId));
         await knownDevice.getBatteryLowIndicatorCapability().setIsBatteryLowState(hasLowBattery);
       }
     }
