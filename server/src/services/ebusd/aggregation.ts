@@ -2,6 +2,7 @@ import dayjs from '../../dayjs';
 import { NumericEvent } from '../../models/event';
 import { HeatPumpMode, HeatPumpCapability } from '../../models/capabilities';
 import { clampAndSortHistory } from '../../helpers/history';
+import config from '../../config';
 
 interface TimeWindow {
   start: Date;
@@ -21,14 +22,21 @@ export interface DailyHeatPumpMetrics {
 }
 
 /**
- * Extracts time windows where mode matches any of the specified values
+ * Extracts time windows where mode matches any of the specified values.
+ * Filters out periods shorter than min_mode_duration_minutes (default 10).
  */
 export function getModeWindows(
   modeHistory: NumericEvent[],
   modes: HeatPumpMode[]
 ): TimeWindow[] {
+  const minDurationMinutes = config.ebusd.min_mode_duration_minutes ?? 10;
+
   return modeHistory
     .filter(event => modes.includes(event.value as HeatPumpMode))
+    .filter(event => {
+      const durationMinutes = dayjs(event.end).diff(event.start, 'minute');
+      return durationMinutes >= minDurationMinutes;
+    })
     .map(event => ({
       start: event.start,
       end: event.end!

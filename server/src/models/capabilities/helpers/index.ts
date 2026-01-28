@@ -56,11 +56,27 @@ export async function getNumericProperty(device: Device, propertyName: string, d
 }
 
 export async function setNumericProperty(device: Device, propertyName: string, propertyValue: number, timestamp: Date = new Date()): Promise<Event | null> {
+  // First, check if an event already exists at this exact timestamp (for historic updates)
+  const existingAtTimestamp = await Event.findOne({
+    where: { deviceId: device.id, type: propertyName, start: timestamp }
+  });
+
+  if (existingAtTimestamp) {
+    // Update existing event if value changed
+    if (existingAtTimestamp.value !== propertyValue) {
+      existingAtTimestamp.value = propertyValue;
+      existingAtTimestamp.lastReported = new Date();
+      return await existingAtTimestamp.save();
+    }
+    return null; // No change needed
+  }
+
+  // No existing event at this timestamp - use original logic
   const lastEvent = await device.getLatestEvent(propertyName);
   const valueHasChanged = !lastEvent || propertyValue !== lastEvent.value;
 
   if (valueHasChanged) {
-    if (lastEvent) {
+    if (lastEvent && lastEvent.start < timestamp) {
       lastEvent.end = timestamp;
       lastEvent.lastReported = timestamp;
 

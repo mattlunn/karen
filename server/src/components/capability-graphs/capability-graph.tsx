@@ -91,6 +91,7 @@ export type CapabilityGraphProps = {
 
   yMin?: number
   yMax?: number
+  timeUnit?: 'minute' | 'hour' | 'day'
 };
 
 function assertAndGetMinMax(lines: { data: HistoryDetailsApiResponse<NumericEventApiResponse>; }[]): { min: string; max: string; } {
@@ -122,17 +123,20 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     yAxisID: x.yAxisID || 'y'
   }));
 
+  const timeUnit = props.timeUnit || 'minute';
+  const tickStepSize = timeUnit === 'day' ? 1 : 15;
+
   // TODO: Fixme any
   const chartOptions: any = {
     scales: {
       x: {
         type: 'time',
         time: {
-          unit: 'minute'
+          unit: timeUnit
         },
         ticks: {
           source: 'auto',
-          stepSize: 15
+          stepSize: tickStepSize
         },
         min,
         max

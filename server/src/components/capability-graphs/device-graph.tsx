@@ -18,6 +18,7 @@ type DeviceGraphProps = {
   overridePageDateRange?: DateRangePreset;
   overridePageDateRangeStart?: string;
   overridePageDateRangeEnd?: string;
+  timeUnit?: CapabilityGraphProps['timeUnit'];
 };
 
 function getInitialRange(
@@ -44,7 +45,8 @@ export function DeviceGraph({
   yAxis,
   overridePageDateRange,
   overridePageDateRangeStart,
-  overridePageDateRangeEnd
+  overridePageDateRangeEnd,
+  timeUnit
 }: DeviceGraphProps) {
   const { globalRange } = useDateRange();
   const [usePageRange, setUsePageRange] = useState(!overridePageDateRange);
@@ -92,7 +94,8 @@ export function DeviceGraph({
     zones,
     yMin,
     yMax,
-    yAxis
+    yAxis,
+    timeUnit
   };
 
   return (

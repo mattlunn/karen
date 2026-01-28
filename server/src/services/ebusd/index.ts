@@ -1,13 +1,19 @@
-import { Device } from '../../models';
+import { Device, Event, Op } from '../../models';
 import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 import setIntervalForTime from '../../helpers/set-interval-for-time';
-import dayjs from '../../dayjs';
+import dayjs, { Dayjs } from '../../dayjs';
 import { calculateDailyHeatPumpMetrics } from './aggregation';
 import { HeatPumpCapability } from '../../models/capabilities';
 import logger from '../../logger';
+
+const DAILY_METRIC_EVENT_TYPES = [
+  'cop_day', 'power_day', 'yield_day',
+  'cop_day_heating', 'power_day_heating', 'yield_day_heating',
+  'cop_day_dhw', 'power_day_dhw', 'yield_day_dhw'
+];
 
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
@@ -96,34 +102,73 @@ async function storeDailyMetrics(capability: HeatPumpCapability, startOfDay: Dat
   logger.info(`Daily metrics for ${dayjs(startOfDay).format('DD/MM/YYYY')}: CoP=${metrics.dayCoP.toFixed(1)}, HeatingCoP=${metrics.heatingCoP.toFixed(1)}, DHWCoP=${metrics.dhwCoP.toFixed(1)}`);
 }
 
-// Recalculate historic metrics on startup if configured
-(async function recalculateHistoricMetrics() {
-  const cutoffDate = dayjs(config.ebusd.recalculate_cutoff);
-  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
-  const capability = device.getHeatPumpCapability();
-  const startDate = dayjs(device.createdAt).startOf('day');
-  const endDate = dayjs().startOf('day');
+/**
+ * Check if daily metrics need to be created or recalculated for a given day.
+ * Returns true if any metrics are missing or were created before the cutoff date.
+ */
+async function shouldCalculateMetricsForDay(
+  deviceId: number,
+  dayEnd: Date,
+  cutoffDate: Dayjs | null
+): Promise<boolean> {
+  const existingEvents = await Event.findAll({
+    where: {
+      deviceId,
+      type: { [Op.in]: DAILY_METRIC_EVENT_TYPES },
+      start: dayEnd
+    }
+  });
 
-  logger.info(`Recalculating heat pump metrics from ${startDate.format('YYYY-MM-DD')} that were generated prior to ${cutoffDate.toISOString()}`);
+  // If any metrics are missing, we need to calculate
+  if (existingEvents.length < DAILY_METRIC_EVENT_TYPES.length) {
+    return true;
+  }
+
+  // If cutoff is configured and any event was created before it, recalculate
+  if (cutoffDate) {
+    const oldestCreatedAt = Math.min(...existingEvents.map(e => e.createdAt.getTime()));
+    if (dayjs(oldestCreatedAt).isBefore(cutoffDate)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Backfill or recalculate historic daily metrics.
+ * Called at midnight before calculating the previous day's metrics.
+ */
+async function recalculateHistoricMetrics(device: Device, capability: HeatPumpCapability): Promise<void> {
+  const cutoffDate = config.ebusd.recalculate_cutoff
+    ? dayjs(config.ebusd.recalculate_cutoff)
+    : null;
+  const startDate = dayjs(device.createdAt).startOf('day');
+  const endDate = dayjs().startOf('day'); // Today at midnight (yesterday is last complete day)
 
   for (let day = startDate; day.isBefore(endDate); day = day.add(1, 'day')) {
     const dayStart = day.toDate();
     const dayEnd = day.add(1, 'day').toDate();
 
-    logger.info(`Recalculating heat pump metrics for ${day.format('YYYY-MM-DD')}`);
+    const shouldCalculate = await shouldCalculateMetricsForDay(device.id, dayEnd, cutoffDate);
 
-    await storeDailyMetrics(capability, dayStart, dayEnd);
+    if (shouldCalculate) {
+      logger.info(`Calculating heat pump metrics for ${day.format('YYYY-MM-DD')}`);
+      await storeDailyMetrics(capability, dayStart, dayEnd);
+    }
   }
-
-  logger.info('Historic heat pump metrics recalculation complete');
-})();
+}
 
 // Calculate daily metrics at midnight
 setIntervalForTime(async () => {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const capability = device.getHeatPumpCapability();
+
+  // First, backfill any missing or outdated historic metrics
+  await recalculateHistoricMetrics(device, capability);
+
+  // Then calculate yesterday's metrics (the day that just ended)
   const endOfDay = dayjs().toDate();
   const startOfDay = dayjs(endOfDay).subtract(1, 'd').toDate();
-
   await storeDailyMetrics(capability, startOfDay, endOfDay);
 }, '00:00');

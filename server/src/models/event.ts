@@ -2,7 +2,7 @@ import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, 
 import { Recording } from './recording';
 import { Device } from './device';
 
-export class Event extends Model<InferAttributes<Event>, InferCreationAttributes<Event>> {
+export class Event extends Model<InferAttributes<Event, { omit: 'createdAt' }>, InferCreationAttributes<Event, { omit: 'createdAt' }>> {
   declare public id: CreationOptional<number>;
   declare public deviceId: number;
   declare public start: Date;
@@ -10,6 +10,7 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
   declare public lastReported: Date;
   declare public type: string;
   declare public value: CreationOptional<number>;
+  declare public createdAt: Date;
 
   declare getRecording: HasOneGetAssociationMixin<Recording>;
   declare getDevice: HasOneGetAssociationMixin<Device>;
