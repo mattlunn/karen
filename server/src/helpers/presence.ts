@@ -6,17 +6,17 @@ import { enqueueWorkItem } from '../queue';
 
 export async function markUserAsHome(user: User, trigger: 'wifi' | 'geolocation') {
   await enqueueWorkItem(async () => {
-    const [current, [existingUpcoming]] = await Promise.all([
-      Stay.findCurrentStay(user.id),
-      Stay.findUpcomingStays([user.id])
-    ]);
+    const current = await Stay.findCurrentStay(user.id);
+    let [upcoming] = await Stay.findUpcomingStays([user.id]);
 
     if (current) {
       throw new Error(`Cannot mark ${user.handle} as home when they are already home!`);
     } else {
-      const upcoming = existingUpcoming ?? new Stay({
-        userId: user.id
-      });
+      if (!upcoming) {
+        upcoming = new Stay({
+          userId: user.id
+        });
+      }
 
       upcoming.arrivalTrigger = trigger;
       upcoming.arrival = new Date();
@@ -28,10 +28,9 @@ export async function markUserAsHome(user: User, trigger: 'wifi' | 'geolocation'
 export async function markUserAsAway(user: User) {
   await enqueueWorkItem(async () => {
     const userId = user.id;
-    const [ current, existingUnclaimedEta ] = await Promise.all([
-      Stay.findCurrentStay(userId),
-      Stay.findUnclaimedEta(dayjs().subtract(config.location.unclaimed_eta_search_window_in_minutes, 'minutes').toDate())
-    ]);
+    const current = await Stay.findCurrentStay(userId);
+    
+    let unclaimedEta = await Stay.findUnclaimedEta(dayjs().subtract(config.location.unclaimed_eta_search_window_in_minutes, 'minutes').toDate());
 
     if (!current) {
       throw new Error(`Cannot mark ${user.handle} as away when they're already away!`);
@@ -40,18 +39,18 @@ export async function markUserAsAway(user: User) {
 
       await current.save();
 
-      if (existingUnclaimedEta) {
-        logger.info(`${user.handle} claims ETA ${existingUnclaimedEta.id}`);
+      if (unclaimedEta) {
+        logger.info(`${user.handle} claims ETA ${unclaimedEta.id}`);
 
-        existingUnclaimedEta.userId = userId;
+        unclaimedEta.userId = userId;
 
-        await existingUnclaimedEta.save();
+        await unclaimedEta.save();
       } else if (current.eta !== null && dayjs(current.eta).isAfter(current.departure)) {
         logger.info(`Exit for ${user.handle} in stay ${current.id}`
         + ` is before the ETA, and there is no upcoming unclaimed ETA. Assuming `
         + ` user went near to home, without actually going in...`);
 
-        const unclaimedEta = new Stay();
+        unclaimedEta = new Stay();
         unclaimedEta.userId = userId;
         unclaimedEta.eta = current.eta;
 
