@@ -7,9 +7,9 @@ import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
 import { faQuestion } from '@fortawesome/free-solid-svg-icons/faQuestion';
 import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermometerQuarter';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
-import { faBatteryEmpty, faBatteryFull } from '@fortawesome/free-solid-svg-icons';
+import { faBatteryEmpty, faSignal } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
-import { Table } from '@mantine/core';
+import { Anchor, Table } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 
 function getDeviceIcon(capabilities) {
@@ -63,21 +63,30 @@ function formatLastSeen(lastSeen) {
   }
 }
 
-function BatteryIndicator({ device }) {
-  const isBatteryLow = getIsBatteryLow(device);
-  const hasBatteryCapability = device.capabilities.some(
-    x => x.type === 'BATTERY_LOW_INDICATOR' || x.type === 'BATTERY_LEVEL_INDICATOR'
+function IssuesIndicator({ device }) {
+  const issues = [];
+
+  // Check if lastSeen > 1 hour
+  const lastSeenDate = new Date(device.lastSeen);
+  const hourAgo = new Date(Date.now() - 3600000);
+  if (lastSeenDate < hourAgo) {
+    issues.push(<FontAwesomeIcon key="signal" icon={faSignal} color="red" title="Not seen recently" />);
+  }
+
+  // Check for low battery
+  if (getIsBatteryLow(device)) {
+    issues.push(<FontAwesomeIcon key="battery" icon={faBatteryEmpty} color="red" title="Battery Low" />);
+  }
+
+  if (issues.length === 0) {
+    return null;
+  }
+
+  return (
+    <span style={{ display: 'flex', gap: '8px' }}>
+      {issues}
+    </span>
   );
-
-  if (!hasBatteryCapability) {
-    return <span style={{ color: '#888' }}>-</span>;
-  }
-
-  if (isBatteryLow) {
-    return <FontAwesomeIcon icon={faBatteryEmpty} color="red" title="Battery Low" />;
-  }
-
-  return <FontAwesomeIcon icon={faBatteryFull} color="green" title="Battery OK" />;
 }
 
 function DevicesTable({ devices }) {
@@ -85,28 +94,31 @@ function DevicesTable({ devices }) {
     <Table striped highlightOnHover>
       <Table.Thead>
         <Table.Tr>
+          <Table.Th w={1}></Table.Th>
           <Table.Th>Name</Table.Th>
-          <Table.Th>Manufacturer</Table.Th>
+          <Table.Th visibleFrom="sm">Manufacturer</Table.Th>
           <Table.Th>Model</Table.Th>
           <Table.Th>Last Seen</Table.Th>
-          <Table.Th>Battery</Table.Th>
+          <Table.Th></Table.Th>
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
         {devices.map((device) => (
           <Table.Tr key={device.id}>
             <Table.Td>
-              <Link to={`/device/${device.id}`}>
-                <span className="device-icon" style={{ marginRight: '8px' }}>
-                  <FontAwesomeIcon icon={getDeviceIcon(device.capabilities)} />
-                </span>
-                {device.name}
-              </Link>
+              <Anchor component={Link} to={`/device/${device.id}`}>
+                <FontAwesomeIcon icon={getDeviceIcon(device.capabilities)} />
+              </Anchor>
             </Table.Td>
-            <Table.Td>{device.manufacturer}</Table.Td>
+            <Table.Td>
+              <Anchor component={Link} to={`/device/${device.id}`}>
+                {device.name}
+              </Anchor>
+            </Table.Td>
+            <Table.Td visibleFrom="sm">{device.manufacturer}</Table.Td>
             <Table.Td>{device.model}</Table.Td>
             <Table.Td>{formatLastSeen(device.lastSeen)}</Table.Td>
-            <Table.Td><BatteryIndicator device={device} /></Table.Td>
+            <Table.Td><IssuesIndicator device={device} /></Table.Td>
           </Table.Tr>
         ))}
       </Table.Tbody>
