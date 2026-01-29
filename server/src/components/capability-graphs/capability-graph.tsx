@@ -19,9 +19,21 @@ import {
 import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
 import 'chartjs-adapter-dayjs-4';
+import dayjs from 'dayjs';
 import { BooleanEventApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
 import { clampAndSortHistory } from '../../helpers/history';
 import { Box } from '@mantine/core';
+
+function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'day' {
+  const diffDays = dayjs(max).diff(dayjs(min), 'day');
+
+  if (diffDays >= 3) {
+    return 'day';
+  } else if (diffDays >= 1) {
+    return 'hour';
+  }
+  return 'minute';
+}
 
 ChartJS.register(
   LinearScale,
@@ -123,7 +135,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     yAxisID: x.yAxisID || 'y'
   }));
 
-  const timeUnit = props.timeUnit || 'minute';
+  const timeUnit = props.timeUnit || inferTimeUnit(min, max);
   const tickStepSize = timeUnit === 'day' ? 1 : 15;
 
   // TODO: Fixme any
