@@ -38,7 +38,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
   return (
     <>
       <Grid>
-        <Grid.Col span={8}>
+        <Grid.Col span={{ base: 12, md: 8 }}>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
             {device.capabilities.map((capability: CapabilityApiResponse, idx: number) => {
               switch (capability.type) {
@@ -204,8 +204,8 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
             }).flat()}
           </SimpleGrid>
         </Grid.Col>
-        <Grid.Col span={4}>
-          <Paper className="device__info" withBorder p="md" radius="md" h="100%">
+        <Grid.Col span={{ base: 12, md: 4 }}>
+          <Paper className="device__info" withBorder p="md" radius="md">
             <dl>
               <dt>Manufacturer</dt>
               <dd>{device.manufacturer}</dd>
