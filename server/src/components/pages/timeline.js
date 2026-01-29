@@ -172,7 +172,7 @@ export default function Timeline() {
   const days = useMemo(() => groupEventsByDays(events), [events]);
 
   return (
-    <div className='body body--with-padding'>
+    <>
       <ol className='timeline'>
         {days.map(({ date, events }, idx) => {
           return (
@@ -198,6 +198,6 @@ export default function Timeline() {
           <Loader size="lg" />
         </Center>
       )}
-    </div>
+    </>
   );
 }

@@ -24,7 +24,8 @@ import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
-import { Box, Center, Grid, Loader, Paper, SimpleGrid } from '@mantine/core';
+import { Box, Grid, Paper, SimpleGrid } from '@mantine/core';
+import PageContent from '../page-content';
 import { StatusItem } from '../status-item';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
@@ -274,24 +275,16 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
 export default function Device({ match: { params: { id }}} : RouteComponentProps<{ id: string }>) {
   const { loading, data } = useApiCall<DeviceApiResponse>(`/device/${id}`);
 
-  if (loading || !data) {
-    return (
-      <div className='body body--with-padding'>
-        <Center>
-          <Loader size="lg" />
-        </Center>
-      </div>
-    );
-  }
-
-  const { device } = data;
-
   return (
-    <div className='body body--with-padding'>
-      <h2>{device.name}</h2>
-      <DateRangeProvider>
-        <DeviceContent device={device} />
-      </DateRangeProvider>
-    </div>
+    <PageContent loading={loading} data={data}>
+      {({ device }) => (
+        <>
+          <h2>{device.name}</h2>
+          <DateRangeProvider>
+            <DeviceContent device={device} />
+          </DateRangeProvider>
+        </>
+      )}
+    </PageContent>
   );
 }
