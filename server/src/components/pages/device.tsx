@@ -277,7 +277,7 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
   if (loading || !data) {
     return (
       <div className='body body--with-padding'>
-        <Center h={200}>
+        <Center>
           <Loader size="lg" />
         </Center>
       </div>
