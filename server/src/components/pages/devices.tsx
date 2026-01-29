@@ -1,6 +1,4 @@
 import React from 'react';
-import SideBar from '../sidebar';
-import Header from '../header';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
 import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
@@ -38,7 +36,7 @@ function getDeviceIcon(capabilities: CapabilityApiResponse[]): IconDefinition {
 
 function formatLastSeen(lastSeen: string): string {
   const date = dayjs(lastSeen);
-  
+
   return `${date.format('HH:mm')} ${humanDate(date)}`;
 }
 
@@ -84,14 +82,9 @@ export default function Devices() {
 
   if (loading || !data) {
     return (
-      <div>
-        <Header />
-        <div>
-          <SideBar hideOnMobile />
-          <div className='body body--with-padding'>
-            <h2>Devices</h2>
-          </div>
-        </div>
+      <div className='body body--with-padding'>
+        <h2>Devices</h2>
+        <div className="loading-spinner" style={{ height: '100px' }} />
       </div>
     );
   }
@@ -105,24 +98,18 @@ export default function Devices() {
     }, { active: [], old: [] });
 
   return (
-    <div>
-      <Header />
-      <div>
-        <SideBar hideOnMobile />
-        <div className='body body--with-padding'>
-          <h2>Devices</h2>
+    <div className='body body--with-padding'>
+      <h2>Devices</h2>
 
-          <DevicesTable devices={active} />
+      <DevicesTable devices={active} />
 
-          {old.length > 0 ? (
-            <>
-              <h3>Offline Devices</h3>
-              <DevicesTable devices={old} />
-            </>
-          ) : null}
+      {old.length > 0 ? (
+        <>
+          <h3>Offline Devices</h3>
+          <DevicesTable devices={old} />
+        </>
+      ) : null}
 
-        </div>
-      </div>
     </div>
   );
 }

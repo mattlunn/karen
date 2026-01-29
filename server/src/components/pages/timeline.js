@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import SideBar from '../sidebar';
-import Header from '../header';
 import dayjs from '../../dayjs';
 import Event from '../event';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
@@ -173,34 +171,28 @@ export default function Timeline() {
   const days = useMemo(() => groupEventsByDays(events), [events]);
 
   return (
-    <div>
-      <Header />
-      <div>
-        <SideBar hideOnMobile />
-        <div className='body body--with-padding'>
-          <ol className='timeline'>
-            {days.map(({ date, events }, idx) => {
-              return (
-                <li key={idx} className='day'>
-                  <h3 className='day__header'>{date.format('dddd, MMMM Do YYYY')}</h3>
+    <div className='body body--with-padding'>
+      <ol className='timeline'>
+        {days.map(({ date, events }, idx) => {
+          return (
+            <li key={idx} className='day'>
+              <h3 className='day__header'>{date.format('dddd, MMMM Do YYYY')}</h3>
 
-                   <ol className='events'>
-                    {events.map((event, idx) => {
-                      return (
-                        <li className='event' key={idx}>
-                          {createEvent(event)}
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </li>
-              );
-            })}
-          </ol>
+               <ol className='events'>
+                {events.map((event, idx) => {
+                  return (
+                    <li className='event' key={idx}>
+                      {createEvent(event)}
+                    </li>
+                  );
+                })}
+              </ol>
+            </li>
+          );
+        })}
+      </ol>
 
-          {loading && <div className='loading-spinner timeline__loader' />}
-        </div>
-      </div>
+      {loading && <div className='loading-spinner timeline__loader' />}
     </div>
   );
 }

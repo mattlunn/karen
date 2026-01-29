@@ -1,6 +1,4 @@
 import React from 'react';
-import SideBar from '../sidebar';
-import Header from '../header';
 import Security from '../security';
 import Groups from '../groups';
 import { useDevices } from '../../hooks/queries/use-devices';
@@ -38,14 +36,8 @@ export default function Home() {
   }
 
   return (
-    <div>
-      <Header />
-      <div>
-        <SideBar/>
-        <div className='body'>
-          {content}
-        </div>
-      </div>
+    <div className='body'>
+      {content}
     </div>
   );
 }
