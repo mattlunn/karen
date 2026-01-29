@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Center, Loader } from '@mantine/core';
+import { Center, Loader, SimpleGrid } from '@mantine/core';
 
 async function loadSnapshot(camera) {
   const response = await fetch(camera.snapshotUrl, {
@@ -70,24 +70,22 @@ export default function Security({ cameras = [] }) {
   const snapshots = useSnapshotData(cameras);
 
   return (
-    <div className="security">
-      <ul className="security__camera-list">
-        {cameras.map((camera) => {
-          const snapshot = snapshots[camera.id];
-          return (
-            <li className="security__camera" key={camera.id}>
-              <h3>{camera.name}</h3>
-              {snapshot?.snapshot ? (
-                <img src={snapshot.snapshot} />
-              ) : (
-                <Center h={120}>
-                  <Loader size="md" />
-                </Center>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <SimpleGrid cols={{ base: 1, xs: 3, md: cameras.length }} className="security">
+      {cameras.map((camera) => {
+        const snapshot = snapshots[camera.id];
+        return (
+          <div key={camera.id}>
+            <h3 className="security__camera-name">{camera.name}</h3>
+            {snapshot?.snapshot ? (
+              <img src={snapshot.snapshot} className="security__camera-image"/>
+            ) : (
+              <Center style={{ aspectRatio: '16/9' }} className="security__camera-image">
+                <Loader size="md" />
+              </Center>
+            )}
+          </div>
+        );
+      })}
+    </SimpleGrid>
   );
 }
