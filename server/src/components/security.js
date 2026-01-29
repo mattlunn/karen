@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Center, Loader } from '@mantine/core';
 
 async function loadSnapshot(camera) {
   const response = await fetch(camera.snapshotUrl, {
@@ -15,8 +16,8 @@ function useSnapshotData(cameras) {
   for (const { id } of cameras) {
     if (!(id in updatedSnapshots)) {
       updatedSnapshots[id] = {
-        loading: false,
-        snapshot: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAJCAQAAACRI2S5AAAAEElEQVR42mNkIAAYRxWAAQAG9gAKqv6+AwAAAABJRU5ErkJggg=='
+        loading: true,
+        snapshot: null
       };
 
       setSnapshots(updatedSnapshots);
@@ -31,7 +32,7 @@ function useSnapshotData(cameras) {
         cameras.forEach(async (camera) => {
           const updatedSnapshot = updatedSnapshots[camera.id];
 
-          if (updatedSnapshot.loading === true) {
+          if (updatedSnapshot.loading === true && updatedSnapshot.snapshot !== null) {
             return;
           } else {
             updatedSnapshot.loading = true;
@@ -67,7 +68,7 @@ function useSnapshotData(cameras) {
 
 export default function Security({ cameras = [] }) {
   const snapshots = useSnapshotData(cameras);
-  
+
   return (
     <div className="security">
       <ul className="security__camera-list">
@@ -76,10 +77,13 @@ export default function Security({ cameras = [] }) {
           return (
             <li className="security__camera" key={camera.id}>
               <h3>{camera.name}</h3>
-              <img
-                className="loading-spinner"
-                src={snapshot?.snapshot}
-              />
+              {snapshot?.snapshot ? (
+                <img src={snapshot.snapshot} />
+              ) : (
+                <Center h={120}>
+                  <Loader size="md" />
+                </Center>
+              )}
             </li>
           );
         })}

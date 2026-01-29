@@ -1,9 +1,12 @@
 import React from 'react';
+import { Center, Loader } from '@mantine/core';
 
 export default function PageLoader() {
   return (
     <div className="body body--with-padding" style={{ minHeight: '50vh' }}>
-      <div className="loading-spinner" style={{ height: '200px' }} />
+      <Center h={200}>
+        <Loader size="lg" />
+      </Center>
     </div>
   );
 }

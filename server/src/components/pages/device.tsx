@@ -24,7 +24,7 @@ import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
-import { Box, Grid, Paper, SimpleGrid } from '@mantine/core';
+import { Box, Center, Grid, Loader, Paper, SimpleGrid } from '@mantine/core';
 import { StatusItem } from '../status-item';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
@@ -277,7 +277,9 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
   if (loading || !data) {
     return (
       <div className='body body--with-padding'>
-        <div className="loading-spinner" style={{ height: '200px' }} />
+        <Center h={200}>
+          <Loader size="lg" />
+        </Center>
       </div>
     );
   }

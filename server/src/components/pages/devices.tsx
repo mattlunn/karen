@@ -7,7 +7,7 @@ import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermo
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons/faExclamationTriangle';
 import { Link } from 'react-router-dom';
-import { Alert, Anchor, Table, Title } from '@mantine/core';
+import { Alert, Anchor, Center, Loader, Table, Title } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
@@ -112,10 +112,9 @@ export default function Devices() {
 
   if (loading || !data) {
     return (
-      <div className='body body--with-padding'>
-        <h2>Devices</h2>
-        <div className="loading-spinner" style={{ height: '100px' }} />
-      </div>
+      <Center style={{ minHeight: '200px' }}>
+        <Loader size="lg" />
+      </Center>
     );
   }
 
