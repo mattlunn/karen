@@ -14,7 +14,6 @@ export type ZoneActiveTimetableId = 0 | 1 | 2;
 
 export type ZoneSetting = {
   type: "HEATING",
-  power: "ON" | "OFF",
 } & ({ 
   power: "ON"
   temperature: {
@@ -227,7 +226,7 @@ export default class TadoClient {
     return data.id;
   }
 
-  getTimetableBlocks(zone: string, timetable: ZoneActiveTimetableId): Promise<ZoneTimetableBlock> {
+  getTimetableBlocks(zone: string, timetable: ZoneActiveTimetableId): Promise<ZoneTimetableBlock[]> {
     return this._request(`/zones/${zone}/schedule/timetables/${timetable}/blocks`);
   }
 

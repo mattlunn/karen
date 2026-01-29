@@ -1,6 +1,7 @@
-import dayjs from '../../../dayjs';
+import dayjs, { Dayjs } from '../../../dayjs';
+import { ZoneTimetableBlock } from '../client';
 
-export default function getTimetabledTemperature(timetable, time) {
+export default function getTimetabledTemperature(timetable: ZoneTimetableBlock[], time: Dayjs): number | null {
   function getDayTypes() {
     switch (time.day()) {
       case 0:
@@ -20,22 +21,33 @@ export default function getTimetabledTemperature(timetable, time) {
     }
   }
 
+  function adjustToTime(hhMM: string) {
+    const date = dayjs(time);
+    const [hours, minutes] = hhMM.split(':').map(Number);
+
+    return date.set('hour', hours).set('minute', minutes).set('second', 0).set('millisecond', 0);
+  }
+
   const dayTypes = getDayTypes();
   const matchingBlock = timetable.find(block => {
     if (!dayTypes.includes(block.dayType)) {
       return false;
     }
 
-    let blockEnd = dayjs(block.end, 'HH:mm');
+    let blockEnd = adjustToTime(block.end);
 
     if (block.end === '00:00') {
       blockEnd = blockEnd.add(1, 'd');
     }
 
-    return dayjs(block.start, 'HH:mm').isSameOrBefore(time) && blockEnd.isAfter(time);
+    return adjustToTime(block.start).isSameOrBefore(time) && blockEnd.isAfter(time);
   });
 
-  if (matchingBlock?.setting.power === 'ON') {
+  if (matchingBlock === undefined) {
+    throw new Error(`No matching timetable block found for ${time}, with timetable ${JSON.stringify(timetable)}`);
+  }
+
+  if (matchingBlock.setting.power === 'ON') {
     return matchingBlock.setting.temperature.celsius;
   }
 
