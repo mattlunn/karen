@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Checkbox, Group, Title } from '@mantine/core';
 import useApiCall from '../../hooks/api';
-import { useDateRange, DateRangeSelector } from '../date-range';
+import { useDateRange, DateRangeSelector, getPresetRange } from '../date-range';
 import { CapabilityGraph, CapabilityGraphProps } from './capability-graph';
 import { HistoryApiResponse } from '../../api/types';
 import { DateRange, DateRangePreset } from '../date-range/types';
+import dayjs from '../../dayjs';
 
 type DeviceGraphProps = {
   graphId: string;
@@ -14,13 +15,45 @@ type DeviceGraphProps = {
   yMin?: number;
   yMax?: number;
   yAxis?: CapabilityGraphProps['yAxis'];
+  overridePageDateRange?: DateRangePreset;
+  overridePageDateRangeStart?: string;
+  overridePageDateRangeEnd?: string;
+  timeUnit?: CapabilityGraphProps['timeUnit'];
 };
 
-export function DeviceGraph({ graphId, deviceId, title, zones, yMin, yMax, yAxis }: DeviceGraphProps) {
+function getInitialRange(
+  override?: DateRangePreset,
+  start?: string,
+  end?: string
+): DateRange | null {
+  if (!override) return null;
+
+  if (override === 'custom' && start && end) {
+    return { since: dayjs(start), until: dayjs(end) };
+  }
+
+  return getPresetRange(override);
+}
+
+export function DeviceGraph({
+  graphId,
+  deviceId,
+  title,
+  zones,
+  yMin,
+  yMax,
+  yAxis,
+  overridePageDateRange,
+  overridePageDateRangeStart,
+  overridePageDateRangeEnd,
+  timeUnit
+}: DeviceGraphProps) {
   const { globalRange } = useDateRange();
-  const [usePageRange, setUsePageRange] = useState(true);
-  const [localPreset, setLocalPreset] = useState<DateRangePreset>('last6hours');
-  const [localRange, setLocalRange] = useState<DateRange | null>(null);
+  const [usePageRange, setUsePageRange] = useState(!overridePageDateRange);
+  const [localPreset, setLocalPreset] = useState<DateRangePreset>(overridePageDateRange ?? 'last6hours');
+  const [localRange, setLocalRange] = useState<DateRange | null>(
+    () => getInitialRange(overridePageDateRange, overridePageDateRangeStart, overridePageDateRangeEnd)
+  );
 
   const effectiveRange = usePageRange ? globalRange : (localRange ?? globalRange);
 
@@ -61,7 +94,8 @@ export function DeviceGraph({ graphId, deviceId, title, zones, yMin, yMax, yAxis
     zones,
     yMin,
     yMax,
-    yAxis
+    yAxis,
+    timeUnit
   };
 
   return (
