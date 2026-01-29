@@ -1,6 +1,4 @@
 import React from 'react';
-import SideBar from '../sidebar';
-import Header from '../header';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
 import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
@@ -114,14 +112,9 @@ export default function Devices() {
 
   if (loading || !data) {
     return (
-      <div>
-        <Header />
-        <div>
-          <SideBar hideOnMobile />
-          <div className='body body--with-padding'>
-            <h2>Devices</h2>
-          </div>
-        </div>
+      <div className='body body--with-padding'>
+        <h2>Devices</h2>
+        <div className="loading-spinner" style={{ height: '100px' }} />
       </div>
     );
   }
@@ -136,39 +129,32 @@ export default function Devices() {
     }, { active: [], old: [] });
 
   return (
-    <div>
-      <Header />
-      <div>
-        <SideBar hideOnMobile />
-        <div className='body body--with-padding'>
-          <Title order={2}>Devices</Title>
-          <DevicesTable devices={active} />
+    <>
+      <Title order={2}>Devices</Title>
+      <DevicesTable devices={active} />
 
-          {old.length > 0 ? (
-            <>
-              <Title order={3} mt="md">Offline Devices</Title>
-              <DevicesTable devices={old} />
-            </>
-          ) : null}
+      {old.length > 0 ? (
+        <>
+          <Title order={3} mt="md">Offline Devices</Title>
+          <DevicesTable devices={old} />
+        </>
+      ) : null}
 
-          {brokenDevices.length > 0 ? (
-            <>
-              <Title order={3} mt="lg">Broken Devices</Title>
-              <Alert
-                variant="light"
-                color="red"
-                icon={<FontAwesomeIcon icon={faExclamationTriangle} />}
-                mt="md"
-                mb="md"
-              >
-                {`${brokenDevices.length} device(s) cannot be shown due to errors mapping their capabilities`}
-              </Alert>
-              <BrokenDevicesTable devices={brokenDevices} />
-            </>
-          ) : null}
-
-        </div>
-      </div>
-    </div>
+      {brokenDevices.length > 0 ? (
+        <>
+          <Title order={3} mt="lg">Broken Devices</Title>
+          <Alert
+            variant="light"
+            color="red"
+            icon={<FontAwesomeIcon icon={faExclamationTriangle} />}
+            mt="md"
+            mb="md"
+          >
+            {`${brokenDevices.length} device(s) cannot be shown due to errors mapping their capabilities`}
+          </Alert>
+          <BrokenDevicesTable devices={brokenDevices} />
+        </>
+      ) : null}
+    </>
   );
 }

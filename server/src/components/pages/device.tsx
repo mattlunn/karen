@@ -1,6 +1,4 @@
 import React from 'react';
-import SideBar from '../sidebar';
-import Header from '../header';
 import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
 import {
@@ -34,7 +32,7 @@ import { humanDate } from '../../helpers/date';
 function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
   const hasCapability = (type: string) => device.capabilities.some(c => c.type === type);
   const lastSeen = dayjs(device.lastSeen);
-  
+
   return (
     <>
       <Grid>
@@ -277,23 +275,21 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
   const { loading, data } = useApiCall<DeviceApiResponse>(`/device/${id}`);
 
   if (loading || !data) {
-    return <></>;
+    return (
+      <div className='body body--with-padding'>
+        <div className="loading-spinner" style={{ height: '200px' }} />
+      </div>
+    );
   }
 
   const { device } = data;
 
   return (
-    <div>
-      <Header />
-      <div>
-        <SideBar hideOnMobile />
-        <div className='body body--with-padding'>
-          <h2>{device.name}</h2>
-          <DateRangeProvider>
-            <DeviceContent device={device} />
-          </DateRangeProvider>
-        </div>
-      </div>
+    <div className='body body--with-padding'>
+      <h2>{device.name}</h2>
+      <DateRangeProvider>
+        <DeviceContent device={device} />
+      </DateRangeProvider>
     </div>
   );
 }
