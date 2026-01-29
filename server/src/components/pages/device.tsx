@@ -266,8 +266,8 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
               overridePageDateRangeStart={dayjs().subtract(14, 'days').startOf('day').toISOString()}
               overridePageDateRangeEnd={dayjs().toISOString()}
               yAxis={{
-                yCoP: { position: 'left', min: 0, max: 10 },
-                yEnergy: { position: 'right', min: 0, max: 50000 }
+                yCoP: { position: 'left' },
+                yEnergy: { position: 'right' }
               }}
             />
             <DeviceGraph
@@ -278,8 +278,8 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
               overridePageDateRangeStart={dayjs().subtract(14, 'days').startOf('day').toISOString()}
               overridePageDateRangeEnd={dayjs().toISOString()}
               yAxis={{
-                yCoP: { position: 'left', min: 0, max: 10 },
-                yEnergy: { position: 'right', min: 0, max: 50000 }
+                yCoP: { position: 'left' },
+                yEnergy: { position: 'right' }
               }}
             />
             <DeviceGraph
@@ -290,8 +290,8 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
               overridePageDateRangeStart={dayjs().subtract(14, 'days').startOf('day').toISOString()}
               overridePageDateRangeEnd={dayjs().toISOString()}
               yAxis={{
-                yCoP: { position: 'left', min: 0, max: 10 },
-                yEnergy: { position: 'right', min: 0, max: 50000 }
+                yCoP: { position: 'left' },
+                yEnergy: { position: 'right' }
               }}
             />
           </>

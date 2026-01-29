@@ -96,9 +96,9 @@ export type CapabilityGraphProps = {
   }
 
   yAxis?: Record<string, {
-    position: 'left' | 'right',
-    max: number,
-    min: number,
+    position?: 'left' | 'right',
+    max?: number,
+    min?: number,
   }>
 
   yMin?: number
