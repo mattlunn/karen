@@ -1,5 +1,6 @@
 import React, { ReactNode, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
+import classnames from 'classnames';
 import Header from './header';
 import Sidebar from './sidebar';
 import ErrorBoundary from './error-boundary';
@@ -11,9 +12,10 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
+  const isHome = location.pathname === '/';
 
   // Hide sidebar on mobile for all pages except home
-  const hideSidebarOnMobile = location.pathname !== '/';
+  const hideSidebarOnMobile = !isHome;
 
   return (
     <div>
@@ -22,7 +24,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <Sidebar hideOnMobile={hideSidebarOnMobile} />
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
-            {children}
+            <div className={classnames('body', { 'body--with-padding': !isHome })}>
+              {children}
+            </div>
           </Suspense>
         </ErrorBoundary>
       </div>

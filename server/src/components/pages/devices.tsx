@@ -6,7 +6,8 @@ import { faQuestion } from '@fortawesome/free-solid-svg-icons/faQuestion';
 import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermometerQuarter';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { Link } from 'react-router-dom';
-import { Anchor, Center, Loader, Table } from '@mantine/core';
+import { Anchor, Table } from '@mantine/core';
+import PageContent from '../page-content';
 import useApiCall from '../../hooks/api';
 import dayjs from 'dayjs';
 import { humanDate } from '../../helpers/date';
@@ -80,38 +81,33 @@ function DevicesTable({ devices }: { devices: RestDeviceResponse[] }) {
 export default function Devices() {
   const { data, loading } = useApiCall<DevicesApiResponse>('/devices');
 
-  if (loading || !data) {
-    return (
-      <div className='body body--with-padding'>
-        <h2>Devices</h2>
-        <Center h={100}>
-          <Loader size="lg" />
-        </Center>
-      </div>
-    );
-  }
-
-  const { active, old } = (data.devices || [])
-    .toSorted((a, b) => a.name.localeCompare(b.name))
-    .reduce<{ active: RestDeviceResponse[]; old: RestDeviceResponse[] }>((acc, device) => {
-      acc[device.status === 'OK' ? 'active' : 'old'].push(device);
-
-      return acc;
-    }, { active: [], old: [] });
-
   return (
-    <div className='body body--with-padding'>
+    <>
       <h2>Devices</h2>
+      <PageContent loading={loading} data={data}>
+        {(data) => {
+          const { active, old } = (data.devices || [])
+            .toSorted((a, b) => a.name.localeCompare(b.name))
+            .reduce<{ active: RestDeviceResponse[]; old: RestDeviceResponse[] }>((acc, device) => {
+              acc[device.status === 'OK' ? 'active' : 'old'].push(device);
 
-      <DevicesTable devices={active} />
+              return acc;
+            }, { active: [], old: [] });
 
-      {old.length > 0 ? (
-        <>
-          <h3>Offline Devices</h3>
-          <DevicesTable devices={old} />
-        </>
-      ) : null}
+          return (
+            <>
+              <DevicesTable devices={active} />
 
-    </div>
+              {old.length > 0 ? (
+                <>
+                  <h3>Offline Devices</h3>
+                  <DevicesTable devices={old} />
+                </>
+              ) : null}
+            </>
+          );
+        }}
+      </PageContent>
+    </>
   );
 }
