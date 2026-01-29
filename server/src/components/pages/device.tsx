@@ -38,8 +38,8 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
   return (
     <>
       <Grid>
-        <Grid.Col span={8}>
-          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
+        <Grid.Col span={{ base: 12, sm: 8 }}>
+          <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }}>
             {device.capabilities.map((capability: CapabilityApiResponse, idx: number) => {
               switch (capability.type) {
                 case 'TEMPERATURE_SENSOR': {
@@ -204,8 +204,8 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
             }).flat()}
           </SimpleGrid>
         </Grid.Col>
-        <Grid.Col span={4}>
-          <Paper className="device__info" withBorder p="md" radius="md" h="100%">
+        <Grid.Col span={{ base: 12, sm: 4 }}>
+          <Paper className="device__info" withBorder p="md" radius="md">
             <dl>
               <dt>Manufacturer</dt>
               <dd>{device.manufacturer}</dd>
