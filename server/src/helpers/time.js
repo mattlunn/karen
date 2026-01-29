@@ -1,5 +1,5 @@
 import getSunriseAndSunset from './sun';
-import dayjs from '../dayjs';
+import { dayjs } from '../dayjs';
 
 function normalizeOffset(offset) {
   let totalMs = 0;

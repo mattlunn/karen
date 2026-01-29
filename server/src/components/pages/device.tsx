@@ -28,7 +28,7 @@ import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
 import { Box, Grid, Paper, SimpleGrid } from '@mantine/core';
 import { StatusItem } from '../status-item';
-import dayjs from 'dayjs';
+import { dayjs } from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 
 function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {

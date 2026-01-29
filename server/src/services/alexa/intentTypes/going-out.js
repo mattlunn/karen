@@ -1,4 +1,4 @@
-import dayjs from '../../../dayjs';
+import { dayjs } from '../../../dayjs';
 import config from '../../../config.json';
 import { parse, end } from 'iso8601-duration';
 import { Stay } from '../../../models';

@@ -1,6 +1,6 @@
 import express from 'express';
 import asyncWrapper from "../helpers/express-async-wrapper";
-import dayjs from '../dayjs';
+import { dayjs } from '../dayjs';
 import config from '../config';
 import { onMotionDetected, onDoorbellRing } from '../services/synology';
 

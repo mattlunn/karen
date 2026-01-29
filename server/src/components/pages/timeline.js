@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import SideBar from '../sidebar';
 import Header from '../header';
-import dayjs from '../../dayjs';
+import { dayjs } from '../../dayjs';
 import Event from '../event';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
@@ -15,17 +15,17 @@ function groupEventsByDays(events) {
   let i = 0;
 
   while (i !== events.length) {
-    const date = {
+    const day = {
       date: dayjs(events[i].timestamp).startOf('d'),
       events: []
     };
 
     do {
-      date.events.push(events[i]);
+      day.events.push(events[i]);
       i = i + 1;
-    } while (i !== events.length && dayjs(events[i].timestamp).isSame(date.date, 'd'));
+    } while (i !== events.length && dayjs(events[i].timestamp).isSame(day.date, 'd'));
 
-    days.push(date);
+    days.push(day);
   }
 
   return days;

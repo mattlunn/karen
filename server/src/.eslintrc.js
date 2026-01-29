@@ -35,7 +35,13 @@ module.exports = {
     'no-prototype-builtins': 0,
     'no-unused-vars': 0,
     'react/prop-types': 0,
-    'babel/semi': 1
+    'babel/semi': 1,
+    'no-restricted-imports': ['error', {
+      paths: [{
+        name: 'dayjs',
+        message: 'Import { dayjs } from ./dayjs (local wrapper) instead of the npm package to ensure Europe/London timezone.'
+      }]
+    }]
   },
   overrides: [
     {
@@ -57,6 +63,13 @@ module.exports = {
         '@typescript-eslint/no-explicit-any': 0,
         '@typescript-eslint/no-non-null-assertion': 0,
         '@typescript-eslint/no-unused-vars': 0
+      }
+    },
+    {
+      // The dayjs wrapper is allowed to import from 'dayjs' npm package
+      files: ['dayjs.ts'],
+      rules: {
+        'no-restricted-imports': 'off'
       }
     }
   ],

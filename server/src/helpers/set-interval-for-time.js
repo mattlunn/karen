@@ -1,5 +1,5 @@
 import { normalizeTime } from './time';
-import dayjs from '../dayjs';
+import { dayjs } from '../dayjs';
 
 export default function(func, time) {
   function getMillisecondsToNextOccurenceOf(time) {

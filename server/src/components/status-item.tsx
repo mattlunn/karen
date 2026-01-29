@@ -2,7 +2,7 @@ import React from 'react';
 import { Group, Paper, Text } from '@mantine/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { IconDefinition } from '@fortawesome/free-solid-svg-icons';
-import dayjs from '../dayjs';
+import { dayjs } from '../dayjs';
 import { humanDate } from '../helpers/date';
 
 function formatTimestamp(start: string, lastReported: string): string {

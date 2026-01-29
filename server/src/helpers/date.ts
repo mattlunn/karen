@@ -1,4 +1,4 @@
-import dayjs, { Dayjs } from '../dayjs';
+import { Dayjs, dayjs } from '../dayjs';
 
 export function humanDate(date: Dayjs): string {
   const now = dayjs();

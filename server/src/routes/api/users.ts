@@ -2,7 +2,7 @@ import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { User, Stay } from '../../models';
 import { HOME, AWAY } from '../../constants/status';
-import dayjs from '../../dayjs';
+import { dayjs } from '../../dayjs';
 import { UsersApiResponse, UserUpdateRequest, UserResponse } from '../../api/types';
 import { mapUserToResponse } from './user-helpers';
 

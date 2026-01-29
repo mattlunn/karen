@@ -3,7 +3,7 @@ import { Checkbox, Group, Title } from '@mantine/core';
 import { faLightbulb, faPersonWalking, faFireBurner } from '@fortawesome/free-solid-svg-icons';
 import useApiCall from '../../hooks/api';
 import { useDateRange, DateRangeSelector } from '../date-range';
-import dayjs, { Dayjs } from '../../dayjs';
+import { Dayjs, dayjs } from '../../dayjs';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import Event from '../event';
 import { DeviceTimelineApiResponse, DeviceTimelineEventApiResponse } from '../../api/types';

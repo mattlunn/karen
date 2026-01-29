@@ -10,7 +10,7 @@ import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { Link } from 'react-router-dom';
 import { Anchor, Table } from '@mantine/core';
 import useApiCall from '../../hooks/api';
-import dayjs from 'dayjs';
+import { dayjs } from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 import IssuesIndicator from '../issues-indicator';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
@@ -38,7 +38,7 @@ function getDeviceIcon(capabilities: CapabilityApiResponse[]): IconDefinition {
 
 function formatLastSeen(lastSeen: string): string {
   const date = dayjs(lastSeen);
-  
+
   return `${date.format('HH:mm')} ${humanDate(date)}`;
 }
 

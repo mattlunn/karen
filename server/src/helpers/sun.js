@@ -1,6 +1,6 @@
 import { getTimes } from 'suncalc';
 import { location } from '../config';
-import dayjs from '../dayjs';
+import { dayjs } from '../dayjs';
 
 export default function(date) {
   // Due to https://github.com/mourner/suncalc/issues/107

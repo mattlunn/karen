@@ -1,4 +1,4 @@
-import dayjs, { Dayjs } from '../../../dayjs';
+import { Dayjs, dayjs } from '../../../dayjs';
 import { ZoneTimetableBlock } from '../client';
 
 export default function getTimetabledTemperature(timetable: ZoneTimetableBlock[], time: Dayjs): number | null {

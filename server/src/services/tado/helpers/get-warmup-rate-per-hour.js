@@ -1,5 +1,5 @@
 import { Event, Op } from '../../../models';
-import dayjs from '../../../dayjs';
+import { dayjs } from '../../../dayjs';
 
 export default async function getWarmupRatePerHour(device) {
   const history = await Event.findAll({

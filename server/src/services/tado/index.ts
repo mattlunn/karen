@@ -3,7 +3,7 @@ import TadoClient, { TadoClientError, Zone, ZoneOverlayResponse, ZoneState, exch
 import config from '../../config';
 import { saveConfig } from '../../helpers/config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
-import dayjs, { Dayjs } from '../../dayjs';
+import { Dayjs, dayjs } from '../../dayjs';
 import getTimetabledTemperature from './helpers/get-timetabled-temperature';
 import getWarmupRatePerHour from './helpers/get-warmup-rate-per-hour';
 import { createBackgroundTransaction } from '../../helpers/newrelic';

@@ -1,5 +1,5 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional, NonAttribute, HasOneGetAssociationMixin } from 'sequelize';
-import dayjs from '../dayjs';
+import { dayjs } from '../dayjs';
 import { Arming } from './arming';
 
 export class AlarmActivation extends Model<InferAttributes<AlarmActivation>, InferCreationAttributes<AlarmActivation>> {

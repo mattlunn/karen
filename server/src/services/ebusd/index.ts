@@ -4,7 +4,7 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 import setIntervalForTime from '../../helpers/set-interval-for-time';
-import dayjs from '../../dayjs';
+import { dayjs } from '../../dayjs';
 import { clampAndSortHistory } from '../../helpers/history';
 
 Device.registerProvider('ebusd', {
