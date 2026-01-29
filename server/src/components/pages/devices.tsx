@@ -6,7 +6,7 @@ import { faQuestion } from '@fortawesome/free-solid-svg-icons/faQuestion';
 import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermometerQuarter';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { Link } from 'react-router-dom';
-import { Anchor, Table } from '@mantine/core';
+import { Anchor, Center, Loader, Table } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 import dayjs from 'dayjs';
 import { humanDate } from '../../helpers/date';
@@ -84,7 +84,9 @@ export default function Devices() {
     return (
       <div className='body body--with-padding'>
         <h2>Devices</h2>
-        <div className="loading-spinner" style={{ height: '100px' }} />
+        <Center h={100}>
+          <Loader size="lg" />
+        </Center>
       </div>
     );
   }

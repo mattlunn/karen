@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Center, Loader } from '@mantine/core';
 import dayjs from '../../dayjs';
 import Event from '../event';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
@@ -192,7 +193,11 @@ export default function Timeline() {
         })}
       </ol>
 
-      {loading && <div className='loading-spinner timeline__loader' />}
+      {loading && (
+        <Center py="xl">
+          <Loader size="lg" />
+        </Center>
+      )}
     </div>
   );
 }
