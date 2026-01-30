@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Box, Button, Text, Title, Stack } from '@mantine/core';
+import { Box, Text, Title, Stack } from '@mantine/core';
 
 interface Props {
   children: ReactNode;
@@ -24,10 +24,6 @@ export default class ErrorBoundary extends Component<Props, State> {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
-  handleReset = (): void => {
-    this.setState({ hasError: false, error: null });
-  };
-
   render(): ReactNode {
     if (this.state.hasError) {
       return (
@@ -37,7 +33,6 @@ export default class ErrorBoundary extends Component<Props, State> {
             <Text c="dimmed">
               {this.state.error?.message || 'An unexpected error occurred'}
             </Text>
-            <Button onClick={this.handleReset}>Try again</Button>
           </Stack>
         </Box>
       );
