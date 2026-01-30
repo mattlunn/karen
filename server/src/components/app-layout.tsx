@@ -1,6 +1,5 @@
 import React, { ReactNode, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
-import classnames from 'classnames';
 import Header from './header';
 import Sidebar from './sidebar';
 import ErrorBoundary from './error-boundary';
@@ -24,7 +23,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <Sidebar hideOnMobile={hideSidebarOnMobile} />
         <ErrorBoundary>
           <Suspense fallback={<PageLoader />}>
-            <div className={classnames('body', { 'body--with-padding': !isHome })}>
+            <div className={isHome ? 'body' : 'body body--with-padding'}>
               {children}
             </div>
           </Suspense>
