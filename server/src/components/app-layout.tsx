@@ -1,9 +1,8 @@
-import React, { ReactNode, Suspense } from 'react';
+import React, { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from './header';
 import Sidebar from './sidebar';
 import ErrorBoundary from './error-boundary';
-import PageLoader from './page-loader';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -22,11 +21,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <div>
         <Sidebar hideOnMobile={hideSidebarOnMobile} />
         <ErrorBoundary>
-          <Suspense fallback={<PageLoader />}>
-            <div className={isHome ? 'body' : 'body body--with-padding'}>
-              {children}
-            </div>
-          </Suspense>
+          <div className={isHome ? 'body' : 'body body--with-padding'}>
+            {children}
+          </div>
         </ErrorBoundary>
       </div>
     </div>
