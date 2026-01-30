@@ -1,6 +1,4 @@
 import React from 'react';
-import SideBar from '../sidebar';
-import Header from '../header';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
 import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
@@ -9,6 +7,7 @@ import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermo
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { Link } from 'react-router-dom';
 import { Anchor, Table } from '@mantine/core';
+import PageContent from '../page-content';
 import useApiCall from '../../hooks/api';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
@@ -82,47 +81,33 @@ function DevicesTable({ devices }: { devices: RestDeviceResponse[] }) {
 export default function Devices() {
   const { data, loading } = useApiCall<DevicesApiResponse>('/devices');
 
-  if (loading || !data) {
-    return (
-      <div>
-        <Header />
-        <div>
-          <SideBar hideOnMobile />
-          <div className='body body--with-padding'>
-            <h2>Devices</h2>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const { active, old } = (data.devices || [])
-    .toSorted((a, b) => a.name.localeCompare(b.name))
-    .reduce<{ active: RestDeviceResponse[]; old: RestDeviceResponse[] }>((acc, device) => {
-      acc[device.status === 'OK' ? 'active' : 'old'].push(device);
-
-      return acc;
-    }, { active: [], old: [] });
-
   return (
-    <div>
-      <Header />
-      <div>
-        <SideBar hideOnMobile />
-        <div className='body body--with-padding'>
-          <h2>Devices</h2>
+    <>
+      <h2>Devices</h2>
+      <PageContent loading={loading} data={data}>
+        {(data) => {
+          const { active, old } = (data.devices || [])
+            .toSorted((a, b) => a.name.localeCompare(b.name))
+            .reduce<{ active: RestDeviceResponse[]; old: RestDeviceResponse[] }>((acc, device) => {
+              acc[device.status === 'OK' ? 'active' : 'old'].push(device);
 
-          <DevicesTable devices={active} />
+              return acc;
+            }, { active: [], old: [] });
 
-          {old.length > 0 ? (
+          return (
             <>
-              <h3>Offline Devices</h3>
-              <DevicesTable devices={old} />
-            </>
-          ) : null}
+              <DevicesTable devices={active} />
 
-        </div>
-      </div>
-    </div>
+              {old.length > 0 ? (
+                <>
+                  <h3>Offline Devices</h3>
+                  <DevicesTable devices={old} />
+                </>
+              ) : null}
+            </>
+          );
+        }}
+      </PageContent>
+    </>
   );
 }
