@@ -2,7 +2,7 @@ import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, 
 import { Recording } from './recording';
 import { Device } from './device';
 
-export class Event extends Model<InferAttributes<Event, { omit: 'createdAt' | 'updatedAt' }>, InferCreationAttributes<Event, { omit: 'createdAt' | 'updatedAt' }>> {
+export class Event extends Model<InferAttributes<Event>, InferCreationAttributes<Event>> {
   declare public id: CreationOptional<number>;
   declare public deviceId: number;
   declare public start: Date;
@@ -10,8 +10,8 @@ export class Event extends Model<InferAttributes<Event, { omit: 'createdAt' | 'u
   declare public lastReported: Date;
   declare public type: string;
   declare public value: CreationOptional<number>;
-  declare public createdAt: Date;
-  declare public updatedAt: Date;
+  declare public createdAt: CreationOptional<Date>;
+  declare public updatedAt: CreationOptional<Date>;
 
   declare getRecording: HasOneGetAssociationMixin<Recording>;
   declare getDevice: HasOneGetAssociationMixin<Device>;
@@ -100,6 +100,16 @@ export default function (sequelize: Sequelize) {
     value: {
       type: DataTypes.FLOAT,
       allowNull: true
+    },
+
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false
+    },
+
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false
     }
   }, {
     sequelize: sequelize,
@@ -119,6 +129,7 @@ export class BooleanEvent {
   public start: Date;
   public end: Date | null;
   public lastReported: Date;
+  public updatedAt: Date;
 
   constructor(e: Event) {
     this.event = e;
@@ -126,6 +137,7 @@ export class BooleanEvent {
     this.start = e.start;
     this.end = e.end;
     this.lastReported = e.lastReported;
+    this.updatedAt = e.updatedAt;
   }
 
   hasEnded() {

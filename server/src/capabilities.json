@@ -59,12 +59,6 @@
       "eventName": "current_yield"
     },
     {
-      "name": "DailyConsumedEnergy",
-      "isWriteable": false,
-      "type": "number",
-      "eventName": "energy_daily"
-    },
-    {
       "name": "CompressorModulation",
       "isWriteable": false,
       "type": "number",
