@@ -1,5 +1,5 @@
 import './dayjs';
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Route } from 'react-router';
 import { Switch, BrowserRouter } from 'react-router-dom';
@@ -9,18 +9,15 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RealtimeProvider } from './components/realtime-provider';
 import AppLayout from './components/app-layout';
 import ErrorBoundary from './components/error-boundary';
-import PageLoader from './components/page-loader';
+import Home from './components/pages/home';
+import Timeline from './components/pages/timeline';
+import Devices from './components/pages/devices';
+import Device from './components/pages/device';
+import Login from './components/pages/login';
 
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import './styles/app.less';
-
-// Lazy load page components for code splitting
-const Home = lazy(() => import('./components/pages/home'));
-const Timeline = lazy(() => import('./components/pages/timeline'));
-const Devices = lazy(() => import('./components/pages/devices'));
-const Device = lazy(() => import('./components/pages/device'));
-const Login = lazy(() => import('./components/pages/login'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,14 +57,7 @@ window.onload = () => {
           <BrowserRouter>
             <ErrorBoundary>
               <Switch>
-                {/* Login route - no layout (no Header/Sidebar) */}
-                <Route exact path="/login">
-                  <Suspense fallback={<PageLoader />}>
-                    <Login />
-                  </Suspense>
-                </Route>
-
-                {/* All authenticated routes - with layout */}
+                <Route exact path="/login" component={Login} />
                 <Route path="/">
                   <AppLayout>
                     <Switch>
