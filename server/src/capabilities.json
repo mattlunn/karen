@@ -59,12 +59,6 @@
       "eventName": "current_yield"
     },
     {
-      "name": "DailyConsumedEnergy",
-      "isWriteable": false,
-      "type": "number",
-      "eventName": "energy_daily"
-    },
-    {
       "name": "CompressorModulation",
       "isWriteable": false,
       "type": "number",
@@ -117,6 +111,54 @@
       "isWriteable": false,
       "type": "number",
       "eventName": "cop_day"
+    },
+    {
+      "name": "DayHeatingCoP",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "cop_day_heating"
+    },
+    {
+      "name": "DayDHWCoP",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "cop_day_dhw"
+    },
+    {
+      "name": "DayPower",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "power_day"
+    },
+    {
+      "name": "DayYield",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "yield_day"
+    },
+    {
+      "name": "DayHeatingPower",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "power_day_heating"
+    },
+    {
+      "name": "DayHeatingYield",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "yield_day_heating"
+    },
+    {
+      "name": "DayDHWPower",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "power_day_dhw"
+    },
+    {
+      "name": "DayDHWYield",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "yield_day_dhw"
     }
   ]
 }, {

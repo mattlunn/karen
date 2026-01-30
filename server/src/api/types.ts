@@ -24,7 +24,6 @@ export type CapabilityApiResponse = {
 } | {
   type: 'HEAT_PUMP';
   mode: EnumEventApiResponse;
-  dailyConsumedEnergy: NumericEventApiResponse;
   heatingCoP: NumericEventApiResponse;
   compressorModulation: NumericEventApiResponse;
   dhwTemperature: NumericEventApiResponse;
@@ -33,6 +32,9 @@ export type CapabilityApiResponse = {
   actualFlowTemperature: NumericEventApiResponse;
   returnTemperature: NumericEventApiResponse;
   systemPressure: NumericEventApiResponse;
+  dayPower: NumericEventApiResponse;
+  dayYield: NumericEventApiResponse;
+  dayCoP: NumericEventApiResponse;
 } | {
   type: 'CAMERA';
   snapshotUrl: EnumEventApiResponse;

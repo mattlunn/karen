@@ -194,6 +194,54 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     };
   }],
 
+  // Heat Pump - Daily Overall Metrics (CoP bar, Power/Yield lines)
+  ['heatpump-daily-metrics', async (device, selector) => {
+    const heatPump = device.getHeatPumpCapability();
+
+    return awaitPromises({
+      bar: mapNumericHistoryToResponse((hs) => heatPump.getDayCoPHistory(hs), selector)
+        .then(data => ({ data, label: 'CoP', yAxisID: 'yCoP' })),
+      lines: Promise.all([
+        mapNumericHistoryToResponse((hs) => heatPump.getDayPowerHistory(hs), selector)
+          .then(data => ({ data, label: 'Power (Wh)', yAxisID: 'yEnergy' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayYieldHistory(hs), selector)
+          .then(data => ({ data, label: 'Yield (Wh)', yAxisID: 'yEnergy' }))
+      ])
+    });
+  }],
+
+  // Heat Pump - Daily Heating Metrics (CoP bar, Power/Yield lines)
+  ['heatpump-daily-heating', async (device, selector) => {
+    const heatPump = device.getHeatPumpCapability();
+
+    return awaitPromises({
+      bar: mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCoPHistory(hs), selector)
+        .then(data => ({ data, label: 'Heating CoP', yAxisID: 'yCoP' })),
+      lines: Promise.all([
+        mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingPowerHistory(hs), selector)
+          .then(data => ({ data, label: 'Heating Power (Wh)', yAxisID: 'yEnergy' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingYieldHistory(hs), selector)
+          .then(data => ({ data, label: 'Heating Yield (Wh)', yAxisID: 'yEnergy' }))
+      ])
+    });
+  }],
+
+  // Heat Pump - Daily DHW Metrics (CoP bar, Power/Yield lines)
+  ['heatpump-daily-dhw', async (device, selector) => {
+    const heatPump = device.getHeatPumpCapability();
+
+    return awaitPromises({
+      bar: mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCoPHistory(hs), selector)
+        .then(data => ({ data, label: 'DHW CoP', yAxisID: 'yCoP' })),
+      lines: Promise.all([
+        mapNumericHistoryToResponse((hs) => heatPump.getDayDHWPowerHistory(hs), selector)
+          .then(data => ({ data, label: 'DHW Power (Wh)', yAxisID: 'yEnergy' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayDHWYieldHistory(hs), selector)
+          .then(data => ({ data, label: 'DHW Yield (Wh)', yAxisID: 'yEnergy' }))
+      ])
+    });
+  }],
+
   // Thermostat
   ['thermostat', async (device, selector) => {
     const thermostat = device.getThermostatCapability();

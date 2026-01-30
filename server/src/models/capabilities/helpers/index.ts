@@ -1,4 +1,5 @@
 import { BooleanEvent, Device, Event, NumericEvent, Op } from "../..";
+import logger from '../../../logger';
 
 export type TimeRangeSelector = { since: Date; until: Date };
 export type HistorySelector = TimeRangeSelector;
@@ -55,12 +56,61 @@ export async function getNumericProperty(device: Device, propertyName: string, d
   return (await device.getLatestEvent(propertyName))?.value ?? defaultValue;
 }
 
+/**
+ * Find an event that overlaps with the given timestamp.
+ * An event overlaps if: start < timestamp AND (end > timestamp OR end is null)
+ */
+async function findOverlappingEvent(device: Device, propertyName: string, timestamp: Date): Promise<Event | null> {
+  return Event.findOne({
+    where: {
+      deviceId: device.id,
+      type: propertyName,
+      start: { [Op.lt]: timestamp },
+      [Op.or]: [
+        { end: { [Op.gt]: timestamp } },
+        { end: null }
+      ]
+    }
+  });
+}
+
 export async function setNumericProperty(device: Device, propertyName: string, propertyValue: number, timestamp: Date = new Date()): Promise<Event | null> {
+  // Get latest event first (usually cached, so this is fast)
   const lastEvent = await device.getLatestEvent(propertyName);
+
+  // Only check for existing event at timestamp if we might be updating historic data
+  // (i.e., timestamp is at or before the latest event's start)
+  if (lastEvent && lastEvent.start >= timestamp) {
+    const existingAtTimestamp = await Event.findOne({
+      where: { deviceId: device.id, type: propertyName, start: timestamp }
+    });
+
+    if (existingAtTimestamp) {
+      // Update existing event if value changed
+      if (existingAtTimestamp.value !== propertyValue) {
+        existingAtTimestamp.value = propertyValue;
+        existingAtTimestamp.lastReported = new Date();
+        return await existingAtTimestamp.save();
+      }
+      return null; // No change needed
+    }
+
+    // Check for overlapping events when inserting historic data
+    const overlappingEvent = await findOverlappingEvent(device, propertyName, timestamp);
+    if (overlappingEvent) {
+      logger.warn(`Detected overlapping event for device ${device.id}, property ${propertyName}. ` +
+        `Closing event ${overlappingEvent.id} (start: ${overlappingEvent.start.toISOString()}) at ${timestamp.toISOString()}`);
+      overlappingEvent.end = timestamp;
+      overlappingEvent.lastReported = new Date();
+      await overlappingEvent.save();
+    }
+  }
+
+  // Standard logic for new events
   const valueHasChanged = !lastEvent || propertyValue !== lastEvent.value;
 
   if (valueHasChanged) {
-    if (lastEvent) {
+    if (lastEvent && lastEvent.start < timestamp) {
       lastEvent.end = timestamp;
       lastEvent.lastReported = timestamp;
 
