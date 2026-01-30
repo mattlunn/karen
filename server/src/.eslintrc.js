@@ -39,7 +39,7 @@ module.exports = {
     'no-restricted-imports': ['error', {
       paths: [{
         name: 'dayjs',
-        message: 'Import { dayjs } from ./dayjs (local wrapper) instead of the npm package to ensure Europe/London timezone.'
+        message: 'Import dayjs from ./dayjs (local wrapper) instead of the npm package to ensure Europe/London timezone.'
       }]
     }]
   },

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DatePicker } from '@mantine/dates';
 import { Button } from '@mantine/core';
-import { Dayjs, dayjs } from '../../dayjs';
+import dayjs, { Dayjs } from '../../dayjs';
 import { range } from '../../helpers/iterable';
 import { useUserMutation } from '../../hooks/mutations/use-user-mutations';
 

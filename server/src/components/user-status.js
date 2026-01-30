@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { dayjs } from '../dayjs';
+import dayjs from '../dayjs';
 import { AWAY, HOME } from '../constants/status';
 import { humanDate } from '../helpers/date';
 import { Anchor, Avatar, Box, Group, LoadingOverlay, Stack, Text } from '@mantine/core';

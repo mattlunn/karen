@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import SideBar from '../sidebar';
 import Header from '../header';
-import { dayjs } from '../../dayjs';
+import dayjs from '../../dayjs';
 import Event from '../event';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';

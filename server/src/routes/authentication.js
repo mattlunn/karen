@@ -2,7 +2,7 @@ import { Token, User } from '../models';
 import auth from '../middleware/auth';
 import { Router } from 'express';
 import asyncWrapper from '../helpers/express-async-wrapper';
-import { dayjs } from '../dayjs';
+import dayjs from '../dayjs';
 import config from '../config';
 import logger from '../logger';
 

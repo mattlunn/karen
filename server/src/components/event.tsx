@@ -1,5 +1,5 @@
 import React, { ReactNode, useState } from 'react';
-import { dayjs } from '../dayjs';
+import dayjs from '../dayjs';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 

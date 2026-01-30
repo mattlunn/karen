@@ -47,5 +47,5 @@ dayjs.duration = dayjsLib.duration;
 dayjs.tz = dayjsLib.tz;
 dayjs.unix = dayjsLib.unix;
 
-export default dayjsLib;
-export { dayjs, Dayjs };
+export default dayjs;
+export { Dayjs };

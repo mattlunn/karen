@@ -1,7 +1,7 @@
 import { Device, BooleanEvent, NumericEvent } from '../../../models';
 import { TimeRangeSelector, HistorySelector } from '../../../models/capabilities/helpers';
 import expressAsyncWrapper from '../../../helpers/express-async-wrapper';
-import { dayjs } from '../../../dayjs';
+import dayjs from '../../../dayjs';
 import {
   BooleanEventApiResponse,
   EnumEventApiResponse,

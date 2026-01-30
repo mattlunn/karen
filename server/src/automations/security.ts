@@ -1,6 +1,6 @@
 import { Device, Arming, Stay, User, AlarmActivation, Event } from '../models';
 import { call } from '../services/twilio';
-import { dayjs } from '../dayjs';
+import dayjs from '../dayjs';
 import sleep from '../helpers/sleep';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';

@@ -1,4 +1,4 @@
-import dayjsLib, { Dayjs, dayjs } from '../../dayjs';
+import dayjs, { Dayjs } from '../../dayjs';
 import config from '../../config';
 import logger from '../../logger';
 import { Event, Recording, Stay, Device, Op } from '../../models';
@@ -67,8 +67,8 @@ async function captureRecording(event: Event, providerId: string, startOfRecordi
 
     cameraRecording = synologyRecordings.data.events.find((recording: { cameraId: number, startTime: number, stopTime: number }) => {
       return String(recording.cameraId) === providerId
-        && dayjsLib.unix(recording.startTime).isBefore(startOfRecording)
-        && dayjsLib.unix(recording.stopTime).isAfter(endOfRecording);
+        && dayjs.unix(recording.startTime).isBefore(startOfRecording)
+        && dayjs.unix(recording.stopTime).isAfter(endOfRecording);
     });
   } while (!cameraRecording && --attempts);
 
@@ -162,7 +162,7 @@ setInterval(createBackgroundTransaction('synology:clear-old-recordings', async (
 
     logger.info('Old recordings removed. See you again tomorrow...');
   }
-}), dayjsLib.duration(1, 'day').asMilliseconds());
+}), dayjs.duration(1, 'day').asMilliseconds());
 
 Device.registerProvider('synology', {
   getCapabilities(device) {

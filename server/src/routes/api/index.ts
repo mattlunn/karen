@@ -2,7 +2,7 @@ import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Event, Recording } from '../../models';
 import { makeSynologyRequest } from '../../services/synology';
-import { dayjs } from '../../dayjs';
+import dayjs from '../../dayjs';
 import s3 from '../../services/s3';
 import deviceRouteHander from './device';
 import deviceHistoryHandler from './device/history';

@@ -1,5 +1,5 @@
 import React, { createContext, useState, ReactNode } from 'react';
-import { dayjs } from '../../dayjs';
+import dayjs from '../../dayjs';
 import { DateRange, DateRangePreset, DateRangeContextValue } from './types';
 
 export const DateRangeContext = createContext<DateRangeContextValue | null>(null);

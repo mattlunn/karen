@@ -2,7 +2,7 @@ jest.mock('../config', () => ({}), { virtual: true });
 
 import { isWithinTime } from './time';
 import getSunriseAndSunset from './sun';
-import { dayjs } from '../dayjs';
+import dayjs from '../dayjs';
 
 jest.mock('./sun');
 
