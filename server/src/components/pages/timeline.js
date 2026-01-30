@@ -15,17 +15,17 @@ function groupEventsByDays(events) {
   let i = 0;
 
   while (i !== events.length) {
-    const date = {
+    const day = {
       date: dayjs(events[i].timestamp).startOf('d'),
       events: []
     };
 
     do {
-      date.events.push(events[i]);
+      day.events.push(events[i]);
       i = i + 1;
-    } while (i !== events.length && dayjs(events[i].timestamp).isSame(date.date, 'd'));
+    } while (i !== events.length && dayjs(events[i].timestamp).isSame(day.date, 'd'));
 
-    days.push(date);
+    days.push(day);
   }
 
   return days;
