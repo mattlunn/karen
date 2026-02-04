@@ -196,6 +196,10 @@ export interface HeatingUpdateRequest {
 export interface HeatingStatusResponse {
   centralHeating: CentralHeatingMode | null;
   dhw: DHWHeatingMode;
+  preWarm: {
+    startTime: string;
+    targetEta: string;
+  } | null;
 }
 
 // /api/users endpoint

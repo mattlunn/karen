@@ -3,13 +3,14 @@ import UserStatus from './user-status';
 import classnames from 'classnames';
 import { HOME, AWAY } from '../constants/status';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDroplet, faFire, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
+import { faDroplet, faFire, faShieldHalved, faTemperatureArrowUp } from '@fortawesome/free-solid-svg-icons';
 import { SegmentedControl } from '@mantine/core';
 import { useUsers } from '../hooks/queries/use-users';
 import { useHeating } from '../hooks/queries/use-heating';
 import { useSecurity } from '../hooks/queries/use-security';
 import { useAlarmMutation } from '../hooks/mutations/use-security-mutations';
 import { useHeatingMutation } from '../hooks/mutations/use-heating-mutations';
+import dayjs from '../dayjs';
 
 export default function Sidebar({ hideOnMobile}) {
   const { isLoading: usersLoading, data: usersData } = useUsers();
@@ -86,6 +87,16 @@ export default function Sidebar({ hideOnMobile}) {
             ]}
           />
         </div>
+
+        {heatingData.preWarm && (
+          <div className="sidebar__prewarm-info">
+            <h3 className="home-controls__title"><FontAwesomeIcon icon={faTemperatureArrowUp} /></h3>
+            <div className="prewarm-info__details">
+              <span>Pre-heating starts {dayjs(heatingData.preWarm.startTime).format('HH:mm')}</span>
+              <span className="prewarm-info__eta">ETA: {dayjs(heatingData.preWarm.targetEta).format('HH:mm')}</span>
+            </div>
+          </div>
+        )}
       </>
     );
   }

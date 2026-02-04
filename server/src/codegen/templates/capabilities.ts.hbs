@@ -87,7 +87,7 @@ export class {{className}} {
 {{/each}}
 
 {{#each providers}}
-export type Provider{{capabilityName}}Capability = {
+export type {{#if providerClassName}}{{providerClassName}}{{else}}Provider{{capabilityName}}Capability{{/if}} = {
   {{#each properties}}
   {{#if isWriteable}}
   set{{propertyName}}(device: Device, value: {{#if isBoolean}}boolean{{else}}number{{/if}}): Promise<void>
