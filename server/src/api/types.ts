@@ -157,7 +157,7 @@ export interface RestDeviceResponse {
   capabilities: CapabilityApiResponse[];
 }
 
-export interface ErrorDeviceResponse {
+export interface BrokenDeviceResponse {
   id: number;
   name: string;
   provider: string;
@@ -167,7 +167,7 @@ export interface ErrorDeviceResponse {
 export interface DevicesApiResponse {
   rooms: HomeRoom[];
   devices: RestDeviceResponse[];
-  errorDevices: ErrorDeviceResponse[];
+  brokenDevices: BrokenDeviceResponse[];
 }
 
 // /api/device/:id/light endpoint

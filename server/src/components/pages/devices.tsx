@@ -9,13 +9,13 @@ import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermo
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons/faExclamationTriangle';
 import { Link } from 'react-router-dom';
-import { Alert, Anchor, Table } from '@mantine/core';
+import { Alert, Anchor, Table, Title } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 import IssuesIndicator from '../issues-indicator';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import type { CapabilityApiResponse, DevicesApiResponse, ErrorDeviceResponse, RestDeviceResponse } from '../../api/types';
+import type { CapabilityApiResponse, DevicesApiResponse, BrokenDeviceResponse, RestDeviceResponse } from '../../api/types';
 
 function getDeviceIcon(capabilities: CapabilityApiResponse[]): IconDefinition {
   if (capabilities.some(x => x.type === 'CAMERA')) {
@@ -80,12 +80,12 @@ function DevicesTable({ devices }: { devices: RestDeviceResponse[] }) {
   );
 }
 
-function ErrorDevicesTable({ devices }: { devices: ErrorDeviceResponse[] }) {
+function BrokenDevicesTable({ devices }: { devices: BrokenDeviceResponse[] }) {
   return (
     <Table striped highlightOnHover>
       <Table.Thead>
         <Table.Tr>
-          <Table.Th>ID</Table.Th>
+          <Table.Th w={1}></Table.Th>
           <Table.Th>Name</Table.Th>
           <Table.Th>Provider</Table.Th>
           <Table.Th>Provider ID</Table.Th>
@@ -126,7 +126,7 @@ export default function Devices() {
     );
   }
 
-  const { active, old } = (data.devices || [])
+  const { active, old } = data.devices
     .toSorted((a, b) => a.name.localeCompare(b.name))
     .reduce<{ active: RestDeviceResponse[]; old: RestDeviceResponse[] }>((acc, device) => {
       acc[device.status === 'OK' ? 'active' : 'old'].push(device);
@@ -134,10 +134,9 @@ export default function Devices() {
       return acc;
     }, { active: [], old: [] });
 
-  const errorDevices = data.errorDevices || [];
-
-  const errorAlertMessage = errorDevices.length > 0
-    ? `${errorDevices.map(d => `${d.name} (${d.provider})`).join(', ')} cannot be shown due to errors mapping their capabilities`
+  const brokenDevices = data.brokenDevices;
+  const errorAlertMessage = brokenDevices.length > 0
+    ? `${brokenDevices.length} device(s) cannot be shown due to errors mapping their capabilities`
     : null;
 
   return (
@@ -146,7 +145,7 @@ export default function Devices() {
       <div>
         <SideBar hideOnMobile />
         <div className='body body--with-padding'>
-          <h2>Devices</h2>
+          <Title order={2}>Devices</Title>
 
           {errorAlertMessage && (
             <Alert
@@ -163,15 +162,15 @@ export default function Devices() {
 
           {old.length > 0 ? (
             <>
-              <h3>Offline Devices</h3>
+              <Title order={3} mt="md">Offline Devices</Title>
               <DevicesTable devices={old} />
             </>
           ) : null}
 
-          {errorDevices.length > 0 ? (
+          {brokenDevices.length > 0 ? (
             <>
-              <h3>Error Devices</h3>
-              <ErrorDevicesTable devices={errorDevices} />
+              <Title order={3} mt="md">Broken Devices</Title>
+              <BrokenDevicesTable devices={brokenDevices} />
             </>
           ) : null}
 
