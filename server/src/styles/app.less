@@ -3,7 +3,6 @@
    License: none (public domain)
 */
 
-@modal-width: 800px;
 @home-color: #5eef00;
 @away-color: red;
 
@@ -194,110 +193,6 @@ button.secondary {
     input[type="button"] {
       font-size: 20px;
     }
-  }
-}
-
-.modal {
-  &__backdrop {
-    background: rgba(78, 78, 78, 0.6);
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    z-index: 100;
-  }
-
-  &__container {
-    border: 10px solid #757575;
-    border-radius: 10px;
-    width: @modal-width;
-    background: #fff;
-    left: ~"calc(50% - 400px)";
-    position: absolute;
-    top: 200px;
-  }
-}
-
-@media (max-width: (@modal-width + 50px)) {
-  .modal {
-    &__container {
-      width: ~"calc(100% - 20px)";
-      left: 10px;
-      top: 30px;
-    }
-  }
-}
-
-.eta-picker {
-  font-family: sans-serif;
-
-  &__body {
-    padding: 20px;
-
-    h2 {
-      font-size: 18px;
-      margin-bottom: 10px;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 5px;
-    }
-
-    & > div {
-      display: inline-block;
-      width: 50%;
-    }
-  }
-
-  &__selected-date {
-    font-size: 1.4em;
-    margin-bottom: 10px;
-  }
-
-  &__selected-date-and-time {
-    text-align: center;
-    padding-top: 20px;
-  }
-
-  &__footer {
-    background: #eeeeee;
-    border-top: 1px solid #757575;
-    padding: 10px 20px;
-    text-align: right;
-
-    & button.primary {
-      margin-left: 10px;
-    }
-  }
-}
-
-@media (max-width: (630px)) {
-  .eta-picker {
-    &__body {
-      & > div {
-        display: inline-block;
-        width: 100%;
-      }
-    }
-  }
-}
-
-.thermostat-modal {
-  &__body {
-    padding: 20px;
-
-    h2 {
-      font-size: 18px;
-      margin-bottom: 10px;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 5px;
-    }
-  }
-
-  &__footer {
-    background: #eeeeee;
-    border-top: 1px solid #757575;
-    padding: 10px 20px;
-    text-align: right;
   }
 }
 

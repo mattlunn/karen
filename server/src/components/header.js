@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Group, Anchor, UnstyledButton, Collapse, Burger } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { Group, Anchor, UnstyledButton, Burger } from '@mantine/core';
 
 const navLinks = [
   { label: 'Home', to: '/' },
@@ -9,8 +8,7 @@ const navLinks = [
   { label: 'Devices', to: '/device' },
 ];
 
-export default function Header() {
-  const [opened, { toggle }] = useDisclosure(false);
+export default function Header({ sidebarOpened, toggleSidebar }) {
   const location = useLocation();
 
   const isActive = (path) => {
@@ -37,7 +35,7 @@ export default function Header() {
           component={Link}
           to={link.to}
           style={linkStyles(isActive(link.to))}
-          onClick={vertical ? toggle : undefined}
+          onClick={vertical ? toggleSidebar : undefined}
         >
           {link.label}
         </Anchor>
@@ -81,26 +79,19 @@ export default function Header() {
         </Anchor>
 
         {/* Desktop navigation */}
-        <Group gap="md" visibleFrom="sm">
+        <Group gap="md" visibleFrom="md">
           <NavLinks vertical={false} />
         </Group>
       </Group>
 
-      {/* Mobile burger */}
+      {/* Mobile burger - toggles sidebar */}
       <Burger
-        opened={opened}
-        onClick={toggle}
-        hiddenFrom="sm"
+        opened={sidebarOpened}
+        onClick={toggleSidebar}
+        hiddenFrom="md"
         color="white"
         size="sm"
       />
-
-      {/* Mobile navigation */}
-      <Collapse in={opened} hiddenFrom="sm">
-        <Group gap="sm" mt="md" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-          <NavLinks vertical={true} />
-        </Group>
-      </Collapse>
     </Group>
   );
 }

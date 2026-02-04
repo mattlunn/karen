@@ -25,7 +25,7 @@ import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
 import { Box, Grid, Paper, SimpleGrid } from '@mantine/core';
-import PageContent from '../page-content';
+import PageLoader from '../page-loader';
 import { StatusItem } from '../status-item';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
@@ -275,16 +275,16 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
 export default function Device({ match: { params: { id }}} : RouteComponentProps<{ id: string }>) {
   const { loading, data } = useApiCall<DeviceApiResponse>(`/device/${id}`);
 
+  if (loading || !data) {
+    return <PageLoader />;
+  }
+
   return (
-    <PageContent loading={loading} data={data}>
-      {({ device }) => (
-        <>
-          <h2>{device.name}</h2>
-          <DateRangeProvider>
-            <DeviceContent device={device} />
-          </DateRangeProvider>
-        </>
-      )}
-    </PageContent>
+    <>
+      <h2>{data.device.name}</h2>
+      <DateRangeProvider>
+        <DeviceContent device={data.device} />
+      </DateRangeProvider>
+    </>
   );
 }

@@ -1,12 +1,10 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import dayjs from '../dayjs';
 import { AWAY, HOME } from '../constants/status';
 import { humanDate } from '../helpers/date';
-import { Anchor, Avatar, Box, Group, LoadingOverlay, Stack, Text } from '@mantine/core';
+import { Anchor, Avatar, Box, Group, LoadingOverlay, Modal, Stack, Text } from '@mantine/core';
 import { useUserMutation } from '../hooks/mutations/use-user-mutations';
 import EtaPicker from './modals/eta-picker';
-import Modal from './modal';
 
 function StatusMessage({ status, since, until, id }) {
   const [ showModal, setShowModal ] = React.useState(false);
@@ -41,13 +39,9 @@ function StatusMessage({ status, since, until, id }) {
       <>
         until {untilMessage}
 
-        {showModal && ReactDOM.createPortal(
-          <Modal>
-            <EtaPicker id={id} eta={untilMoment} closeModal={() => setShowModal(false)} />
-          </Modal>,
-
-          document.body)
-        }
+        <Modal opened={showModal} onClose={() => setShowModal(false)} size="lg" centered>
+          <EtaPicker id={id} eta={untilMoment} closeModal={() => setShowModal(false)} />
+        </Modal>
       </>
     );
   }
