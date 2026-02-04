@@ -66,3 +66,13 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           curl -I -H "Authorization: Bearer ${{ secrets.DEPLOYMENT_TOKEN }}" ${{ secrets.DEPLOYMENT_WEBHOOK }}
+
+  deploy-lambda-production:
+    name: Deploy Lambda (Production)
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    uses: ./.github/workflows/deploy-lambda.yml
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME_PRODUCTION }}
