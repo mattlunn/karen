@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DatePicker } from '@mantine/dates';
-import { Button } from '@mantine/core';
+import { Button, Group, NativeSelect, Stack, Text, Title } from '@mantine/core';
 import dayjs, { Dayjs } from '../../dayjs';
 import { range } from '../../helpers/iterable';
 import { useUserMutation } from '../../hooks/mutations/use-user-mutations';
@@ -25,15 +25,6 @@ export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
     }
   };
 
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    if (name === 'hour') {
-      setSelectedDate(selectedDate.hour(Number(value)));
-    } else if (name === 'minute') {
-      setSelectedDate(selectedDate.minute(Number(value)));
-    }
-  };
-
   const handleSetEta = () => {
     updateUser({ eta: +selectedDate }, {
       onSuccess: () => closeModal()
@@ -41,38 +32,41 @@ export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
   };
 
   return (
-    <div className="eta-picker">
-      <div className="eta-picker__body">
-        <h2>When will <strong>{id}</strong> be home?</h2>
+    <>
+      <Title order={3} mb="md">When will <strong>{id}</strong> be home?</Title>
 
-        <div>
-          <DatePicker
-            value={selectedDate.toDate()}
-            onChange={handleDateChange}
-            minDate={new Date()}
-            size="md"
-          />
-        </div>
-        <div className="eta-picker__selected-date-and-time">
-          <div className="eta-picker__selected-date">
-            {selectedDate.format('DD/MM/YYYY')}
-          </div>
-          <div className="eta-picker__selected-time">
-            at&nbsp;
-            <select onChange={handleSelectChange} name="hour" value={selectedDate.hour()}>
-              {Array.from(range(0, 24)).map(x => <option value={x} key={x}>{pad(x)}</option>)}
-            </select>
-            :
-            <select onChange={handleSelectChange} name="minute" value={selectedDate.minute()}>
-              {Array.from(range(0, 60, 15)).map(x => <option value={x} key={x}>{pad(x)}</option>)}
-            </select>
-          </div>
-        </div>
-      </div>
-      <div className="eta-picker__footer">
-        <Button variant="default" onClick={closeModal} mr="sm">Cancel</Button>
+      <Group gap="md" align="flex-start">
+        <DatePicker
+          value={selectedDate.toDate()}
+          onChange={handleDateChange}
+          minDate={new Date()}
+          size="md"
+        />
+        <Stack align="center" justify="center" pt="lg">
+          <Text size="xl" fw={500}>{selectedDate.format('DD/MM/YYYY')}</Text>
+          <Group gap="xs">
+            <Text>at</Text>
+            <NativeSelect
+              data={Array.from(range(0, 24)).map(x => ({ value: String(x), label: pad(x) }))}
+              value={String(selectedDate.hour())}
+              onChange={(e) => setSelectedDate(selectedDate.hour(Number(e.target.value)))}
+              w={70}
+            />
+            <Text>:</Text>
+            <NativeSelect
+              data={Array.from(range(0, 60, 15)).map(x => ({ value: String(x), label: pad(x) }))}
+              value={String(selectedDate.minute())}
+              onChange={(e) => setSelectedDate(selectedDate.minute(Number(e.target.value)))}
+              w={70}
+            />
+          </Group>
+        </Stack>
+      </Group>
+
+      <Group justify="flex-end" mt="xl">
+        <Button variant="default" onClick={closeModal}>Cancel</Button>
         <Button loading={isPending} onClick={handleSetEta}>Ok</Button>
-      </div>
-    </div>
+      </Group>
+    </>
   );
 }

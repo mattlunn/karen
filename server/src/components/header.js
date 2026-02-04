@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Box, Burger, Group, Anchor, UnstyledButton, Collapse } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { Group, Anchor, UnstyledButton, Burger } from '@mantine/core';
 
 const navLinks = [
   { label: 'Home', to: '/' },
@@ -9,8 +8,7 @@ const navLinks = [
   { label: 'Devices', to: '/device' },
 ];
 
-export default function Header() {
-  const [opened, { toggle }] = useDisclosure(false);
+export default function Header({ sidebarOpened, toggleSidebar }) {
   const location = useLocation();
 
   const isActive = (path) => {
@@ -37,7 +35,7 @@ export default function Header() {
           component={Link}
           to={link.to}
           style={linkStyles(isActive(link.to))}
-          onClick={vertical ? toggle : undefined}
+          onClick={vertical ? toggleSidebar : undefined}
         >
           {link.label}
         </Anchor>
@@ -65,54 +63,35 @@ export default function Header() {
   );
 
   return (
-    <Box
-      component="nav"
-      style={{
-        backgroundColor: 'rgb(22, 22, 22)',
-        padding: '16px',
-        position: 'fixed',
-        top: 0,
-        width: '100%',
-        zIndex: 50,
-      }}
-    >
-      <Group justify="space-between">
-        <Group gap="xl">
-          <Anchor
-            component={Link}
-            to="/"
-            style={{
-              color: '#fff',
-              fontSize: '1.25rem',
-              textDecoration: 'none',
-              fontWeight: 500,
-            }}
-          >
-            Karen
-          </Anchor>
+    <Group h="100%" px="md" justify="space-between" bg="rgb(22, 22, 22)">
+      <Group gap="xl">
+        <Anchor
+          component={Link}
+          to="/"
+          style={{
+            color: '#fff',
+            fontSize: '1.25rem',
+            textDecoration: 'none',
+            fontWeight: 500,
+          }}
+        >
+          Karen
+        </Anchor>
 
-          {/* Desktop navigation */}
-          <Group gap="md" visibleFrom="sm">
-            <NavLinks vertical={false} />
-          </Group>
+        {/* Desktop navigation */}
+        <Group gap="md" visibleFrom="md">
+          <NavLinks vertical={false} />
         </Group>
-
-        {/* Mobile burger */}
-        <Burger
-          opened={opened}
-          onClick={toggle}
-          hiddenFrom="sm"
-          color="white"
-          size="sm"
-        />
       </Group>
 
-      {/* Mobile navigation */}
-      <Collapse in={opened} hiddenFrom="sm">
-        <Group gap="sm" mt="md" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-          <NavLinks vertical={true} />
-        </Group>
-      </Collapse>
-    </Box>
+      {/* Mobile burger - toggles sidebar */}
+      <Burger
+        opened={sidebarOpened}
+        onClick={toggleSidebar}
+        hiddenFrom="md"
+        color="white"
+        size="sm"
+      />
+    </Group>
   );
 }

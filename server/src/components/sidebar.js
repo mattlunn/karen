@@ -11,7 +11,7 @@ import { useSecurity } from '../hooks/queries/use-security';
 import { useAlarmMutation } from '../hooks/mutations/use-security-mutations';
 import { useHeatingMutation } from '../hooks/mutations/use-heating-mutations';
 
-export default function Sidebar({ hideOnMobile}) {
+export default function Sidebar() {
   const { isLoading: usersLoading, data: usersData } = useUsers();
   const { isLoading: heatingLoading, data: heatingData } = useHeating();
   const { isLoading: securityLoading, data: securityData } = useSecurity();
@@ -21,80 +21,72 @@ export default function Sidebar({ hideOnMobile}) {
 
   const loading = usersLoading || heatingLoading || securityLoading;
 
-  let body = null;
-
-  if (!loading && usersData && heatingData && securityData) {
-    const stays = usersData;
-    const alarmMode = securityData.alarmMode;
-    const { centralHeating: commonThermostatMode, dhw: dhwHeatingMode } = heatingData;
-
-    body = (
-      <>
-        <div className="sidebar__house">
-          <div className={classnames('sidebar__house-border', {
-            'sidebar__house-border--away': stays.every(x => x.status === AWAY),
-            'sidebar__house-border--home': stays.some(x => x.status === HOME),
-          })}>
-            <div className={classnames('house', {
-              'house--away': stays.every(x => x.status === AWAY),
-              'house--home': stays.some(x => x.status === HOME)
-            })} />
-          </div>
-        </div>
-
-        <div className="sidebar__stays">
-          {stays.map((stay) => <UserStatus key={stay.id} {...stay} />)}
-        </div>
-
-        <div className="sidebar__home-controls">
-          <h3 className="home-controls__title"><FontAwesomeIcon icon={faShieldHalved} /></h3>
-          <SegmentedControl
-            value={alarmMode}
-            onChange={(alarmMode) => updateAlarmMode({ alarmMode })}
-            disabled={alarmMutating}
-            data={[
-              { label: 'Home', value: 'OFF' },
-              { label: 'Away', value: 'AWAY' },
-              { label: 'Night', value: 'NIGHT' },
-            ]}
-          />
-        </div>
-
-        <div className="sidebar__home-controls">
-          <h3 className="home-controls__title"><FontAwesomeIcon icon={faFire} /></h3>
-          <SegmentedControl
-            value={commonThermostatMode}
-            onChange={(mode) => updateHeating({ centralHeating: mode })}
-            disabled={heatingMutating}
-            data={[
-              { label: 'On', value: 'ON' },
-              { label: 'Setback', value: 'SETBACK' },
-              { label: 'Off', value: 'OFF' },
-            ]}
-          />
-        </div>
-
-        <div className="sidebar__home-controls">
-          <h3 className="home-controls__title"><FontAwesomeIcon icon={faDroplet} /></h3>
-          <SegmentedControl
-            value={dhwHeatingMode}
-            onChange={(mode) => updateHeating({ dhw: mode })}
-            disabled={heatingMutating}
-            data={[
-              { label: 'On', value: 'ON' },
-              { label: 'Off', value: 'OFF' },
-            ]}
-          />
-        </div>
-      </>
-    );
+  if (loading || !usersData || !heatingData || !securityData) {
+    return null;
   }
 
+  const stays = usersData;
+  const alarmMode = securityData.alarmMode;
+  const { centralHeating: commonThermostatMode, dhw: dhwHeatingMode } = heatingData;
+
   return (
-    <div className={classnames('sidebar', {
-      'sidebar--hidden-on-mobile': hideOnMobile
-    })}>
-      {body}
-    </div>
+    <>
+      <div className="sidebar__house">
+        <div className={classnames('sidebar__house-border', {
+          'sidebar__house-border--away': stays.every(x => x.status === AWAY),
+          'sidebar__house-border--home': stays.some(x => x.status === HOME),
+        })}>
+          <div className={classnames('house', {
+            'house--away': stays.every(x => x.status === AWAY),
+            'house--home': stays.some(x => x.status === HOME)
+          })} />
+        </div>
+      </div>
+
+      <div className="sidebar__stays">
+        {stays.map((stay) => <UserStatus key={stay.id} {...stay} />)}
+      </div>
+
+      <div className="sidebar__home-controls">
+        <h3 className="home-controls__title"><FontAwesomeIcon icon={faShieldHalved} /></h3>
+        <SegmentedControl
+          value={alarmMode}
+          onChange={(alarmMode) => updateAlarmMode({ alarmMode })}
+          disabled={alarmMutating}
+          data={[
+            { label: 'Home', value: 'OFF' },
+            { label: 'Away', value: 'AWAY' },
+            { label: 'Night', value: 'NIGHT' },
+          ]}
+        />
+      </div>
+
+      <div className="sidebar__home-controls">
+        <h3 className="home-controls__title"><FontAwesomeIcon icon={faFire} /></h3>
+        <SegmentedControl
+          value={commonThermostatMode}
+          onChange={(mode) => updateHeating({ centralHeating: mode })}
+          disabled={heatingMutating}
+          data={[
+            { label: 'On', value: 'ON' },
+            { label: 'Setback', value: 'SETBACK' },
+            { label: 'Off', value: 'OFF' },
+          ]}
+        />
+      </div>
+
+      <div className="sidebar__home-controls">
+        <h3 className="home-controls__title"><FontAwesomeIcon icon={faDroplet} /></h3>
+        <SegmentedControl
+          value={dhwHeatingMode}
+          onChange={(mode) => updateHeating({ dhw: mode })}
+          disabled={heatingMutating}
+          data={[
+            { label: 'On', value: 'ON' },
+            { label: 'Off', value: 'OFF' },
+          ]}
+        />
+      </div>
+    </>
   );
 }

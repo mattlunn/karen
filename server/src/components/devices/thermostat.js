@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import ReactDOM from 'react-dom';
+import { Modal } from '@mantine/core';
 import DeviceControl from '../device-control';
-import Modal from '../modal';
 import ThermostatModal from '../modals/thermostat-modal';
 import { faThermometerFull } from '@fortawesome/free-solid-svg-icons';
 
@@ -26,16 +25,13 @@ export default function Thermostat({ device, capability }) {
         }}
       />
 
-      {showModal && ReactDOM.createPortal(
-        <Modal>
-          <ThermostatModal
-            device={device}
-            capability={capability}
-            closeModal={() => setShowModal(false)}
-          />
-        </Modal>,
-        document.body
-      )}
+      <Modal opened={showModal} onClose={() => setShowModal(false)} size="md" centered>
+        <ThermostatModal
+          device={device}
+          capability={capability}
+          closeModal={() => setShowModal(false)}
+        />
+      </Modal>
     </>
   );
 }
