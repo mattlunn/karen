@@ -126,6 +126,7 @@ export default function Devices() {
     );
   }
 
+  const brokenDevices = data.brokenDevices;
   const { active, old } = data.devices
     .toSorted((a, b) => a.name.localeCompare(b.name))
     .reduce<{ active: RestDeviceResponse[]; old: RestDeviceResponse[] }>((acc, device) => {
@@ -134,11 +135,6 @@ export default function Devices() {
       return acc;
     }, { active: [], old: [] });
 
-  const brokenDevices = data.brokenDevices;
-  const errorAlertMessage = brokenDevices.length > 0
-    ? `${brokenDevices.length} device(s) cannot be shown due to errors mapping their capabilities`
-    : null;
-
   return (
     <div>
       <Header />
@@ -146,18 +142,6 @@ export default function Devices() {
         <SideBar hideOnMobile />
         <div className='body body--with-padding'>
           <Title order={2}>Devices</Title>
-
-          {errorAlertMessage && (
-            <Alert
-              variant="light"
-              color="red"
-              icon={<FontAwesomeIcon icon={faExclamationTriangle} />}
-              mb="md"
-            >
-              {errorAlertMessage}
-            </Alert>
-          )}
-
           <DevicesTable devices={active} />
 
           {old.length > 0 ? (
@@ -170,6 +154,14 @@ export default function Devices() {
           {brokenDevices.length > 0 ? (
             <>
               <Title order={3} mt="md">Broken Devices</Title>
+              <Alert
+                variant="light"
+                color="red"
+                icon={<FontAwesomeIcon icon={faExclamationTriangle} />}
+                mb="md"
+              >
+                {`${brokenDevices.length} device(s) cannot be shown due to errors mapping their capabilities`}
+              </Alert>
               <BrokenDevicesTable devices={brokenDevices} />
             </>
           ) : null}
