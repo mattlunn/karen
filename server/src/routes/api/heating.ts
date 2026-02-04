@@ -2,7 +2,7 @@ import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Device } from '../../models';
 import { setDHWMode, getDHWMode } from '../../services/ebusd';
-import { getWarmupState } from '../../automations/thermostat-warmup';
+import { getWarmupState } from '../../automations/heating-warmup';
 import { HeatingUpdateRequest, HeatingStatusResponse, CentralHeatingMode } from '../../api/types';
 
 const router = express.Router();
@@ -48,7 +48,7 @@ router.get<Record<string, never>, HeatingStatusResponse>('/', asyncWrapper(async
   res.json({
     centralHeating,
     dhw: dhwIsOn ? 'ON' : 'OFF',
-    preWarm: warmupState.preWarmStartTime && warmupState.targetEta ? {
+    preWarm: warmupState ? {
       startTime: warmupState.preWarmStartTime.toISOString(),
       targetEta: warmupState.targetEta.toISOString()
     } : null
