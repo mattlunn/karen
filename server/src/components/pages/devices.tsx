@@ -153,11 +153,12 @@ export default function Devices() {
 
           {brokenDevices.length > 0 ? (
             <>
-              <Title order={3} mt="md">Broken Devices</Title>
+              <Title order={3} mt="lg">Broken Devices</Title>
               <Alert
                 variant="light"
                 color="red"
                 icon={<FontAwesomeIcon icon={faExclamationTriangle} />}
+                mt="md"
                 mb="md"
               >
                 {`${brokenDevices.length} device(s) cannot be shown due to errors mapping their capabilities`}
