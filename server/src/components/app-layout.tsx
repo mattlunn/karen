@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
+import { AppShell } from '@mantine/core';
 import Header from './header';
 import Sidebar from './sidebar';
 import ErrorBoundary from './error-boundary';
@@ -12,20 +13,29 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const isHome = location.pathname === '/';
 
-  // Hide sidebar on mobile for all pages except home
-  const hideSidebarOnMobile = !isHome;
-
   return (
-    <div>
-      <Header />
-      <div>
-        <Sidebar hideOnMobile={hideSidebarOnMobile} />
+    <AppShell
+      header={{ height: 60 }}
+      navbar={{
+        width: 250,
+        breakpoint: 'md',
+        collapsed: { mobile: !isHome }
+      }}
+      padding={isHome ? 0 : 'md'}
+    >
+      <AppShell.Header>
+        <Header />
+      </AppShell.Header>
+
+      <AppShell.Navbar className="sidebar">
+        <Sidebar />
+      </AppShell.Navbar>
+
+      <AppShell.Main>
         <ErrorBoundary>
-          <div className={isHome ? 'body' : 'body body--with-padding'}>
-            {children}
-          </div>
+          {children}
         </ErrorBoundary>
-      </div>
-    </div>
+      </AppShell.Main>
+    </AppShell>
   );
 }

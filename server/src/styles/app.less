@@ -4,7 +4,6 @@
 */
 
 @modal-width: 800px;
-@sidebar-width: 250px;
 @home-color: #5eef00;
 @away-color: red;
 
@@ -56,7 +55,6 @@ table {
 html,
 body {
   font-family: sans-serif;
-  padding-top: 25px;
 }
 
 button.primary {
@@ -90,9 +88,6 @@ button.secondary {
 
 .sidebar {
   background: linear-gradient(to bottom, #1a2236 0%,#414152 100%);
-  width: @sidebar-width;
-  position: fixed;
-  height: 100vh;
   color: #eee;
   padding-top: 20px;
 
@@ -163,36 +158,12 @@ button.secondary {
 }
 
 .body {
-  width: calc(100vw ~"-" @sidebar-width);
-  min-height: calc(100vh - 63px);
-  margin-left: @sidebar-width;
-  background: #fafafa;
-
-  &--with-padding {
-    padding: 20px;
-  }
-
   & h2 {
     font-size: 1.5em;
     margin-bottom: 0.5em;
   }
 }
 
-@media (max-width: 1024px) {
-  .sidebar {
-    width: 100vw;
-    position: static;
-
-    &--hidden-on-mobile {
-      display: none;
-    }
-  }
-
-  .body {
-    width: initial;
-    margin-left: 0;
-  }
-}
 
 .login {
   &__panel {
