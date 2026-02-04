@@ -3,6 +3,7 @@ import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Device, Room } from '../../models';
 import {
   RestDeviceResponse,
+  ErrorDeviceResponse,
   HomeRoom,
   DevicesApiResponse
 } from '../../api/types';
@@ -26,17 +27,37 @@ router.get<Record<string, never>, DevicesApiResponse>('/', asyncWrapper(async (r
       displayWeight: room.displayWeight as number | null
     }));
 
-  const devices: RestDeviceResponse[] = (await Promise.all(
+  const devices: RestDeviceResponse[] = [];
+  const errorDevices: ErrorDeviceResponse[] = [];
+
+  const results = await Promise.all(
     allDevices.map(device => mapDeviceToResponse(device).catch((e) => {
       logger.error(e, `Failed to map ${device.provider} device with ID ${device.id} (${device.name})`);
 
-      return null;
+      return {
+        error: true as const,
+        device
+      };
     }))
-  )).filter(x => !!x);
+  );
+
+  for (const result of results) {
+    if (result && 'error' in result) {
+      errorDevices.push({
+        id: result.device.id as number,
+        name: result.device.name,
+        provider: result.device.provider,
+        providerId: result.device.providerId
+      });
+    } else if (result) {
+      devices.push(result);
+    }
+  }
 
   res.json({
     rooms,
-    devices
+    devices,
+    errorDevices
   });
 }));
 

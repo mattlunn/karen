@@ -7,14 +7,15 @@ import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
 import { faQuestion } from '@fortawesome/free-solid-svg-icons/faQuestion';
 import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermometerQuarter';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
+import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons/faExclamationTriangle';
 import { Link } from 'react-router-dom';
-import { Anchor, Table } from '@mantine/core';
+import { Alert, Anchor, Table } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 import IssuesIndicator from '../issues-indicator';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import type { CapabilityApiResponse, DevicesApiResponse, RestDeviceResponse } from '../../api/types';
+import type { CapabilityApiResponse, DevicesApiResponse, ErrorDeviceResponse, RestDeviceResponse } from '../../api/types';
 
 function getDeviceIcon(capabilities: CapabilityApiResponse[]): IconDefinition {
   if (capabilities.some(x => x.type === 'CAMERA')) {
@@ -79,6 +80,35 @@ function DevicesTable({ devices }: { devices: RestDeviceResponse[] }) {
   );
 }
 
+function ErrorDevicesTable({ devices }: { devices: ErrorDeviceResponse[] }) {
+  return (
+    <Table striped highlightOnHover>
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Th>ID</Table.Th>
+          <Table.Th>Name</Table.Th>
+          <Table.Th>Provider</Table.Th>
+          <Table.Th>Provider ID</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {devices.map((device) => (
+          <Table.Tr key={device.id}>
+            <Table.Td>{device.id}</Table.Td>
+            <Table.Td>
+              <Anchor component={Link} to={`/device/${device.id}`}>
+                {device.name}
+              </Anchor>
+            </Table.Td>
+            <Table.Td>{device.provider}</Table.Td>
+            <Table.Td>{device.providerId}</Table.Td>
+          </Table.Tr>
+        ))}
+      </Table.Tbody>
+    </Table>
+  );
+}
+
 export default function Devices() {
   const { data, loading } = useApiCall<DevicesApiResponse>('/devices');
 
@@ -104,6 +134,12 @@ export default function Devices() {
       return acc;
     }, { active: [], old: [] });
 
+  const errorDevices = data.errorDevices || [];
+
+  const errorAlertMessage = errorDevices.length > 0
+    ? `${errorDevices.map(d => `${d.name} (${d.provider})`).join(', ')} cannot be shown due to errors mapping their capabilities`
+    : null;
+
   return (
     <div>
       <Header />
@@ -112,12 +148,30 @@ export default function Devices() {
         <div className='body body--with-padding'>
           <h2>Devices</h2>
 
+          {errorAlertMessage && (
+            <Alert
+              variant="light"
+              color="red"
+              icon={<FontAwesomeIcon icon={faExclamationTriangle} />}
+              mb="md"
+            >
+              {errorAlertMessage}
+            </Alert>
+          )}
+
           <DevicesTable devices={active} />
 
           {old.length > 0 ? (
             <>
               <h3>Offline Devices</h3>
               <DevicesTable devices={old} />
+            </>
+          ) : null}
+
+          {errorDevices.length > 0 ? (
+            <>
+              <h3>Error Devices</h3>
+              <ErrorDevicesTable devices={errorDevices} />
             </>
           ) : null}
 
