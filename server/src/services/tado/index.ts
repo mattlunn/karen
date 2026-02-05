@@ -90,7 +90,7 @@ Device.registerProvider('tado', {
         const zonesState = await client.getZonesState();
         const zoneState = zonesState[Number(device.providerId)];
 
-        if (zoneState?.nextScheduleChange?.setting?.power === 'ON') {
+        if (zoneState.nextScheduleChange?.setting.power === 'ON') {
           return {
             timestamp: new Date(zoneState.nextScheduleChange.start),
             temperature: zoneState.nextScheduleChange.setting.temperature.celsius
