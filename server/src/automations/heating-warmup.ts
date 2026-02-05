@@ -110,6 +110,8 @@ export default function ({
   async function checkAtHomeWarmup(): Promise<void> {
     const thermostatDevices = await Device.findByCapability('THERMOSTAT');
 
+    currentWarmupState = null;
+
     for (const device of thermostatDevices) {
       const thermostat = device.getThermostatCapability();
       const nextScheduledChange = await thermostat.getNextScheduledChange();
@@ -172,13 +174,10 @@ export default function ({
 
   const intervalMs = Math.max(checkIntervalMinutes, 1) * 60 * 1000;
   const runCheck = createBackgroundTransaction('automations:heating-warmup', async () => {
-    debugger;
-
     const isSomeoneHome = await Stay.checkIfSomeoneHomeAt(new Date());
     const nextEta = await Stay.findNextUpcomingEta();
 
     if (isSomeoneHome) {
-      currentWarmupState = null;
       await checkAtHomeWarmup();
     } else if (nextEta) {
       await checkAwayWarmup(nextEta.eta, enableDHWControl);
