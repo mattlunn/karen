@@ -25,8 +25,8 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
     return stays.filter(stay => !!stay);
   }
 
-  static findNextUpcomingEta() {
-    return this.findOne({
+  static findNextUpcomingEta(): Promise<Stay & { eta: Date } | null> {
+    const upcomingEta = this.findOne({
       where: {
         eta: {
           [Op.gt]: Date.now()
@@ -39,6 +39,8 @@ export class Stay extends Model<InferAttributes<Stay>, InferCreationAttributes<S
         'eta'
       ]
     });
+
+    return upcomingEta as Promise<Stay & { eta: Date } | null>;
   }
 
   static async findCurrentOrLastStays(userIds: number[]): Promise<Stay[]> {

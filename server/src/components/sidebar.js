@@ -3,13 +3,14 @@ import UserStatus from './user-status';
 import classnames from 'classnames';
 import { HOME, AWAY } from '../constants/status';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faDroplet, faFire, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
-import { SegmentedControl } from '@mantine/core';
+import { faDroplet, faFire, faShieldHalved, faTemperatureArrowUp } from '@fortawesome/free-solid-svg-icons';
+import { SegmentedControl, Text } from '@mantine/core';
 import { useUsers } from '../hooks/queries/use-users';
 import { useHeating } from '../hooks/queries/use-heating';
 import { useSecurity } from '../hooks/queries/use-security';
 import { useAlarmMutation } from '../hooks/mutations/use-security-mutations';
 import { useHeatingMutation } from '../hooks/mutations/use-heating-mutations';
+import dayjs from '../dayjs';
 
 export default function Sidebar() {
   const { isLoading: usersLoading, data: usersData } = useUsers();
@@ -87,6 +88,13 @@ export default function Sidebar() {
           ]}
         />
       </div>
+
+      {heatingData.preWarmStartTime && (
+        <Text fs="italic" ta="center">
+          <Text><FontAwesomeIcon icon={faTemperatureArrowUp} /></Text>
+          <Text>Pre-heating will start at {dayjs(heatingData.preWarmStartTime).format('HH:mm')}</Text>
+        </Text>
+      )}
     </>
   );
 }
