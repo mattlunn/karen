@@ -1,9 +1,10 @@
-import bus, { NOTIFICATION_TO_ADMINS, FIRST_USER_HOME, LAST_USER_LEAVES, STAY_START } from '../bus';
+import bus, { NOTIFICATION_TO_ADMINS, FIRST_USER_HOME, LAST_USER_LEAVES, STAY_START, STAY_END } from '../bus';
 import { Device, Stay, Event, Op } from '../models';
 import { setDHWMode, getDHWMode } from '../services/ebusd';
 import dayjs, { Dayjs } from '../dayjs';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
+import nowAndSetInterval from '../helpers/now-and-set-interval';
 
 type HeatingWarmupParameters = {
   checkIntervalMinutes: number;
@@ -11,18 +12,11 @@ type HeatingWarmupParameters = {
   enableDHWControl: boolean;
 };
 
-type WarmupState = {
-  preWarmStartTime: Date;
-  targetEta: Date;
-} | null;
+type WarmupState = Date | null;
 
-type HeatingMode = 'AT_HOME' | 'AWAY';
-
-// Module state
-let currentMode: HeatingMode = 'AT_HOME';
 let currentWarmupState: WarmupState = null;
 
-export function getWarmupState(): WarmupState {
+export function getPreWarmStartTime(): WarmupState {
   return currentWarmupState;
 }
 
@@ -90,165 +84,116 @@ async function getWarmupRatePerHour(device: Device): Promise<number> {
   return warmupRates.reduce((acc, curr) => acc + curr, 0) / warmupRates.length;
 }
 
-async function checkAtHomeWarmup(minWarmUpRatePerHour: number): Promise<void> {
-  const thermostatDevices = await Device.findByCapability('THERMOSTAT');
-
-  for (const device of thermostatDevices) {
-    const thermostat = device.getThermostatCapability();
-    const [currentTemp, targetTemp, nextChange] = await Promise.all([
-      thermostat.getCurrentTemperature(),
-      thermostat.getTargetTemperature(),
-      thermostat.getNextScheduledChange()
-    ]);
-
-    if (!nextChange) continue;
-    if (nextChange.temperature <= targetTemp) continue;
-
-    const warmupRate = Math.max(
-      await getWarmupRatePerHour(device),
-      minWarmUpRatePerHour
-    );
-
-    if (warmupRate === 0) continue;
-
-    const tempDifference = nextChange.temperature - currentTemp;
-    const hoursNeeded = tempDifference / warmupRate;
-    const startTime = dayjs(nextChange.timestamp).subtract(hoursNeeded, 'hour');
-
-    if (dayjs().isAfter(startTime)) {
-      await thermostat.setTargetTemperature(nextChange.temperature);
-
-      bus.emit(NOTIFICATION_TO_ADMINS, {
-        message: `Setting "${device.name}" to ${nextChange.temperature.toFixed(1)}° to warm up by ${warmupRate.toFixed(1)}°/hr and reach target by ${dayjs(nextChange.timestamp).format('HH:mm')}`
-      });
-    }
-  }
-}
-
-async function checkAwayWarmup(
-  minWarmUpRatePerHour: number,
-  enableDHWControl: boolean
-): Promise<void> {
-  const nextEta = await Stay.findNextUpcomingEta();
-
-  if (!nextEta || !nextEta.eta) {
-    currentWarmupState = null;
-    return;
-  }
-
-  const etaTime = dayjs(nextEta.eta);
-  const thermostatDevices = await Device.findByCapability('THERMOSTAT');
-
-  const deviceWarmupData = await Promise.all(
-    thermostatDevices.map(async device => {
-      const thermostat = device.getThermostatCapability();
-      const [currentTemp, targetTemp, scheduledTemp] = await Promise.all([
-        thermostat.getCurrentTemperature(),
-        thermostat.getTargetTemperature(),
-        thermostat.getScheduledTemperatureAtTime(nextEta.eta!)
-      ]);
-
-      if (scheduledTemp === null || scheduledTemp <= targetTemp) {
-        return null;
-      }
-
-      const warmupRate = Math.max(
-        await getWarmupRatePerHour(device),
-        minWarmUpRatePerHour
-      );
-
-      if (warmupRate === 0) {
-        return null;
-      }
-
-      const tempDifference = scheduledTemp - currentTemp;
-      const hoursNeeded = tempDifference / warmupRate;
-      const startTime = etaTime.subtract(hoursNeeded, 'hour');
-
-      return { device, scheduledTemp, warmupRate, startTime, thermostat };
-    })
-  );
-
-  const validWarmupData = deviceWarmupData.filter((x): x is NonNullable<typeof x> => x !== null);
-
-  if (validWarmupData.length === 0) {
-    currentWarmupState = null;
-    return;
-  }
-
-  const earliestStartTime = validWarmupData.reduce<Dayjs>(
-    (earliest, curr) => curr.startTime.isBefore(earliest) ? curr.startTime : earliest,
-    validWarmupData[0].startTime
-  );
-
-  currentWarmupState = {
-    preWarmStartTime: earliestStartTime.toDate(),
-    targetEta: nextEta.eta
-  };
-
-  if (dayjs().isAfter(earliestStartTime)) {
-    for (const data of validWarmupData) {
-      await data.thermostat.setTargetTemperature(data.scheduledTemp);
-    }
-
-    if (enableDHWControl) {
-      const dhwIsOn = await getDHWMode();
-      if (!dhwIsOn) {
-        await setDHWMode(true);
-        logger.info('Heating warmup: Enabled DHW as part of pre-heating');
-      }
-    }
-
-    const deviceNames = validWarmupData.map(d => d.device.name).join(', ');
-    bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: `Pre-heating started for ${deviceNames}. ETA is ${etaTime.format('HH:mm')}.`
-    });
-  }
-}
-
 export default function ({
   checkIntervalMinutes,
   minWarmUpRatePerHour,
   enableDHWControl = true
 }: HeatingWarmupParameters) {
+  async function calculateWarmupStartTime(device: Device, nextTarget: number, targetTime: Date): Promise<Dayjs | null>{
+    const [currentTemp, currentTarget] = await Promise.all([
+      device.getThermostatCapability().getCurrentTemperature(),
+      device.getThermostatCapability().getTargetTemperature()
+    ]);
+
+    if (nextTarget <= currentTarget) return null;
+
+    const warmupRate = Math.max(await getWarmupRatePerHour(device), minWarmUpRatePerHour);
+
+    if (warmupRate === 0) return null;
+
+    const tempDifference = nextTarget - currentTemp;
+    const hoursNeeded = tempDifference / warmupRate;
+
+    return dayjs(targetTime).subtract(hoursNeeded, 'hour');
+  }
+
+  async function checkAtHomeWarmup(): Promise<void> {
+    const thermostatDevices = await Device.findByCapability('THERMOSTAT');
+
+    for (const device of thermostatDevices) {
+      const thermostat = device.getThermostatCapability();
+      const nextScheduledChange = await thermostat.getNextScheduledChange();
+
+      if (nextScheduledChange) {
+        const startTime = await calculateWarmupStartTime(device, nextScheduledChange.temperature, nextScheduledChange.timestamp);
+
+        if (dayjs().isAfter(startTime)) {
+          await thermostat.setTargetTemperature(nextScheduledChange.temperature);
+        }
+      }
+    }
+  }
+
+  async function checkAwayWarmup(
+    etaTime: Date,
+    enableDHWControl: boolean
+  ): Promise<void> {    
+    const setTargetTemperatureActors = [];
+    let earliestWarmup: Dayjs | null = null;
+
+    for (const device of await Device.findByCapability('THERMOSTAT')) {
+      const thermostat = device.getThermostatCapability();
+      const scheduledTemp = await thermostat.getScheduledTemperatureAtTime(etaTime);
+
+      if (scheduledTemp) {
+        const startTime = await calculateWarmupStartTime(device, scheduledTemp, etaTime);
+
+        if (earliestWarmup === null || startTime?.isBefore(earliestWarmup)) {
+          earliestWarmup = startTime;
+        }
+
+        setTargetTemperatureActors.push(() => thermostat.setTargetTemperature(scheduledTemp));
+      }
+    }
+
+    currentWarmupState = earliestWarmup?.toDate() ?? null;
+    logger.info(`Calculated warmup start time ${currentWarmupState?.toISOString() ?? 'N/A'}`);
+
+    if (earliestWarmup === null || earliestWarmup.isAfter(dayjs())) {
+      return;
+    }
+
+    for (const setTargetTemperature of setTargetTemperatureActors) {
+      await setTargetTemperature();
+    }
+
+    if (enableDHWControl) {
+      const dhwIsOn = await getDHWMode();
+
+      if (!dhwIsOn) {
+        await setDHWMode(true);
+      }
+    }
+
+    bus.emit(NOTIFICATION_TO_ADMINS, {
+      message: `Pre-heating started.`
+    });
+  }
+
   const intervalMs = Math.max(checkIntervalMinutes, 1) * 60 * 1000;
-
   const runCheck = createBackgroundTransaction('automations:heating-warmup', async () => {
-    if (currentMode === 'AT_HOME') {
-      await checkAtHomeWarmup(minWarmUpRatePerHour);
-    } else {
-      await checkAwayWarmup(minWarmUpRatePerHour, enableDHWControl);
+    debugger;
+
+    const isSomeoneHome = await Stay.checkIfSomeoneHomeAt(new Date());
+    const nextEta = await Stay.findNextUpcomingEta();
+
+    if (isSomeoneHome) {
+      currentWarmupState = null;
+      await checkAtHomeWarmup();
+    } else if (nextEta) {
+      await checkAwayWarmup(nextEta.eta, enableDHWControl);
     }
   });
 
-  // Initialize mode based on current state
-  Stay.checkIfSomeoneHomeAt(new Date()).then(isSomeoneHome => {
-    currentMode = isSomeoneHome ? 'AT_HOME' : 'AWAY';
-    logger.info(`Heating warmup: Starting in ${currentMode} mode`);
+  nowAndSetInterval(runCheck, intervalMs);
+
+  // Handles ETA being set, and (first) user home.
+  bus.on(STAY_START, () => {
     runCheck();
   });
 
-  // Single interval, dispatches based on mode
-  setInterval(runCheck, intervalMs);
-
-  // Event handlers update mode and trigger immediate check
-  bus.on(FIRST_USER_HOME, () => {
-    logger.info('Heating warmup: User arrived, switching to AT_HOME');
-    currentMode = 'AT_HOME';
-    currentWarmupState = null;
-    runCheck();
-  });
-
+  // In case previous user has already left and set an ETA, and now the house is empty.
   bus.on(LAST_USER_LEAVES, () => {
-    logger.info('Heating warmup: User left, switching to AWAY');
-    currentMode = 'AWAY';
     runCheck();
-  });
-
-  bus.on(STAY_START, (stay) => {
-    if (stay.eta && !stay.arrival && currentMode === 'AWAY') {
-      logger.info('Heating warmup: New ETA set while away, recalculating');
-      runCheck();
-    }
   });
 }

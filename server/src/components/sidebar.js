@@ -88,12 +88,11 @@ export default function Sidebar({ hideOnMobile}) {
           />
         </div>
 
-        {heatingData.preWarm && (
+        {heatingData.preWarmStartTime && (
           <div className="sidebar__prewarm-info">
             <h3 className="home-controls__title"><FontAwesomeIcon icon={faTemperatureArrowUp} /></h3>
             <div className="prewarm-info__details">
-              <span>Pre-heating starts {dayjs(heatingData.preWarm.startTime).format('HH:mm')}</span>
-              <span className="prewarm-info__eta">ETA: {dayjs(heatingData.preWarm.targetEta).format('HH:mm')}</span>
+              <span>Pre-heating starts {dayjs(heatingData.preWarmStartTime).format('HH:mm')}</span>
             </div>
           </div>
         )}
