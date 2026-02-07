@@ -220,7 +220,7 @@ export async function ensureHistoricalMetrics(device: Device, capability: HeatPu
 
   const endDate = dayjs().startOf('day');
   const startDate = latestEvents[0] === null
-    ? dayjs('2026-01-01 00:00').startOf('day')
+    ? dayjs(device.createdAt).startOf('day')
     : dayjs(latestEvents[0].start).startOf('day').add(1, 'day');
 
   // Fill in missing days
