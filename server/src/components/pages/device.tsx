@@ -1,6 +1,7 @@
 import React from 'react';
 import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
+import styles from './device.module.css';
 import {
   faThermometerQuarter,
   faDroplet,
@@ -24,7 +25,7 @@ import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
-import { Box, Grid, Paper, SimpleGrid } from '@mantine/core';
+import { Box, Grid, Paper, SimpleGrid, Title } from '@mantine/core';
 import PageLoader from '../page-loader';
 import { StatusItem } from '../status-item';
 import dayjs from '../../dayjs';
@@ -204,7 +205,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
           </SimpleGrid>
         </Grid.Col>
         <Grid.Col span={{ base: 12, sm: 4 }}>
-          <Paper className="device__info" withBorder p="md" radius="md">
+          <Paper className={styles.info} withBorder p="md" radius="md">
             <dl>
               <dt>Manufacturer</dt>
               <dd>{device.manufacturer}</dd>
@@ -225,8 +226,8 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
         <DateRangeSelector />
       </Box>
 
-      <div className="device__graph">
-        <h3 className="device__section-header">Graph</h3>
+      <div>
+        <Title order={3} className={styles.sectionHeader}>Graph</Title>
 
         {hasCapability('THERMOSTAT') && (
           <DeviceGraph
@@ -265,7 +266,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
         )}
       </div>
 
-      <div className="device__timeline">
+      <div>
         <TimelineSection deviceId={device.id} />
       </div>
     </>
@@ -281,7 +282,7 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
 
   return (
     <>
-      <h2>{data.device.name}</h2>
+      <Title order={2}>{data.device.name}</Title>
       <DateRangeProvider>
         <DeviceContent device={data.device} />
       </DateRangeProvider>

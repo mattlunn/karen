@@ -1,0 +1,29 @@
+.panel {
+  width: 50vw;
+  margin: 30vh auto 0 auto;
+  max-width: 500px;
+}
+
+.panel label {
+  display: block;
+  font-weight: bold;
+  font-family: sans-serif;
+  margin-bottom: 3px;
+}
+
+.panel p {
+  margin-bottom: 20px;
+}
+
+.panel input[type="text"],
+.panel input[type="password"] {
+  width: 100%;
+  font-size: 16px;
+  border-radius: 5px;
+  padding: 5px;
+}
+
+.panel input[type="submit"],
+.panel input[type="button"] {
+  font-size: 20px;
+}

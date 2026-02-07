@@ -1,0 +1,24 @@
+.root {
+}
+
+.link {
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.logout {
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.rootHeader .link {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.rootHeader .linkActive {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.rootHeader .logout {
+  color: rgba(255, 255, 255, 0.5);
+}

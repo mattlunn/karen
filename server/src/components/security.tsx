@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Center, Loader, SimpleGrid } from '@mantine/core';
+import { Center, Loader, SimpleGrid, Title } from '@mantine/core';
+import styles from './security.module.css';
 
 interface Camera {
   id: number;
@@ -87,16 +88,16 @@ export default function Security({ cameras = [] }: SecurityProps) {
   const snapshots = useSnapshotData(cameras);
 
   return (
-    <SimpleGrid cols={{ base: 1, xs: 3, md: cameras.length }} className="security">
+    <SimpleGrid cols={{ base: 1, xs: 3, md: cameras.length }} className={styles.root}>
       {cameras.map((camera) => {
         const snapshot = snapshots[camera.id];
         return (
           <div key={camera.id}>
-            <h3 className="security__camera-name">{camera.name}</h3>
+            <Title order={3} className={styles.cameraName}>{camera.name}</Title>
             {snapshot?.snapshot ? (
-              <img src={snapshot.snapshot} className="security__camera-image"/>
+              <img src={snapshot.snapshot} className={styles.cameraImage}/>
             ) : (
-              <Center style={{ aspectRatio: '16/9' }} className="security__camera-image">
+              <Center style={{ aspectRatio: '16/9' }} className={styles.cameraImage}>
                 <Loader size="md" />
               </Center>
             )}

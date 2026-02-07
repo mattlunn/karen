@@ -1,0 +1,18 @@
+.root li {
+  border: 1px solid #ececec;
+  padding: 10px;
+  margin: 5px;
+  border-radius: 2px;
+}
+
+.root li a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.deviceIcon {
+  width: 25px;
+  display: inline-block;
+  text-align: center;
+  margin-right: 10px;
+}

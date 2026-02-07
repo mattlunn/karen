@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Anchor, Stack, Group, UnstyledButton } from '@mantine/core';
 import classnames from 'classnames';
+import styles from './nav-links.module.css';
 
 const navLinks = [
   { label: 'Home', to: '/' },
@@ -31,8 +32,8 @@ export default function NavLinks({ vertical = false, variant, onNavigate }: NavL
     <Wrapper
       gap="md"
       p={vertical ? 'md' : undefined}
-      className={classnames('nav-links', {
-        'nav-links--header': variant === 'header',
+      className={classnames(styles.root, {
+        [styles.rootHeader]: variant === 'header',
       })}
     >
       {navLinks.map((link) => (
@@ -40,8 +41,8 @@ export default function NavLinks({ vertical = false, variant, onNavigate }: NavL
           key={link.to}
           component={Link}
           to={link.to}
-          className={classnames('nav-links__link', {
-            'nav-links__link--active': isActive(link.to),
+          className={classnames(styles.link, {
+            [styles.linkActive]: isActive(link.to),
           })}
           onClick={onNavigate}
         >
@@ -51,7 +52,7 @@ export default function NavLinks({ vertical = false, variant, onNavigate }: NavL
       <form action="/authentication/logout" method="post" style={{ display: vertical ? 'block' : 'inline' }}>
         <UnstyledButton
           type="submit"
-          className="nav-links__logout"
+          className={styles.logout}
         >
           Logout
         </UnstyledButton>

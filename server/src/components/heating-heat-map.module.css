@@ -1,0 +1,39 @@
+.root {
+  margin: 3px 0 31px 0;
+}
+
+.map {
+  background: #fff;
+  border: 1px solid #555;
+  border-radius: 7px;
+  height: 10px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.segment {
+  height: 10px;
+  float: left;
+}
+
+.segmentHeating {
+  background: #eb6d00;
+}
+
+.restOfDay {
+  height: 10px;
+  float: left;
+  border-left: 1px solid #6cb5b5ee;
+}
+
+.markers {
+  position: relative;
+}
+
+.marker {
+  position: absolute;
+  font-size: 0.6em;
+  width: 20px;
+  margin-left: -10px;
+  text-align: center;
+}

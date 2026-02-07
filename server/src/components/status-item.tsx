@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import dayjs from '../dayjs';
 import { humanDate } from '../helpers/date';
+import styles from './status-item.module.css';
 
 function formatTimestamp(start: string, lastReported: string): string {
   let lead = 'since';
@@ -28,16 +29,16 @@ interface StatusItemProps {
 
 export function StatusItem({ icon, title, value, since, lastReported, color }: StatusItemProps) {
   return (
-    <Paper withBorder p="md" radius="md" className="status-item">
+    <Paper withBorder p="md" radius="md">
       <Group justify="space-between">
-        <Text size="xs" c="dimmed" className="status-item__title">
+        <Text size="xs" c="dimmed" className={styles.title}>
           {title}
         </Text>
-        <FontAwesomeIcon icon={icon} color={color || 'light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3))'} className="status-item__icon" />
+        <FontAwesomeIcon icon={icon} color={color || 'light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3))'} className={styles.icon} />
       </Group>
 
       <Group align="flex-end" gap="xs" mt={25}>
-        <Text className="status-item__value">{value}</Text>
+        <Text className={styles.value}>{value}</Text>
       </Group>
 
       <Text fz="xs" c="dimmed" mt={7}>

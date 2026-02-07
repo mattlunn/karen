@@ -1,6 +1,8 @@
 import React from 'react';
+import classnames from 'classnames';
 import Group from './group';
 import type { HomeRoom, RestDeviceResponse } from '../api/types';
+import styles from './groups.module.css';
 
 interface GroupsProps {
   rooms?: HomeRoom[];
@@ -14,9 +16,9 @@ export default function Groups({ rooms = [], devices = [], loading = false }: Gr
   }
 
   return (
-    <ul className="group-list">
+    <ul className={styles.list}>
       {rooms.map((room) => (
-        <li className="group" key={room.id}>
+        <li className={styles.group} key={room.id}>
           <Group
             name={room.name}
             displayIconName={room.displayIconName}
@@ -25,7 +27,7 @@ export default function Groups({ rooms = [], devices = [], loading = false }: Gr
         </li>
       ))}
 
-      <li className="group group--full-width">
+      <li className={classnames(styles.group, styles.groupFullWidth)}>
         <Group name="Others" displayIconName={null} devices={devices.filter(x => x.roomId === null)} />
       </li>
     </ul>

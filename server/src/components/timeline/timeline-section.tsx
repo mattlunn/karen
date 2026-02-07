@@ -41,7 +41,7 @@ function renderTimeline(events: TimelineItem[]): ReactNode {
       {days.map(({ date, events }, idx) => {
         return (
           <li key={idx} className='day'>
-            <h4 className='day__header'>{date.format('dddd, MMMM Do YYYY')}</h4>
+            <Title order={4}>{date.format('dddd, MMMM Do YYYY')}</Title>
 
             <ol className='events'>
               {events.map((event, idx) => {
