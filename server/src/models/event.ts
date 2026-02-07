@@ -61,6 +61,17 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
       deviceCache.set(event.type, event);
     }
   }
+
+  /**
+   * Invalidate cache entry on delete. Called automatically by afterDestroy hook.
+   * Clears the cache entry so next access will re-query the DB.
+   */
+  static invalidateCache(event: Event): void {
+    const deviceCache = this.latestEventCache.get(event.deviceId);
+    if (deviceCache) {
+      deviceCache.delete(event.type);
+    }
+  }
 }
 
 export default function (sequelize: Sequelize) {
@@ -117,6 +128,9 @@ export default function (sequelize: Sequelize) {
     hooks: {
       afterSave: (event: Event) => {
         Event.updateCache(event);
+      },
+      afterDestroy: (event: Event) => {
+        Event.invalidateCache(event);
       }
     }
   });
