@@ -160,8 +160,6 @@ export async function calculateDailyHeatPumpMetrics(
   };
 }
 
-const DAILY_METRIC_COUNT = 9; // Number of daily metrics we track
-
 /**
  * Store daily metrics for a given day.
  * For completed days, timestamp is end of day.
@@ -192,92 +190,45 @@ export async function storeDailyMetrics(
 }
 
 /**
- * Ensure all historical daily metrics exist and are up-to-date.
- * Called at midnight to backfill missing days and recalculate outdated ones.
- * Also handles yesterday (the most recently completed day).
+ * Ensure all historical daily metrics exist.
+ * Called at midnight to fill in any missing days from the last known metric to yesterday.
+ * To recalculate all metrics, use the reset-daily-metrics script first.
  */
 export async function ensureHistoricalMetrics(device: Device, capability: HeatPumpCapability): Promise<void> {
-  const cutoffDate = config.ebusd.recalculate_cutoff
-    ? dayjs(config.ebusd.recalculate_cutoff)
-    : null;
-  const startDate = dayjs(device.createdAt).startOf('day');
-  // Include yesterday (today at midnight means yesterday is last complete day)
-  const endDate = dayjs().startOf('day');
-
-  // Fetch all daily metric histories for the entire date range
-  const historyRange = { since: startDate.toDate(), until: endDate.toDate() };
-
-  const [
-    dayCoPHistory,
-    dayPowerHistory,
-    dayYieldHistory,
-    dayHeatingCoPHistory,
-    dayHeatingPowerHistory,
-    dayHeatingYieldHistory,
-    dayDHWCoPHistory,
-    dayDHWPowerHistory,
-    dayDHWYieldHistory
-  ] = await Promise.all([
-    capability.getDayCoPHistory(historyRange),
-    capability.getDayPowerHistory(historyRange),
-    capability.getDayYieldHistory(historyRange),
-    capability.getDayHeatingCoPHistory(historyRange),
-    capability.getDayHeatingPowerHistory(historyRange),
-    capability.getDayHeatingYieldHistory(historyRange),
-    capability.getDayDHWCoPHistory(historyRange),
-    capability.getDayDHWPowerHistory(historyRange),
-    capability.getDayDHWYieldHistory(historyRange)
+  // Find the latest metric event across all 9 types
+  const latestEvents = await Promise.all([
+    capability.getDayCoPEvent(),
+    capability.getDayPowerEvent(),
+    capability.getDayYieldEvent(),
+    capability.getDayHeatingCoPEvent(),
+    capability.getDayHeatingPowerEvent(),
+    capability.getDayHeatingYieldEvent(),
+    capability.getDayDHWCoPEvent(),
+    capability.getDayDHWPowerEvent(),
+    capability.getDayDHWYieldEvent()
   ]);
 
-  // Build a map of day -> { count: number, oldestUpdatedAt: Date }
-  // Each metric's start date is the end of the day it represents
-  const dayMetricsMap = new Map<string, { count: number; oldestUpdatedAt: Date }>();
+  // Find the earliest "latest" event - this is where we need to start filling from
+  const validEvents = latestEvents.filter((e): e is NonNullable<typeof e> => e !== null);
+  const earliestLatest = validEvents.length > 0
+    ? validEvents.reduce((min, e) => e.start < min.start ? e : min)
+    : null;
 
-  const allHistories = [
-    dayCoPHistory,
-    dayPowerHistory,
-    dayYieldHistory,
-    dayHeatingCoPHistory,
-    dayHeatingPowerHistory,
-    dayHeatingYieldHistory,
-    dayDHWCoPHistory,
-    dayDHWPowerHistory,
-    dayDHWYieldHistory
-  ];
+  // Start from the day after the earliest latest event, or from device creation if no events
+  const startDate = earliestLatest
+    ? dayjs(earliestLatest.start).startOf('day').add(1, 'day')
+    : dayjs(device.createdAt).startOf('day');
 
-  for (const history of allHistories) {
-    for (const event of history) {
-      const dayKey = dayjs(event.start).format('YYYY-MM-DD');
-      const existing = dayMetricsMap.get(dayKey);
+  // End at yesterday (today at midnight means yesterday is last complete day)
+  const endDate = dayjs().startOf('day');
 
-      if (existing) {
-        existing.count++;
-        if (event.updatedAt < existing.oldestUpdatedAt) {
-          existing.oldestUpdatedAt = event.updatedAt;
-        }
-      } else {
-        dayMetricsMap.set(dayKey, { count: 1, oldestUpdatedAt: event.updatedAt });
-      }
-    }
-  }
-
-  // Iterate through all days and calculate those that need it
+  // Fill in missing days
   for (let day = startDate; day.isBefore(endDate); day = day.add(1, 'day')) {
-    const dayKey = day.add(1, 'day').format('YYYY-MM-DD'); // Metrics are stored at end of day
     const dayStart = day.toDate();
     const dayEnd = day.add(1, 'day').toDate();
 
-    const metrics = dayMetricsMap.get(dayKey);
-
-    // Calculate if: metrics missing, not all metrics present, or outdated
-    const shouldCalculate = !metrics
-      || metrics.count < DAILY_METRIC_COUNT
-      || (cutoffDate && dayjs(metrics.oldestUpdatedAt).isBefore(cutoffDate));
-
-    if (shouldCalculate) {
-      logger.info(`Calculating heat pump metrics for ${day.format('YYYY-MM-DD')}`);
-      await storeDailyMetrics(capability, dayStart, dayEnd);
-    }
+    logger.info(`Calculating heat pump metrics for ${day.format('YYYY-MM-DD')}`);
+    await storeDailyMetrics(capability, dayStart, dayEnd);
   }
 }
 
