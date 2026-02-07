@@ -214,29 +214,23 @@ export async function ensureHistoricalMetrics(device: Device, capability: HeatPu
     capability.getDayDHWYieldEvent()
   ]);
 
-  // Get timestamps (as epoch ms) for comparison, null if no event
-  const timestamps = latestEvents.map(e => e?.start.getTime() ?? null);
-  const uniqueTimestamps = [...new Set(timestamps)];
+  for (let i=0;i<latestEvents.length + 1;i++) {
+    const curr = latestEvents[i];
+    const next = latestEvents[i+1];
 
-  // All 9 metrics must have the same latest timestamp (or all be null)
-  if (uniqueTimestamps.length > 1) {
-    const details = METRIC_NAMES
-      .map((name, i) => `${name}: ${timestamps[i] ? dayjs(timestamps[i]).format('YYYY-MM-DD HH:mm') : 'null'}`)
-      .join(', ');
-    throw new Error(
-      `Daily metrics have inconsistent latest timestamps. Run 'npm run reset-daily-metrics' to fix. Details: ${details}`
-    );
+    if (curr === null && next === null) {
+      continue;
+    }
+
+    if (curr === null || next === null || curr.start.toISOString() !== next.start.toISOString()) {
+      throw new Error(`Heat Pump daily metrics have inconsistent latest timestamps. Run 'npm run reset-daily-metrics' to fix`);
+    }
   }
 
-  const latestTimestamp = uniqueTimestamps[0];
-
-  // Start from the day after the latest event, or from device creation if no events
-  const startDate = latestTimestamp
-    ? dayjs(latestTimestamp).startOf('day').add(1, 'day')
-    : dayjs(device.createdAt).startOf('day');
-
-  // End at yesterday (today at midnight means yesterday is last complete day)
   const endDate = dayjs().startOf('day');
+  const startDate = latestEvents[0] === null
+    ? dayjs(device.createdAt).startOf('day')
+    : dayjs(latestEvents[0].start).startOf('day').add(1, 'day')
 
   // Fill in missing days
   for (let day = startDate; day.isBefore(endDate); day = day.add(1, 'day')) {

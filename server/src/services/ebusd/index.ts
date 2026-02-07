@@ -79,6 +79,7 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
 nowAndSetInterval(createBackgroundTransaction('ebusd:daily-metrics', async () => {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const capability = device.getHeatPumpCapability();
+  
   await ensureHistoricalMetrics(device, capability);
   await storeTodayRunningMetrics(capability);
 }), 15 * 60 * 1000);
