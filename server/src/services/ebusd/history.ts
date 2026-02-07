@@ -162,28 +162,25 @@ export async function calculateDailyHeatPumpMetrics(
 
 /**
  * Store daily metrics for a given day.
- * For completed days, timestamp is end of day.
- * For today's running metrics, timestamp is start of day (to enable updates).
+ * Timestamp is always startOfDay (the day these metrics represent).
  */
 export async function storeDailyMetrics(
   capability: HeatPumpCapability,
   startOfDay: Date,
-  endOfDay: Date,
-  timestamp?: Date
+  endOfDay: Date
 ): Promise<void> {
   const metrics = await calculateDailyHeatPumpMetrics(capability, startOfDay, endOfDay);
-  const eventTimestamp = timestamp ?? endOfDay;
 
   await Promise.all([
-    capability.setDayCoPState(metrics.dayCoP, eventTimestamp),
-    capability.setDayPowerState(metrics.dayPower, eventTimestamp),
-    capability.setDayYieldState(metrics.dayYield, eventTimestamp),
-    capability.setDayHeatingCoPState(metrics.heatingCoP, eventTimestamp),
-    capability.setDayHeatingPowerState(metrics.heatingPower, eventTimestamp),
-    capability.setDayHeatingYieldState(metrics.heatingYield, eventTimestamp),
-    capability.setDayDHWCoPState(metrics.dhwCoP, eventTimestamp),
-    capability.setDayDHWPowerState(metrics.dhwPower, eventTimestamp),
-    capability.setDayDHWYieldState(metrics.dhwYield, eventTimestamp),
+    capability.setDayCoPState(metrics.dayCoP, startOfDay),
+    capability.setDayPowerState(metrics.dayPower, startOfDay),
+    capability.setDayYieldState(metrics.dayYield, startOfDay),
+    capability.setDayHeatingCoPState(metrics.heatingCoP, startOfDay),
+    capability.setDayHeatingPowerState(metrics.heatingPower, startOfDay),
+    capability.setDayHeatingYieldState(metrics.heatingYield, startOfDay),
+    capability.setDayDHWCoPState(metrics.dhwCoP, startOfDay),
+    capability.setDayDHWPowerState(metrics.dhwPower, startOfDay),
+    capability.setDayDHWYieldState(metrics.dhwYield, startOfDay),
   ]);
 
   logger.info(`Daily metrics for ${dayjs(startOfDay).format('DD/MM/YYYY')}: CoP=${metrics.dayCoP.toFixed(1)}, HeatingCoP=${metrics.heatingCoP.toFixed(1)}, DHWCoP=${metrics.dhwCoP.toFixed(1)}`);
@@ -244,6 +241,5 @@ export async function storeTodayRunningMetrics(capability: HeatPumpCapability): 
   const startOfDay = dayjs().startOf('day').toDate();
   const now = new Date();
 
-  // Use startOfDay as timestamp - this ensures we update the same event each time
-  await storeDailyMetrics(capability, startOfDay, now, startOfDay);
+  await storeDailyMetrics(capability, startOfDay, now);
 }
