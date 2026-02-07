@@ -3,6 +3,7 @@ import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Device, Room } from '../../models';
 import {
   RestDeviceResponse,
+  BrokenDeviceResponse,
   HomeRoom,
   DevicesApiResponse
 } from '../../api/types';
@@ -17,6 +18,8 @@ router.get<Record<string, never>, DevicesApiResponse>('/', asyncWrapper(async (r
     Room.findAll()
   ]);
 
+  const devices: RestDeviceResponse[] = [];
+  const brokenDevices: BrokenDeviceResponse[] = [];
   const rooms: HomeRoom[] = allRooms
     .sort((a, b) => ((a.displayWeight as number | null) ?? 0) - ((b.displayWeight as number | null) ?? 0))
     .map(room => ({
@@ -26,17 +29,27 @@ router.get<Record<string, never>, DevicesApiResponse>('/', asyncWrapper(async (r
       displayWeight: room.displayWeight as number | null
     }));
 
-  const devices: RestDeviceResponse[] = (await Promise.all(
-    allDevices.map(device => mapDeviceToResponse(device).catch((e) => {
-      logger.error(e, `Failed to map ${device.provider} device with ID ${device.id} (${device.name})`);
+  await Promise.all(
+    allDevices.map((device) => {
+      return mapDeviceToResponse(device).then((device) => {
+        devices.push(device);
+      }).catch((e) => {
+        logger.error(e, `Failed to map ${device.provider} device with ID ${device.id} (${device.name})`);
 
-      return null;
-    }))
-  )).filter(x => !!x);
+        brokenDevices.push({
+          id: device.id,
+          name: device.name,
+          provider: device.provider,
+          providerId: device.providerId
+        });
+      });
+    })
+  );
 
   res.json({
     rooms,
-    devices
+    devices,
+    brokenDevices
   });
 }));
 

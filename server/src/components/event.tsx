@@ -2,6 +2,7 @@ import React, { ReactNode, useState } from 'react';
 import dayjs from '../dayjs';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconProp } from '@fortawesome/fontawesome-svg-core';
+import styles from './pages/timeline.module.css';
 
 type EventProps = {
   timestamp: string;
@@ -32,7 +33,7 @@ export default function Event({ renderControls, timestamp, icon, title, panels, 
     });
 
     return (
-      <span className="event__buttons">
+      <span className={styles.eventButtons}>
         {controlComponnets.map((control, idx) => (
           <React.Fragment key={idx}>
             {idx !== 0 && <>&nbsp;&bull;&nbsp;</>}
@@ -45,15 +46,15 @@ export default function Event({ renderControls, timestamp, icon, title, panels, 
 
   return (
     <>
-      <span className="event__timestamp">{dayjs(timestamp).format('HH:mm:ss')}</span>
-      <span className="event__icon"><FontAwesomeIcon icon={icon} color={iconColor} /></span>
+      <span className={styles.eventTimestamp}>{dayjs(timestamp).format('HH:mm:ss')}</span>
+      <span className={styles.eventIcon}><FontAwesomeIcon icon={icon} color={iconColor} /></span>
 
       {title}
 
       {controlsRender()}
 
       {panels && panel && (
-        <div className="event__panel">
+        <div className={styles.eventPanel}>
           {panels[panel]}
         </div>
       )}

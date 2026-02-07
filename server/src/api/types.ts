@@ -159,9 +159,17 @@ export interface RestDeviceResponse {
   capabilities: CapabilityApiResponse[];
 }
 
+export interface BrokenDeviceResponse {
+  id: number;
+  name: string;
+  provider: string;
+  providerId: string;
+}
+
 export interface DevicesApiResponse {
   rooms: HomeRoom[];
   devices: RestDeviceResponse[];
+  brokenDevices: BrokenDeviceResponse[];
 }
 
 // /api/device/:id/light endpoint
@@ -198,6 +206,7 @@ export interface HeatingUpdateRequest {
 export interface HeatingStatusResponse {
   centralHeating: CentralHeatingMode | null;
   dhw: DHWHeatingMode;
+  preWarmStartTime: string | null;
 }
 
 // /api/users endpoint

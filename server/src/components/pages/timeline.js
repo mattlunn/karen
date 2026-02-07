@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import SideBar from '../sidebar';
-import Header from '../header';
+import { Center, Loader, Title } from '@mantine/core';
 import dayjs from '../../dayjs';
 import Event from '../event';
+import styles from './timeline.module.css';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
@@ -15,17 +15,17 @@ function groupEventsByDays(events) {
   let i = 0;
 
   while (i !== events.length) {
-    const date = {
+    const day = {
       date: dayjs(events[i].timestamp).startOf('d'),
       events: []
     };
 
     do {
-      date.events.push(events[i]);
+      day.events.push(events[i]);
       i = i + 1;
-    } while (i !== events.length && dayjs(events[i].timestamp).isSame(date.date, 'd'));
+    } while (i !== events.length && dayjs(events[i].timestamp).isSame(day.date, 'd'));
 
-    days.push(date);
+    days.push(day);
   }
 
   return days;
@@ -173,34 +173,32 @@ export default function Timeline() {
   const days = useMemo(() => groupEventsByDays(events), [events]);
 
   return (
-    <div>
-      <Header />
-      <div>
-        <SideBar hideOnMobile />
-        <div className='body body--with-padding'>
-          <ol className='timeline'>
-            {days.map(({ date, events }, idx) => {
-              return (
-                <li key={idx} className='day'>
-                  <h3 className='day__header'>{date.format('dddd, MMMM Do YYYY')}</h3>
+    <>
+      <ol className={styles.root}>
+        {days.map(({ date, events }, idx) => {
+          return (
+            <li key={idx}>
+              <Title order={3} className={styles.dayHeader}>{date.format('dddd, MMMM Do YYYY')}</Title>
 
-                   <ol className='events'>
-                    {events.map((event, idx) => {
-                      return (
-                        <li className='event' key={idx}>
-                          {createEvent(event)}
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </li>
-              );
-            })}
-          </ol>
+               <ol>
+                {events.map((event, idx) => {
+                  return (
+                    <li className={styles.event} key={idx}>
+                      {createEvent(event)}
+                    </li>
+                  );
+                })}
+              </ol>
+            </li>
+          );
+        })}
+      </ol>
 
-          {loading && <div className='loading-spinner timeline__loader' />}
-        </div>
-      </div>
-    </div>
+      {loading && (
+        <Center py="xl">
+          <Loader size="lg" />
+        </Center>
+      )}
+    </>
   );
 }

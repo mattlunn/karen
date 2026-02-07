@@ -1,8 +1,7 @@
 import React from 'react';
-import SideBar from '../sidebar';
-import Header from '../header';
 import useApiCall from '../../hooks/api';
 import { RouteComponentProps } from 'react-router-dom';
+import styles from './device.module.css';
 import {
   faThermometerQuarter,
   faDroplet,
@@ -28,7 +27,8 @@ import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
-import { Box, Grid, Paper, SimpleGrid } from '@mantine/core';
+import { Box, Grid, Paper, SimpleGrid, Title } from '@mantine/core';
+import PageLoader from '../page-loader';
 import { StatusItem } from '../status-item';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
@@ -36,12 +36,12 @@ import { humanDate } from '../../helpers/date';
 function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
   const hasCapability = (type: string) => device.capabilities.some(c => c.type === type);
   const lastSeen = dayjs(device.lastSeen);
-  
+
   return (
     <>
       <Grid>
-        <Grid.Col span={8}>
-          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
+        <Grid.Col span={{ base: 12, sm: 8 }}>
+          <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }}>
             {device.capabilities.map((capability: CapabilityApiResponse, idx: number) => {
               switch (capability.type) {
                 case 'TEMPERATURE_SENSOR': {
@@ -208,8 +208,8 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
             }).flat()}
           </SimpleGrid>
         </Grid.Col>
-        <Grid.Col span={4}>
-          <Paper className="device__info" withBorder p="md" radius="md" h="100%">
+        <Grid.Col span={{ base: 12, sm: 4 }}>
+          <Paper className={styles.info} withBorder p="md" radius="md">
             <dl>
               <dt>Manufacturer</dt>
               <dd>{device.manufacturer}</dd>
@@ -230,8 +230,8 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
         <DateRangeSelector />
       </Box>
 
-      <div className="device__graph">
-        <h3 className="device__section-header">Graph</h3>
+      <div>
+        <Title order={3} className={styles.sectionHeader}>Graph</Title>
 
         {hasCapability('THERMOSTAT') && (
           <DeviceGraph
@@ -306,7 +306,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
         )}
       </div>
 
-      <div className="device__timeline">
+      <div>
         <TimelineSection deviceId={device.id} />
       </div>
     </>
@@ -317,23 +317,15 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
   const { loading, data } = useApiCall<DeviceApiResponse>(`/device/${id}`);
 
   if (loading || !data) {
-    return <></>;
+    return <PageLoader />;
   }
 
-  const { device } = data;
-
   return (
-    <div>
-      <Header />
-      <div>
-        <SideBar hideOnMobile />
-        <div className='body body--with-padding'>
-          <h2>{device.name}</h2>
-          <DateRangeProvider>
-            <DeviceContent device={device} />
-          </DateRangeProvider>
-        </div>
-      </div>
-    </div>
+    <>
+      <Title order={2}>{data.device.name}</Title>
+      <DateRangeProvider>
+        <DeviceContent device={data.device} />
+      </DateRangeProvider>
+    </>
   );
 }

@@ -1,0 +1,55 @@
+.iconContainer {
+  display: block;
+  height: 36px;
+  line-height: 36px;
+  width: 36px;
+  text-align: center;
+  border-radius: 100px;
+}
+
+.iconContainerDisabled {
+  cursor: not-allowed;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 36px auto;
+  grid-column-gap: 10px;
+}
+
+.footer {
+  margin-top: 10px;
+}
+
+.footer .heatingHeatMap {
+  margin: 0;
+}
+
+.footer .heatingHeatMapMap {
+  margin-bottom: 0;
+}
+
+.name {
+  color: #212121;
+  margin-bottom: var(--mantine-spacing-xs);
+}
+
+.values {
+  list-style-type: none;
+  padding: 0;
+}
+
+.value {
+  display: inline;
+  font-size: 12px;
+}
+
+.value::before {
+  content: " \2E31 ";
+  padding-right: var(--mantine-spacing-xs);
+}
+
+.value:first-child::before {
+  content: "";
+  padding-right: 0;
+}

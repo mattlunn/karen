@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DatePicker } from '@mantine/dates';
-import { Button } from '@mantine/core';
+import { Button, Group, NativeSelect, Stack, Text, Title } from '@mantine/core';
 import dayjs, { Dayjs } from '../../dayjs';
 import { range } from '../../helpers/iterable';
 import { useUserMutation } from '../../hooks/mutations/use-user-mutations';
@@ -16,63 +16,57 @@ function pad(n: number): string {
 }
 
 export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
-  const [date, setDate] = useState<Dayjs>(eta ?? dayjs().startOf('day'));
+  const [selectedDate, setSelectedDate] = useState<Dayjs>(eta ?? dayjs().startOf('day'));
   const { mutate: updateUser, isPending } = useUserMutation(id);
 
   const handleDateChange = (value: Date | null) => {
     if (value) {
-      setDate(dayjs(value).hour(date.hour()).minute(date.minute()));
-    }
-  };
-
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    if (name === 'hour') {
-      setDate(date.hour(Number(value)));
-    } else if (name === 'minute') {
-      setDate(date.minute(Number(value)));
+      setSelectedDate(dayjs(value).hour(selectedDate.hour()).minute(selectedDate.minute()));
     }
   };
 
   const handleSetEta = () => {
-    updateUser({ eta: +date }, {
+    updateUser({ eta: +selectedDate }, {
       onSuccess: () => closeModal()
     });
   };
 
   return (
-    <div className="eta-picker">
-      <div className="eta-picker__body">
-        <h2>When will <strong>{id}</strong> be home?</h2>
+    <>
+      <Title order={3} mb="md">When will <strong>{id}</strong> be home?</Title>
 
-        <div>
-          <DatePicker
-            value={date.toDate()}
-            onChange={handleDateChange}
-            minDate={new Date()}
-            size="md"
-          />
-        </div>
-        <div className="eta-picker__selected-date-and-time">
-          <div className="eta-picker__selected-date">
-            {date.format('DD/MM/YYYY')}
-          </div>
-          <div className="eta-picker__selected-time">
-            at&nbsp;
-            <select onChange={handleSelectChange} name="hour" value={date.hour()}>
-              {Array.from(range(0, 24)).map(x => <option value={x} key={x}>{pad(x)}</option>)}
-            </select>
-            :
-            <select onChange={handleSelectChange} name="minute" value={date.minute()}>
-              {Array.from(range(0, 60, 15)).map(x => <option value={x} key={x}>{pad(x)}</option>)}
-            </select>
-          </div>
-        </div>
-      </div>
-      <div className="eta-picker__footer">
-        <Button variant="default" onClick={closeModal} mr="sm">Cancel</Button>
+      <Group gap="md" align="flex-start">
+        <DatePicker
+          value={selectedDate.toDate()}
+          onChange={handleDateChange}
+          minDate={new Date()}
+          size="md"
+        />
+        <Stack align="center" justify="center" pt="lg">
+          <Text size="xl" fw={500}>{selectedDate.format('DD/MM/YYYY')}</Text>
+          <Group gap="xs">
+            <Text>at</Text>
+            <NativeSelect
+              data={Array.from(range(0, 24)).map(x => ({ value: String(x), label: pad(x) }))}
+              value={String(selectedDate.hour())}
+              onChange={(e) => setSelectedDate(selectedDate.hour(Number(e.target.value)))}
+              w={70}
+            />
+            <Text>:</Text>
+            <NativeSelect
+              data={Array.from(range(0, 60, 15)).map(x => ({ value: String(x), label: pad(x) }))}
+              value={String(selectedDate.minute())}
+              onChange={(e) => setSelectedDate(selectedDate.minute(Number(e.target.value)))}
+              w={70}
+            />
+          </Group>
+        </Stack>
+      </Group>
+
+      <Group justify="flex-end" mt="xl">
+        <Button variant="default" onClick={closeModal}>Cancel</Button>
         <Button loading={isPending} onClick={handleSetEta}>Ok</Button>
-      </div>
-    </div>
+      </Group>
+    </>
   );
 }

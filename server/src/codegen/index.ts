@@ -8,7 +8,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 type CapabilityDescriptor = {
   name: string;
   properties: PropertyDescriptor[];
-  capabilityModelClassName?: string
+  capabilityModelClassName?: string;
+  capabilityProviderClassName?: string;
 }
 
 type PropertyDescriptor = {
@@ -21,13 +22,14 @@ type PropertyDescriptor = {
 const toSnakeCase = (x: string) => x.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '');
 const toPascalUpperCase = (x: string) => x.replace(/([A-Z])/g, '_$1').slice(1).toUpperCase();
 
-const capabilities = (JSON.parse(readFileSync(__dirname + '/../capabilities.json', 'utf-8')) as CapabilityDescriptor[]).map(({ name, properties, capabilityModelClassName = null }) => {
+const capabilities = (JSON.parse(readFileSync(__dirname + '/../capabilities.json', 'utf-8')) as CapabilityDescriptor[]).map(({ name, properties, capabilityModelClassName = null, capabilityProviderClassName = null }) => {
   const moduleName = `${toSnakeCase(name)}.gen`;
   const capabilityEnumName = toPascalUpperCase(name);
 
   return {
     moduleName,
     className: `${capabilityModelClassName || name}Capability`,
+    providerClassName: capabilityProviderClassName,
     capabilityName: name,
     capabilityEnumName,
     properties: properties.map(x => {

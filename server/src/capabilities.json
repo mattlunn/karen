@@ -247,6 +247,8 @@
   ]
 }, {
   "name": "Thermostat",
+  "capabilityModelClassName": "ThermostatBase",
+  "capabilityProviderClassName": "ProviderThermostatCapabilityBase",
   "properties": [
     {
       "name": "IsOn",

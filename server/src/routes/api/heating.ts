@@ -2,6 +2,7 @@ import express from 'express';
 import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Device } from '../../models';
 import { setDHWMode, getDHWMode } from '../../services/ebusd';
+import { getPreWarmStartTime } from '../../automations/heating-warmup';
 import { HeatingUpdateRequest, HeatingStatusResponse, CentralHeatingMode } from '../../api/types';
 
 const router = express.Router();
@@ -42,9 +43,12 @@ router.get<Record<string, never>, HeatingStatusResponse>('/', asyncWrapper(async
     return mode === null || mode === currMode ? currMode : null;
   }, null);
 
+  const preWarmStartTime = getPreWarmStartTime();
+
   res.json({
     centralHeating,
-    dhw: dhwIsOn ? 'ON' : 'OFF'
+    dhw: dhwIsOn ? 'ON' : 'OFF',
+    preWarmStartTime: preWarmStartTime?.toISOString() ?? null
   });
 }));
 

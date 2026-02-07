@@ -1,14 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../fetch-api';
-
-interface HeatingResponse {
-  centralHeating: 'ON' | 'OFF' | 'SETBACK';
-  dhw: 'ON' | 'OFF';
-}
+import { HeatingStatusResponse } from '../../api/types';
 
 export function useHeating() {
   return useQuery({
     queryKey: ['heating'],
-    queryFn: () => fetchApi<HeatingResponse>('/heating'),
+    queryFn: () => fetchApi<HeatingStatusResponse>('/heating'),
   });
 }

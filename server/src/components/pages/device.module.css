@@ -1,0 +1,16 @@
+.info dl {
+  margin: 0;
+}
+
+.info dt {
+  font-weight: bold;
+}
+
+.info dd {
+  margin-bottom: 10px;
+  margin-left: 0;
+}
+
+.sectionHeader {
+  margin-top: var(--mantine-spacing-xl);
+}

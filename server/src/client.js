@@ -1,21 +1,22 @@
+import './styles/mantine.css';
+import './styles/global.css';
+
 import './dayjs';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import Timeline from './components/pages/timeline';
-import Home from './components/pages/home';
-import Devices from './components/pages/devices';
-import Device from './components/pages/device';
-import Login from './components/pages/login';
 import { Route } from 'react-router';
 import { Switch, BrowserRouter } from 'react-router-dom';
 import { createTheme, MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RealtimeProvider } from './components/realtime-provider';
-
-import '@mantine/core/styles.css';
-import '@mantine/dates/styles.css';
-import './styles/app.less';
+import AppLayout from './components/app-layout';
+import ErrorBoundary from './components/error-boundary';
+import Home from './components/pages/home';
+import Timeline from './components/pages/timeline';
+import Devices from './components/pages/devices';
+import Device from './components/pages/device';
+import Login from './components/pages/login';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,13 +54,21 @@ window.onload = () => {
       <MantineProvider theme={theme}>
         <RealtimeProvider>
           <BrowserRouter>
-            <Switch>
-              <Route exact path="/" component={Home}/>
-              <Route exact path="/login" component={Login}/>
-              <Route exact path="/timeline" component={Timeline}/>
-              <Route exact path="/device/:id" component={Device}/>
-              <Route exact path="/device" component={Devices}/>
-            </Switch>
+            <ErrorBoundary>
+              <Switch>
+                <Route exact path="/login" component={Login} />
+                <Route path="/">
+                  <AppLayout>
+                    <Switch>
+                      <Route exact path="/" component={Home} />
+                      <Route exact path="/timeline" component={Timeline} />
+                      <Route exact path="/device/:id" component={Device} />
+                      <Route exact path="/device" component={Devices} />
+                    </Switch>
+                  </AppLayout>
+                </Route>
+              </Switch>
+            </ErrorBoundary>
           </BrowserRouter>
         </RealtimeProvider>
       </MantineProvider>
