@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { applicationFetch } from '../../helpers/fetch';
 import { useHistory } from 'react-router-dom';
+import styles from './login.module.css';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -26,7 +27,7 @@ export default function Login() {
 
   return (
     <div>
-      <div className="login__panel">
+      <div className={styles.panel}>
         <form>
           <p>
             <label>Username</label>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Center, Loader } from '@mantine/core';
+import { Center, Loader, Title } from '@mantine/core';
 import dayjs from '../../dayjs';
 import Event from '../event';
+import styles from './timeline.module.css';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
@@ -173,16 +174,16 @@ export default function Timeline() {
 
   return (
     <>
-      <ol className='timeline'>
+      <ol className={styles.root}>
         {days.map(({ date, events }, idx) => {
           return (
-            <li key={idx} className='day'>
-              <h3 className='day__header'>{date.format('dddd, MMMM Do YYYY')}</h3>
+            <li key={idx}>
+              <Title order={3} className={styles.dayHeader}>{date.format('dddd, MMMM Do YYYY')}</Title>
 
-               <ol className='events'>
+               <ol>
                 {events.map((event, idx) => {
                   return (
-                    <li className='event' key={idx}>
+                    <li className={styles.event} key={idx}>
                       {createEvent(event)}
                     </li>
                   );

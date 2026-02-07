@@ -1,4 +1,5 @@
 import React from 'react';
+import { Title } from '@mantine/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DeviceControl from './device-control';
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -6,6 +7,7 @@ import { faCouch, faHouseFire, faUtensils, faJugDetergent, faStairs, faDumbbell,
 import Light from './devices/light';
 import Lock from './devices/lock';
 import Thermostat from './devices/thermostat';
+import styles from './groups.module.css';
 
 library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer, faHouseFire, faDoorClosed, faDoorOpen, faShop, faTree);
 
@@ -93,14 +95,14 @@ function buildDeviceControlForDevice(device) {
 export default function Group({ displayIconName, name, devices }) {
   return (
     <>
-      <h3 className="group__title">
-        {displayIconName && <FontAwesomeIcon icon={displayIconName} className="group__title-icon" />}
+      <Title order={3} className={styles.title}>
+        {displayIconName && <FontAwesomeIcon icon={displayIconName} className={styles.titleIcon} />}
         {name}
-      </h3>
+      </Title>
       <div>
-        <ul className="group__device-controls">
+        <ul className={styles.deviceControls}>
           {devices.map(device => (
-            <li className="group__device-control" key={device.id}>
+            <li className={styles.deviceControl} key={device.id}>
               {buildDeviceControlForDevice(device)}
             </li>
           ))}

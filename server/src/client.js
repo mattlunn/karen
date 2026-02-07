@@ -1,3 +1,6 @@
+import './styles/mantine.css';
+import './styles/global.css';
+
 import './dayjs';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -14,10 +17,6 @@ import Timeline from './components/pages/timeline';
 import Devices from './components/pages/devices';
 import Device from './components/pages/device';
 import Login from './components/pages/login';
-
-import '@mantine/core/styles.css';
-import '@mantine/dates/styles.css';
-import './styles/app.less';
 
 const queryClient = new QueryClient({
   defaultOptions: {

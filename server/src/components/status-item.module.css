@@ -1,0 +1,14 @@
+.value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.icon {
+  font-size: 22px;
+}
+
+.title {
+  font-weight: 700;
+  text-transform: uppercase;
+}

@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    "plugins": [
+      { "name": "typescript-plugin-css-modules" }
+    ],
     "allowJs": true,
     "strict": true,
     "module": "ESNext",

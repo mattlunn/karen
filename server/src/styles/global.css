@@ -1,0 +1,17 @@
+@layer mantine, app;
+
+:root {
+  --color-home: #5eef00;
+  --color-away: red;
+  --mantine-h3-font-size: var(--mantine-font-size-lg);
+  --mantine-h3-font-weight: 500;
+
+  --mantine-font-size-xl: 1.2rem;
+}
+
+/* Override Mantine anchor default - global selector needed as Mantine
+   doesn't expose CSS variables for text-decoration */
+.mantine-Anchor-root {
+  color: inherit;
+  text-decoration: underline;
+}

@@ -1,0 +1,15 @@
+.root {
+  background: rgb(107, 166, 198);
+  padding: 20px;
+}
+
+.cameraImage {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}
+
+.cameraName {
+  margin-bottom: var(--mantine-spacing-xs);
+  color: white;
+}

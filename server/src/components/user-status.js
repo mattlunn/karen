@@ -5,6 +5,7 @@ import { humanDate } from '../helpers/date';
 import { Anchor, Avatar, Box, Group, LoadingOverlay, Modal, Stack, Text } from '@mantine/core';
 import { useUserMutation } from '../hooks/mutations/use-user-mutations';
 import EtaPicker from './modals/eta-picker';
+import styles from './user-status.module.css';
 
 function StatusMessage({ status, since, until, id }) {
   const [ showModal, setShowModal ] = React.useState(false);
@@ -52,7 +53,7 @@ export default function UserStatus(props) {
   const { mutate: updateUser, isPending } = useUserMutation(id);
 
   return (
-    <Group align="center" gap="xs" className="user-status">
+    <Group align="center" gap="xs" className={styles.root}>
       <Box pos="relative">
         <LoadingOverlay visible={isPending} overlayProps={{ radius: 'xl' }} loaderProps={{ size: 'sm' }} />
         <a href="#" onClick={(e) => {
