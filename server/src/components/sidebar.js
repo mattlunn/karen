@@ -10,6 +10,7 @@ import { useHeating } from '../hooks/queries/use-heating';
 import { useSecurity } from '../hooks/queries/use-security';
 import { useAlarmMutation } from '../hooks/mutations/use-security-mutations';
 import { useHeatingMutation } from '../hooks/mutations/use-heating-mutations';
+import humanDate from '../helpers/date';
 import dayjs from '../dayjs';
 
 export default function Sidebar() {
@@ -92,7 +93,10 @@ export default function Sidebar() {
       {heatingData.preWarmStartTime && (
         <Text fs="italic" ta="center">
           <Text><FontAwesomeIcon icon={faTemperatureArrowUp} /></Text>
-          <Text>Pre-heating will start at {dayjs(heatingData.preWarmStartTime).format('HH:mm')}</Text>
+          <Text>
+            Pre-heating will start at
+            {`${dayjs(heatingData.preWarmStartTime).format('HH:mm')} ${humanDate(heatingData.preWarmStartTime)}`}
+          </Text>
         </Text>
       )}
     </>
