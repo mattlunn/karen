@@ -189,13 +189,19 @@ export async function storeDailyMetrics(
   logger.info(`Daily metrics for ${dayjs(startOfDay).format('DD/MM/YYYY')}: CoP=${metrics.dayCoP.toFixed(1)}, HeatingCoP=${metrics.heatingCoP.toFixed(1)}, DHWCoP=${metrics.dhwCoP.toFixed(1)}`);
 }
 
+const METRIC_NAMES = [
+  'cop_day', 'power_day', 'yield_day',
+  'cop_day_heating', 'power_day_heating', 'yield_day_heating',
+  'cop_day_dhw', 'power_day_dhw', 'yield_day_dhw'
+] as const;
+
 /**
  * Ensure all historical daily metrics exist.
- * Called at midnight to fill in any missing days from the last known metric to yesterday.
+ * Called every 15 minutes to fill in any missing days from the last known metric to yesterday.
  * To recalculate all metrics, use the reset-daily-metrics script first.
  */
 export async function ensureHistoricalMetrics(device: Device, capability: HeatPumpCapability): Promise<void> {
-  // Find the latest metric event across all 9 types
+  // Find the latest metric event for each of the 9 types
   const latestEvents = await Promise.all([
     capability.getDayCoPEvent(),
     capability.getDayPowerEvent(),
@@ -208,15 +214,25 @@ export async function ensureHistoricalMetrics(device: Device, capability: HeatPu
     capability.getDayDHWYieldEvent()
   ]);
 
-  // Find the earliest "latest" event - this is where we need to start filling from
-  const validEvents = latestEvents.filter((e): e is NonNullable<typeof e> => e !== null);
-  const earliestLatest = validEvents.length > 0
-    ? validEvents.reduce((min, e) => e.start < min.start ? e : min)
-    : null;
+  // Get timestamps (as epoch ms) for comparison, null if no event
+  const timestamps = latestEvents.map(e => e?.start.getTime() ?? null);
+  const uniqueTimestamps = [...new Set(timestamps)];
 
-  // Start from the day after the earliest latest event, or from device creation if no events
-  const startDate = earliestLatest
-    ? dayjs(earliestLatest.start).startOf('day').add(1, 'day')
+  // All 9 metrics must have the same latest timestamp (or all be null)
+  if (uniqueTimestamps.length > 1) {
+    const details = METRIC_NAMES
+      .map((name, i) => `${name}: ${timestamps[i] ? dayjs(timestamps[i]).format('YYYY-MM-DD HH:mm') : 'null'}`)
+      .join(', ');
+    throw new Error(
+      `Daily metrics have inconsistent latest timestamps. Run 'npm run reset-daily-metrics' to fix. Details: ${details}`
+    );
+  }
+
+  const latestTimestamp = uniqueTimestamps[0];
+
+  // Start from the day after the latest event, or from device creation if no events
+  const startDate = latestTimestamp
+    ? dayjs(latestTimestamp).startOf('day').add(1, 'day')
     : dayjs(device.createdAt).startOf('day');
 
   // End at yesterday (today at midnight means yesterday is last complete day)
