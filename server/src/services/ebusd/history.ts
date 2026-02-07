@@ -189,12 +189,6 @@ export async function storeDailyMetrics(
   logger.info(`Daily metrics for ${dayjs(startOfDay).format('DD/MM/YYYY')}: CoP=${metrics.dayCoP.toFixed(1)}, HeatingCoP=${metrics.heatingCoP.toFixed(1)}, DHWCoP=${metrics.dhwCoP.toFixed(1)}`);
 }
 
-const METRIC_NAMES = [
-  'cop_day', 'power_day', 'yield_day',
-  'cop_day_heating', 'power_day_heating', 'yield_day_heating',
-  'cop_day_dhw', 'power_day_dhw', 'yield_day_dhw'
-] as const;
-
 /**
  * Ensure all historical daily metrics exist.
  * Called every 15 minutes to fill in any missing days from the last known metric to yesterday.
