@@ -77,8 +77,6 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
 // - Today's running metrics (updated throughout the day)
 // - Historical metrics (fills any missing days since last run)
 nowAndSetInterval(createBackgroundTransaction('ebusd:daily-metrics', async () => {
-  debugger;
-  
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const capability = device.getHeatPumpCapability();
   
