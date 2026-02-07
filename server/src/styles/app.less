@@ -85,10 +85,10 @@ button.secondary {
   }
 }
 
-.sidebar {
+.house-status {
   background: linear-gradient(to bottom, #1a2236 0%,#414152 100%);
   color: #eee;
-  padding-top: 20px;
+  padding: 20px 0;
 
   &__house {
     margin: 0 20px 20px 20px;
@@ -500,4 +500,31 @@ button.secondary {
 .mantine-Anchor-root {
   color: inherit;
   text-decoration: underline;
+}
+
+.nav-links {
+  .nav-links__link {
+    text-decoration: none;
+    font-size: 16px;
+
+  }
+
+  .nav-links__logout {
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  &--header {
+    .nav-links__link {
+      color: rgba(255, 255, 255, 0.5);
+
+      &--active {
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+
+    .nav-links__logout {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
 }

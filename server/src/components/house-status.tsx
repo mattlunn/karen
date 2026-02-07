@@ -12,8 +12,9 @@ import { useAlarmMutation } from '../hooks/mutations/use-security-mutations';
 import { useHeatingMutation } from '../hooks/mutations/use-heating-mutations';
 import { humanDate } from '../helpers/date';
 import dayjs from '../dayjs';
+import type { AlarmMode, CentralHeatingMode, DHWHeatingMode } from '../api/types';
 
-export default function Sidebar() {
+export default function HouseStatus() {
   const { isLoading: usersLoading, data: usersData } = useUsers();
   const { isLoading: heatingLoading, data: heatingData } = useHeating();
   const { isLoading: securityLoading, data: securityData } = useSecurity();
@@ -33,11 +34,11 @@ export default function Sidebar() {
   const preWarmStartTime = heatingData.preWarmStartTime ? dayjs(heatingData.preWarmStartTime) : null;
 
   return (
-    <>
-      <div className="sidebar__house">
-        <div className={classnames('sidebar__house-border', {
-          'sidebar__house-border--away': stays.every(x => x.status === AWAY),
-          'sidebar__house-border--home': stays.some(x => x.status === HOME),
+    <div className="house-status">
+      <div className="house-status__house">
+        <div className={classnames('house-status__house-border', {
+          'house-status__house-border--away': stays.every(x => x.status === AWAY),
+          'house-status__house-border--home': stays.some(x => x.status === HOME),
         })}>
           <div className={classnames('house', {
             'house--away': stays.every(x => x.status === AWAY),
@@ -46,15 +47,15 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <div className="sidebar__stays">
+      <div className="house-status__stays">
         {stays.map((stay) => <UserStatus key={stay.id} {...stay} />)}
       </div>
 
-      <div className="sidebar__home-controls">
+      <div className="house-status__home-controls">
         <h3 className="home-controls__title"><FontAwesomeIcon icon={faShieldHalved} /></h3>
         <SegmentedControl
           value={alarmMode}
-          onChange={(alarmMode) => updateAlarmMode({ alarmMode })}
+          onChange={(value) => updateAlarmMode({ alarmMode: value as AlarmMode })}
           disabled={alarmMutating}
           data={[
             { label: 'Home', value: 'OFF' },
@@ -64,11 +65,11 @@ export default function Sidebar() {
         />
       </div>
 
-      <div className="sidebar__home-controls">
+      <div className="house-status__home-controls">
         <h3 className="home-controls__title"><FontAwesomeIcon icon={faFire} /></h3>
         <SegmentedControl
-          value={commonThermostatMode}
-          onChange={(mode) => updateHeating({ centralHeating: mode })}
+          value={commonThermostatMode ?? ''}
+          onChange={(value) => updateHeating({ centralHeating: value as CentralHeatingMode })}
           disabled={heatingMutating}
           data={[
             { label: 'On', value: 'ON' },
@@ -78,11 +79,11 @@ export default function Sidebar() {
         />
       </div>
 
-      <div className="sidebar__home-controls">
+      <div className="house-status__home-controls">
         <h3 className="home-controls__title"><FontAwesomeIcon icon={faDroplet} /></h3>
         <SegmentedControl
           value={dhwHeatingMode}
-          onChange={(mode) => updateHeating({ dhw: mode })}
+          onChange={(value) => updateHeating({ dhw: value as DHWHeatingMode })}
           disabled={heatingMutating}
           data={[
             { label: 'On', value: 'ON' },
@@ -92,13 +93,13 @@ export default function Sidebar() {
       </div>
 
       {preWarmStartTime && (
-        <div className="sidebar__pre-warm-time">
+        <div className="house-status__pre-warm-time">
           <Text><FontAwesomeIcon icon={faTemperatureArrowUp} /></Text>
           <Text>
             Pre-heating will start at {`${preWarmStartTime.format('HH:mm')} ${humanDate(preWarmStartTime)}`}
           </Text>
         </div>
       )}
-    </>
+    </div>
   );
 }

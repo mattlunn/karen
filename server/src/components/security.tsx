@@ -1,7 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Center, Loader, SimpleGrid } from '@mantine/core';
 
-async function loadSnapshot(camera) {
+interface Camera {
+  id: number;
+  name: string;
+  snapshotUrl: string;
+}
+
+interface SnapshotData {
+  loading: boolean;
+  snapshot: string | null;
+}
+
+type SnapshotsMap = Record<number, SnapshotData>;
+
+async function loadSnapshot(camera: Camera): Promise<string> {
   const response = await fetch(camera.snapshotUrl, {
     credentials: 'same-origin'
   });
@@ -9,8 +22,8 @@ async function loadSnapshot(camera) {
   return URL.createObjectURL(await response.blob());
 }
 
-function useSnapshotData(cameras) {
-  const [ snapshots, setSnapshots ] = useState({});
+function useSnapshotData(cameras: Camera[]): SnapshotsMap {
+  const [snapshots, setSnapshots] = useState<SnapshotsMap>({});
   const updatedSnapshots = { ...snapshots };
 
   for (const { id } of cameras) {
@@ -61,12 +74,16 @@ function useSnapshotData(cameras) {
     return () => {
       clearInterval(interval);
     };
-  }, [ cameras ]);
+  }, [cameras]);
 
   return updatedSnapshots;
 }
 
-export default function Security({ cameras = [] }) {
+interface SecurityProps {
+  cameras?: Camera[];
+}
+
+export default function Security({ cameras = [] }: SecurityProps) {
   const snapshots = useSnapshotData(cameras);
 
   return (

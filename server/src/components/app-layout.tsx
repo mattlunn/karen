@@ -1,9 +1,10 @@
 import React, { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AppShell } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import Header from './header';
-import Sidebar from './sidebar';
+import HouseStatus from './house-status';
+import NavLinks from './nav-links';
 import ErrorBoundary from './error-boundary';
 
 interface AppLayoutProps {
@@ -13,7 +14,8 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const isHome = location.pathname === '/';
-  const [sidebarOpened, { toggle: toggleSidebar }] = useDisclosure(false);
+  const [sidebarOpened, { toggle: toggleSidebar, close: closeSidebar }] = useDisclosure(false);
+  const isDesktop = useMediaQuery('(min-width: 62em)');
 
   return (
     <AppShell
@@ -30,8 +32,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <Header sidebarOpened={sidebarOpened} toggleSidebar={toggleSidebar} />
       </AppShell.Header>
 
-      <AppShell.Navbar className="sidebar">
-        <Sidebar />
+      <AppShell.Navbar>
+        {!isDesktop && <NavLinks vertical onNavigate={closeSidebar} />}
+        {isDesktop && <HouseStatus />}
       </AppShell.Navbar>
 
       <AppShell.Main>

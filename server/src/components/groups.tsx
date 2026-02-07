@@ -1,7 +1,14 @@
 import React from 'react';
 import Group from './group';
+import type { HomeRoom, RestDeviceResponse } from '../api/types';
 
-export default function Groups({ rooms = [], devices = [], loading = false }) {
+interface GroupsProps {
+  rooms?: HomeRoom[];
+  devices?: RestDeviceResponse[];
+  loading?: boolean;
+}
+
+export default function Groups({ rooms = [], devices = [], loading = false }: GroupsProps) {
   if (loading) {
     return <></>;
   }
@@ -19,7 +26,7 @@ export default function Groups({ rooms = [], devices = [], loading = false }) {
       ))}
 
       <li className="group group--full-width">
-        <Group name="Others" devices={devices.filter(x => x.roomId === null)} />
+        <Group name="Others" displayIconName={null} devices={devices.filter(x => x.roomId === null)} />
       </li>
     </ul>
   );
