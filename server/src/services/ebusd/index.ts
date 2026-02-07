@@ -3,7 +3,6 @@ import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
-import setIntervalForTime from '../../helpers/set-interval-for-time';
 import { ensureHistoricalMetrics, storeTodayRunningMetrics } from './history';
 
 Device.registerProvider('ebusd', {
@@ -74,16 +73,12 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   ]);
 }), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);
 
-// Calculate today's running metrics every 15 minutes
-nowAndSetInterval(createBackgroundTransaction('ebusd:running-metrics', async () => {
-  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
-  const capability = device.getHeatPumpCapability();
-  await storeTodayRunningMetrics(capability);
-}), 15 * 60 * 1000);
-
-// Ensure all historical metrics exist at midnight
-setIntervalForTime(async () => {
+// Calculate daily metrics every 15 minutes:
+// - Today's running metrics (updated throughout the day)
+// - Historical metrics (fills any missing days since last run)
+nowAndSetInterval(createBackgroundTransaction('ebusd:daily-metrics', async () => {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const capability = device.getHeatPumpCapability();
   await ensureHistoricalMetrics(device, capability);
-}, '00:00');
+  await storeTodayRunningMetrics(capability);
+}), 15 * 60 * 1000);
