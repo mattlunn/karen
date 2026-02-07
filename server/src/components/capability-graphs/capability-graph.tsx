@@ -175,6 +175,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       data: mapNumericDataToDataset(props.bar.data),
       label: props.bar.label,
       yAxisID: props.bar.yAxisID || 'y',
+      pointHitRadius: 10,
       pointRadius: 0,
       borderWidth: 1,
       stepped: true
