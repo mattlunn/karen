@@ -26,8 +26,22 @@ export async function setBooleanProperty(device: Device, propertyName: string, p
     throw new Error(`Cannot insert historic event for ${propertyName}: timestamp ${timestamp.toISOString()} is before latest event ${lastEvent.start.toISOString()}`);
   }
 
-  // Same timestamp as latest event - just update lastReported
+  // Same timestamp as latest event
   if (lastEvent && lastEvent.start.getTime() === timestamp.getTime()) {
+    const isCurrentlyOn = !lastEvent.end;
+
+    if (isCurrentlyOn && propertyValue === false) {
+      // on -> off at same timestamp: delete the event (zero-duration, never happened)
+      await lastEvent.destroy();
+      return null;
+    }
+
+    if (!isCurrentlyOn && propertyValue === true) {
+      // off -> on at same timestamp: shouldn't happen in practice
+      throw new Error(`Cannot turn on ${propertyName} at same timestamp as existing event`);
+    }
+
+    // Same value at same timestamp: just update lastReported
     lastEvent.lastReported = new Date();
     await lastEvent.save();
     return null;
