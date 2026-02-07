@@ -97,7 +97,7 @@ export function calculateWattHours(events: NumericEvent[]): number {
  * Calculates COP from power and yield values
  */
 export function calculateCoP(powerValue: number, yieldValue: number): number {
-  return Math.round(powerValue > 0 ? (powerValue + yieldValue) / powerValue : 0) / 100;
+  return Math.round(powerValue > 0 ? ((powerValue + yieldValue) / powerValue) * 100 : 0) / 100;
 }
 
 /**
@@ -205,7 +205,7 @@ export async function ensureHistoricalMetrics(device: Device, capability: HeatPu
     capability.getDayDHWYieldEvent()
   ]);
 
-  for (let i=0;i<latestEvents.length + 1;i++) {
+  for (let i=0;i<latestEvents.length - 1;i++) {
     const curr = latestEvents[i];
     const next = latestEvents[i+1];
 
@@ -220,7 +220,7 @@ export async function ensureHistoricalMetrics(device: Device, capability: HeatPu
 
   const endDate = dayjs().startOf('day');
   const startDate = latestEvents[0] === null
-    ? dayjs(device.createdAt).startOf('day')
+    ? dayjs('2026-01-01 00:00').startOf('day')
     : dayjs(latestEvents[0].start).startOf('day').add(1, 'day');
 
   // Fill in missing days

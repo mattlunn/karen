@@ -22,7 +22,7 @@ async function main() {
   console.log('Deleting daily heat pump metrics...');
   console.log('Event types:', DAILY_METRIC_EVENT_TYPES.join(', '));
 
-  const result = await instance.query(
+  await instance.query(
     `DELETE FROM events WHERE type IN (${DAILY_METRIC_EVENT_TYPES.map(() => '?').join(', ')})`,
     {
       replacements: DAILY_METRIC_EVENT_TYPES,
@@ -30,9 +30,6 @@ async function main() {
     }
   );
 
-  // Result format varies by dialect - for MySQL it's typically the number of affected rows
-  const affectedRows = typeof result === 'number' ? result : (result?.affectedRows ?? 'unknown');
-  console.log(`Deleted ${affectedRows} events.`);
   console.log('Done. The app will recalculate metrics at midnight or on next restart.');
 }
 
