@@ -20,6 +20,33 @@ export async function getLatestNumericEvent(device: Device, propertyName: string
 
 export async function setBooleanProperty(device: Device, propertyName: string, propertyValue: boolean, timestamp: Date = new Date()): Promise<Event | null> {
   const lastEvent = await device.getLatestEvent(propertyName);
+
+  // Reject historic inserts - use reset script instead
+  if (lastEvent && timestamp < lastEvent.start) {
+    throw new Error(`Cannot insert historic event for ${propertyName}: timestamp ${timestamp.toISOString()} is before latest event ${lastEvent.start.toISOString()}`);
+  }
+
+  // Same timestamp as latest event
+  if (lastEvent && lastEvent.start.getTime() === timestamp.getTime()) {
+    const isCurrentlyOn = !lastEvent.end;
+
+    if (isCurrentlyOn && propertyValue === false) {
+      // on -> off at same timestamp: delete the event (zero-duration, never happened)
+      await lastEvent.destroy();
+      return null;
+    }
+
+    if (!isCurrentlyOn && propertyValue === true) {
+      // off -> on at same timestamp: shouldn't happen in practice
+      throw new Error(`Cannot turn on ${propertyName} at same timestamp as existing event`);
+    }
+
+    // Same value at same timestamp: just update lastReported
+    lastEvent.lastReported = new Date();
+    await lastEvent.save();
+    return null;
+  }
+
   const valueHasChanged = !lastEvent || !lastEvent.end !== propertyValue;
 
   if (valueHasChanged) {
@@ -57,13 +84,29 @@ export async function getNumericProperty(device: Device, propertyName: string, d
 
 export async function setNumericProperty(device: Device, propertyName: string, propertyValue: number, timestamp: Date = new Date()): Promise<Event | null> {
   const lastEvent = await device.getLatestEvent(propertyName);
+
+  // Allow updating the latest event's value (e.g., 15-min running metrics)
+  if (lastEvent && lastEvent.start.getTime() === timestamp.getTime()) {
+    if (lastEvent.value !== propertyValue) {
+      lastEvent.value = propertyValue;
+      lastEvent.lastReported = new Date();
+      return await lastEvent.save();
+    }
+    return null; // No change needed
+  }
+
+  // Reject historic inserts - use reset script instead
+  if (lastEvent && timestamp < lastEvent.start) {
+    throw new Error(`Cannot insert historic event for ${propertyName}: timestamp ${timestamp.toISOString()} is before latest event ${lastEvent.start.toISOString()}`);
+  }
+
+  // Normal forward flow
   const valueHasChanged = !lastEvent || propertyValue !== lastEvent.value;
 
   if (valueHasChanged) {
     if (lastEvent) {
       lastEvent.end = timestamp;
       lastEvent.lastReported = timestamp;
-
       await lastEvent.save();
     }
 
@@ -74,12 +117,11 @@ export async function setNumericProperty(device: Device, propertyName: string, p
       value: propertyValue,
       type: propertyName
     });
-  } else if (lastEvent) {
-    lastEvent.lastReported = timestamp;
-
-    await lastEvent.save();
   }
 
+  // Same value, just update lastReported
+  lastEvent.lastReported = timestamp;
+  await lastEvent.save();
   return null;
 }
 

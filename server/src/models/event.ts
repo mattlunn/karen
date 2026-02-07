@@ -10,6 +10,8 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
   declare public lastReported: Date;
   declare public type: string;
   declare public value: CreationOptional<number>;
+  declare public createdAt: CreationOptional<Date>;
+  declare public updatedAt: CreationOptional<Date>;
 
   declare getRecording: HasOneGetAssociationMixin<Recording>;
   declare getDevice: HasOneGetAssociationMixin<Device>;
@@ -59,6 +61,17 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
       deviceCache.set(event.type, event);
     }
   }
+
+  /**
+   * Invalidate cache entry on delete. Called automatically by afterDestroy hook.
+   * Clears the cache entry so next access will re-query the DB.
+   */
+  static invalidateCache(event: Event): void {
+    const deviceCache = this.latestEventCache.get(event.deviceId);
+    if (deviceCache) {
+      deviceCache.delete(event.type);
+    }
+  }
 }
 
 export default function (sequelize: Sequelize) {
@@ -98,6 +111,16 @@ export default function (sequelize: Sequelize) {
     value: {
       type: DataTypes.FLOAT,
       allowNull: true
+    },
+
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false
+    },
+
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false
     }
   }, {
     sequelize: sequelize,
@@ -105,6 +128,9 @@ export default function (sequelize: Sequelize) {
     hooks: {
       afterSave: (event: Event) => {
         Event.updateCache(event);
+      },
+      afterDestroy: (event: Event) => {
+        Event.invalidateCache(event);
       }
     }
   });
@@ -117,6 +143,7 @@ export class BooleanEvent {
   public start: Date;
   public end: Date | null;
   public lastReported: Date;
+  public updatedAt: Date;
 
   constructor(e: Event) {
     this.event = e;
@@ -124,6 +151,7 @@ export class BooleanEvent {
     this.start = e.start;
     this.end = e.end;
     this.lastReported = e.lastReported;
+    this.updatedAt = e.updatedAt;
   }
 
   hasEnded() {
@@ -142,6 +170,7 @@ export class NumericEvent {
   public start: Date;
   public end: Date | null;
   public lastReported: Date;
+  public updatedAt: Date;
 
   constructor(e: Event) {
     this.event = e;
@@ -149,6 +178,7 @@ export class NumericEvent {
     this.start = e.start;
     this.end = e.end;
     this.lastReported = e.lastReported;
+    this.updatedAt = e.updatedAt;
   }
 
   getDevice() {

@@ -19,9 +19,21 @@ import {
 import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
 import 'chartjs-adapter-dayjs-4';
+import dayjs from '../../dayjs';
 import { BooleanEventApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
 import { clampAndSortHistory } from '../../helpers/history';
 import { Box } from '@mantine/core';
+
+function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'day' {
+  const diffDays = dayjs(max).diff(dayjs(min), 'day');
+
+  if (diffDays >= 3) {
+    return 'day';
+  } else if (diffDays >= 1) {
+    return 'hour';
+  }
+  return 'minute';
+}
 
 ChartJS.register(
   LinearScale,
@@ -84,13 +96,14 @@ export type CapabilityGraphProps = {
   }
 
   yAxis?: Record<string, {
-    position: 'left' | 'right',
-    max: number,
-    min: number,
+    position?: 'left' | 'right',
+    max?: number,
+    min?: number,
   }>
 
   yMin?: number
   yMax?: number
+  timeUnit?: 'minute' | 'hour' | 'day'
 };
 
 function assertAndGetMinMax(lines: { data: HistoryDetailsApiResponse<NumericEventApiResponse>; }[]): { min: string; max: string; } {
@@ -122,17 +135,20 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     yAxisID: x.yAxisID || 'y'
   }));
 
+  const timeUnit = props.timeUnit || inferTimeUnit(min, max);
+  const tickStepSize = timeUnit === 'day' ? 1 : 15;
+
   // TODO: Fixme any
   const chartOptions: any = {
     scales: {
       x: {
         type: 'time',
         time: {
-          unit: 'minute'
+          unit: timeUnit
         },
         ticks: {
           source: 'auto',
-          stepSize: 15
+          stepSize: tickStepSize
         },
         min,
         max
@@ -159,6 +175,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       data: mapNumericDataToDataset(props.bar.data),
       label: props.bar.label,
       yAxisID: props.bar.yAxisID || 'y',
+      pointHitRadius: 10,
       pointRadius: 0,
       borderWidth: 1,
       stepped: true

@@ -125,7 +125,6 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       return awaitPromises({
         type: 'HEAT_PUMP' as const,
         mode: mapHeatPumpModeEvent(heatPump.getModeEvent()),
-        dailyConsumedEnergy: mapNumericEvent(heatPump.getDailyConsumedEnergyEvent()),
         heatingCoP: mapNumericEvent(heatPump.getHeatingCoPEvent()),
         compressorModulation: mapNumericEvent(heatPump.getCompressorModulationEvent()),
         dhwTemperature: mapNumericEvent(heatPump.getDHWTemperatureEvent()),
@@ -133,7 +132,10 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         outsideTemperature: mapNumericEvent(heatPump.getOutsideTemperatureEvent()),
         actualFlowTemperature: mapNumericEvent(heatPump.getActualFlowTemperatureEvent()),
         returnTemperature: mapNumericEvent(heatPump.getReturnTemperatureEvent()),
-        systemPressure: mapNumericEvent(heatPump.getSystemPressureEvent())
+        systemPressure: mapNumericEvent(heatPump.getSystemPressureEvent()),
+        dayPower: mapNumericEvent(heatPump.getDayPowerEvent()),
+        dayYield: mapNumericEvent(heatPump.getDayYieldEvent()),
+        dayCoP: mapNumericEvent(heatPump.getDayCoPEvent())
       });
     }
 

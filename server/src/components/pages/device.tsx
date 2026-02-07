@@ -18,7 +18,9 @@ import {
   faBatteryFull,
   faBatteryHalf,
   faBatteryQuarter,
-  faBatteryEmpty
+  faBatteryEmpty,
+  faBolt,
+  faLeaf
 } from '@fortawesome/free-solid-svg-icons';
 
 import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
@@ -146,11 +148,13 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
 
                 case 'HEAT_PUMP': {
                   return [
+                    <StatusItem key={`${idx}-daycop`} icon={faLeaf} title="Today's CoP" value={`${capability.dayCoP.value.toFixed(1)}`} since={capability.dayCoP.start} lastReported={capability.dayCoP.lastReported} />,
+                    <StatusItem key={`${idx}-daypower`} icon={faBolt} title="Today's Power" value={`${(capability.dayPower.value / 1000).toFixed(1)} kWh`} since={capability.dayPower.start} lastReported={capability.dayPower.lastReported} />,
+                    <StatusItem key={`${idx}-dayyield`} icon={faFire} title="Today's Yield" value={`${(capability.dayYield.value / 1000).toFixed(1)} kWh`} since={capability.dayYield.start} lastReported={capability.dayYield.lastReported} />,
                     <StatusItem key={`${idx}-dhwcop`} icon={faFaucet} title="Hot Water CoP" value={`${capability.dHWCoP.value.toFixed(1)} CoP`} since={capability.dHWCoP.start} lastReported={capability.dHWCoP.lastReported} />,
                     <StatusItem key={`${idx}-heatingcop`} icon={faFire} title="Heating CoP" value={`${capability.heatingCoP.value.toFixed(1)} CoP`} since={capability.heatingCoP.start} lastReported={capability.heatingCoP.lastReported} />,
                     <StatusItem key={`${idx}-outside`} icon={faTree} title="Outside Temperature" value={`${capability.outsideTemperature.value.toFixed(1)}°C`} since={capability.outsideTemperature.start} lastReported={capability.outsideTemperature.lastReported} />,
                     <StatusItem key={`${idx}-dhw`} icon={faFaucetDrip} title="Hot Water Temperature" value={`${capability.dhwTemperature.value.toFixed(1)}°C`} since={capability.dhwTemperature.start} lastReported={capability.dhwTemperature.lastReported} />,
-                    <StatusItem key={`${idx}-yield`} icon={faFire} title="Daily Yield" value={`${capability.dailyConsumedEnergy.value}kWh`} since={capability.dailyConsumedEnergy.start} lastReported={capability.dailyConsumedEnergy.lastReported} />,
                     <StatusItem key={`${idx}-flow`} icon={faThermometer4} title="Flow Temperature" value={`${capability.actualFlowTemperature.value.toFixed(1)}°C`} since={capability.actualFlowTemperature.start} lastReported={capability.actualFlowTemperature.lastReported} />,
                     <StatusItem key={`${idx}-return`} icon={faThermometer2} title="Return Temperature" value={`${capability.returnTemperature.value.toFixed(1)}°C`} since={capability.returnTemperature.start} lastReported={capability.returnTemperature.lastReported} />,
                     <StatusItem key={`${idx}-pressure`} icon={faGauge} title="System Pressure" value={`${capability.systemPressure.value.toFixed(1)} bar`} since={capability.systemPressure.start} lastReported={capability.systemPressure.lastReported} />
@@ -257,6 +261,42 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
               ]}
               yMin={0}
               yMax={2}
+            />
+            <DeviceGraph
+              title="Daily Overall Metrics"
+              graphId="heatpump-daily-metrics"
+              deviceId={device.id}
+              overridePageDateRange="custom"
+              overridePageDateRangeStart={dayjs().subtract(14, 'days').startOf('day').toISOString()}
+              overridePageDateRangeEnd={dayjs().toISOString()}
+              yAxis={{
+                yCoP: { position: 'left' },
+                yEnergy: { position: 'right' }
+              }}
+            />
+            <DeviceGraph
+              title="Daily Heating Metrics"
+              graphId="heatpump-daily-heating"
+              deviceId={device.id}
+              overridePageDateRange="custom"
+              overridePageDateRangeStart={dayjs().subtract(14, 'days').startOf('day').toISOString()}
+              overridePageDateRangeEnd={dayjs().toISOString()}
+              yAxis={{
+                yCoP: { position: 'left' },
+                yEnergy: { position: 'right' }
+              }}
+            />
+            <DeviceGraph
+              title="Daily DHW Metrics"
+              graphId="heatpump-daily-dhw"
+              deviceId={device.id}
+              overridePageDateRange="custom"
+              overridePageDateRangeStart={dayjs().subtract(14, 'days').startOf('day').toISOString()}
+              overridePageDateRangeEnd={dayjs().toISOString()}
+              yAxis={{
+                yCoP: { position: 'left' },
+                yEnergy: { position: 'right' }
+              }}
             />
           </>
         )}
