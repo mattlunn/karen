@@ -1,11 +1,14 @@
+.info dl {
+  margin: 0;
+}
+
 .info dt {
   font-weight: bold;
-  font-size: 0.8em;
 }
 
 .info dd {
-  font-size: 1em;
   margin-bottom: 10px;
+  margin-left: 0;
 }
 
 .sectionHeader {

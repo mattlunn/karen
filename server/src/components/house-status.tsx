@@ -26,7 +26,7 @@ export default function HouseStatus() {
   const loading = usersLoading || heatingLoading || securityLoading;
 
   if (loading || !usersData || !heatingData || !securityData) {
-    return null;
+    return <div className={styles.root}></div>;
   }
 
   const stays = usersData;
