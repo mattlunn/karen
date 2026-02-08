@@ -1,10 +1,5 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
-import { faVideo } from '@fortawesome/free-solid-svg-icons/faVideo';
-import { faQuestion } from '@fortawesome/free-solid-svg-icons/faQuestion';
-import { faThermometerQuarter } from '@fortawesome/free-solid-svg-icons/faThermometerQuarter';
-import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons/faExclamationTriangle';
 import { Link } from 'react-router-dom';
 import { Alert, Anchor, Table, Title } from '@mantine/core';
@@ -13,28 +8,8 @@ import useApiCall from '../../hooks/api';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 import IssuesIndicator from '../issues-indicator';
-import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import type { CapabilityApiResponse, DevicesApiResponse, BrokenDeviceResponse, RestDeviceResponse } from '../../api/types';
-
-function getDeviceIcon(capabilities: CapabilityApiResponse[]): IconDefinition {
-  if (capabilities.some(x => x.type === 'CAMERA')) {
-    return faVideo;
-  }
-
-  if (capabilities.some(x => x.type === 'THERMOSTAT')) {
-    return faThermometerQuarter;
-  }
-
-  if (capabilities.some(x => x.type === 'LIGHT')) {
-    return faLightbulb;
-  }
-
-  if (capabilities.some(x => x.type === 'MOTION_SENSOR')) {
-    return faEye;
-  }
-
-  return faQuestion;
-}
+import { getDeviceIcon } from '../capabilities/icons';
+import type { DevicesApiResponse, BrokenDeviceResponse, RestDeviceResponse } from '../../api/types';
 
 function formatLastSeen(lastSeen: string): string {
   const date = dayjs(lastSeen);
