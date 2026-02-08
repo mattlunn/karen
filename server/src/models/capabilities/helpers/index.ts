@@ -89,7 +89,7 @@ export async function setNumericProperty(device: Device, propertyName: string, p
   if (lastEvent && lastEvent.start.getTime() === timestamp.getTime()) {
     if (lastEvent.value !== propertyValue) {
       lastEvent.value = propertyValue;
-      lastEvent.lastReported = new Date();
+      lastEvent.lastReported = timestamp;
       return await lastEvent.save();
     }
     return null; // No change needed

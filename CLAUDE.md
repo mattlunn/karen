@@ -8,7 +8,7 @@ Karen is a full-stack TypeScript/Node.js smart home automation platform with:
 - **Backend**: Express.js server with REST API
 - **Frontend**: React 18 SPA
 - **Database**: MySQL with Sequelize ORM
-- **Real-time**: WebSocket subscriptions for live device updates
+- **Real-time**: SSE (Server-Sent Events) for live device updates
 - **Integrations**: Alexa, Z-Wave, Tado, Shelly, TP-Link, UniFi, Synology, HomeConnect, eBUSd
 
 ## Development Commands
@@ -139,7 +139,11 @@ Device.registerProvider('providerName', {
 })
 ```
 
-**Event-Driven Updates**: Device changes emit events via `DeviceCapabilityEvents`, which trigger GraphQL subscriptions for real-time UI updates.
+**Capability Codegen**: Capability classes are auto-generated from `capabilities.json` via Handlebars templates (`codegen/templates/capabilities.ts.hbs`) into `models/capabilities/capabilities.gen.ts`. Run `npm run codegen` after changing `capabilities.json` or the template. Do not hand-edit `capabilities.gen.ts`.
+
+**Event Time-Series Model**: The `events` table is used for both real-time state tracking and daily aggregates. Key fields: `start` (when the value began), `end` (when it was superseded, null if current), `lastReported` (timestamp of the last observation that confirmed this value). The helpers `setNumericProperty` and `setBooleanProperty` (`models/capabilities/helpers/index.ts`) manage event lifecycle — notably, when a new observation has the same value as the current event, no new row is created; only `lastReported` is updated.
+
+**Event-Driven Updates**: Device changes emit events via `DeviceCapabilityEvents`, which trigger SSE (Server-Sent Events) for real-time UI updates.
 
 **Configuration-Driven Automations**: Automations are configured in `config.json` and dynamically loaded at startup. Each automation module receives parameters and registers event handlers.
 
@@ -148,7 +152,7 @@ Device.registerProvider('providerName', {
 1. Integration service detects device change
 2. Updates Device model in database
 3. Emits event via DeviceCapabilityEvents
-4. GraphQL subscription notifies connected clients
+4. SSE notifies connected clients
 
 ## Build Output
 

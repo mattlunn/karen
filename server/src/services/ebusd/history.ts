@@ -213,7 +213,7 @@ export async function ensureHistoricalMetrics(device: Device, capability: HeatPu
       continue;
     }
 
-    if (curr === null || next === null || curr.start.toISOString() !== next.start.toISOString()) {
+    if (curr === null || next === null || curr.lastReported.toISOString() !== next.lastReported.toISOString()) {
       throw new Error(`Heat Pump daily metrics have inconsistent latest timestamps. Run 'npm run reset-daily-metrics' to fix`);
     }
   }
@@ -221,7 +221,7 @@ export async function ensureHistoricalMetrics(device: Device, capability: HeatPu
   const endDate = dayjs().startOf('day');
   const startDate = latestEvents[0] === null
     ? dayjs(device.createdAt).startOf('day')
-    : dayjs(latestEvents[0].start).startOf('day').add(1, 'day');
+    : dayjs(latestEvents[0].lastReported).startOf('day').add(1, 'day');
 
   // Fill in missing days
   for (let day = startDate; day.isBefore(endDate); day = day.add(1, 'day')) {

@@ -116,6 +116,7 @@ describe('setNumericProperty', () => {
       );
 
       expect(mockEvent.value).toBe(200);
+      expect(mockEvent.lastReported).toEqual(sameTimestamp);
       expect(mockEvent.save).toHaveBeenCalled();
       expect(Event.create).not.toHaveBeenCalled();
     });
