@@ -31,6 +31,7 @@ function createIfCapabilitySatisfied(device: RestDeviceResponse, creators: Capab
 }
 
 function buildDeviceControlForDevice(device: RestDeviceResponse) {
+  /* eslint-disable react/display-name */
   return createIfCapabilitySatisfied(device, [
     {
       predicate: (x) => x.type === 'THERMOSTAT',
@@ -86,6 +87,7 @@ function buildDeviceControlForDevice(device: RestDeviceResponse) {
         );
       },
     },
+  /* eslint-enable react/display-name */
   ], (device) => {
     const motionSensor = device.capabilities.find((x) => x.type === 'MOTION_SENSOR');
 
