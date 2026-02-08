@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode, MouseEvent } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { Link } from 'react-router-dom';
@@ -12,12 +12,12 @@ import styles from './device-control.module.css';
 
 interface DeviceControlProps {
   icon: IconDefinition;
-  iconOnClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  iconOnClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
   actionPending?: boolean;
   colorIconBackground: boolean;
   color: string;
   device: RestDeviceResponse;
-  values?: React.ReactNode[];
+  values?: ReactNode[];
   showMap?: boolean;
 }
 

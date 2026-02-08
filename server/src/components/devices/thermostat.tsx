@@ -6,8 +6,12 @@ import { faThermometerFull } from '@fortawesome/free-solid-svg-icons';
 import type { RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 
 type ThermostatCapability = Extract<CapabilityApiResponse, { type: 'THERMOSTAT' }>;
+type ThermostatProps = {
+  device: RestDeviceResponse;
+  capability: ThermostatCapability;
+};
 
-export default function Thermostat({ device, capability }: { device: RestDeviceResponse; capability: ThermostatCapability }) {
+export default function Thermostat({ device, capability }: ThermostatProps) {
   const [showModal, setShowModal] = useState(false);
 
   return (

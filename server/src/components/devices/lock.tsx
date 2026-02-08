@@ -5,8 +5,12 @@ import { useLockMutation } from '../../hooks/mutations/use-device-mutations';
 import type { RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 
 type LockCapability = Extract<CapabilityApiResponse, { type: 'LOCK' }>;
+type LockProps = {
+  device: RestDeviceResponse;
+  capability: LockCapability;
+};
 
-export default function Lock({ device, capability }: { device: RestDeviceResponse; capability: LockCapability }) {
+export default function Lock({ device, capability }: LockProps) {
   const { mutate: setDoorLockedStatus, isPending: loading } = useLockMutation(device.id);
 
   return (

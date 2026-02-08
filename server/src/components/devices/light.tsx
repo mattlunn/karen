@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import DeviceControl from '../device-control';
 import { faLightbulb } from '@fortawesome/free-solid-svg-icons';
 import { useLightMutation } from '../../hooks/mutations/use-device-mutations';
@@ -8,13 +8,13 @@ type LightCapability = Extract<CapabilityApiResponse, { type: 'LIGHT' }>;
 
 function BrightnessControl({ device, capability }: { device: RestDeviceResponse; capability: LightCapability }) {
   const brightness = capability.brightness.value;
-  const options: React.ReactNode[] = [];
+  const options: ReactNode[] = [];
   const { mutate: setBrightness } = useLightMutation(device.id);
 
-  let selectedValue: number | null = null;
+  let selectedValue: number | undefined;
 
   for (let i=0;i<=100;i+=5) {
-    const shouldSelect = i === brightness || brightness < i && selectedValue === null;
+    const shouldSelect = i === brightness || brightness < i && selectedValue === undefined;
 
     if (shouldSelect) {
       selectedValue = i;
@@ -30,13 +30,18 @@ function BrightnessControl({ device, capability }: { device: RestDeviceResponse;
       });
 
       e.preventDefault();
-    }} defaultValue={selectedValue ?? undefined}>
+    }} defaultValue={selectedValue}>
       {options}
     </select>
   );
 }
 
-export default function Light({ device, capability }: { device: RestDeviceResponse; capability: LightCapability }) {
+type LightProps = {
+  device: RestDeviceResponse;
+  capability: LightCapability;
+};
+
+export default function Light({ device, capability }: LightProps) {
   const { mutate: setLightSwitchStatus, isPending: loading } = useLightMutation(device.id);
 
   return (

@@ -107,7 +107,7 @@ function buildDeviceControlForDevice(device: RestDeviceResponse) {
 }
 
 interface GroupProps {
-  displayIconName: string | null;
+  displayIconName: IconName | null;
   name: string;
   devices: RestDeviceResponse[];
 }
@@ -116,7 +116,7 @@ export default function Group({ displayIconName, name, devices }: GroupProps) {
   return (
     <>
       <Title order={3} className={styles.title}>
-        {displayIconName && <FontAwesomeIcon icon={displayIconName as IconName} className={styles.titleIcon} />}
+        {displayIconName && <FontAwesomeIcon icon={displayIconName} className={styles.titleIcon} />}
         {name}
       </Title>
       <div>
