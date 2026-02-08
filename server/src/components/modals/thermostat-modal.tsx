@@ -1,19 +1,12 @@
 import React, { useState } from 'react';
 import { Box, Button, Group, Slider, Text, Title } from '@mantine/core';
 import { useThermostatMutation } from '../../hooks/mutations/use-device-mutations';
+import type { RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 
-interface ThermostatCapability {
-  targetTemperature: { value: number };
-  currentTemperature: { value: number };
-}
-
-interface Device {
-  id: number;
-  name: string;
-}
+type ThermostatCapability = Extract<CapabilityApiResponse, { type: 'THERMOSTAT' }>;
 
 interface ThermostatModalProps {
-  device: Device;
+  device: RestDeviceResponse;
   capability: ThermostatCapability;
   closeModal: () => void;
 }

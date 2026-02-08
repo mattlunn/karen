@@ -3,8 +3,11 @@ import { Modal } from '@mantine/core';
 import DeviceControl from '../device-control';
 import ThermostatModal from '../modals/thermostat-modal';
 import { faThermometerFull } from '@fortawesome/free-solid-svg-icons';
+import type { RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 
-export default function Thermostat({ device, capability }) {
+type ThermostatCapability = Extract<CapabilityApiResponse, { type: 'THERMOSTAT' }>;
+
+export default function Thermostat({ device, capability }: { device: RestDeviceResponse; capability: ThermostatCapability }) {
   const [showModal, setShowModal] = useState(false);
 
   return (
