@@ -1,14 +1,27 @@
-import React from 'react';
+import React, { ReactNode, MouseEvent } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { Link } from 'react-router-dom';
 import { Anchor, Title } from '@mantine/core';
 import ThermostatHeatMap from './thermostat-heat-map';
 import classNames from 'classnames';
 import { faSync } from '@fortawesome/free-solid-svg-icons';
 import IssuesIndicator from './issues-indicator';
+import type { RestDeviceResponse } from '../api/types';
 import styles from './device-control.module.css';
 
-export default function DeviceControl({ icon, iconOnClick = (e) => e.preventDefault(), actionPending = false, colorIconBackground, color, device, values = [], showMap }) {
+interface DeviceControlProps {
+  icon: IconDefinition;
+  iconOnClick?: (e: MouseEvent<HTMLAnchorElement>) => void;
+  actionPending?: boolean;
+  colorIconBackground: boolean;
+  color: string;
+  device: RestDeviceResponse;
+  values?: ReactNode[];
+  showMap?: boolean;
+}
+
+export default function DeviceControl({ icon, iconOnClick = (e) => e.preventDefault(), actionPending = false, colorIconBackground, color, device, values = [], showMap }: DeviceControlProps) {
   return (
     <>
       <div className={styles.header}>
