@@ -97,7 +97,7 @@ export default function HouseStatus() {
         <div className={styles.preWarmTime}>
           <Text><FontAwesomeIcon icon={faTemperatureArrowUp} /></Text>
           <Text>
-            Pre-heating will start at {`${preWarmStartTime.format('HH:mm')} ${humanDate(preWarmStartTime)}`}
+            Pre-heating to start at {`${preWarmStartTime.format('HH:mm')} ${humanDate(preWarmStartTime)}`}
           </Text>
         </div>
       )}
