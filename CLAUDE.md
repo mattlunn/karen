@@ -147,6 +147,39 @@ Device.registerProvider('providerName', {
 
 **Configuration-Driven Automations**: Automations are configured in `config.json` and dynamically loaded at startup. Each automation module receives parameters and registers event handlers.
 
+**Capability UI Registry**: UI configuration for device capabilities is centralized in `/components/capabilities/`. When adding a new capability type, only update `registry.tsx`:
+
+```typescript
+// In /components/capabilities/registry.tsx
+export const registry: CapabilityUIRegistry = {
+  LIGHT: {
+    priority: 30,  // Lower = shown first
+    getCapabilityMetrics: (cap, device) => [
+      {
+        icon: faLightbulb,
+        title: 'Status',
+        value: cap.isOn.value ? 'On' : 'Off',  // Can be string or ReactNode
+        since: cap.isOn.start,
+        lastReported: cap.isOn.lastReported,
+        iconColor: '#ffa24d',
+        iconHighlighted: cap.isOn.value,
+        onIconClick: async ({ queryClient }) => { /* toggle action */ },
+      },
+    ],
+    getGraphs: () => [{ id: 'light', title: 'Activity' }],
+  },
+  // ... other capabilities
+};
+```
+
+The registry provides:
+- `getDeviceMetrics(device)` - Returns all metrics sorted by priority
+- `getDeviceIcon(device)` - Returns the primary icon
+- `getDeviceGraphs(device)` - Returns graph configurations
+- `MetricDisplayProvider` - Context for compact/full display variants
+
+Interactive controls use `onIconClick` which receives `{ openModal, closeModal, queryClient }`. The `value` field can be a React component for interactive controls (e.g., brightness dropdown).
+
 ### Data Flow
 
 1. Integration service detects device change
