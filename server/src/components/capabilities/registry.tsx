@@ -1,6 +1,5 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { NativeSelect } from '@mantine/core';
-import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faLightbulb,
   faThermometerQuarter,
@@ -27,13 +26,12 @@ import {
   faThermometer2,
   faThermometer4,
   faGauge,
-  faQuestion,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
-import type { DateRangePreset } from '../date-range/types';
 import ThermostatModal from '../modals/thermostat-modal';
 import dayjs from '../../dayjs';
+import type { MetricDisplayVariant, CapabilityUIRegistry } from './types';
 
 // ============================================================================
 // Mutation Functions
@@ -77,8 +75,6 @@ function updateDeviceCache(queryClient: QueryClient, deviceId: number, data: Dev
 // ============================================================================
 // Metric Display Context
 // ============================================================================
-
-type MetricDisplayVariant = 'compact' | 'full';
 
 const MetricDisplayContext = React.createContext<MetricDisplayVariant>('compact');
 
@@ -124,85 +120,10 @@ function BrightnessControl({ device, capability }: { device: RestDeviceResponse;
 }
 
 // ============================================================================
-// Context for onIconClick
-// ============================================================================
-
-export interface IconClickContext {
-  openModal: (content: ReactNode) => void;
-  closeModal: () => void;
-  queryClient: QueryClient;
-}
-
-// ============================================================================
-// Types
-// ============================================================================
-
-/**
- * A single metric from a capability (e.g., brightness, temperature, power).
- */
-export interface CapabilityMetric {
-  icon: IconDefinition;
-  title: string;
-  value: ReactNode;
-  since: string;
-  lastReported: string;
-  iconColor?: string;
-  iconHighlighted?: boolean;
-  isIssue?: boolean;
-  onIconClick?: (ctx: IconClickContext) => void | Promise<void>;
-}
-
-/**
- * Configuration for a graph on the device details page.
- */
-export interface GraphConfig {
-  id: string;
-  title: string;
-  yAxis?: Record<string, { position: 'left' | 'right'; min?: number; max?: number }>;
-  yMin?: number;
-  yMax?: number;
-  zones?: { min: number; max: number; color: string }[];
-  overridePreset?: DateRangePreset;
-  overrideStart?: string;
-  overrideEnd?: string;
-  timeUnit?: string;
-}
-
-/**
- * All valid capability types (excluding null).
- */
-type CapabilityType = Exclude<CapabilityApiResponse['type'], null>;
-
-/**
- * Extract a specific capability type from the CapabilityApiResponse union.
- */
-type ExtractCapability<T extends CapabilityType> =
-  CapabilityApiResponse & { type: T };
-
-/**
- * UI configuration for a capability type.
- */
-interface CapabilityUIConfig<T extends CapabilityType> {
-  priority: number;
-  getCapabilityMetrics: (
-    capability: ExtractCapability<T>,
-    device: RestDeviceResponse
-  ) => CapabilityMetric[];
-  getGraphs?: () => GraphConfig[];
-}
-
-/**
- * Registry type - ensures every capability type has a config.
- */
-type CapabilityUIRegistry = {
-  [K in CapabilityType]: CapabilityUIConfig<K>;
-};
-
-// ============================================================================
 // Registry
 // ============================================================================
 
-const registry: CapabilityUIRegistry = {
+export const registry: CapabilityUIRegistry = {
   LIGHT: {
     priority: 30,
     getCapabilityMetrics: (cap, device) => [
@@ -579,77 +500,3 @@ const registry: CapabilityUIRegistry = {
     },
   },
 };
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Get the UI config for a specific capability type.
- */
-export function getCapabilityConfig<T extends CapabilityType>(
-  type: T
-): CapabilityUIConfig<T> {
-  return registry[type] as CapabilityUIConfig<T>;
-}
-
-/**
- * Get all metrics for a device, sorted by capability priority.
- * First metric's icon is the "device icon".
- */
-export function getDeviceMetrics(device: RestDeviceResponse): CapabilityMetric[] {
-  const capabilitiesWithMetrics: { priority: number; metrics: CapabilityMetric[] }[] = [];
-
-  for (const capability of device.capabilities) {
-    if (capability.type === null) continue;
-    const capType = capability.type as CapabilityType;
-    const config = registry[capType];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const metrics = (config.getCapabilityMetrics as any)(capability, device) as CapabilityMetric[];
-    if (metrics.length > 0) {
-      capabilitiesWithMetrics.push({ priority: config.priority, metrics });
-    }
-  }
-
-  // Sort by priority (lower = first)
-  capabilitiesWithMetrics.sort((a, b) => a.priority - b.priority);
-
-  // Flatten
-  const result: CapabilityMetric[] = [];
-  for (const group of capabilitiesWithMetrics) {
-    result.push(...group.metrics);
-  }
-  return result;
-}
-
-/**
- * Get the primary icon for a device (first metric's icon).
- */
-export function getDeviceIcon(device: RestDeviceResponse): IconDefinition {
-  const metrics = getDeviceMetrics(device);
-  return metrics[0]?.icon ?? faQuestion;
-}
-
-/**
- * Get all graphs for a device.
- */
-export function getDeviceGraphs(device: RestDeviceResponse): GraphConfig[] {
-  const graphs: GraphConfig[] = [];
-
-  for (const capability of device.capabilities) {
-    if (capability.type === null) continue;
-    const config = registry[capability.type];
-    if (config.getGraphs) {
-      graphs.push(...config.getGraphs());
-    }
-  }
-
-  return graphs;
-}
-
-/**
- * Get metrics that are issues (for device list warnings).
- */
-export function getDeviceIssues(device: RestDeviceResponse): CapabilityMetric[] {
-  return getDeviceMetrics(device).filter((m) => m.isIssue);
-}

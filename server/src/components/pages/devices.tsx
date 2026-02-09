@@ -8,7 +8,7 @@ import useApiCall from '../../hooks/api';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 import IssuesIndicator from '../issues-indicator';
-import { getDeviceIcon } from '../capabilities/registry';
+import { getDeviceIcon } from '../capabilities';
 import type { DevicesApiResponse, BrokenDeviceResponse, RestDeviceResponse } from '../../api/types';
 
 function formatLastSeen(lastSeen: string): string {

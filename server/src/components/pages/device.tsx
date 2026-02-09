@@ -12,7 +12,7 @@ import PageLoader from '../page-loader';
 import { StatusItem } from '../status-item';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
-import { getDeviceMetrics, getDeviceGraphs, MetricDisplayProvider } from '../capabilities/registry';
+import { getDeviceMetrics, getDeviceGraphs, MetricDisplayProvider } from '../capabilities';
 
 export default function Device({ match: { params: { id }}} : RouteComponentProps<{ id: string }>) {
   const { loading, data } = useApiCall<DeviceApiResponse>(`/device/${id}`);

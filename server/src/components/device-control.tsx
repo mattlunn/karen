@@ -9,7 +9,7 @@ import classNames from 'classnames';
 import { faSync } from '@fortawesome/free-solid-svg-icons';
 import IssuesIndicator from './issues-indicator';
 import type { RestDeviceResponse } from '../api/types';
-import type { IconClickContext } from './capabilities/registry';
+import type { IconClickContext } from './capabilities';
 import styles from './device-control.module.css';
 
 interface DeviceControlProps {
