@@ -28,7 +28,7 @@ import {
   faGauge,
   faQuestion,
 } from '@fortawesome/free-solid-svg-icons';
-import type { QueryClient } from '@tanstack/react-query';
+import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
 import type { DateRangePreset } from '../date-range/types';
 import ThermostatModal from '../modals/thermostat-modal';
@@ -71,6 +71,43 @@ function updateDeviceCache(queryClient: QueryClient, deviceId: number, data: Dev
       ),
     };
   });
+}
+
+// ============================================================================
+// Interactive Controls
+// ============================================================================
+
+type LightCapability = Extract<CapabilityApiResponse, { type: 'LIGHT' }>;
+
+function BrightnessControl({ device, capability }: { device: RestDeviceResponse; capability: LightCapability }) {
+  const queryClient = useQueryClient();
+  const brightness = capability.brightness.value;
+  const options: ReactNode[] = [];
+
+  let selectedValue: number | undefined;
+
+  for (let i = 0; i <= 100; i += 5) {
+    const shouldSelect = i === brightness || (brightness < i && selectedValue === undefined);
+
+    if (shouldSelect) {
+      selectedValue = i;
+    }
+
+    options.push(<option key={i} value={i}>{i}%</option>);
+  }
+
+  return (
+    <select
+      onChange={async (e) => {
+        e.preventDefault();
+        const data = await updateLight(device.id, { brightness: Number(e.target.value) });
+        updateDeviceCache(queryClient, device.id, data);
+      }}
+      defaultValue={selectedValue}
+    >
+      {options}
+    </select>
+  );
 }
 
 // ============================================================================
@@ -172,7 +209,7 @@ const registry: CapabilityUIRegistry = {
       {
         icon: faCircleHalfStroke,
         title: 'Brightness',
-        value: `${cap.brightness.value}%`,
+        value: <BrightnessControl device={device} capability={cap} />,
         since: cap.brightness.start,
         lastReported: cap.brightness.lastReported,
       },
