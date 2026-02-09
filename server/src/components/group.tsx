@@ -11,22 +11,6 @@ import { getDeviceIcon, getDeviceMetrics } from './capabilities/registry';
 
 library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faComputer, faHouseFire, faDoorClosed, faDoorOpen, faShop, faTree);
 
-function DeviceHomeControl({ device }: { device: RestDeviceResponse }) {
-  const metrics = getDeviceMetrics(device);
-  const primary = metrics[0];
-
-  return (
-    <DeviceControl
-      device={device}
-      icon={primary?.icon ?? getDeviceIcon(device)}
-      color={primary?.iconColor ?? '#04A7F4'}
-      colorIconBackground={primary?.iconHighlighted ?? false}
-      values={metrics.slice(0, 3).map((m) => m.value)}
-      iconOnClick={primary?.onIconClick}
-    />
-  );
-}
-
 interface GroupProps {
   displayIconName: IconName | null;
   name: string;
@@ -42,11 +26,23 @@ export default function Group({ displayIconName, name, devices }: GroupProps) {
       </Title>
       <div>
         <ul className={styles.deviceControls}>
-          {devices.map(device => (
-            <li className={styles.deviceControl} key={device.id}>
-              <DeviceHomeControl device={device} />
-            </li>
-          ))}
+          {devices.map(device => {
+            const metrics = getDeviceMetrics(device);
+            const primary = metrics[0];
+
+            return (
+              <li className={styles.deviceControl} key={device.id}>
+                <DeviceControl
+                  device={device}
+                  icon={primary?.icon ?? getDeviceIcon(device)}
+                  color={primary?.iconColor ?? '#04A7F4'}
+                  colorIconBackground={primary?.iconHighlighted ?? false}
+                  values={metrics.slice(0, 3).map((m) => m.value)}
+                  iconOnClick={primary?.onIconClick}
+                />
+              </li>
+            );
+          })}
         </ul>
       </div>
     </>
