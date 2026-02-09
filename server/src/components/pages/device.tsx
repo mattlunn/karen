@@ -33,6 +33,7 @@ function DeviceContent({ device }: { device: DeviceApiResponse['device'] }) {
                 since={metric.since}
                 lastReported={metric.lastReported}
                 iconColor={metric.iconColor}
+                onIconClick={metric.onIconClick}
               />
             ))}
           </SimpleGrid>
