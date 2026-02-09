@@ -11,7 +11,7 @@
     "build": "rm -rf ../dist/ && tsc && cp -r node_modules ../dist"
   },
   "devDependencies": {
-    "@tsconfig/node14": "^1.0.0",
+    "@tsconfig/node14": "^14.1.8",
     "@types/aws-lambda": "^8.10.160",
     "@types/node": "^14.14.35",
     "typescript": "^5.9.3"
