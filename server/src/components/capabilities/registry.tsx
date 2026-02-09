@@ -28,9 +28,60 @@ import {
   faGauge,
   faQuestion,
 } from '@fortawesome/free-solid-svg-icons';
-import type { CapabilityApiResponse, RestDeviceResponse } from '../../api/types';
+import type { QueryClient } from '@tanstack/react-query';
+import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
 import type { DateRangePreset } from '../date-range/types';
+import ThermostatModal from '../modals/thermostat-modal';
 import dayjs from '../../dayjs';
+
+// ============================================================================
+// Mutation Functions
+// ============================================================================
+
+async function updateLight(deviceId: number, data: LightUpdateRequest): Promise<DeviceApiResponse> {
+  const res = await fetch(`/api/device/${deviceId}/light`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update light');
+  return res.json();
+}
+
+async function updateLock(deviceId: number, data: LockUpdateRequest): Promise<DeviceApiResponse> {
+  const res = await fetch(`/api/device/${deviceId}/lock`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update lock');
+  return res.json();
+}
+
+function updateDeviceCache(queryClient: QueryClient, deviceId: number, data: DeviceApiResponse) {
+  queryClient.setQueryData(['device', deviceId], data);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  queryClient.setQueryData(['devices'], (old: any) => {
+    if (!old) return old;
+    return {
+      ...old,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      devices: old.devices.map((device: any) =>
+        device.id === deviceId ? data.device : device
+      ),
+    };
+  });
+}
+
+// ============================================================================
+// Context for onIconClick
+// ============================================================================
+
+export interface IconClickContext {
+  openModal: (content: ReactNode) => void;
+  closeModal: () => void;
+  queryClient: QueryClient;
+}
 
 // ============================================================================
 // Types
@@ -48,7 +99,7 @@ export interface CapabilityMetric {
   iconColor?: string;
   iconHighlighted?: boolean;
   isIssue?: boolean;
-  onIconClick?: () => void;
+  onIconClick?: (ctx: IconClickContext) => void | Promise<void>;
 }
 
 /**
@@ -113,8 +164,9 @@ const registry: CapabilityUIRegistry = {
         lastReported: cap.isOn.lastReported,
         iconColor: '#ffa24d',
         iconHighlighted: cap.isOn.value,
-        onIconClick: () => {
-          // Toggle will be handled by the component that renders this
+        onIconClick: async ({ queryClient }) => {
+          const data = await updateLight(device.id, { isOn: !cap.isOn.value });
+          updateDeviceCache(queryClient, device.id, data);
         },
       },
       {
@@ -132,7 +184,7 @@ const registry: CapabilityUIRegistry = {
 
   THERMOSTAT: {
     priority: 20,
-    getCapabilityMetrics: (cap) => [
+    getCapabilityMetrics: (cap, device) => [
       {
         icon: faThermometerFull,
         title: 'Current Temperature',
@@ -141,8 +193,10 @@ const registry: CapabilityUIRegistry = {
         lastReported: cap.currentTemperature.lastReported,
         iconColor: '#ff6f22',
         iconHighlighted: cap.isHeating.value,
-        onIconClick: () => {
-          // Opens modal - handled by component
+        onIconClick: ({ openModal, closeModal }) => {
+          openModal(
+            <ThermostatModal device={device} capability={cap} closeModal={closeModal} />
+          );
         },
       },
       {
@@ -176,7 +230,7 @@ const registry: CapabilityUIRegistry = {
 
   LOCK: {
     priority: 35,
-    getCapabilityMetrics: (cap) => [
+    getCapabilityMetrics: (cap, device) => [
       {
         icon: cap.isLocked.value ? faDoorClosed : faDoorOpen,
         title: 'Lock',
@@ -185,8 +239,9 @@ const registry: CapabilityUIRegistry = {
         lastReported: cap.isLocked.lastReported,
         iconColor: '#04A7F4',
         iconHighlighted: !cap.isLocked.value,
-        onIconClick: () => {
-          // Toggle will be handled by the component
+        onIconClick: async ({ queryClient }) => {
+          const data = await updateLock(device.id, { isLocked: !cap.isLocked.value });
+          updateDeviceCache(queryClient, device.id, data);
         },
       },
     ],
