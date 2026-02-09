@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import { NativeSelect } from '@mantine/core';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faLightbulb,
@@ -74,6 +75,16 @@ function updateDeviceCache(queryClient: QueryClient, deviceId: number, data: Dev
 }
 
 // ============================================================================
+// Metric Display Context
+// ============================================================================
+
+type MetricDisplayVariant = 'compact' | 'full';
+
+const MetricDisplayContext = React.createContext<MetricDisplayVariant>('compact');
+
+export const MetricDisplayProvider = MetricDisplayContext.Provider;
+
+// ============================================================================
 // Interactive Controls
 // ============================================================================
 
@@ -81,32 +92,34 @@ type LightCapability = Extract<CapabilityApiResponse, { type: 'LIGHT' }>;
 
 function BrightnessControl({ device, capability }: { device: RestDeviceResponse; capability: LightCapability }) {
   const queryClient = useQueryClient();
+  const variant = React.useContext(MetricDisplayContext);
   const brightness = capability.brightness.value;
-  const options: ReactNode[] = [];
 
-  let selectedValue: number | undefined;
+  const data: { value: string; label: string }[] = [];
+  let selectedValue: string | undefined;
 
   for (let i = 0; i <= 100; i += 5) {
     const shouldSelect = i === brightness || (brightness < i && selectedValue === undefined);
 
     if (shouldSelect) {
-      selectedValue = i;
+      selectedValue = String(i);
     }
 
-    options.push(<option key={i} value={i}>{i}%</option>);
+    data.push({ value: String(i), label: `${i}%` });
   }
 
   return (
-    <select
-      onChange={async (e) => {
-        e.preventDefault();
-        const data = await updateLight(device.id, { brightness: Number(e.target.value) });
-        updateDeviceCache(queryClient, device.id, data);
-      }}
+    <NativeSelect
+      data={data}
       defaultValue={selectedValue}
-    >
-      {options}
-    </select>
+      onChange={async (e) => {
+        const result = await updateLight(device.id, { brightness: Number(e.target.value) });
+        updateDeviceCache(queryClient, device.id, result);
+      }}
+      size={variant === 'compact' ? 'xs' : 'xl'}
+      w="fit-content"
+      display={variant === 'compact' ? 'inline-block' : 'block'}
+    />
   );
 }
 

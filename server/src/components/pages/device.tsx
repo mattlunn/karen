@@ -12,7 +12,7 @@ import PageLoader from '../page-loader';
 import { StatusItem } from '../status-item';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
-import { getDeviceMetrics, getDeviceGraphs } from '../capabilities/registry';
+import { getDeviceMetrics, getDeviceGraphs, MetricDisplayProvider } from '../capabilities/registry';
 
 export default function Device({ match: { params: { id }}} : RouteComponentProps<{ id: string }>) {
   const { loading, data } = useApiCall<DeviceApiResponse>(`/device/${id}`);
@@ -32,20 +32,22 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
       <DateRangeProvider>
         <Grid>
           <Grid.Col span={{ base: 12, sm: 8 }}>
-            <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }}>
-              {metrics.map((metric, idx) => (
-                <StatusItem
-                  key={idx}
-                  icon={metric.icon}
-                  title={metric.title}
-                  value={metric.value}
-                  since={metric.since}
-                  lastReported={metric.lastReported}
-                  iconColor={metric.iconColor}
-                  onIconClick={metric.onIconClick}
-                />
-              ))}
-            </SimpleGrid>
+            <MetricDisplayProvider value="full">
+              <SimpleGrid cols={{ base: 1, xs: 2, md: 3 }}>
+                {metrics.map((metric, idx) => (
+                  <StatusItem
+                    key={idx}
+                    icon={metric.icon}
+                    title={metric.title}
+                    value={metric.value}
+                    since={metric.since}
+                    lastReported={metric.lastReported}
+                    iconColor={metric.iconColor}
+                    onIconClick={metric.onIconClick}
+                  />
+                ))}
+              </SimpleGrid>
+            </MetricDisplayProvider>
           </Grid.Col>
           <Grid.Col span={{ base: 12, sm: 4 }}>
             <Paper className={styles.info} withBorder p="md" radius="md">

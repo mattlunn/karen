@@ -74,7 +74,7 @@ export function StatusItem({ icon, title, value, since, lastReported, iconColor,
         />
       </Group>
 
-      <Group align="flex-end" gap="xs" mt={25}>
+      <Group align="flex-end" gap="xs" mt={typeof value === 'string' ? 25 : 0}>
         <Text className={styles.value}>{value}</Text>
       </Group>
 
