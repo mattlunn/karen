@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Group, Paper, Text } from '@mantine/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { IconDefinition } from '@fortawesome/free-solid-svg-icons';
@@ -21,20 +21,20 @@ function formatTimestamp(start: string, lastReported: string): string {
 interface StatusItemProps {
   icon: IconDefinition;
   title: string;
-  value: string;
+  value: ReactNode;
   since: string;
   lastReported: string;
-  color?: string;
+  iconColor?: string;
 }
 
-export function StatusItem({ icon, title, value, since, lastReported, color }: StatusItemProps) {
+export function StatusItem({ icon, title, value, since, lastReported, iconColor }: StatusItemProps) {
   return (
     <Paper withBorder p="md" radius="md">
       <Group justify="space-between">
         <Text size="xs" c="dimmed" className={styles.title}>
           {title}
         </Text>
-        <FontAwesomeIcon icon={icon} color={color || 'light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3))'} className={styles.icon} />
+        <FontAwesomeIcon icon={icon} color={iconColor || 'light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3))'} className={styles.icon} />
       </Group>
 
       <Group align="flex-end" gap="xs" mt={25}>

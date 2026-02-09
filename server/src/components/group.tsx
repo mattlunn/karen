@@ -4,14 +4,15 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import DeviceControl from './device-control';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import type { IconName } from '@fortawesome/fontawesome-svg-core';
-import { faCouch, faHouseFire, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faBed, faToiletPaper, faPlug, faPersonWalking, faVideo, faDroplet, faToggleOff, faFire, faDoorClosed, faDoorOpen, faShop, faTree } from '@fortawesome/free-solid-svg-icons';
+import { faCouch, faHouseFire, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faBed, faToiletPaper, faDoorClosed, faDoorOpen, faShop, faTree } from '@fortawesome/free-solid-svg-icons';
 import Light from './devices/light';
 import Lock from './devices/lock';
 import Thermostat from './devices/thermostat';
 import type { RestDeviceResponse, CapabilityApiResponse } from '../api/types';
 import styles from './groups.module.css';
+import { getDeviceIcon, getDeviceMetrics } from './capabilities/registry';
 
-library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faPlug, faComputer, faHouseFire, faDoorClosed, faDoorOpen, faShop, faTree);
+library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faComputer, faHouseFire, faDoorClosed, faDoorOpen, faShop, faTree);
 
 interface CapabilityCreator {
   predicate: (cap: CapabilityApiResponse) => boolean;
@@ -42,18 +43,17 @@ function buildDeviceControlForDevice(device: RestDeviceResponse) {
       creator: (device, capability) => <Light device={device} capability={capability as Extract<CapabilityApiResponse, { type: 'LIGHT' }>} />,
     },
     {
-      predicate: (x) => x.type === 'CAMERA',
-      creator: (device) => (
-        <DeviceControl device={device} icon={faVideo} color="#04A7F4" colorIconBackground={false} values={[]} />
-      ),
+      predicate: (x) => x.type === 'LOCK',
+      creator: (device, capability) => <Lock device={device} capability={capability as Extract<CapabilityApiResponse, { type: 'LOCK' }>} />,
     },
     {
       predicate: (x) => x.type === 'HUMIDITY_SENSOR',
       creator: (device, capability) => {
         const humidityCap = capability as Extract<CapabilityApiResponse, { type: 'HUMIDITY_SENSOR' }>;
         const tempCap = device.capabilities.find((x) => x.type === 'TEMPERATURE_SENSOR');
+        const metrics = getDeviceMetrics(device);
         return (
-          <DeviceControl device={device} icon={faDroplet} color="#04A7F4" colorIconBackground={false} values={[
+          <DeviceControl device={device} icon={getDeviceIcon(device)} color={metrics[0]?.iconColor ?? '#04A7F4'} colorIconBackground={metrics[0]?.iconHighlighted ?? false} values={[
             `${humidityCap.humidity.value}%`,
             `${tempCap && 'currentTemperature' in tempCap ? tempCap.currentTemperature.value.toFixed(1) : '?'}°`
           ]} />
@@ -61,24 +61,12 @@ function buildDeviceControlForDevice(device: RestDeviceResponse) {
       },
     },
     {
-      predicate: (x) => x.type === 'SWITCH',
-      creator: (device, capability) => {
-        const switchCap = capability as Extract<CapabilityApiResponse, { type: 'SWITCH' }>;
-        return (
-          <DeviceControl device={device} icon={faToggleOff} color="#04A7F4" colorIconBackground={switchCap.isOn.value} values={[]} />
-        );
-      },
-    },
-    {
-      predicate: (x) => x.type === 'LOCK',
-      creator: (device, capability) => <Lock device={device} capability={capability as Extract<CapabilityApiResponse, { type: 'LOCK' }>} />,
-    },
-    {
       predicate: (x) => x.type === 'HEAT_PUMP',
       creator: (device, capability) => {
         const heatPumpCap = capability as Extract<CapabilityApiResponse, { type: 'HEAT_PUMP' }>;
+        const metrics = getDeviceMetrics(device);
         return (
-          <DeviceControl device={device} icon={faFire} color="#04A7F4" colorIconBackground={heatPumpCap.mode.value !== 'STANDBY'} values={[
+          <DeviceControl device={device} icon={getDeviceIcon(device)} color={metrics[0]?.iconColor ?? '#04A7F4'} colorIconBackground={metrics[0]?.iconHighlighted ?? false} values={[
             `${heatPumpCap.mode.value[0]}${heatPumpCap.mode.value.slice(1).toLowerCase()}`,
             `${heatPumpCap.dayPower.value}kW`,
             `${heatPumpCap.heatingCoP.value} CoP`,
@@ -89,29 +77,13 @@ function buildDeviceControlForDevice(device: RestDeviceResponse) {
     },
   /* eslint-enable react/display-name */
   ], (device) => {
-    const motionSensor = device.capabilities.find((x) => x.type === 'MOTION_SENSOR');
-
-    let icon;
-    let colorIconBackground;
-
-    if (!motionSensor || motionSensor.type !== 'MOTION_SENSOR') {
-      icon = faPlug;
-      colorIconBackground = false;
-    } else {
-      icon = faPersonWalking;
-      colorIconBackground = motionSensor.hasMotion.value;
-    }
+    const metrics = getDeviceMetrics(device);
+    const icon = getDeviceIcon(device);
+    const colorIconBackground = metrics[0]?.iconHighlighted ?? false;
 
     return (
-      <DeviceControl device={device} icon={icon} color="#04A7F4" colorIconBackground={colorIconBackground} values={
-        device.capabilities.map((capability) => {
-          switch (capability.type) {
-            case 'TEMPERATURE_SENSOR':
-              return `${capability.currentTemperature.value.toFixed(1)}°`;
-            case 'LIGHT_SENSOR':
-              return `${capability.illuminance.value}lx`;
-          }
-        }).filter((x): x is string => x !== undefined)
+      <DeviceControl device={device} icon={icon} color={metrics[0]?.iconColor ?? '#04A7F4'} colorIconBackground={colorIconBackground} values={
+        metrics.slice(0, 2).map((m) => String(m.value))
       } />
     );
   });

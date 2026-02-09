@@ -8,7 +8,7 @@ import useApiCall from '../../hooks/api';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 import IssuesIndicator from '../issues-indicator';
-import { getDeviceIcon } from '../capabilities/icons';
+import { getDeviceIcon } from '../capabilities/registry';
 import type { DevicesApiResponse, BrokenDeviceResponse, RestDeviceResponse } from '../../api/types';
 
 function formatLastSeen(lastSeen: string): string {
@@ -35,7 +35,7 @@ function DevicesTable({ devices }: { devices: RestDeviceResponse[] }) {
           <Table.Tr key={device.id}>
             <Table.Td>
               <Anchor component={Link} to={`/device/${device.id}`}>
-                <FontAwesomeIcon icon={getDeviceIcon(device.capabilities)} />
+                <FontAwesomeIcon icon={getDeviceIcon(device)} />
               </Anchor>
             </Table.Td>
             <Table.Td>
