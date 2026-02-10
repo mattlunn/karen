@@ -9,7 +9,7 @@ Karen is a full-stack TypeScript/Node.js smart home automation platform with:
 - **Frontend**: React 18 SPA
 - **Database**: MySQL with Sequelize ORM
 - **Real-time**: SSE (Server-Sent Events) for live device updates
-- **Integrations**: Alexa, Z-Wave, Tado, Shelly, TP-Link, UniFi, Synology, HomeConnect, eBUSd
+- **Integrations**: Alexa, Z-Wave, Tado, Shelly, TP-Link, UniFi, Synology, HomeConnect, eBUSd, Car (SmartCar)
 
 ## Development Commands
 
@@ -141,7 +141,15 @@ Device.registerProvider('providerName', {
 
 **Capability Codegen**: Capability classes are auto-generated from `capabilities.json` via Handlebars templates (`codegen/templates/capabilities.ts.hbs`) into `models/capabilities/capabilities.gen.ts`. Run `npm run codegen` after changing `capabilities.json` or the template. Do not hand-edit `capabilities.gen.ts`.
 
+**Available Capabilities**: Light, Lock, Thermostat, Switch, Camera, Speaker, BatteryLevelIndicator, BatteryLowIndicator, HeatPump, HumiditySensor, TemperatureSensor, LightSensor, MotionSensor, ElectricVehicle.
+
 **Event Time-Series Model**: The `events` table is used for both real-time state tracking and daily aggregates. Key fields: `start` (when the value began), `end` (when it was superseded, null if current), `lastReported` (timestamp of the last observation that confirmed this value). The helpers `setNumericProperty` and `setBooleanProperty` (`models/capabilities/helpers/index.ts`) manage event lifecycle — notably, when a new observation has the same value as the current event, no new row is created; only `lastReported` is updated.
+
+**Weekly/Daily Aggregation Pattern**: For aggregating time-series data over periods (e.g., weekly mileage for ElectricVehicle, daily metrics for HeatPump), follow the pattern in `services/ebusd/history.ts` and `services/car/mileage.ts`:
+- Calculate aggregates periodically (e.g., every 15 minutes)
+- Store using the start of the period as the timestamp (e.g., Monday 00:00 for weekly data)
+- Use the same timestamp to update existing events rather than creating duplicates
+- Fill historical gaps by querying the last stored period and calculating forward
 
 **Event-Driven Updates**: Device changes emit events via `DeviceCapabilityEvents`, which trigger SSE (Server-Sent Events) for real-time UI updates.
 

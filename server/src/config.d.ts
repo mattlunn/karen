@@ -79,6 +79,16 @@ declare namespace _default {
     const secret: string;
     const access_token: string;
   }
+  export namespace smartcar {
+    const application_id: string;
+    const client_id: string;
+    const client_secret: string;
+    let refresh_token: string;
+    const vehicle_id: string;
+    const application_management_token: string;
+    const secret: string;
+    const default_charge_limit: number;
+  }
   const port: number;
   const trust_proxy: boolean;
   const days_to_keep_recordings_while_home: number;

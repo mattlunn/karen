@@ -294,4 +294,38 @@
 }, {
   "name": "Camera",
   "properties": []
+}, {
+  "name": "ElectricVehicle",
+  "properties": [
+    {
+      "name": "ChargePercentage",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "charge_percentage"
+    },
+    {
+      "name": "IsCharging",
+      "isWriteable": true,
+      "type": "boolean",
+      "eventName": "is_charging"
+    },
+    {
+      "name": "ChargeLimit",
+      "isWriteable": true,
+      "type": "number",
+      "eventName": "charge_limit"
+    },
+    {
+      "name": "Odometer",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "odometer"
+    },
+    {
+      "name": "WeeklyMileage",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "weekly_mileage"
+    }
+  ]
 }]
