@@ -3,7 +3,7 @@ import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';
-import { ensureHistoricalMileage, storeCurrentWeekRunningMileage } from './mileage';
+import { ensureHistoricalMileage, storeWeeklyMileage } from './mileage';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
 
@@ -42,7 +42,7 @@ Device.registerProvider('vehicle', {
 
     device.manufacturer = attributes.make;
     device.model = `${attributes.model} (${attributes.year})`;
-    
+
     await device.save();
   }
 });
@@ -93,17 +93,14 @@ async function estimateChargeRate(device: Device): Promise<number> {
   return percentageGained / hoursCharging;
 }
 
-/**
- * Charge scheduling check - runs every 15 minutes
- */
-async function checkChargeSchedule(): Promise<void> {
+// Run charge schedule check and mileage update every 15 minutes
+nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async () => {
   const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
   const ev = device.getElectricVehicleCapability();
-
   const schedule = device.meta.chargeSchedule as { targetPercentage: number; targetTime: string } | undefined;
 
   if (!schedule) {
-    return; // No schedule
+    return;
   }
 
   const targetTime = dayjs(schedule.targetTime);
@@ -113,59 +110,38 @@ async function checkChargeSchedule(): Promise<void> {
   if (now.isAfter(targetTime)) {
     logger.info('Charge schedule target time passed, resetting charge limit');
     device.meta.chargeSchedule = undefined;
+
     await device.save();
     await ev.setChargeLimit(config.smartcar.default_charge_limit);
+
     return;
   }
 
-  // Get current charge percentage
   const currentPercentage = await ev.getChargePercentage();
 
-  // If already at or above target, nothing to do
   if (currentPercentage >= schedule.targetPercentage) {
     return;
   }
 
-  // Check if already charging
-  const isCharging = await ev.getIsCharging();
-  if (isCharging) {
-    return; // Already charging
-  }
-
-  // Estimate charge rate
   const chargeRate = await estimateChargeRate(device);
-
-  // Calculate how long we need to charge
   const percentageNeeded = schedule.targetPercentage - currentPercentage;
   const hoursNeeded = percentageNeeded / chargeRate;
-
-  // Calculate when we should start
   const startTime = targetTime.subtract(hoursNeeded, 'hour');
 
-  // If it's time to start, begin charging
-  if (now.isAfter(startTime) || now.isSame(startTime)) {
+  if (now.isSameOrAfter(startTime)) {
     logger.info(`Starting charge to reach ${schedule.targetPercentage}% by ${targetTime.format('HH:mm')}`);
+
     await ev.setChargeLimit(schedule.targetPercentage);
     await ev.setIsCharging(true);
   }
-}
-
-/**
- * Weekly mileage calculation - runs every 15 minutes
- */
-async function updateWeeklyMileage(): Promise<void> {
-  const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
-  const capability = device.getElectricVehicleCapability();
-
-  await ensureHistoricalMileage(device, capability);
-  await storeCurrentWeekRunningMileage(capability);
-}
-
-// Run charge schedule check and mileage update every 15 minutes
-nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async () => {
-  await checkChargeSchedule();
 }), 15 * 60 * 1000);
 
 nowAndSetInterval(createBackgroundTransaction('vehicle:weekly-mileage', async () => {
-  await updateWeeklyMileage();
+  const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
+  const capability = device.getElectricVehicleCapability();
+  const startOfWeek = dayjs().startOf('week').toDate();
+  const now = new Date();
+
+  await ensureHistoricalMileage(device, capability);
+  await storeWeeklyMileage(capability, startOfWeek, now);
 }), 15 * 60 * 1000);
