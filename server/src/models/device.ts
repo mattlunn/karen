@@ -252,7 +252,7 @@ export default function (sequelize: Sequelize) {
     },
 
     createdAt: {
-      type: DataTypes.STRING,
+      type: DataTypes.DATE,
       allowNull: false
     },
 

@@ -61,10 +61,12 @@ declare module 'smartcar' {
   }
 
   export function hashChallenge(token: string, challenge: string): string;
+  export function verifyPayload(amt: string, signature: string, body: unknown): boolean;
 
   export default {
     AuthClient,
     Vehicle,
     hashChallenge,
+    verifyPayload,
   };
 }

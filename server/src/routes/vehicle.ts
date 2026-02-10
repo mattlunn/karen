@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request } from 'express';
 import smartcar from 'smartcar';
 import config from '../config';
 import asyncWrapper from '../helpers/express-async-wrapper';
@@ -7,36 +7,23 @@ import logger from '../logger';
 import { saveConfig } from '../helpers/config';
 
 const router = express.Router();
-
-// Secret-based authentication for all vehicle routes
-router.use((req, res, next) => {
-  if (req.query.secret !== config.smartcar.secret) {
-    return res.sendStatus(401).end();
-  }
-  next();
-});
-
-// Create SmartCar subrouter
 const smartcarRouter = express.Router();
 
-/**
- * Helper function to create AuthClient with redirect URI inferred from request
- */
-function createAuthClient(req: express.Request) {
-  const redirectUri = `${req.protocol}://${req.get('host')}/vehicle/smartcar/callback`;
+function createAuthClient(req: Request) {
   return new smartcar.AuthClient({
     clientId: config.smartcar.client_id,
     clientSecret: config.smartcar.client_secret,
-    redirectUri,
+    redirectUri: `${req.protocol}://${req.get('host')}/vehicle/smartcar/callback`,
     mode: 'live',
   });
 }
 
-// OAuth Login Flow
 smartcarRouter.get('/login', (req, res) => {
-  const client = createAuthClient(req);
-  const authUrl = client.getAuthUrl();
-  res.redirect(authUrl);
+  if (req.query.secret !== config.smartcar.secret) {
+    return res.sendStatus(401).end();
+  }
+
+  res.redirect(createAuthClient(req).getAuthUrl());
 });
 
 // OAuth Callback Handler
@@ -78,7 +65,21 @@ smartcarRouter.get('/callback', asyncWrapper(async (req, res) => {
 
 // Webhook endpoint (moved from /webhook to /smartcar/webhook)
 smartcarRouter.post('/webhook', asyncWrapper(async (req, res) => {
+  const signature = req.headers['sc-signature'] as string;
+
+  if (!signature || !smartcar.verifyPayload(
+    config.smartcar.application_management_token,
+    signature,
+    req.body
+  )) {
+    logger.warn('SmartCar webhook signature verification failed');
+    return res.status(401).json({ error: 'Invalid signature' });
+  }
+
   const { eventType } = req.body;
+
+  logger.debug('Received /vehicle/smartcar/webhook request');
+  logger.debug(JSON.stringify(req.body));
 
   // Handle webhook verification challenge
   if (eventType === 'VERIFY') {
@@ -100,45 +101,34 @@ smartcarRouter.post('/webhook', asyncWrapper(async (req, res) => {
     const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
     const ev = device.getElectricVehicleCapability();
 
-    const vehicles = req.body.vehicles || [];
-    for (const vehicleData of vehicles) {
-      if (vehicleData.id !== config.smartcar.vehicle_id) {
-        continue; // Not our vehicle
-      }
+    for (const signal of req.body.data.signals) {
+      try {
+        switch (signal.code) {
+          case 'tractionbattery-stateofcharge':
+            await ev.setChargePercentageState(signal.body.value);
+            break;
+          case 'charge-ischarging':
+            await ev.setIsChargingState(signal.body.value);
+            break;
+          case 'odometer-traveleddistance':
+            await ev.setOdometerState(signal.body.value * 0.621371);
+            break;
+          case 'charge-amperagemax': {
+            const values = signal.body.values;
+            
+            if (!Array.isArray(values) || values.length !== 1) {
+              throw new Error(`Expected exactly 1 charge limit value, got ${values?.length}`);
+            }
 
-      const changes = vehicleData.changes || [];
-      for (const change of changes) {
-        const changeType = change.type;
-        const data = change.data;
-
-        try {
-          if (changeType === 'BATTERY' && data) {
-            // Battery percentage change
-            if (typeof data.percentRemaining === 'number') {
-              await ev.setChargePercentageState(data.percentRemaining * 100);
-            }
-          } else if (changeType === 'CHARGE' && data) {
-            // Charge status change
-            if (typeof data.isCharging === 'boolean') {
-              await ev.setIsChargingState(data.isCharging);
-            }
-            if (data.state) {
-              await ev.setIsChargingState(data.state === 'CHARGING');
-            }
-          } else if (changeType === 'ODOMETER' && data) {
-            // Odometer change (km to miles)
-            if (typeof data.distance === 'number') {
-              await ev.setOdometerState(data.distance * 0.621371);
-            }
-          } else if (changeType === 'CHARGE_LIMIT' && data) {
-            // Charge limit change
-            if (typeof data.limit === 'number') {
-              await ev.setChargeLimitState(data.limit * 100);
-            }
+            await ev.setChargeLimitState(values[0].limit);
+            break;
           }
-        } catch (error) {
-          logger.error(error, `Error processing webhook change type ${changeType}`);
+          default:
+            logger.debug({ code: signal.code }, 'Unrecognized webhook signal code');
+            break;
         }
+      } catch (error) {
+        logger.error(error, `Error processing webhook signal ${signal.code}`);
       }
     }
 
