@@ -49,6 +49,7 @@
     "request-promise-native": "^1.0.9",
     "reselect": "^3.0.1",
     "sequelize": "^6.25.8",
+    "smartcar": "^10.4.0",
     "suncalc": "^1.8.0",
     "tplink-smarthome-api": "^5.0.0",
     "twilio": "^5.2.2",

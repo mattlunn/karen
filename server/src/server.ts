@@ -11,6 +11,7 @@ import synologyRoutes from './routes/synology';
 import homeConnectRoutes from './routes/homeconnect';
 import shellyRoutes from './routes/shelly';
 import tadoRoutes from './routes/tado';
+import vehicleRoutes from './routes/vehicle';
 import auth from './middleware/auth';
 import { Device } from './models';
 import bodyParser from 'body-parser';
@@ -30,6 +31,7 @@ require('./services/pushover');
 require('./services/shelly');
 require('./services/ebusd');
 require('./services/homeconnect');
+require('./services/vehicle');
 
 require('./automations');
 
@@ -52,6 +54,7 @@ app.use('/synology', synologyRoutes);
 app.use('/shelly', shellyRoutes);
 app.use('/homeconnect', homeConnectRoutes);
 app.use('/tado', tadoRoutes);
+app.use('/vehicle', vehicleRoutes);
 app.use('/', express.static(__dirname + '/static'));
 
 app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
