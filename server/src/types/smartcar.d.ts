@@ -4,9 +4,21 @@ declare module 'smartcar' {
       clientId: string;
       clientSecret: string;
       redirectUri: string;
+      mode?: 'test' | 'live';
     });
 
     exchangeRefreshToken(refreshToken: string): Promise<{
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+    }>;
+
+    getAuthUrl(options?: {
+      state?: string;
+      forcePrompt?: boolean;
+    }): string;
+
+    exchangeCode(code: string): Promise<{
       accessToken: string;
       refreshToken: string;
       expiresIn: number;

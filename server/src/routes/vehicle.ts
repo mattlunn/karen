@@ -4,10 +4,11 @@ import config from '../config';
 import asyncWrapper from '../helpers/express-async-wrapper';
 import { Device } from '../models';
 import logger from '../logger';
+import { saveConfig } from '../helpers/config';
 
 const router = express.Router();
 
-// Secret-based authentication for webhook
+// Secret-based authentication for all vehicle routes
 router.use((req, res, next) => {
   if (req.query.secret !== config.smartcar.secret) {
     return res.sendStatus(401).end();
@@ -15,7 +16,68 @@ router.use((req, res, next) => {
   next();
 });
 
-router.post('/webhook', asyncWrapper(async (req, res) => {
+// Create SmartCar subrouter
+const smartcarRouter = express.Router();
+
+/**
+ * Helper function to create AuthClient with redirect URI inferred from request
+ */
+function createAuthClient(req: express.Request) {
+  const redirectUri = `${req.protocol}://${req.get('host')}/vehicle/smartcar/callback`;
+  return new smartcar.AuthClient({
+    clientId: config.smartcar.client_id,
+    clientSecret: config.smartcar.client_secret,
+    redirectUri,
+    mode: 'live',
+  });
+}
+
+// OAuth Login Flow
+smartcarRouter.get('/login', (req, res) => {
+  const client = createAuthClient(req);
+  const authUrl = client.getAuthUrl();
+  res.redirect(authUrl);
+});
+
+// OAuth Callback Handler
+smartcarRouter.get('/callback', asyncWrapper(async (req, res) => {
+  // Handle authorization errors
+  if (req.query.error) {
+    logger.error({ error: req.query.error }, 'SmartCar OAuth authorization denied');
+    return res.status(400).send(`Authorization failed: ${req.query.error}`);
+  }
+
+  const code = req.query.code as string;
+  if (!code) {
+    return res.status(400).send('Missing authorization code');
+  }
+
+  try {
+    // Create auth client with same redirect URI
+    const client = createAuthClient(req);
+
+    // Exchange code for tokens
+    const tokens = await client.exchangeCode(code);
+
+    // Store refresh token in config
+    config.smartcar.refresh_token = tokens.refreshToken;
+    saveConfig();
+
+    logger.info('SmartCar OAuth successful - refresh token saved');
+
+    res.send(`
+      <h1>SmartCar Authorization Successful!</h1>
+      <p>Refresh token has been saved to config.json</p>
+      <p>You can close this window.</p>
+    `);
+  } catch (error) {
+    logger.error(error, 'SmartCar OAuth callback error');
+    res.status(500).send('Authorization failed. Check server logs.');
+  }
+}));
+
+// Webhook endpoint (moved from /webhook to /smartcar/webhook)
+smartcarRouter.post('/webhook', asyncWrapper(async (req, res) => {
   const { eventType } = req.body;
 
   // Handle webhook verification challenge
@@ -93,5 +155,8 @@ router.post('/webhook', asyncWrapper(async (req, res) => {
   logger.warn({ eventType }, 'Unknown webhook event type');
   return res.sendStatus(200);
 }));
+
+// Mount SmartCar subrouter
+router.use('/smartcar', smartcarRouter);
 
 export default router;

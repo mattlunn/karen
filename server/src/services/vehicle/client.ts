@@ -38,7 +38,8 @@ async function refreshAccessToken(): Promise<string> {
   const authClient = new smartcar.AuthClient({
     clientId: config.smartcar.client_id,
     clientSecret: config.smartcar.client_secret,
-    redirectUri: '', // Not used for token refresh
+    redirectUri: 'urn:ietf:wg:oauth:2.0:oob', // Placeholder (not used for refresh token exchange)
+    mode: 'live',
   });
 
   const result = await authClient.exchangeRefreshToken(config.smartcar.refresh_token);
