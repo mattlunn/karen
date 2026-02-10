@@ -17,6 +17,7 @@ Device.registerProvider('vehicle', {
       async setChargeLimit(device: Device, value: number) {
         await client.setChargeLimit(value);
       },
+
       async setIsCharging(device: Device, value: boolean) {
         if (value) {
           await client.startCharge();
@@ -28,8 +29,8 @@ Device.registerProvider('vehicle', {
   },
 
   async synchronize() {
-    const attributes = await client.getVehicleAttributes();
     let device = await Device.findByProviderId('vehicle', config.smartcar.vehicle_id);
+    const attributes = await client.getVehicleAttributes();
 
     if (!device) {
       device = Device.build({
@@ -41,27 +42,8 @@ Device.registerProvider('vehicle', {
 
     device.manufacturer = attributes.make;
     device.model = `${attributes.model} (${attributes.year})`;
+    
     await device.save();
-
-    // Fetch initial state to seed the database
-    try {
-      const ev = device.getElectricVehicleCapability();
-      const [battery, chargeStatus, odometer, chargeLimit] = await Promise.all([
-        client.getBattery(),
-        client.getChargeStatus(),
-        client.getOdometer(),
-        client.getChargeLimit()
-      ]);
-
-      await Promise.all([
-        ev.setChargePercentageState(battery.percentRemaining),
-        ev.setIsChargingState(chargeStatus.state === 'CHARGING'),
-        ev.setChargeLimitState(chargeLimit),
-        ev.setOdometerState(odometer)
-      ]);
-    } catch (error) {
-      logger.error(error, 'Failed to fetch initial vehicle state');
-    }
   }
 });
 
@@ -181,17 +163,9 @@ async function updateWeeklyMileage(): Promise<void> {
 
 // Run charge schedule check and mileage update every 15 minutes
 nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async () => {
-  try {
-    await checkChargeSchedule();
-  } catch (error) {
-    logger.error(error, 'Error checking charge schedule');
-  }
+  await checkChargeSchedule();
 }), 15 * 60 * 1000);
 
 nowAndSetInterval(createBackgroundTransaction('vehicle:weekly-mileage', async () => {
-  try {
-    await updateWeeklyMileage();
-  } catch (error) {
-    logger.error(error, 'Error updating weekly mileage');
-  }
+  await updateWeeklyMileage();
 }), 15 * 60 * 1000);
