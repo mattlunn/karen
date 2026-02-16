@@ -13,7 +13,7 @@
   "devDependencies": {
     "@tsconfig/node14": "^1.0.0",
     "@types/aws-lambda": "^8.10.160",
-    "@types/node": "^14.14.35",
+    "@types/node": "^25.2.3",
     "typescript": "^5.9.3"
   }
 }
