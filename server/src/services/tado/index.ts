@@ -1,6 +1,6 @@
 import { Device } from '../../models';
 import { ScheduledChange } from '../../models/capabilities';
-import TadoClient, { TadoClientError, ZoneOverlayResponse, exchangeRefreshTokenForAccessToken } from './client';
+import TadoClient, { TadoClientError, ZoneOverlayResponse, ZoneState, ZoneTimetableBlock, ZonesState, exchangeRefreshTokenForAccessToken } from './client';
 import config from '../../config';
 import { saveConfig } from '../../helpers/config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
@@ -8,6 +8,20 @@ import dayjs from '../../dayjs';
 import getTimetabledTemperature from './helpers/get-timetabled-temperature';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import logger from '../../logger';
+import setIntervalForTime from '../../helpers/set-interval-for-time';
+
+const nextScheduledChangeCache = new Map<string, ZoneState['nextScheduleChange']>();
+const deviceTimetableCache = new Map<string, ZoneTimetableBlock[]>();
+
+setIntervalForTime(() => {
+  deviceTimetableCache.clear();
+
+  for (const [key, value] of nextScheduledChangeCache) {
+    if (value === null) {
+      nextScheduledChangeCache.delete(key);
+    }
+  }
+}, '00:00');
 
 const getAccessToken = (() => {
   let token: { accessToken: string, expiresAt: number } | null = null;
@@ -86,14 +100,21 @@ Device.registerProvider('tado', {
       },
 
       async getNextScheduledChange(device: Device): Promise<ScheduledChange | null> {
-        const client = new TadoClient(await getAccessToken(), config.tado.home_id);
-        const zonesState = await client.getZonesState();
-        const zoneState = zonesState[Number(device.providerId)];
+        let nextScheduleChange = nextScheduledChangeCache.get(device.providerId);
 
-        if (zoneState.nextScheduleChange?.setting.power === 'ON') {
+        if (nextScheduleChange === undefined || (nextScheduleChange && nextScheduleChange.start < new Date().toISOString())) {
+          const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+          const zonesState = await client.getZonesState();
+          const zoneState = zonesState[Number(device.providerId)];
+
+          nextScheduleChange = zoneState.nextScheduleChange;
+          nextScheduledChangeCache.set(device.providerId, nextScheduleChange);
+        }
+
+        if (nextScheduleChange?.setting.power === 'ON') {
           return {
-            timestamp: new Date(zoneState.nextScheduleChange.start),
-            temperature: zoneState.nextScheduleChange.setting.temperature.celsius
+            timestamp: new Date(nextScheduleChange.start),
+            temperature: nextScheduleChange.setting.temperature.celsius
           };
         }
 
@@ -101,9 +122,15 @@ Device.registerProvider('tado', {
       },
 
       async getScheduledTemperatureAtTime(device: Device, timestamp: Date): Promise<number | null> {
-        const client = new TadoClient(await getAccessToken(), config.tado.home_id);
-        const activeTimetableId = await client.getActiveTimetableId(device.providerId);
-        const timetableBlocks = await client.getTimetableBlocks(device.providerId, activeTimetableId);
+        let timetableBlocks = deviceTimetableCache.get(device.providerId);
+
+        if (timetableBlocks === undefined) { 
+          const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+          const activeTimetableId = await client.getActiveTimetableId(device.providerId);
+          
+          timetableBlocks = await client.getTimetableBlocks(device.providerId, activeTimetableId);
+          deviceTimetableCache.set(device.providerId, timetableBlocks);
+        }
 
         return getTimetabledTemperature(timetableBlocks, dayjs(timestamp));
       }
