@@ -5,6 +5,7 @@ import asyncWrapper from '../helpers/express-async-wrapper';
 import { Device } from '../models';
 import logger from '../logger';
 import { saveConfig } from '../helpers/config';
+import { processSignal } from '../services/vehicle/signals';
 
 const router = express.Router();
 const smartcarRouter = express.Router();
@@ -103,30 +104,7 @@ smartcarRouter.post('/webhook', asyncWrapper(async (req, res) => {
 
     for (const signal of req.body.data.signals) {
       try {
-        switch (signal.code) {
-          case 'tractionbattery-stateofcharge':
-            await ev.setChargePercentageState(signal.body.value);
-            break;
-          case 'charge-ischarging':
-            await ev.setIsChargingState(signal.body.value);
-            break;
-          case 'odometer-traveleddistance':
-            await ev.setOdometerState(signal.body.value * 0.621371);
-            break;
-          case 'charge-amperagemax': {
-            const values = signal.body.values;
-            
-            if (!Array.isArray(values) || values.length !== 1) {
-              throw new Error(`Expected exactly 1 charge limit value, got ${values?.length}`);
-            }
-
-            await ev.setChargeLimitState(values[0].limit);
-            break;
-          }
-          default:
-            logger.debug({ code: signal.code }, 'Unrecognized webhook signal code');
-            break;
-        }
+        await processSignal(ev, signal);
       } catch (error) {
         logger.error(error, `Error processing webhook signal ${signal.code}`);
       }

@@ -3,6 +3,7 @@ import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';
+import { processSignal } from './signals';
 import { ensureHistoricalMileage, storeWeeklyMileage } from './mileage';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
@@ -44,6 +45,19 @@ Device.registerProvider('vehicle', {
     device.model = `${attributes.model} (${attributes.year})`;
 
     await device.save();
+
+    const ev = device.getElectricVehicleCapability();
+    const signals = await client.getSignals();
+
+    for (const signal of signals.body.data) {
+      try {
+        await processSignal(ev, signal.attributes);
+      } catch (error) {
+        logger.error(error, `Error processing signal ${signal.attributes.code}`);
+      }
+    }
+
+    logger.info(await client.setChargeLimit(100));
   }
 });
 

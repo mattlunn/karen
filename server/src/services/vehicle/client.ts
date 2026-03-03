@@ -2,8 +2,6 @@ import smartcar from 'smartcar';
 import config from '../../config';
 import { saveConfig } from '../../helpers/config';
 
-const KM_TO_MILES = 0.621371;
-
 type TokenCache = {
   accessToken: string;
   expiresAt: number;
@@ -77,45 +75,11 @@ export async function getVehicleAttributes(): Promise<{ id: string; make: string
 }
 
 /**
- * Get battery level and range
- * Returns percentage as 0-100 (SmartCar returns 0-1)
+ * Get signals
  */
-export async function getBattery(): Promise<{ percentRemaining: number; range: number }> {
+export async function getSignals() {
   const vehicle = await getVehicle();
-  const battery = await vehicle.battery();
-  return {
-    percentRemaining: battery.percentRemaining * 100,
-    range: battery.range * KM_TO_MILES, // Convert km to miles
-  };
-}
-
-/**
- * Get charge status
- */
-export async function getChargeStatus(): Promise<{ isPluggedIn: boolean; state: string }> {
-  const vehicle = await getVehicle();
-  const charge = await vehicle.charge();
-  return charge;
-}
-
-/**
- * Get odometer reading
- * Returns distance in miles (SmartCar returns km)
- */
-export async function getOdometer(): Promise<number> {
-  const vehicle = await getVehicle();
-  const result = await vehicle.odometer();
-  return result.distance * KM_TO_MILES;
-}
-
-/**
- * Get charge limit
- * Returns percentage as 0-100 (SmartCar returns 0-1)
- */
-export async function getChargeLimit(): Promise<number> {
-  const vehicle = await getVehicle();
-  const result = await vehicle.getChargeLimit();
-  return result.limit * 100;
+  return vehicle.getSignals();
 }
 
 /**
