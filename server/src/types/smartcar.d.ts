@@ -12,25 +12,66 @@ declare module 'smartcar' {
     | { value: 'SUCCESS' }
     | { value: 'ERROR'; error: SmartcarSignalError };
 
-  type SmartcarSignalBody =
-    | { value: string }
-    | { value: number; unit: string }
-    | { value: boolean }
-    | { isOpen: boolean; isLocked?: boolean }
-    | { values: Array<{ row: number; column: number; isOpen: boolean; isLocked?: boolean }>; rowCount: number; columnCount: number }
-    | { latitude: number; longitude: number; heading: number; locationType: string }
-    | { capacity: number; source: string; availableCapacities: Array<{ capacity: number; description: string }>; unit: string };
+  // Capable signal — vehicle supports it, but can succeed or transiently fail
+  type SmartcarSignal<
+    Code extends string,
+    Name extends string,
+    Group extends string,
+    Body
+  > =
+    | { code: Code; name: Name; group: Group; status: { value: 'SUCCESS' }; body: Body }
+    | { code: Code; name: Name; group: Group; status: { value: 'ERROR'; error: SmartcarSignalError } };
 
-  export interface SmartcarSignal {
+  // Permanently unsupported signal — always VEHICLE_NOT_CAPABLE
+  type SmartcarSignalNotCapable<
+    Code extends string,
+    Name extends string,
+    Group extends string
+  > = {
+    code: Code;
+    name: Name;
+    group: Group;
+    status: { value: 'ERROR'; error: SmartcarSignalError };
+  };
+
+  // Discriminated union of all known signal attributes
+  export type SmartcarSignalAttributes =
+    // Capable signals
+    | SmartcarSignal<'charge-detailedchargingstatus', 'DetailedChargingStatus', 'Charge', { value: string }>
+    | SmartcarSignal<'charge-ischarging', 'IsCharging', 'Charge', { value: boolean }>
+    | SmartcarSignal<'charge-ischargingcableconnected', 'IsChargingCableConnected', 'Charge', { value: boolean }>
+    | SmartcarSignal<'charge-timetocomplete', 'TimeToComplete', 'Charge', { value: number }>
+    | SmartcarSignal<'closure-doors', 'Doors', 'Closure', { values: Array<{ row: number; column: number; isOpen: boolean; isLocked?: boolean }>; rowCount: number; columnCount: number }>
+    | SmartcarSignal<'closure-enginecover', 'EngineCover', 'Closure', { isOpen: boolean }>
+    | SmartcarSignal<'closure-fronttrunk', 'FrontTrunk', 'Closure', { isOpen: boolean; isLocked?: boolean }>
+    | SmartcarSignal<'closure-islocked', 'IsLocked', 'Closure', { value: boolean }>
+    | SmartcarSignal<'closure-reartrunk', 'RearTrunk', 'Closure', { isOpen: boolean; isLocked?: boolean }>
+    | SmartcarSignal<'closure-sunroof', 'Sunroof', 'Closure', { isOpen: boolean }>
+    | SmartcarSignal<'closure-windows', 'Windows', 'Closure', { values: Array<{ row: number; column: number; isOpen: boolean }>; rowCount: number; columnCount: number }>
+    | SmartcarSignal<'internalcombustionengine-amountremaining', 'AmountRemaining', 'InternalCombustionEngine', { value: number; unit: string }>
+    | SmartcarSignal<'internalcombustionengine-fuellevel', 'FuelLevel', 'InternalCombustionEngine', { value: number; unit: string }>
+    | SmartcarSignal<'internalcombustionengine-range', 'Range', 'InternalCombustionEngine', { value: number; unit: string }>
+    | SmartcarSignal<'location-preciselocation', 'PreciseLocation', 'Location', { latitude: number; longitude: number; heading: number; locationType: string }>
+    | SmartcarSignal<'lowvoltagebattery-stateofcharge', 'StateOfCharge', 'LowVoltageBattery', { value: number; unit: string }>
+    | SmartcarSignal<'lowvoltagebattery-status', 'Status', 'LowVoltageBattery', { value: string }>
+    | SmartcarSignal<'odometer-traveleddistance', 'TraveledDistance', 'Odometer', { value: number; unit: string }>
+    | SmartcarSignal<'tractionbattery-nominalcapacity', 'NominalCapacity', 'TractionBattery', { capacity: number; source: string; availableCapacities: Array<{ capacity: number; description: string }>; unit: string }>
+    | SmartcarSignal<'tractionbattery-stateofcharge', 'StateOfCharge', 'TractionBattery', { value: number; unit: string }>
+    | SmartcarSignal<'vehicleidentification-vin', 'VIN', 'VehicleIdentification', { value: string }>
+    // Not-capable signals
+    | SmartcarSignalNotCapable<'charge-chargelimits', 'ChargeLimits', 'Charge'>
+    | SmartcarSignalNotCapable<'charge-chargetimers', 'ChargeTimers', 'Charge'>
+    | SmartcarSignalNotCapable<'charge-wattage', 'Wattage', 'Charge'>
+    | SmartcarSignalNotCapable<'tractionbattery-range', 'Range', 'TractionBattery'>
+    | SmartcarSignalNotCapable<'vehicleuseraccount-permissions', 'Permissions', 'VehicleUserAccount'>;
+
+  // Helper type: only the success variants from the union
+  export type SmartcarSuccessSignalAttributes = Extract<SmartcarSignalAttributes, { status: { value: 'SUCCESS' } }>;
+
+  export interface SmartcarSignalEntry {
     id: string;
     type: 'signal';
-    attributes: {
-      code: string;
-      name: string;
-      group: string;
-      status: SmartcarSignalStatus;
-      body?: SmartcarSignalBody;
-    };
+    attributes: SmartcarSignalAttributes;
     meta: {
       ingestedAt: string;
       retrievedAt?: string;
@@ -44,7 +85,7 @@ declare module 'smartcar' {
 
   export interface SmartcarSignalsResponse {
     body: {
-      data: SmartcarSignal[];
+      data: SmartcarSignalEntry[];
       links: {
         self: string;
       };
