@@ -7,6 +7,7 @@ import { processSignal } from './signals';
 import { ensureHistoricalMileage, storeWeeklyMileage } from './mileage';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
+import setIntervalForTime from '../../helpers/set-interval-for-time';
 
 Device.registerProvider('vehicle', {
   getCapabilities() {
@@ -58,6 +59,8 @@ Device.registerProvider('vehicle', {
       }
     }
 
+    // We can't get the charge limit from SmartCar, so just one time force to 100
+    // so we are in-sync with what's set.
     if (await ev.getChargeLimitEvent() === null) {
       await client.setChargeLimit(100);
     }
@@ -153,7 +156,7 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async (
   }
 }), 15 * 60 * 1000);
 
-nowAndSetInterval(createBackgroundTransaction('vehicle:weekly-mileage', async () => {
+setIntervalForTime(createBackgroundTransaction('vehicle:weekly-mileage', async () => {
   const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
   const capability = device.getElectricVehicleCapability();
   const startOfWeek = dayjs().startOf('week').toDate();
@@ -161,4 +164,4 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:weekly-mileage', async ()
 
   await ensureHistoricalMileage(device, capability);
   await storeWeeklyMileage(capability, startOfWeek, now);
-}), 15 * 60 * 1000);
+}), '00:00');

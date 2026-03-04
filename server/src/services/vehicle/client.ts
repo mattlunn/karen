@@ -42,11 +42,8 @@ async function refreshAccessToken(): Promise<string> {
 
   const result = await authClient.exchangeRefreshToken(config.smartcar.refresh_token);
 
-  // Update refresh token in config if it changed
-  if (result.refreshToken && result.refreshToken !== config.smartcar.refresh_token) {
-    config.smartcar.refresh_token = result.refreshToken;
-    saveConfig();
-  }
+  config.smartcar.refresh_token = result.refreshToken;
+  saveConfig();
 
   // Cache the new access token
   tokenCache = {

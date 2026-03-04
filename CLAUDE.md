@@ -9,7 +9,7 @@ Karen is a full-stack TypeScript/Node.js smart home automation platform with:
 - **Frontend**: React 18 SPA
 - **Database**: MySQL with Sequelize ORM
 - **Real-time**: SSE (Server-Sent Events) for live device updates
-- **Integrations**: Alexa, Z-Wave, Tado, Shelly, TP-Link, UniFi, Synology, HomeConnect, eBUSd, Car (SmartCar)
+- **Integrations**: Alexa, Z-Wave, Tado, Shelly, TP-Link, UniFi, Synology, HomeConnect, eBUSd, Vehicle (SmartCar)
 
 ## Development Commands
 
