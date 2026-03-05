@@ -55,32 +55,16 @@ smartcarRouter.get('/callback', asyncWrapper(async (req, res) => {
 }));
 
 smartcarRouter.post('/webhook', asyncWrapper(async (req, res) => {
-  const signature = req.headers['sc-signature'] as string;
-
   logger.debug('Received /vehicle/smartcar/webhook request');
   logger.debug(JSON.stringify(req.body));
-
-  if (!signature || !smartcar.verifyPayload(
-    config.smartcar.application_management_token,
-    signature,
-    req.body
-  )) {
-    logger.warn('SmartCar webhook signature verification failed');
-    return res.sendStatus(400);
-  }
 
   const { eventType } = req.body;
 
   // Handle webhook verification challenge
   if (eventType === 'VERIFY') {
-    const challenge = req.body.data?.challenge;
-    if (!challenge) {
-      return res.status(400).json({ error: 'Missing challenge' });
-    }
-
     const hmac = smartcar.hashChallenge(
       config.smartcar.application_management_token,
-      challenge
+      req.body.data.challenge
     );
 
     return res.json({ challenge: hmac });
@@ -88,6 +72,15 @@ smartcarRouter.post('/webhook', asyncWrapper(async (req, res) => {
 
   // Handle vehicle state changes
   if (eventType === 'VEHICLE_STATE') {
+    if (!smartcar.verifyPayload(
+      config.smartcar.application_management_token,
+      req.headers['sc-signature'] as string,
+      req.body
+    )) {
+      logger.warn('SmartCar webhook signature verification failed');
+      return res.sendStatus(400);
+    }
+
     const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
     const ev = device.getElectricVehicleCapability();
 
@@ -102,14 +95,8 @@ smartcarRouter.post('/webhook', asyncWrapper(async (req, res) => {
     return res.sendStatus(200);
   }
 
-  // Handle vehicle errors
-  if (eventType === 'VEHICLE_ERROR') {
-    logger.error(req.body, 'SmartCar webhook vehicle error');
-    return res.sendStatus(200);
-  }
+  logger.warn(`Unhandled SmartCar webhook event type: ${eventType}`);
 
-  // Unknown event type
-  logger.warn({ eventType }, 'Unknown webhook event type');
   return res.sendStatus(200);
 }));
 
