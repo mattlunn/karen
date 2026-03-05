@@ -53,6 +53,14 @@ export type CapabilityApiResponse = {
   type: 'BATTERY_LOW_INDICATOR';
   isLow: BooleanEventApiResponse;
 } | {
+  type: 'ELECTRIC_VEHICLE';
+  chargePercentage: NumericEventApiResponse;
+  isCharging: BooleanEventApiResponse;
+  isCableConnected: BooleanEventApiResponse;
+  chargeLimit: NumericEventApiResponse;
+  odometer: NumericEventApiResponse;
+  chargeSchedule: { targetPercentage: number; targetTime: string; calculatedStartTime: string | null } | null;
+} | {
   type: null;
 };
 
@@ -186,6 +194,12 @@ export interface LockUpdateRequest {
 // /api/device/:id/thermostat endpoint
 export interface ThermostatUpdateRequest {
   targetTemperature: number;
+}
+
+// /api/device/:id/vehicle endpoint
+export interface VehicleUpdateRequest {
+  chargeLimit?: number;
+  chargeSchedule?: { targetPercentage: number; targetTime: string } | null;
 }
 
 // /api/security endpoint

@@ -26,11 +26,17 @@ import {
   faThermometer2,
   faThermometer4,
   faGauge,
+  faRoad,
+  faCalendarCheck,
+  faPlug,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
 import ThermostatModal from '../modals/thermostat-modal';
+import ChargeScheduleModal from '../modals/charge-schedule-modal';
+import ChargeLimitModal from '../modals/charge-limit-modal';
 import dayjs from '../../dayjs';
+import { humanDate } from '../../helpers/date';
 import type { MetricDisplayVariant, CapabilityUIRegistry } from './types';
 
 // ============================================================================
@@ -498,5 +504,104 @@ export const registry: CapabilityUIRegistry = {
         },
       ];
     },
+  },
+
+  ELECTRIC_VEHICLE: {
+    priority: 15,
+    getCapabilityMetrics: (cap, device) => {
+      const percentage = cap.chargePercentage.value;
+      const getBatteryIcon = () => {
+        if (percentage > 75) return faBatteryFull;
+        if (percentage > 50) return faBatteryHalf;
+        if (percentage > 25) return faBatteryQuarter;
+        return faBatteryEmpty;
+      };
+      const getBatteryColor = () => {
+        if (percentage > 50) return '#2ecc71';
+        if (percentage > 25) return '#f39c12';
+        return '#e74c3c';
+      };
+
+      return [
+        {
+          icon: getBatteryIcon(),
+          title: 'Battery',
+          value: `${percentage.toFixed(0)}%`,
+          since: cap.chargePercentage.start,
+          lastReported: cap.chargePercentage.lastReported,
+          iconColor: getBatteryColor(),
+          iconHighlighted: cap.isCharging.value,
+        },
+        {
+          icon: faPlug,
+          title: 'Cable',
+          value: cap.isCableConnected.value ? 'Connected' : 'Disconnected',
+          since: cap.isCableConnected.start,
+          lastReported: cap.isCableConnected.lastReported,
+          iconColor: '#04A7F4',
+          iconHighlighted: cap.isCableConnected.value,
+        },
+        {
+          icon: faBolt,
+          title: 'Charging',
+          value: cap.isCharging.value ? 'Yes' : 'No',
+          since: cap.isCharging.start,
+          lastReported: cap.isCharging.lastReported,
+          iconColor: '#2ecc71',
+          iconHighlighted: cap.isCharging.value,
+        },
+        {
+          icon: faGauge,
+          title: 'Charge Limit',
+          value: `${cap.chargeLimit.value.toFixed(0)}%`,
+          since: cap.chargeLimit.start,
+          lastReported: cap.chargeLimit.lastReported,
+          onIconClick: ({ openModal, closeModal }) => {
+            openModal(<ChargeLimitModal device={device} capability={cap} closeModal={closeModal} />);
+          },
+        },
+        {
+          icon: faRoad,
+          title: 'Mileage',
+          value: `${Math.round(cap.odometer.value).toLocaleString()} mi`,
+          since: cap.odometer.start,
+          lastReported: cap.odometer.lastReported,
+        },
+        {
+          icon: faCalendarCheck,
+          title: 'Schedule',
+          value: cap.chargeSchedule
+            ? `${cap.chargeSchedule.targetPercentage}% by ${dayjs(cap.chargeSchedule.targetTime).format('HH:mm')}`
+            : 'No schedule',
+          footer: cap.chargeSchedule?.calculatedStartTime
+            ? `starts ${dayjs(cap.chargeSchedule.calculatedStartTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.calculatedStartTime))}`
+            : undefined,
+          iconColor: cap.chargeSchedule ? '#3498db' : undefined,
+          onIconClick: ({ openModal, closeModal }) => {
+            openModal(
+              <ChargeScheduleModal device={device} capability={cap} closeModal={closeModal} />
+            );
+          },
+        },
+      ];
+    },
+    getGraphs: () => [
+      {
+        id: 'vehicle-charge',
+        title: 'Charge & Limit',
+        yMin: 0,
+        yMax: 100,
+        overridePreset: 'custom',
+        overrideStart: dayjs().subtract(1, 'week').toISOString(),
+        overrideEnd: dayjs().toISOString(),
+      },
+      {
+        id: 'vehicle-weekly-mileage',
+        title: 'Weekly Mileage',
+        overridePreset: 'custom',
+        overrideStart: dayjs().subtract(6, 'months').startOf('week').toISOString(),
+        overrideEnd: dayjs().toISOString(),
+      },
+    ],
   },
 };

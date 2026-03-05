@@ -275,6 +275,40 @@ const historyFetchers = new Map<string, HistoryFetcher>([
           ]
         }))
     });
+  }],
+
+  // Electric Vehicle - Charge
+  ['vehicle-charge', async (device, selector) => {
+    const ev = device.getElectricVehicleCapability();
+
+    return awaitPromises({
+      lines: Promise.all([
+        mapNumericHistoryToResponse((hs) => ev.getChargePercentageHistory(hs), selector)
+          .then(data => ({ data, label: 'Charge %' })),
+        mapNumericHistoryToResponse((hs) => ev.getChargeLimitHistory(hs), selector)
+          .then(data => ({ data, label: 'Charge Limit' }))
+      ]),
+      modes: mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), selector)
+        .then(data => ({
+          data,
+          details: [
+            { value: true as const, label: 'Charging', fillColor: 'rgba(46, 204, 113, 0.3)' }
+          ]
+        }))
+    });
+  }],
+
+  // Electric Vehicle - Weekly Mileage
+  ['vehicle-weekly-mileage', async (device, selector) => {
+    const ev = device.getElectricVehicleCapability();
+
+    return {
+      bar: {
+        data: await mapNumericHistoryToResponse((hs) => ev.getWeeklyMileageHistory(hs), selector),
+        label: 'Weekly Mileage (mi)'
+      },
+      lines: []
+    };
   }]
 ]);
 

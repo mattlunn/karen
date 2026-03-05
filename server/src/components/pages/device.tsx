@@ -37,13 +37,7 @@ export default function Device({ match: { params: { id }}} : RouteComponentProps
                 {metrics.map((metric, idx) => (
                   <StatusItem
                     key={idx}
-                    icon={metric.icon}
-                    title={metric.title}
-                    value={metric.value}
-                    since={metric.since}
-                    lastReported={metric.lastReported}
-                    iconColor={metric.iconColor}
-                    onIconClick={metric.onIconClick}
+                    {...metric}
                   />
                 ))}
               </SimpleGrid>

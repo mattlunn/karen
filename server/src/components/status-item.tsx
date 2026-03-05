@@ -20,17 +20,19 @@ function formatTimestamp(start: string, lastReported: string): string {
   return `${lead} ${date.format('HH:mm')} ${humanDate(date)}`;
 }
 
-interface StatusItemProps {
+type StatusItemProps = {
   icon: IconDefinition;
   title: string;
   value: ReactNode;
-  since: string;
-  lastReported: string;
   iconColor?: string;
   onIconClick?: (ctx: IconClickContext) => void | Promise<void>;
-}
+} & (
+  | { since: string; lastReported: string }
+  | { footer?: string }
+);
 
-export function StatusItem({ icon, title, value, since, lastReported, iconColor, onIconClick }: StatusItemProps) {
+export function StatusItem(props: StatusItemProps) {
+  const { icon, title, value, iconColor, onIconClick } = props;
   const queryClient = useQueryClient();
   const [isPending, setIsPending] = useState(false);
   const [modalContent, setModalContent] = useState<ReactNode>(null);
@@ -79,7 +81,7 @@ export function StatusItem({ icon, title, value, since, lastReported, iconColor,
       </Group>
 
       <Text fz="xs" c="dimmed" mt={7}>
-        {formatTimestamp(since, lastReported)}
+        {'since' in props ? formatTimestamp(props.since, props.lastReported) : props.footer}
       </Text>
 
       <Modal opened={!!modalContent} onClose={() => setModalContent(null)} size="md" centered>

@@ -22,7 +22,7 @@ import 'chartjs-adapter-dayjs-4';
 import dayjs from '../../dayjs';
 import { BooleanEventApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
 import { clampAndSortHistory } from '../../helpers/history';
-import { Box } from '@mantine/core';
+import { Box, Text } from '@mantine/core';
 
 function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'day' {
   const diffDays = dayjs(max).diff(dayjs(min), 'day');
@@ -127,6 +127,14 @@ function assertAndGetMinMax(lines: { data: HistoryDetailsApiResponse<NumericEven
 }
 
 export function CapabilityGraph(props: CapabilityGraphProps) {
+  if (props.lines.length === 0) {
+    return (
+      <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} mb="lg">
+        <Text c="dimmed">No data available</Text>
+      </Box>
+    );
+  }
+
   const { min, max } = assertAndGetMinMax(props.lines);
   const datasets: ChartDataset<"line", { x: string; y: number; }[]>[] = props.lines.map(x => ({
     type: 'line',

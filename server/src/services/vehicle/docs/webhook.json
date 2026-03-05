@@ -1,0 +1,47 @@
+{
+  "eventId": "9ed899fc-b0d1-42a8-b8bc-a6667de7b0f9",
+  "eventType": "VEHICLE_STATE",
+  "data": {
+    "user": {
+      "id": "234ea482-4d1d-449e-b49f-ccad5430b3f8"
+    },
+    "vehicle": {
+      "id": "dd567c4e-1af4-45a9-8f6d-0babea330cba",
+      "make": "KIA",
+      "model": "EV6",
+      "year": 2025
+    },
+    "signals": [
+      {
+        "code": "odometer-traveleddistance",
+        "name": "TraveledDistance",
+        "group": "Odometer",
+        "body": {
+          "value": 15147.8,
+          "unit": "km"
+        },
+        "meta": {
+          "oemUpdatedAt": 1770676856154,
+          "retrievedAt": 1770723573848
+        },
+        "status": {
+          "value": "SUCCESS"
+        }
+      }
+    ]
+  },
+  "triggers": [
+    {
+      "type": "FIRST_DELIVERY"
+    }
+  ],
+  "meta": {
+    "deliveryId": "20b123d0-f405-4068-a3ed-65be5fa0dded",
+    "deliveredAt": 1770723603526,
+    "version": "4.0",
+    "webhookId": "baac651d-c16f-4a48-bd01-6eb87442473d",
+    "webhookName": "Karen - Dev",
+    "mode": "LIVE",
+    "signalCount": 1
+  }
+}

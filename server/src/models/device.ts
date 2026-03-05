@@ -8,6 +8,7 @@ import {
   ProviderSpeakerCapability,
   ProviderThermostatCapability,
   ProviderSwitchCapability,
+  ProviderElectricVehicleCapability,
 
   LightSensorCapability,
   HumiditySensorCapability,
@@ -20,7 +21,8 @@ import {
   ThermostatCapability,
   SwitchCapability,
   HeatPumpCapability,
-  SpeakerCapability
+  SpeakerCapability,
+  ElectricVehicleCapability
 } from './capabilities';
 
 export class Device extends Model<InferAttributes<Device>, InferCreationAttributes<Device>> {
@@ -112,6 +114,10 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   getSwitchCapability(): SwitchCapability {
     return this.#getCapabilityOrThrow(() => new SwitchCapability(this));
+  }
+
+  getElectricVehicleCapability(): ElectricVehicleCapability {
+    return this.#getCapabilityOrThrow(() => new ElectricVehicleCapability(this));
   }
 
   getCapabilities(): Capability[] {
@@ -229,6 +235,7 @@ type ProviderHandler = {
   provideThermostatCapability?(): ProviderThermostatCapability;
   provideSwitchCapability?(): ProviderSwitchCapability;
   provideSpeakerCapability?(): ProviderSpeakerCapability;
+  provideElectricVehicleCapability?(): ProviderElectricVehicleCapability;
 
   getCapabilities(device: Device): Capability[];
   synchronize(): Promise<void>;
@@ -245,7 +252,7 @@ export default function (sequelize: Sequelize) {
     },
 
     createdAt: {
-      type: DataTypes.STRING,
+      type: DataTypes.DATE,
       allowNull: false
     },
 
