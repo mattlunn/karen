@@ -29,25 +29,15 @@ smartcarRouter.get('/login', (req, res) => {
 
 // OAuth Callback Handler
 smartcarRouter.get('/callback', asyncWrapper(async (req, res) => {
-  // Handle authorization errors
-  if (req.query.error) {
-    logger.error({ error: req.query.error }, 'SmartCar OAuth authorization denied');
-    return res.status(400).send(`Authorization failed: ${req.query.error}`);
-  }
-
   const code = req.query.code as string;
   if (!code) {
     return res.status(400).send('Missing authorization code');
   }
 
   try {
-    // Create auth client with same redirect URI
     const client = createAuthClient(req);
-
-    // Exchange code for tokens
     const tokens = await client.exchangeCode(code);
 
-    // Store refresh token in config
     config.smartcar.refresh_token = tokens.refreshToken;
     saveConfig();
 
@@ -64,9 +54,11 @@ smartcarRouter.get('/callback', asyncWrapper(async (req, res) => {
   }
 }));
 
-// Webhook endpoint (moved from /webhook to /smartcar/webhook)
 smartcarRouter.post('/webhook', asyncWrapper(async (req, res) => {
   const signature = req.headers['sc-signature'] as string;
+
+  logger.debug('Received /vehicle/smartcar/webhook request');
+  logger.debug(JSON.stringify(req.body));
 
   if (!signature || !smartcar.verifyPayload(
     config.smartcar.application_management_token,
@@ -74,13 +66,10 @@ smartcarRouter.post('/webhook', asyncWrapper(async (req, res) => {
     req.body
   )) {
     logger.warn('SmartCar webhook signature verification failed');
-    return res.status(401).json({ error: 'Invalid signature' });
+    return res.sendStatus(400);
   }
 
   const { eventType } = req.body;
-
-  logger.debug('Received /vehicle/smartcar/webhook request');
-  logger.debug(JSON.stringify(req.body));
 
   // Handle webhook verification challenge
   if (eventType === 'VERIFY') {
