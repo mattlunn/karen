@@ -12,6 +12,8 @@ export async function processSignal(
   ev: ElectricVehicleCapability,
   signal: SmartcarSignalAttributes
 ): Promise<void> {
+  logger.info(`Processing an update for signal ${signal.code}. ${JSON.stringify(signal.status)}`);
+
   if (!isSuccessSignal(signal)) {
     return;
   }
@@ -24,6 +26,9 @@ export async function processSignal(
       break;
     case 'charge-ischarging':
       await ev.setIsChargingState(signal.body.value);
+      break;
+    case 'charge-ischargingcableconnected':
+      await ev.setIsCableConnectedState(signal.body.value);
       break;
     case 'odometer-traveleddistance':
       await ev.setOdometerState(signal.body.value * KM_TO_MILES);

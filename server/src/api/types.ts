@@ -56,6 +56,7 @@ export type CapabilityApiResponse = {
   type: 'ELECTRIC_VEHICLE';
   chargePercentage: NumericEventApiResponse;
   isCharging: BooleanEventApiResponse;
+  isCableConnected: BooleanEventApiResponse;
   chargeLimit: NumericEventApiResponse;
   odometer: NumericEventApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string } | null;

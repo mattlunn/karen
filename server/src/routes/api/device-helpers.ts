@@ -207,6 +207,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         type: 'ELECTRIC_VEHICLE' as const,
         chargePercentage: mapNumericEvent(ev.getChargePercentageEvent()),
         isCharging: mapBooleanEvent(ev.getIsChargingEvent(), device),
+        isCableConnected: mapBooleanEvent(ev.getIsCableConnectedEvent(), device),
         chargeLimit: mapNumericEvent(ev.getChargeLimitEvent()),
         odometer: mapNumericEvent(ev.getOdometerEvent()),
         chargeSchedule: Promise.resolve((device.meta.chargeSchedule as { targetPercentage: number; targetTime: string } | undefined) ?? null)

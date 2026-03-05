@@ -326,6 +326,12 @@
       "isWriteable": false,
       "type": "number",
       "eventName": "weekly_mileage"
+    },
+    {
+      "name": "IsCableConnected",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "is_cable_connected"
     }
   ]
 }]

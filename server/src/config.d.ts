@@ -88,6 +88,7 @@ declare namespace _default {
     const application_management_token: string;
     const secret: string;
     const default_charge_limit: number;
+    const default_charge_rate_pct_per_hour: number;
   }
   const port: number;
   const trust_proxy: boolean;

@@ -68,49 +68,81 @@ Device.registerProvider('vehicle', {
 });
 
 /**
- * Estimate charge rate from recent charging history
- * Returns percentage per hour
+ * Estimate charge rate from recent charging history.
+ * Returns percentage per hour.
+ *
+ * Algorithm:
+ * (a) Find when the cable was plugged in (start of current cable-connected session)
+ * (b) Within that window, find periods where IsCharging = true
+ * (c) For each charging period, calculate the charge % gained
+ * (d) Return total % gained / total hours charging
+ * Falls back to config.smartcar.default_charge_rate_pct_per_hour if no usable data.
  */
 async function estimateChargeRate(device: Device): Promise<number> {
+  const fallback = config.smartcar.default_charge_rate_pct_per_hour;
   const ev = device.getElectricVehicleCapability();
-
-  // Get charge percentage and charging status from the last 2 hours
-  const since = dayjs().subtract(2, 'hours').toDate();
   const until = new Date();
 
-  const [chargeHistory, chargingHistory] = await Promise.all([
-    ev.getChargePercentageHistory({ since, until }),
-    ev.getIsChargingHistory({ since, until })
+  // (a) Find the start of the current cable-connected session
+  const cableEvent = await ev.getIsCableConnectedEvent();
+
+  if (!cableEvent || !cableEvent.value) {
+    return fallback;
+  }
+
+  const pluggedInAt = cableEvent.start;
+
+  // (b) Find charging periods within the cable-connected window
+  const [chargingHistory, chargeHistory] = await Promise.all([
+    ev.getIsChargingHistory({ since: pluggedInAt, until }),
+    ev.getChargePercentageHistory({ since: pluggedInAt, until }),
   ]);
 
-  if (chargeHistory.length < 2 || chargingHistory.length === 0) {
-    return 10; // Fallback: 10% per hour
+  const chargingPeriods = chargingHistory.filter(p => p.value);
+
+  if (chargingPeriods.length === 0) {
+    return fallback;
   }
 
-  // Calculate total time spent charging
+  // (c) For each charging period, find the charge % delta
+  let totalPercentageGained = 0;
   let totalChargingMinutes = 0;
-  for (const period of chargingHistory) {
-    if (period.end) {
-      totalChargingMinutes += dayjs(period.end).diff(period.start, 'minute');
+
+  for (const period of chargingPeriods) {
+    const periodEnd = period.end ?? until;
+    const periodDurationMinutes = dayjs(periodEnd).diff(period.start, 'minute');
+
+    if (periodDurationMinutes <= 0) {
+      continue;
     }
+
+    // Find charge readings that fall within this charging period
+    const readings = chargeHistory.filter(r => {
+      const readingEnd = r.end ?? until;
+      return r.start <= periodEnd && readingEnd >= period.start;
+    });
+
+    if (readings.length < 2) {
+      continue;
+    }
+
+    const startCharge = readings[0].value;
+    const endCharge = readings[readings.length - 1].value;
+    const delta = endCharge - startCharge;
+
+    if (delta <= 0) {
+      continue;
+    }
+
+    totalPercentageGained += delta;
+    totalChargingMinutes += periodDurationMinutes;
   }
 
-  if (totalChargingMinutes === 0) {
-    return 10; // Fallback
+  if (totalChargingMinutes === 0 || totalPercentageGained <= 0) {
+    return fallback;
   }
 
-  // Calculate percentage gained
-  const startPercentage = chargeHistory[0].value;
-  const endPercentage = chargeHistory[chargeHistory.length - 1].value;
-  const percentageGained = endPercentage - startPercentage;
-
-  if (percentageGained <= 0) {
-    return 10; // Fallback
-  }
-
-  // Calculate rate per hour
-  const hoursCharging = totalChargingMinutes / 60;
-  return percentageGained / hoursCharging;
+  return totalPercentageGained / (totalChargingMinutes / 60);
 }
 
 // Run charge schedule check and mileage update every 15 minutes

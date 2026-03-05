@@ -28,6 +28,7 @@ import {
   faGauge,
   faRoad,
   faCalendarCheck,
+  faPlug,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
@@ -533,6 +534,15 @@ export const registry: CapabilityUIRegistry = {
               <ChargeScheduleModal device={device} capability={cap} closeModal={closeModal} />
             );
           },
+        },
+        {
+          icon: faPlug,
+          title: 'Cable',
+          value: cap.isCableConnected.value ? 'Connected' : 'Disconnected',
+          since: cap.isCableConnected.start,
+          lastReported: cap.isCableConnected.lastReported,
+          iconColor: '#04A7F4',
+          iconHighlighted: cap.isCableConnected.value,
         },
         {
           icon: faBolt,
