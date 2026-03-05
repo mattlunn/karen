@@ -34,7 +34,9 @@ import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
 import ThermostatModal from '../modals/thermostat-modal';
 import ChargeScheduleModal from '../modals/charge-schedule-modal';
+import ChargeLimitModal from '../modals/charge-limit-modal';
 import dayjs from '../../dayjs';
+import { humanDate } from '../../helpers/date';
 import type { MetricDisplayVariant, CapabilityUIRegistry } from './types';
 
 // ============================================================================
@@ -529,11 +531,6 @@ export const registry: CapabilityUIRegistry = {
           lastReported: cap.chargePercentage.lastReported,
           iconColor: getBatteryColor(),
           iconHighlighted: cap.isCharging.value,
-          onIconClick: ({ openModal, closeModal }) => {
-            openModal(
-              <ChargeScheduleModal device={device} capability={cap} closeModal={closeModal} />
-            );
-          },
         },
         {
           icon: faPlug,
@@ -559,6 +556,9 @@ export const registry: CapabilityUIRegistry = {
           value: `${cap.chargeLimit.value.toFixed(0)}%`,
           since: cap.chargeLimit.start,
           lastReported: cap.chargeLimit.lastReported,
+          onIconClick: ({ openModal, closeModal }) => {
+            openModal(<ChargeLimitModal device={device} capability={cap} closeModal={closeModal} />);
+          },
         },
         {
           icon: faRoad,
@@ -567,23 +567,33 @@ export const registry: CapabilityUIRegistry = {
           since: cap.odometer.start,
           lastReported: cap.odometer.lastReported,
         },
-        ...(cap.chargeSchedule ? [{
+        {
           icon: faCalendarCheck,
-          title: 'Scheduled',
-          value: `${cap.chargeSchedule.targetPercentage}% by ${dayjs(cap.chargeSchedule.targetTime).format('HH:mm')}`,
-          since: cap.chargePercentage.start,
-          lastReported: cap.chargePercentage.lastReported,
-          iconColor: '#3498db',
-        }] : []),
+          title: 'Schedule',
+          value: cap.chargeSchedule
+            ? `${cap.chargeSchedule.targetPercentage}% by ${dayjs(cap.chargeSchedule.targetTime).format('HH:mm')}`
+            : 'No schedule',
+          footer: cap.chargeSchedule?.calculatedStartTime
+            ? `starts ${dayjs(cap.chargeSchedule.calculatedStartTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.calculatedStartTime))}`
+            : undefined,
+          iconColor: cap.chargeSchedule ? '#3498db' : undefined,
+          onIconClick: ({ openModal, closeModal }) => {
+            openModal(
+              <ChargeScheduleModal device={device} capability={cap} closeModal={closeModal} />
+            );
+          },
+        },
       ];
     },
     getGraphs: () => [
-      /*
       {
         id: 'vehicle-charge',
         title: 'Charge & Limit',
         yMin: 0,
         yMax: 100,
+        overridePreset: 'custom',
+        overrideStart: dayjs().subtract(1, 'week').toISOString(),
+        overrideEnd: dayjs().toISOString(),
       },
       {
         id: 'vehicle-weekly-mileage',
@@ -592,7 +602,6 @@ export const registry: CapabilityUIRegistry = {
         overrideStart: dayjs().subtract(6, 'months').startOf('week').toISOString(),
         overrideEnd: dayjs().toISOString(),
       },
-      */
     ],
   },
 };

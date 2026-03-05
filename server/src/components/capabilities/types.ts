@@ -26,18 +26,23 @@ export interface IconClickContext {
 
 /**
  * A single metric from a capability (e.g., brightness, temperature, power).
+ * Either provide `since` + `lastReported` for auto-formatted timestamps,
+ * or provide `footer` for a custom string (or omit for no footer).
  */
-export interface CapabilityMetric {
+type CapabilityMetricBase = {
   icon: IconDefinition;
   title: string;
   value: ReactNode;
-  since: string;
-  lastReported: string;
   iconColor?: string;
   iconHighlighted?: boolean;
   isIssue?: boolean;
   onIconClick?: (ctx: IconClickContext) => void | Promise<void>;
-}
+};
+
+export type CapabilityMetric = CapabilityMetricBase & (
+  | { since: string; lastReported: string }
+  | { footer?: string }
+);
 
 /**
  * Configuration for a graph on the device details page.

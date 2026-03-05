@@ -1,6 +1,7 @@
 import smartcar from 'smartcar';
 import config from '../../config';
 import { saveConfig } from '../../helpers/config';
+import logger from '../../logger';
 
 type TokenCache = {
   accessToken: string;
@@ -85,7 +86,7 @@ export async function getSignals() {
  */
 export async function setChargeLimit(limit: number): Promise<void> {
   const vehicle = await getVehicle();
-  await vehicle.setChargeLimit(limit / 100);
+  logger.info(await vehicle.setChargeLimit(limit / 100));
 }
 
 /**

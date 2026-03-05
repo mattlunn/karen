@@ -59,7 +59,7 @@ export type CapabilityApiResponse = {
   isCableConnected: BooleanEventApiResponse;
   chargeLimit: NumericEventApiResponse;
   odometer: NumericEventApiResponse;
-  chargeSchedule: { targetPercentage: number; targetTime: string } | null;
+  chargeSchedule: { targetPercentage: number; targetTime: string; calculatedStartTime: string | null } | null;
 } | {
   type: null;
 };

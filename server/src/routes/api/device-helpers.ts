@@ -210,7 +210,10 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         isCableConnected: mapBooleanEvent(ev.getIsCableConnectedEvent(), device),
         chargeLimit: mapNumericEvent(ev.getChargeLimitEvent()),
         odometer: mapNumericEvent(ev.getOdometerEvent()),
-        chargeSchedule: Promise.resolve((device.meta.chargeSchedule as { targetPercentage: number; targetTime: string } | undefined) ?? null)
+        chargeSchedule: Promise.resolve((() => {
+          const s = device.meta.chargeSchedule as { targetPercentage: number; targetTime: string; calculatedStartTime?: string | null } | undefined;
+          return s ? { targetPercentage: s.targetPercentage, targetTime: s.targetTime, calculatedStartTime: s.calculatedStartTime ?? null } : null;
+        })())
       });
     }
 

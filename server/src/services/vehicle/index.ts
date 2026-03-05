@@ -149,7 +149,7 @@ async function estimateChargeRate(device: Device): Promise<number> {
 nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async () => {
   const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
   const ev = device.getElectricVehicleCapability();
-  const schedule = device.meta.chargeSchedule as { targetPercentage: number; targetTime: string } | undefined;
+  const schedule = device.meta.chargeSchedule as { targetPercentage: number; targetTime: string; calculatedStartTime?: string | null } | undefined;
 
   if (!schedule) {
     return;
@@ -179,6 +179,9 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async (
   const percentageNeeded = schedule.targetPercentage - currentPercentage;
   const hoursNeeded = percentageNeeded / chargeRate;
   const startTime = targetTime.subtract(hoursNeeded, 'hour');
+
+  device.meta.chargeSchedule = { ...schedule, calculatedStartTime: startTime.toISOString() };
+  await device.save();
 
   if (now.isSameOrAfter(startTime)) {
     logger.info(`Starting charge to reach ${schedule.targetPercentage}% by ${targetTime.format('HH:mm')}`);
