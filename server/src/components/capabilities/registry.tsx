@@ -537,7 +537,7 @@ export const registry: CapabilityUIRegistry = {
         {
           icon: faBolt,
           title: 'Charging',
-          value: cap.isCharging.value ? 'Charging' : 'N/A',
+          value: cap.isCharging.value ? 'Yes' : 'No',
           since: cap.isCharging.start,
           lastReported: cap.isCharging.lastReported,
           iconColor: '#2ecc71',
@@ -568,6 +568,7 @@ export const registry: CapabilityUIRegistry = {
       ];
     },
     getGraphs: () => [
+      /*
       {
         id: 'vehicle-charge',
         title: 'Charge & Limit',
@@ -581,6 +582,7 @@ export const registry: CapabilityUIRegistry = {
         overrideStart: dayjs().subtract(6, 'months').startOf('week').toISOString(),
         overrideEnd: dayjs().toISOString(),
       },
+      */
     ],
   },
 };

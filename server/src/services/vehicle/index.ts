@@ -17,6 +17,7 @@ Device.registerProvider('vehicle', {
     return {
       async setChargeLimit(device: Device, value: number) {
         await client.setChargeLimit(value);
+        await device.getElectricVehicleCapability().setChargeLimitState(value);
       },
 
       async setIsCharging(device: Device, value: boolean) {
@@ -57,7 +58,9 @@ Device.registerProvider('vehicle', {
       }
     }
 
-    logger.info(await client.setChargeLimit(100));
+    if (await ev.getChargeLimitEvent() === null) {
+      await client.setChargeLimit(100);
+    }
   }
 });
 

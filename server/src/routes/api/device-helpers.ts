@@ -223,7 +223,7 @@ function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fall
 
   for (const capability of capabilities) {
     for (const value of Object.values(capability)) {
-      if (typeof value === 'object' && 'lastReported' in value && latestDate < value.lastReported) {
+      if (typeof value === 'object' && value !== null && 'lastReported' in value && latestDate < value.lastReported) {
         latestDate = value.lastReported;
       }
     }
