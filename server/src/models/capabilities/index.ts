@@ -3,7 +3,6 @@ import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
-export { MotionSensorCapability } from './motion-sensor';
 export { SpeakerCapability } from './speaker';
 export { ThermostatCapability } from './thermostat';
 export { ElectricVehicleCapability } from './electric-vehicle';

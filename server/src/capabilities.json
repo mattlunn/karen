@@ -243,7 +243,6 @@
   ]
 }, {
   "name": "MotionSensor",
-  "capabilityModelClassName": "MotionSensorBase",
   "properties": [
     {
       "name": "HasMotion",
