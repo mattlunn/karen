@@ -31,7 +31,7 @@ import {
   faPlug,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
-import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
+import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, MotionSensorUpdateRequest } from '../../api/types';
 import ThermostatModal from '../modals/thermostat-modal';
 import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import ChargeLimitModal from '../modals/charge-limit-modal';
@@ -50,6 +50,16 @@ async function updateLight(deviceId: number, data: LightUpdateRequest): Promise<
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error('Failed to update light');
+  return res.json();
+}
+
+async function updateMotionSensor(deviceId: number, data: MotionSensorUpdateRequest): Promise<DeviceApiResponse> {
+  const res = await fetch(`/api/device/${deviceId}/motion-sensor`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update motion sensor');
   return res.json();
 }
 
@@ -90,18 +100,31 @@ export const MetricDisplayProvider = MetricDisplayContext.Provider;
 // Interactive Controls
 // ============================================================================
 
-type LightCapability = Extract<CapabilityApiResponse, { type: 'LIGHT' }>;
-
-function BrightnessControl({ device, capability }: { device: RestDeviceResponse; capability: LightCapability }) {
-  const queryClient = useQueryClient();
+function SelectControl({ data, defaultValue, onChange }: {
+  data: { value: string; label: string }[];
+  defaultValue: string | undefined;
+  onChange: (value: string) => Promise<void>;
+}) {
   const variant = React.useContext(MetricDisplayContext);
-  const brightness = capability.brightness.value;
 
+  return (
+    <NativeSelect
+      data={data}
+      defaultValue={defaultValue}
+      onChange={(e) => onChange(e.target.value)}
+      size={variant === 'compact' ? 'xs' : 'xl'}
+      w="fit-content"
+      display={variant === 'compact' ? 'inline-block' : 'block'}
+    />
+  );
+}
+
+function buildPercentageOptions(currentValue: number): { data: { value: string; label: string }[]; selectedValue: string | undefined } {
   const data: { value: string; label: string }[] = [];
   let selectedValue: string | undefined;
 
   for (let i = 0; i <= 100; i += 5) {
-    const shouldSelect = i === brightness || (brightness < i && selectedValue === undefined);
+    const shouldSelect = i === currentValue || (currentValue < i && selectedValue === undefined);
 
     if (shouldSelect) {
       selectedValue = String(i);
@@ -110,17 +133,53 @@ function BrightnessControl({ device, capability }: { device: RestDeviceResponse;
     data.push({ value: String(i), label: `${i}%` });
   }
 
+  return { data, selectedValue };
+}
+
+type LightCapability = Extract<CapabilityApiResponse, { type: 'LIGHT' }>;
+
+function BrightnessControl({ device, capability }: { device: RestDeviceResponse; capability: LightCapability }) {
+  const queryClient = useQueryClient();
+  const { data, selectedValue } = buildPercentageOptions(capability.brightness.value);
+
   return (
-    <NativeSelect
+    <SelectControl
       data={data}
       defaultValue={selectedValue}
-      onChange={async (e) => {
-        const result = await updateLight(device.id, { brightness: Number(e.target.value) });
+      onChange={async (value) => {
+        const result = await updateLight(device.id, { brightness: Number(value) });
         updateDeviceCache(queryClient, device.id, result);
       }}
-      size={variant === 'compact' ? 'xs' : 'xl'}
-      w="fit-content"
-      display={variant === 'compact' ? 'inline-block' : 'block'}
+    />
+  );
+}
+
+type MotionSensorCapability = Extract<CapabilityApiResponse, { type: 'MOTION_SENSOR' }>;
+
+const SENSITIVITY_MIN = 8;
+const SENSITIVITY_MAX = 255;
+
+function sensitivityToPercentage(zwaveValue: number): number {
+  return Math.round((zwaveValue - SENSITIVITY_MIN) / (SENSITIVITY_MAX - SENSITIVITY_MIN) * 100);
+}
+
+function percentageToSensitivity(percentage: number): number {
+  return Math.round(percentage / 100 * (SENSITIVITY_MAX - SENSITIVITY_MIN) + SENSITIVITY_MIN);
+}
+
+function SensitivityControl({ device, capability }: { device: RestDeviceResponse; capability: MotionSensorCapability }) {
+  const queryClient = useQueryClient();
+  const currentPercentage = sensitivityToPercentage(capability.sensitivity.value);
+  const { data, selectedValue } = buildPercentageOptions(currentPercentage);
+
+  return (
+    <SelectControl
+      data={data}
+      defaultValue={selectedValue}
+      onChange={async (value) => {
+        const result = await updateMotionSensor(device.id, { sensitivity: percentageToSensitivity(Number(value)) });
+        updateDeviceCache(queryClient, device.id, result);
+      }}
     />
   );
 }
@@ -420,7 +479,7 @@ export const registry: CapabilityUIRegistry = {
 
   MOTION_SENSOR: {
     priority: 50,
-    getCapabilityMetrics: (cap) => [
+    getCapabilityMetrics: (cap, device) => [
       {
         icon: faPersonWalking,
         title: 'Motion',
@@ -429,6 +488,13 @@ export const registry: CapabilityUIRegistry = {
         lastReported: cap.hasMotion.lastReported,
         iconHighlighted: cap.hasMotion.value,
         iconColor: '#04A7F4',
+      },
+      {
+        icon: faGauge,
+        title: 'Sensitivity',
+        value: <SensitivityControl device={device} capability={cap} />,
+        since: cap.sensitivity.start,
+        lastReported: cap.sensitivity.lastReported,
       },
     ],
   },

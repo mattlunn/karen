@@ -15,6 +15,7 @@ import usersRouter from './users';
 import deviceLightRouter from './device/light';
 import deviceLockRouter from './device/lock';
 import deviceThermostatRouter from './device/thermostat';
+import deviceMotionSensorRouter from './device/motion-sensor';
 import deviceVehicleRouter from './device/vehicle';
 import eventsRouter from './events';
 
@@ -31,6 +32,7 @@ router.get('/device/:id/history', deviceHistoryHandler);
 router.get('/device/:id/timeline', deviceTimelineHandler);
 router.use('/device/:id/light', deviceLightRouter);
 router.use('/device/:id/lock', deviceLockRouter);
+router.use('/device/:id/motion-sensor', deviceMotionSensorRouter);
 router.use('/device/:id/thermostat', deviceThermostatRouter);
 router.use('/device/:id/vehicle', deviceVehicleRouter);
 

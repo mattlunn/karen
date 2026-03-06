@@ -151,7 +151,8 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const sensor = device.getMotionSensorCapability();
       return awaitPromises({
         type: 'MOTION_SENSOR' as const,
-        hasMotion: mapBooleanEvent(sensor.getHasMotionEvent(), device)
+        hasMotion: mapBooleanEvent(sensor.getHasMotionEvent(), device),
+        sensitivity: mapNumericEvent(sensor.getSensitivityEvent())
       });
     }
 

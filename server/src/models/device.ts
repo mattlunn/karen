@@ -5,6 +5,7 @@ import {
   Capability,
   ProviderLightCapability,
   ProviderLockCapability,
+  ProviderMotionSensorCapability,
   ProviderSpeakerCapability,
   ProviderThermostatCapability,
   ProviderSwitchCapability,
@@ -232,6 +233,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 type ProviderHandler = {
   provideLightCapability?(): ProviderLightCapability;
   provideLockCapability?(): ProviderLockCapability;
+  provideMotionSensorCapability?(): ProviderMotionSensorCapability;
   provideThermostatCapability?(): ProviderThermostatCapability;
   provideSwitchCapability?(): ProviderSwitchCapability;
   provideSpeakerCapability?(): ProviderSpeakerCapability;

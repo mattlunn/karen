@@ -3,6 +3,7 @@ import { ProviderThermostatCapabilityBase } from './capabilities.gen';
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
+export { MotionSensorCapability } from './motion-sensor';
 export { SpeakerCapability } from './speaker';
 export { ThermostatCapability } from './thermostat';
 export * from './capabilities.gen';

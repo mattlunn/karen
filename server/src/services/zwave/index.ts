@@ -51,6 +51,12 @@ deviceHandlers.set('Fibargroup FGMS001', [
     propertyMapper(device: Device, value: number) {
       return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
     }
+  },
+  {
+    propertyKey: 'Configuration.1',
+    propertyMapper(device: Device, value: number) {
+      return device.getMotionSensorCapability().setSensitivityState(value);
+    }
   }
 ]);
 
@@ -227,6 +233,24 @@ Device.registerProvider('zwave', {
     };
   },
 
+  provideMotionSensorCapability() {
+    return {
+      async setSensitivity(device: Device, sensitivity: number) {
+        const { makeRequest } = await getClient();
+
+        await makeRequest('node.set_value', {
+          nodeId: Number(device.providerId),
+          valueId: {
+            commandClass: 112,
+            endpoint: 0,
+            property: 1,
+          },
+          value: sensitivity
+        });
+      }
+    };
+  },
+
   provideLockCapability() {
     return {
       async setIsLocked(device: Device, isLocked: boolean): Promise<void> {
@@ -352,6 +376,21 @@ Device.registerProvider('zwave', {
               await knownDevice.getLightCapability().setBrightnessState(100, knownDevice.createdAt);
 
               logger.info(`Initialized brightness for zwave light device ${knownDevice.id}`);
+            }
+          }
+
+          if (knownDevice.getCapabilities().includes('MOTION_SENSOR')) {
+            const sensitivityEvent = await knownDevice.getMotionSensorCapability().getSensitivityEvent();
+
+            if (sensitivityEvent === null) {
+              const sensitivityValue = node.values?.find((v: any) => v.commandClass === 112 && v.property === 1);
+
+              await knownDevice.getMotionSensorCapability().setSensitivityState(
+                sensitivityValue?.value ?? 10,
+                knownDevice.createdAt
+              );
+
+              logger.info(`Initialized sensitivity for zwave motion sensor device ${knownDevice.id}`);
             }
           }
         }
