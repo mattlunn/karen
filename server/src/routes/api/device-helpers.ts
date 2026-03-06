@@ -59,10 +59,12 @@ export function mapBooleanEvent(eventPromise: Promise<BooleanEvent | null>, devi
 }
 
 export const HEAT_PUMP_MODES: Record<number, string> = {
-  0: 'STANDBY',
-  1: 'HEATING',
-  2: 'DHW',
-  3: 'COOLING'
+  0: 'UNKNOWN',
+  1: 'STANDBY',
+  2: 'HEATING',
+  3: 'DHW',
+  4: 'DEICING',
+  5: 'FROST_PROTECTION'
 };
 
 export function mapHeatPumpModeEvent(eventPromise: Promise<NumericEvent | null>): Promise<EnumEventApiResponse> {

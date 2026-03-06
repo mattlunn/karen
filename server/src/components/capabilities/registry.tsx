@@ -275,14 +275,14 @@ export const registry: CapabilityUIRegistry = {
       {
         icon: faBolt,
         title: "Today's Power",
-        value: `${(cap.dayPower.value / 1000).toFixed(1)} kWh`,
+        value: `${cap.dayPower.value.toFixed(1)} kWh`,
         since: cap.dayPower.start,
         lastReported: cap.dayPower.lastReported,
       },
       {
         icon: faFire,
         title: "Today's Yield",
-        value: `${(cap.dayYield.value / 1000).toFixed(1)} kWh`,
+        value: `${cap.dayYield.value.toFixed(1)} kWh`,
         since: cap.dayYield.start,
         lastReported: cap.dayYield.lastReported,
       },
