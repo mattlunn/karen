@@ -6,6 +6,16 @@ import config from '../../config';
 import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
 
+// Z-Wave Fibaro FGMS001: lower value = more sensitive (range 8-255, default 15)
+// App model: higher value = more sensitive (range 0-100)
+function zwaveToSensitivity(zwaveValue: number): number {
+  return Math.round((255 - zwaveValue) / (255 - 8) * 100);
+}
+
+function sensitivityToZwave(sensitivity: number): number {
+  return Math.round(255 - sensitivity / 100 * (255 - 8));
+}
+
 const deviceCapabilitiesMap = new Map<string, Capability[]>([
   ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'BATTERY_LEVEL_INDICATOR']],
   ['Fibargroup FGD212', ['LIGHT']],
@@ -55,7 +65,7 @@ deviceHandlers.set('Fibargroup FGMS001', [
   {
     propertyKey: 'Configuration.1',
     propertyMapper(device: Device, value: number) {
-      return device.getMotionSensorCapability().setSensitivityState(value);
+      return device.getMotionSensorCapability().setSensitivityState(zwaveToSensitivity(value));
     }
   }
 ]);
@@ -245,7 +255,7 @@ Device.registerProvider('zwave', {
             endpoint: 0,
             property: 1,
           },
-          value: sensitivity
+          value: sensitivityToZwave(sensitivity)
         });
       }
     };
@@ -386,7 +396,7 @@ Device.registerProvider('zwave', {
               const sensitivityValue = node.values?.find((v: any) => v.commandClass === 112 && v.property === 1);
 
               await knownDevice.getMotionSensorCapability().setSensitivityState(
-                sensitivityValue?.value ?? 10,
+                zwaveToSensitivity(sensitivityValue?.value ?? 15),
                 knownDevice.createdAt
               );
 

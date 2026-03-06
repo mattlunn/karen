@@ -156,28 +156,16 @@ function BrightnessControl({ device, capability }: { device: RestDeviceResponse;
 
 type MotionSensorCapability = Extract<CapabilityApiResponse, { type: 'MOTION_SENSOR' }>;
 
-const SENSITIVITY_MIN = 8;
-const SENSITIVITY_MAX = 255;
-
-function sensitivityToPercentage(zwaveValue: number): number {
-  return Math.round((zwaveValue - SENSITIVITY_MIN) / (SENSITIVITY_MAX - SENSITIVITY_MIN) * 100);
-}
-
-function percentageToSensitivity(percentage: number): number {
-  return Math.round(percentage / 100 * (SENSITIVITY_MAX - SENSITIVITY_MIN) + SENSITIVITY_MIN);
-}
-
 function SensitivityControl({ device, capability }: { device: RestDeviceResponse; capability: MotionSensorCapability }) {
   const queryClient = useQueryClient();
-  const currentPercentage = sensitivityToPercentage(capability.sensitivity.value);
-  const { data, selectedValue } = buildPercentageOptions(currentPercentage);
+  const { data, selectedValue } = buildPercentageOptions(capability.sensitivity.value);
 
   return (
     <SelectControl
       data={data}
       defaultValue={selectedValue}
       onChange={async (value) => {
-        const result = await updateMotionSensor(device.id, { sensitivity: percentageToSensitivity(Number(value)) });
+        const result = await updateMotionSensor(device.id, { sensitivity: Number(value) });
         updateDeviceCache(queryClient, device.id, result);
       }}
     />
