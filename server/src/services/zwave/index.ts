@@ -69,6 +69,12 @@ deviceHandlers.set('Fibargroup FGMS001', [
     propertyMapper(device: Device, value: number) {
       return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
     }
+  },
+  {
+    propertyKey: 'Configuration.1',
+    propertyMapper(device: Device, value: number) {
+      return device.getMotionSensorCapability().setSensitivityState(value);
+    }
   }
 ]);
 
@@ -287,6 +293,24 @@ Device.registerProvider('zwave', {
             property: "targetValue",
           },
           value: Math.min(brightness, 99)
+        });
+      }
+    };
+  },
+
+  provideMotionSensorCapability() {
+    return {
+      async setSensitivity(device: Device, sensitivity: number) {
+        const { makeRequest } = await getClient();
+
+        await makeRequest('node.set_value', {
+          nodeId: Number(device.providerId),
+          valueId: {
+            commandClass: 112,
+            endpoint: 0,
+            property: 1,
+          },
+          value: sensitivity
         });
       }
     };

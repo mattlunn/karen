@@ -243,12 +243,19 @@
   ]
 }, {
   "name": "MotionSensor",
+  "capabilityModelClassName": "MotionSensorBase",
   "properties": [
     {
       "name": "HasMotion",
       "isWriteable": false,
       "type": "boolean",
       "eventName": "motion"
+    },
+    {
+      "name": "Sensitivity",
+      "isWriteable": true,
+      "type": "number",
+      "eventName": "sensitivity"
     }
   ]
 }, {
