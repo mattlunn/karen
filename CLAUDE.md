@@ -15,6 +15,17 @@ Karen is a full-stack TypeScript/Node.js smart home automation platform with:
 
 All commands run from `/server/src/`:
 
+### First-time setup (required before lint/build/test)
+
+```bash
+npm install              # Install dependencies
+npm run codegen          # Generate capabilities.gen.ts (not checked in)
+```
+
+**Important**: `npm run codegen` must be run before `lint:tsc` or `build`. The file `models/capabilities/capabilities.gen.ts` is generated from `capabilities.json` and is not committed to the repository. Without it, TypeScript will fail with missing type errors for capability base classes.
+
+The CI pipeline runs in this order: `codegen` → `lint` → `test` → `build`. Follow the same order locally.
+
 ```bash
 # Development (run in separate terminals)
 npm run dev              # Babel watch mode - transpiles on save
