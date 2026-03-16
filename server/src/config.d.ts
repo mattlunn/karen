@@ -90,6 +90,9 @@ declare namespace _default {
     const default_charge_limit: number;
     const default_charge_rate_pct_per_hour: number;
   }
+  export namespace guest_access {
+    const doorLockName: string;
+  }
   const port: number;
   const trust_proxy: boolean;
   const days_to_keep_recordings_while_home: number;

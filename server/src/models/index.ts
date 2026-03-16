@@ -43,6 +43,7 @@ armingFactory(instance);
 
 Recording.belongsTo(Event);
 Stay.belongsTo(User);
+Token.belongsTo(User);
 Event.hasOne(Recording);
 Device.hasMany(Event);
 Event.belongsTo(Device);

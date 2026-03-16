@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guest Access</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { background: #fff; border-radius: 12px; padding: 32px; max-width: 360px; width: 90%; box-shadow: 0 2px 12px rgba(0,0,0,0.1); text-align: center; }
+    h1 { font-size: 20px; margin-bottom: 8px; }
+    .subtitle { color: #666; font-size: 14px; margin-bottom: 24px; }
+    .code-inputs { display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; }
+    .code-inputs input { width: 44px; height: 52px; text-align: center; font-size: 24px; border: 2px solid #ddd; border-radius: 8px; outline: none; }
+    .code-inputs input:focus { border-color: #4a90d9; }
+    button { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-primary { background: #4a90d9; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #3a7bc8; }
+    .btn-home { background: #4a90d9; color: #fff; }
+    .btn-home:hover:not(:disabled) { background: #3a7bc8; }
+    .btn-away { background: #e74c3c; color: #fff; }
+    .btn-away:hover:not(:disabled) { background: #c0392b; }
+    .error { color: #e74c3c; font-size: 14px; margin-bottom: 16px; min-height: 20px; }
+    .status { font-size: 14px; margin-bottom: 20px; padding: 12px; border-radius: 8px; }
+    .status-home { background: #e8f5e9; color: #2e7d32; }
+    .status-away { background: #fce4ec; color: #c62828; }
+    .welcome { color: #666; font-size: 14px; margin-bottom: 16px; }
+    .loading { display: none; }
+    .loading.active { display: block; }
+  </style>
+</head>
+<body>
+<div class="container" id="app"></div>
+<script>
+(function() {
+  var state = __STATE__;
+  var container = document.getElementById('app');
+  var loading = false;
+
+  function render() {
+    if (!state.authenticated) {
+      renderCodeEntry();
+    } else {
+      renderToggle();
+    }
+  }
+
+  function renderCodeEntry() {
+    container.innerHTML =
+      '<h1>Guest Access</h1>' +
+      '<p class="subtitle">Enter your 6-digit access code</p>' +
+      '<div class="code-inputs" id="code-inputs"></div>' +
+      '<p class="error" id="error"></p>' +
+      '<button class="btn-primary" id="submit-btn" disabled>Verify</button>';
+
+    var inputsContainer = document.getElementById('code-inputs');
+    var inputs = [];
+
+    for (var i = 0; i < 6; i++) {
+      var input = document.createElement('input');
+      input.type = 'tel';
+      input.maxLength = 1;
+      input.pattern = '[0-9]';
+      input.inputMode = 'numeric';
+      input.dataset.index = i;
+      inputs.push(input);
+      inputsContainer.appendChild(input);
+    }
+
+    inputs.forEach(function(input, idx) {
+      input.addEventListener('input', function() {
+        input.value = input.value.replace(/[^0-9]/g, '');
+        if (input.value && idx < 5) {
+          inputs[idx + 1].focus();
+        }
+        updateSubmitButton();
+      });
+
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Backspace' && !input.value && idx > 0) {
+          inputs[idx - 1].focus();
+        }
+      });
+
+      input.addEventListener('paste', function(e) {
+        e.preventDefault();
+        var text = (e.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+        for (var j = 0; j < Math.min(text.length, 6 - idx); j++) {
+          inputs[idx + j].value = text[j];
+        }
+        var focusIdx = Math.min(idx + text.length, 5);
+        inputs[focusIdx].focus();
+        updateSubmitButton();
+      });
+    });
+
+    inputs[0].focus();
+
+    function updateSubmitButton() {
+      var code = getCode();
+      document.getElementById('submit-btn').disabled = code.length !== 6 || loading;
+    }
+
+    function getCode() {
+      return inputs.map(function(i) { return i.value; }).join('');
+    }
+
+    document.getElementById('submit-btn').addEventListener('click', function() {
+      var code = getCode();
+      if (code.length !== 6 || loading) return;
+
+      loading = true;
+      document.getElementById('submit-btn').disabled = true;
+      document.getElementById('submit-btn').textContent = 'Verifying...';
+      document.getElementById('error').textContent = '';
+
+      fetch('/guest/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code })
+      })
+      .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+      .then(function(result) {
+        loading = false;
+        if (result.ok) {
+          state = { authenticated: true, name: result.data.name, isHome: result.data.isHome };
+          render();
+        } else {
+          document.getElementById('error').textContent = result.data.error;
+          document.getElementById('submit-btn').disabled = false;
+          document.getElementById('submit-btn').textContent = 'Verify';
+        }
+      })
+      .catch(function() {
+        loading = false;
+        document.getElementById('error').textContent = 'Something went wrong. Please try again.';
+        document.getElementById('submit-btn').disabled = false;
+        document.getElementById('submit-btn').textContent = 'Verify';
+      });
+    });
+  }
+
+  function renderToggle() {
+    var statusClass = state.isHome ? 'status-home' : 'status-away';
+    var statusText = state.isHome ? 'You are currently home' : 'You are currently away';
+    var btnClass = state.isHome ? 'btn-away' : 'btn-home';
+    var btnText = state.isHome ? 'Mark as Away' : "I'm Here — Unlock Door";
+
+    container.innerHTML =
+      '<h1>Welcome, ' + escapeHtml(state.name) + '</h1>' +
+      '<p class="welcome">Guest Access</p>' +
+      '<div class="status ' + statusClass + '" id="status">' + statusText + '</div>' +
+      '<p class="error" id="error"></p>' +
+      '<button class="' + btnClass + '" id="toggle-btn">' + btnText + '</button>';
+
+    document.getElementById('toggle-btn').addEventListener('click', function() {
+      if (loading) return;
+
+      loading = true;
+      var btn = document.getElementById('toggle-btn');
+      btn.disabled = true;
+      btn.textContent = state.isHome ? 'Marking as away...' : 'Unlocking door...';
+      document.getElementById('error').textContent = '';
+
+      fetch('/guest/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+      .then(function(result) {
+        loading = false;
+        if (result.ok) {
+          state.isHome = result.data.isHome;
+          render();
+        } else {
+          document.getElementById('error').textContent = result.data.error;
+          btn.disabled = false;
+          btn.textContent = state.isHome ? 'Mark as Away' : "I'm Here — Unlock Door";
+        }
+      })
+      .catch(function() {
+        loading = false;
+        document.getElementById('error').textContent = 'Something went wrong. Please try again.';
+        btn.disabled = false;
+        btn.textContent = state.isHome ? 'Mark as Away' : "I'm Here — Unlock Door";
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

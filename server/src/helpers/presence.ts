@@ -4,7 +4,7 @@ import dayjs from '../dayjs';
 import logger from '../logger';
 import { enqueueWorkItem } from '../queue';
 
-export async function markUserAsHome(user: User, trigger: 'wifi' | 'geolocation') {
+export async function markUserAsHome(user: User, trigger: 'wifi' | 'geolocation' | 'nfc') {
   await enqueueWorkItem(async () => {
     const current = await Stay.findCurrentStay(user.id);
     let [upcoming] = await Stay.findUpcomingStays([user.id]);
