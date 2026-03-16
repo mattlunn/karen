@@ -183,14 +183,20 @@ export default class TadoClient {
   }
 
   async _request(url: string, body?: object | null, verb?: 'PUT' | 'GET' | 'DELETE') {
-    const response = await fetch(`https://my.tado.com/api/v2/homes/${this.homeId}${url}`, {
-      method: verb || (body ? 'PUT' : 'GET'),
-      body: body ? JSON.stringify(body) : undefined,
-      headers: {
-        Authorization: `Bearer ${this.accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    let response;
+
+    try {
+      response = await fetch(`https://my.tado.com/api/v2/homes/${this.homeId}${url}`, {
+        method: verb || (body ? 'PUT' : 'GET'),
+        body: body ? JSON.stringify(body) : undefined,
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+    } catch (e: any) {
+      throw new Error(`Tado request to ${url} failed: ${e.message} (code=${e.code}, type=${e.type}, errno=${e.errno})`);
+    }
 
     const rateLimitPolicy = response.headers.get('ratelimit-policy');
     const rateLimit = response.headers.get('ratelimit');
