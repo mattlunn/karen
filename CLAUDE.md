@@ -48,10 +48,6 @@ npm run create-user      # Create new user via CLI
 npm run codegen          # Generate TypeScript from GraphQL schema
 ```
 
-### Known issues
-
-- There are many pre-existing TypeScript errors in the codebase (missing React type declarations, implicit `any` in automation `.js` files, etc.). When checking your changes, filter `lint:tsc` output to the files you modified rather than expecting zero errors overall.
-
 ## Architecture
 
 ### Directory Structure (`server/src/`)
