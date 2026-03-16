@@ -46,7 +46,7 @@ function HeatingDemandGraph() {
   );
 }
 
-export default function InsightsHeating() {
+export default function HeatingInsights() {
   return (
     <>
       <Title order={2}>Heating</Title>
