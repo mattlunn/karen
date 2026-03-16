@@ -19,7 +19,15 @@ export function createBackgroundTransaction<T>(name: string, cb: (...args: any[]
       return await cb(...args);
     } catch (e) {
       newrelic.noticeError(e as Error);
-      logger.error(e);
+
+      const extra: Record<string, unknown> = {};
+      const anyE = e as any;
+      if (anyE.code !== undefined) extra.code = anyE.code;
+      if (anyE.type !== undefined) extra.type = anyE.type;
+      if (anyE.errno !== undefined) extra.errno = anyE.errno;
+      if (anyE.cause !== undefined) extra.cause = anyE.cause;
+
+      logger.error({ err: e, transaction: name, ...extra }, `Background transaction '${name}' failed`);
 
       throw e;
     }
