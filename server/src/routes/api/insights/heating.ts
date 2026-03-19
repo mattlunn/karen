@@ -16,7 +16,19 @@ export default expressAsyncWrapper(async function (req, res) {
 
   const heatpump = heatpumps[0].getHeatPumpCapability();
 
-  const [lines, modesData] = await Promise.all([
+  const [thermostatRows, lines, modesData] = await Promise.all([
+    Promise.all(
+      thermostats.map(async (device) => {
+        const thermostat = device.getThermostatCapability();
+        const [targetTemperature, currentTemperature, power] = await Promise.all([
+          thermostat.getTargetTemperature(),
+          thermostat.getCurrentTemperature(),
+          thermostat.getPower()
+        ]);
+
+        return { name: device.name, targetTemperature, currentTemperature, power };
+      })
+    ),
     Promise.all(
       thermostats.map(async (device) => {
         const thermostat = device.getThermostatCapability();
@@ -36,6 +48,7 @@ export default expressAsyncWrapper(async function (req, res) {
   ]);
 
   const response: HeatingInsightsApiResponse = {
+    thermostats: thermostatRows,
     lines,
     modes: {
       data: modesData,
