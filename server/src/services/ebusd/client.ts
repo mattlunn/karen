@@ -1,5 +1,5 @@
 import { createConnection } from 'net';
-import logger from '../../logger';
+import sleep from '../../helpers/sleep';
 
 export const MODES = {
   UNKNOWN: 0,
@@ -9,6 +9,18 @@ export const MODES = {
   DEICING: 4,
   FROST_PROTECTION: 5
 };
+
+const STATUS_TO_MODE: Record<string, typeof MODES[keyof typeof MODES]> = {
+  'Heating': MODES.HEATING,
+  'Warm Water': MODES.DHW,
+  'Standby': MODES.STANDBY,
+  'Deicing active': MODES.DEICING,
+  'Frost protection': MODES.FROST_PROTECTION,
+};
+
+function isNumeric(value: string): boolean {
+  return Number.isFinite(Number(value));
+}
 
 export default class EbusClient {
   #host: string;
@@ -53,95 +65,86 @@ export default class EbusClient {
     if (result !== value) {
       throw new Error(`Unable to write '${value}' to ${key}. Result was ${result}`);
     }
-    
+
     return result;
   }
 
-  #read(value: string, circuit?: string, field = ''): Promise<string> {
-    return this.#command(`read${circuit ? ' -f -c ' + circuit : ''} ${value} ${field}`);
+  async #read(value: string, circuit?: string, field = '', validate?: (raw: string) => boolean): Promise<string> {
+    const maxAttempts = validate ? 3 : 1;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const result = await this.#command(`read${circuit ? ' -f -c ' + circuit : ''} ${value} ${field}`);
+
+      if (!validate || validate(result)) {
+        return result;
+      } else {
+        await sleep(1000);
+      }
+    }
+
+    throw new Error(`ebusd returned invalid value for ${value}${circuit ? ` (circuit: ${circuit})` : ''}${field ? ` (field: ${field})` : ''}`);
   }
 
   async getOutsideTemperature(): Promise<number> {
-    return Number(await this.#read('DisplayedOutsideTemp', 'ctlv3'));
+    return Number(await this.#read('DisplayedOutsideTemp', 'ctlv3', '', isNumeric));
   }
 
   async getActualFlowTemperature(): Promise<number> {
-    return Number(await this.#read('FlowTemp', 'hmu'));
+    return Number(await this.#read('FlowTemp', 'hmu', '', isNumeric));
   }
 
   async getDesiredFlowTemperature(): Promise<number> {
-    return Number(await this.#read('State01', 'hmu', 'temp1.0'));
+    return Number(await this.#read('State01', 'hmu', 'temp1.0', isNumeric));
   }
 
   async getReturnTemperature(): Promise<number> {
-    return Number(await this.#read('ReturnTemp', 'hmu'));
+    return Number(await this.#read('ReturnTemp', 'hmu', '', isNumeric));
   }
 
   async getHotWaterCylinderTemperature(): Promise<number> {
-    return Number(await this.#read('HwcStorageTemp', 'ctlv3'));
+    return Number(await this.#read('HwcStorageTemp', 'ctlv3', '', isNumeric));
   }
 
   async getSystemPressure(): Promise<number> {
-    return Number(await this.#read('State07', 'hmu', 'DisplaySystemPressure'));
+    return Number(await this.#read('State07', 'hmu', 'DisplaySystemPressure', isNumeric));
   }
 
   async getCompressorPower(): Promise<number> {
-    return Number(await this.#read('State07', 'hmu', 'power'));
+    return Number(await this.#read('State07', 'hmu', 'power', isNumeric));
   }
 
   async getCompressorModulation(): Promise<number> {
-    return Number(await this.#read('State00', 'hmu', 'S00_CompressorModulation'));
+    return Number(await this.#read('State00', 'hmu', 'S00_CompressorModulation', isNumeric));
   }
 
   async getEnergyDaily(): Promise<number> {
-    return Number(await this.#read('State07', 'hmu', 'energy'));
+    return Number(await this.#read('State07', 'hmu', 'energy', isNumeric));
   }
 
   async getCurrentYield(): Promise<number> {
-    return Number(await this.#read('CurrentYieldPower', 'hmu'));
+    return Number(await this.#read('CurrentYieldPower', 'hmu', '', isNumeric));
   }
 
   async getCurrentPower(): Promise<number> {
-    return Number(await this.#read('CurrentConsumedPower', 'hmu'));
+    return Number(await this.#read('CurrentConsumedPower', 'hmu', '', isNumeric));
   }
 
   async getMode(): Promise<typeof MODES[keyof typeof MODES]> {
-    const value = await this.#read('Statuscode', 'hmu');
-
-    switch (value.split(':')[0]) {
-      case 'Heating':
-        return MODES.HEATING;
-      case 'Warm Water':
-        return MODES.DHW;
-      case 'Standby':
-        return MODES.STANDBY;
-      case 'Deicing active':
-        return MODES.DEICING;
-      case 'Frost protection':
-        return MODES.FROST_PROTECTION;
-      default:
-        logger.error(`ebusd Statuscode for hmu is unknown value of "${value}"`);
-
-        return MODES.UNKNOWN;
-    }
+    const value = await this.#read('Statuscode', 'hmu', '', (v) => v.split(':')[0] in STATUS_TO_MODE);
+    return STATUS_TO_MODE[value.split(':')[0]];
   }
 
   async getDHWIsOn(): Promise<boolean> {
-    const mode = await this.#read('HwcOpMode', 'ctlv3');
-
-    if (mode === 'off') {
-      return false;
-    }
-
-    return true;
+    const mode = await this.#read('HwcOpMode', 'ctlv3', '', (v) => v === 'off' || v === 'on');
+    return mode !== 'off';
   }
 
   async getCopHc(): Promise<number> {
-    return Number(await this.#read('CopHc', 'hmu'));
+    return Number(await this.#read('CopHc', 'hmu', '', isNumeric));
   }
 
   async getCopHwc(): Promise<number> {
-    return Number(await this.#read('CopHwc', 'hmu'));
+    return Number(await this.#read('CopHwc', 'hmu', '', isNumeric));
   }
 
   async setIsDHWOn(isOn: boolean) {
