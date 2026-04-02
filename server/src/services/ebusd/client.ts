@@ -10,14 +10,6 @@ export const MODES = {
   FROST_PROTECTION: 5
 };
 
-const STATUS_TO_MODE: Record<string, typeof MODES[keyof typeof MODES]> = {
-  'Heating': MODES.HEATING,
-  'Warm Water': MODES.DHW,
-  'Standby': MODES.STANDBY,
-  'Deicing active': MODES.DEICING,
-  'Frost protection': MODES.FROST_PROTECTION,
-};
-
 function toNumber(value: string): number {
   const num = Number(value);
 
@@ -135,13 +127,14 @@ export default class EbusClient {
 
   async getMode(): Promise<typeof MODES[keyof typeof MODES]> {
     return this.#read('Statuscode', 'hmu', '', (v) => {
-      const status = v.split(':')[0];
-
-      if (!(status in STATUS_TO_MODE)) {
-        throw new Error(`Unknown status "${v}"`);
+      switch (v.split(':')[0]) {
+        case 'Heating': return MODES.HEATING;
+        case 'Warm Water': return MODES.DHW;
+        case 'Standby': return MODES.STANDBY;
+        case 'Deicing active': return MODES.DEICING;
+        case 'Frost protection': return MODES.FROST_PROTECTION;
+        default: throw new Error(`Unknown status "${v}"`);
       }
-
-      return STATUS_TO_MODE[status];
     });
   }
 
