@@ -18,8 +18,14 @@ const STATUS_TO_MODE: Record<string, typeof MODES[keyof typeof MODES]> = {
   'Frost protection': MODES.FROST_PROTECTION,
 };
 
-function isNumeric(value: string): boolean {
-  return Number.isFinite(Number(value));
+function toNumber(value: string): number {
+  const num = Number(value);
+
+  if (!Number.isFinite(num)) {
+    throw new Error(`Expected a number but got "${value}"`);
+  }
+
+  return num;
 }
 
 export default class EbusClient {
@@ -69,15 +75,15 @@ export default class EbusClient {
     return result;
   }
 
-  async #read(value: string, circuit?: string, field = '', validate?: (raw: string) => boolean): Promise<string> {
-    const maxAttempts = validate ? 3 : 1;
+  async #read<T>(value: string, circuit?: string, field = '', formatter?: (raw: string) => T): Promise<T extends undefined ? string : T> {
+    const maxAttempts = formatter ? 3 : 1;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const result = await this.#command(`read${circuit ? ' -f -c ' + circuit : ''} ${value} ${field}`);
 
-      if (!validate || validate(result)) {
-        return result;
-      } else {
+      try {
+        return (formatter ? formatter(result) : result) as T extends undefined ? string : T;
+      } catch {
         await sleep(1000);
       }
     }
@@ -86,65 +92,77 @@ export default class EbusClient {
   }
 
   async getOutsideTemperature(): Promise<number> {
-    return Number(await this.#read('DisplayedOutsideTemp', 'ctlv3', '', isNumeric));
+    return this.#read('DisplayedOutsideTemp', 'ctlv3', '', toNumber);
   }
 
   async getActualFlowTemperature(): Promise<number> {
-    return Number(await this.#read('FlowTemp', 'hmu', '', isNumeric));
+    return this.#read('FlowTemp', 'hmu', '', toNumber);
   }
 
   async getDesiredFlowTemperature(): Promise<number> {
-    return Number(await this.#read('State01', 'hmu', 'temp1.0', isNumeric));
+    return this.#read('State01', 'hmu', 'temp1.0', toNumber);
   }
 
   async getReturnTemperature(): Promise<number> {
-    return Number(await this.#read('ReturnTemp', 'hmu', '', isNumeric));
+    return this.#read('ReturnTemp', 'hmu', '', toNumber);
   }
 
   async getHotWaterCylinderTemperature(): Promise<number> {
-    return Number(await this.#read('HwcStorageTemp', 'ctlv3', '', isNumeric));
+    return this.#read('HwcStorageTemp', 'ctlv3', '', toNumber);
   }
 
   async getSystemPressure(): Promise<number> {
-    return Number(await this.#read('State07', 'hmu', 'DisplaySystemPressure', isNumeric));
+    return this.#read('State07', 'hmu', 'DisplaySystemPressure', toNumber);
   }
 
   async getCompressorPower(): Promise<number> {
-    return Number(await this.#read('State07', 'hmu', 'power', isNumeric));
+    return this.#read('State07', 'hmu', 'power', toNumber);
   }
 
   async getCompressorModulation(): Promise<number> {
-    return Number(await this.#read('State00', 'hmu', 'S00_CompressorModulation', isNumeric));
+    return this.#read('State00', 'hmu', 'S00_CompressorModulation', toNumber);
   }
 
   async getEnergyDaily(): Promise<number> {
-    return Number(await this.#read('State07', 'hmu', 'energy', isNumeric));
+    return this.#read('State07', 'hmu', 'energy', toNumber);
   }
 
   async getCurrentYield(): Promise<number> {
-    return Number(await this.#read('CurrentYieldPower', 'hmu', '', isNumeric));
+    return this.#read('CurrentYieldPower', 'hmu', '', toNumber);
   }
 
   async getCurrentPower(): Promise<number> {
-    return Number(await this.#read('CurrentConsumedPower', 'hmu', '', isNumeric));
+    return this.#read('CurrentConsumedPower', 'hmu', '', toNumber);
   }
 
   async getMode(): Promise<typeof MODES[keyof typeof MODES]> {
-    const value = await this.#read('Statuscode', 'hmu', '', (v) => v.split(':')[0] in STATUS_TO_MODE);
-    return STATUS_TO_MODE[value.split(':')[0]];
+    return this.#read('Statuscode', 'hmu', '', (v) => {
+      const status = v.split(':')[0];
+
+      if (!(status in STATUS_TO_MODE)) {
+        throw new Error(`Unknown status "${v}"`);
+      }
+
+      return STATUS_TO_MODE[status];
+    });
   }
 
   async getDHWIsOn(): Promise<boolean> {
-    const mode = await this.#read('HwcOpMode', 'ctlv3', '', (v) => v === 'off' || v === 'on');
-    return mode !== 'off';
+    return this.#read('HwcOpMode', 'ctlv3', '', (v) => {
+      if (v !== 'off' && v !== 'on') {
+        throw new Error(`Expected "off" or "on" but got "${v}"`);
+      }
+
+      return v !== 'off';
+    });
   }
 
   async getCopHc(): Promise<number> {
-    return Number(await this.#read('CopHc', 'hmu', '', isNumeric));
+    return this.#read('CopHc', 'hmu', '', toNumber);
   }
 
   async getCopHwc(): Promise<number> {
-    return Number(await this.#read('CopHwc', 'hmu', '', isNumeric));
+    return this.#read('CopHwc', 'hmu', '', toNumber);
   }
 
   async setIsDHWOn(isOn: boolean) {
