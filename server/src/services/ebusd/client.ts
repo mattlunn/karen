@@ -67,9 +67,9 @@ export default class EbusClient {
     return result;
   }
 
-  async #read<T>(descriptor: { value: string, circuit?: string, field?: string }, formatter: (raw: string) => T): Promise<T> {
+  async #read<T>(descriptor: { value: string, circuit: string, field?: string }, formatter: (raw: string) => T): Promise<T> {
     for (let attempt = 0; attempt < 3; attempt++) {
-      const result = await this.#command(`read${descriptor.circuit ? ' -f -c ' + descriptor.circuit : ''} ${descriptor.value} ${descriptor.field ?? ''}`);
+      const result = await this.#command(`read -f -c ${descriptor.circuit} ${descriptor.value} ${descriptor.field ?? ''}`);
 
       try {
         return formatter(result);
@@ -78,7 +78,7 @@ export default class EbusClient {
       }
     }
 
-    throw new Error(`ebusd returned invalid value for ${descriptor.value}${descriptor.circuit ? ` (circuit: ${descriptor.circuit})` : ''}${descriptor.field ? ` (field: ${descriptor.field})` : ''}`);
+    throw new Error(`ebusd returned invalid value for ${descriptor.value} (circuit: ${descriptor.circuit})${descriptor.field ? ` (field: ${descriptor.field})` : ''}`);
   }
 
   async getOutsideTemperature(): Promise<number> {
