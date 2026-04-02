@@ -75,14 +75,12 @@ export default class EbusClient {
     return result;
   }
 
-  async #read<T>(value: string, circuit?: string, field = '', formatter?: (raw: string) => T): Promise<T extends undefined ? string : T> {
-    const maxAttempts = formatter ? 3 : 1;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+  async #read<T>(value: string, circuit: string | undefined, field: string, formatter: (raw: string) => T): Promise<T> {
+    for (let attempt = 0; attempt < 3; attempt++) {
       const result = await this.#command(`read${circuit ? ' -f -c ' + circuit : ''} ${value} ${field}`);
 
       try {
-        return (formatter ? formatter(result) : result) as T extends undefined ? string : T;
+        return formatter(result);
       } catch {
         await sleep(1000);
       }
