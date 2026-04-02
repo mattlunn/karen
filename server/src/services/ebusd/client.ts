@@ -67,9 +67,9 @@ export default class EbusClient {
     return result;
   }
 
-  async #read<T>(value: string, circuit: string | undefined, field: string, formatter: (raw: string) => T): Promise<T> {
+  async #read<T>(descriptor: { value: string, circuit?: string, field?: string }, formatter: (raw: string) => T): Promise<T> {
     for (let attempt = 0; attempt < 3; attempt++) {
-      const result = await this.#command(`read${circuit ? ' -f -c ' + circuit : ''} ${value} ${field}`);
+      const result = await this.#command(`read${descriptor.circuit ? ' -f -c ' + descriptor.circuit : ''} ${descriptor.value} ${descriptor.field ?? ''}`);
 
       try {
         return formatter(result);
@@ -78,55 +78,55 @@ export default class EbusClient {
       }
     }
 
-    throw new Error(`ebusd returned invalid value for ${value}${circuit ? ` (circuit: ${circuit})` : ''}${field ? ` (field: ${field})` : ''}`);
+    throw new Error(`ebusd returned invalid value for ${descriptor.value}${descriptor.circuit ? ` (circuit: ${descriptor.circuit})` : ''}${descriptor.field ? ` (field: ${descriptor.field})` : ''}`);
   }
 
   async getOutsideTemperature(): Promise<number> {
-    return this.#read('DisplayedOutsideTemp', 'ctlv3', '', toNumber);
+    return this.#read({ value: 'DisplayedOutsideTemp', circuit: 'ctlv3' }, toNumber);
   }
 
   async getActualFlowTemperature(): Promise<number> {
-    return this.#read('FlowTemp', 'hmu', '', toNumber);
+    return this.#read({ value: 'FlowTemp', circuit: 'hmu' }, toNumber);
   }
 
   async getDesiredFlowTemperature(): Promise<number> {
-    return this.#read('State01', 'hmu', 'temp1.0', toNumber);
+    return this.#read({ value: 'State01', circuit: 'hmu', field: 'temp1.0' }, toNumber);
   }
 
   async getReturnTemperature(): Promise<number> {
-    return this.#read('ReturnTemp', 'hmu', '', toNumber);
+    return this.#read({ value: 'ReturnTemp', circuit: 'hmu' }, toNumber);
   }
 
   async getHotWaterCylinderTemperature(): Promise<number> {
-    return this.#read('HwcStorageTemp', 'ctlv3', '', toNumber);
+    return this.#read({ value: 'HwcStorageTemp', circuit: 'ctlv3' }, toNumber);
   }
 
   async getSystemPressure(): Promise<number> {
-    return this.#read('State07', 'hmu', 'DisplaySystemPressure', toNumber);
+    return this.#read({ value: 'State07', circuit: 'hmu', field: 'DisplaySystemPressure' }, toNumber);
   }
 
   async getCompressorPower(): Promise<number> {
-    return this.#read('State07', 'hmu', 'power', toNumber);
+    return this.#read({ value: 'State07', circuit: 'hmu', field: 'power' }, toNumber);
   }
 
   async getCompressorModulation(): Promise<number> {
-    return this.#read('State00', 'hmu', 'S00_CompressorModulation', toNumber);
+    return this.#read({ value: 'State00', circuit: 'hmu', field: 'S00_CompressorModulation' }, toNumber);
   }
 
   async getEnergyDaily(): Promise<number> {
-    return this.#read('State07', 'hmu', 'energy', toNumber);
+    return this.#read({ value: 'State07', circuit: 'hmu', field: 'energy' }, toNumber);
   }
 
   async getCurrentYield(): Promise<number> {
-    return this.#read('CurrentYieldPower', 'hmu', '', toNumber);
+    return this.#read({ value: 'CurrentYieldPower', circuit: 'hmu' }, toNumber);
   }
 
   async getCurrentPower(): Promise<number> {
-    return this.#read('CurrentConsumedPower', 'hmu', '', toNumber);
+    return this.#read({ value: 'CurrentConsumedPower', circuit: 'hmu' }, toNumber);
   }
 
   async getMode(): Promise<typeof MODES[keyof typeof MODES]> {
-    return this.#read('Statuscode', 'hmu', '', (v) => {
+    return this.#read({ value: 'Statuscode', circuit: 'hmu' }, (v) => {
       switch (v.split(':')[0]) {
         case 'Heating': return MODES.HEATING;
         case 'Warm Water': return MODES.DHW;
@@ -139,7 +139,7 @@ export default class EbusClient {
   }
 
   async getDHWIsOn(): Promise<boolean> {
-    return this.#read('HwcOpMode', 'ctlv3', '', (v) => {
+    return this.#read({ value: 'HwcOpMode', circuit: 'ctlv3' }, (v) => {
       if (v !== 'off' && v !== 'on') {
         throw new Error(`Expected "off" or "on" but got "${v}"`);
       }
@@ -149,11 +149,11 @@ export default class EbusClient {
   }
 
   async getCopHc(): Promise<number> {
-    return this.#read('CopHc', 'hmu', '', toNumber);
+    return this.#read({ value: 'CopHc', circuit: 'hmu' }, toNumber);
   }
 
   async getCopHwc(): Promise<number> {
-    return this.#read('CopHwc', 'hmu', '', toNumber);
+    return this.#read({ value: 'CopHwc', circuit: 'hmu' }, toNumber);
   }
 
   async setIsDHWOn(isOn: boolean) {
