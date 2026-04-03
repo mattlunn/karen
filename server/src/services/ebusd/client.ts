@@ -78,7 +78,7 @@ export default class EbusClient {
       }
     }
 
-    throw new Error(`ebusd returned invalid value ("${result}")for ${descriptor.value} (circuit: ${descriptor.circuit})${descriptor.field ? ` (field: ${descriptor.field})` : ''}`);
+    throw new Error(`ebusd returned invalid values for ${descriptor.value} (circuit: ${descriptor.circuit})${descriptor.field ? ` (field: ${descriptor.field})` : ''}`);
   }
 
   async getOutsideTemperature(): Promise<number> {
