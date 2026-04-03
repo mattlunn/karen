@@ -78,7 +78,7 @@ export default class EbusClient {
       }
     }
 
-    throw new Error(`ebusd returned invalid value for ${descriptor.value} (circuit: ${descriptor.circuit})${descriptor.field ? ` (field: ${descriptor.field})` : ''}`);
+    throw new Error(`ebusd returned invalid value ("${result}")for ${descriptor.value} (circuit: ${descriptor.circuit})${descriptor.field ? ` (field: ${descriptor.field})` : ''}`);
   }
 
   async getOutsideTemperature(): Promise<number> {
@@ -140,8 +140,8 @@ export default class EbusClient {
 
   async getDHWIsOn(): Promise<boolean> {
     return this.#read({ value: 'HwcOpMode', circuit: 'ctlv3' }, (v) => {
-      if (v !== 'off' && v !== 'on') {
-        throw new Error(`Expected "off" or "on" but got "${v}"`);
+      if (v !== 'off' && v !== 'manual') {
+        throw new Error(`Expected "off" or "manual" but got "${v}"`);
       }
 
       return v !== 'off';
