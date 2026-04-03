@@ -50,6 +50,25 @@ export default function (sequelize) {
     });
   };
 
+  token.findValidWithUser = async function (tokenValue) {
+    const record = await this.findOne({
+      where: {
+        expiresAt: {
+          [Op.or]: {
+            [Op.eq]: null,
+            [Op.gt]: new Date()
+          }
+        },
+
+        token: tokenValue
+      },
+
+      include: 'user'
+    });
+
+    return record;
+  };
+
   token.expire = async function (token) {
     try {
       const [affected] = await this.update({

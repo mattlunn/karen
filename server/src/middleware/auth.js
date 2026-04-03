@@ -22,10 +22,14 @@ export default asyncWrapper(async (req, res, next) => {
     const token = factory(req);
 
     try {
-      if (token && await Token.isValid(token)) {
-        req.token = token;
+      if (token) {
+        const record = await Token.findValidWithUser(token);
 
-        return next();
+        if (record && record.user.role === 'full') {
+          req.token = token;
+
+          return next();
+        }
       }
     } catch (e) {
       // Intentionally empty
