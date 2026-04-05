@@ -8,6 +8,7 @@ const navLinks = [
   { label: 'Home', to: '/' },
   { label: 'Timeline', to: '/timeline' },
   { label: 'Devices', to: '/device' },
+  { label: 'Bins', to: '/insights/bins' },
 ];
 
 interface NavLinksProps {

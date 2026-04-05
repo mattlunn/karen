@@ -3,7 +3,7 @@ import useApiCall from '../../hooks/api';
 import { useParams } from 'react-router-dom';
 import styles from './device.module.css';
 
-import type { DeviceApiResponse } from '../../api/types';
+import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
@@ -13,6 +13,7 @@ import { StatusItem } from '../status-item';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 import { getDeviceMetrics, getDeviceGraphs, MetricDisplayProvider } from '../capabilities';
+import BinScheduleCalendar from '../bin-schedule-calendar';
 
 export default function Device() {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +27,7 @@ export default function Device() {
   const lastSeen = dayjs(device.lastSeen);
   const metrics = getDeviceMetrics(device);
   const graphs = getDeviceGraphs(device);
+  const binCap = device.capabilities.find((c): c is Extract<CapabilityApiResponse, { type: 'BIN_COLLECTION' }> => c.type === 'BIN_COLLECTION');
 
   return (
     <>
@@ -61,6 +63,13 @@ export default function Device() {
             </Paper>
           </Grid.Col>
         </Grid>
+
+        {binCap && (
+          <Box mt="md">
+            <Title order={3} className={styles.sectionHeader}>Schedule</Title>
+            <BinScheduleCalendar bins={[{ name: device.name, capability: binCap }]} />
+          </Box>
+        )}
 
         <Box mt="md">
           <DateRangeSelector />

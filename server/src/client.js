@@ -16,6 +16,7 @@ import Timeline from './components/pages/timeline';
 import Devices from './components/pages/devices';
 import Device from './components/pages/device';
 import Login from './components/pages/login';
+import InsightsBins from './components/pages/insights-bins';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +62,7 @@ window.onload = () => {
                   <Route path="/timeline" element={<Timeline />} />
                   <Route path="/device/:id" element={<Device />} />
                   <Route path="/device" element={<Devices />} />
+                  <Route path="/insights/bins" element={<InsightsBins />} />
                 </Route>
               </Routes>
             </ErrorBoundary>

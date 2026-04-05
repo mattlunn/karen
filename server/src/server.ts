@@ -32,6 +32,7 @@ require('./services/shelly');
 require('./services/ebusd');
 require('./services/homeconnect');
 require('./services/vehicle');
+require('./services/bins');
 
 require('./automations');
 

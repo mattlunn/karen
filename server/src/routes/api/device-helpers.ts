@@ -203,6 +203,19 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
+    case 'BIN_COLLECTION': {
+      const cap = device.getBinCollectionCapability();
+      const schedule = cap.getScheduleData();
+      const next = cap.getNextCollectionDate();
+
+      return {
+        type: 'BIN_COLLECTION' as const,
+        color: cap.getColor(),
+        ...schedule,
+        nextCollection: next ? { date: next.date.toISOString(), isOverride: next.isOverride } : null,
+      };
+    }
+
     case 'ELECTRIC_VEHICLE': {
       const ev = device.getElectricVehicleCapability();
       return awaitPromises({

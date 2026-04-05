@@ -61,6 +61,13 @@ export type CapabilityApiResponse = {
   odometer: NumericEventApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string; calculatedStartTime: string | null } | null;
 } | {
+  type: 'BIN_COLLECTION';
+  color: string;
+  rrule: string;
+  exdates: string[];
+  overrides: Array<{ originalDate: string; newDate: string }>;
+  nextCollection: { date: string; isOverride: boolean } | null;
+} | {
   type: null;
 };
 
