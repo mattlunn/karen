@@ -19,7 +19,7 @@ export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
   const [selectedDate, setSelectedDate] = useState<Dayjs>(eta ?? dayjs().startOf('day'));
   const { mutate: updateUser, isPending } = useUserMutation(id);
 
-  const handleDateChange = (value: Date | null) => {
+  const handleDateChange = (value: string | null) => {
     if (value) {
       setSelectedDate(dayjs(value).hour(selectedDate.hour()).minute(selectedDate.minute()));
     }

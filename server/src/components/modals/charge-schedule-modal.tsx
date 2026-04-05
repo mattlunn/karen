@@ -15,14 +15,14 @@ interface ChargeScheduleModalProps {
 
 export default function ChargeScheduleModal({ device, capability, closeModal }: ChargeScheduleModalProps) {
   const [targetPercentage, setTargetPercentage] = useState<number>(100);
-  const [targetTime, setTargetTime] = useState<Date>(dayjs().add(1, 'day').hour(7).minute(0).second(0).toDate());
+  const [targetTime, setTargetTime] = useState<string>(dayjs().add(1, 'day').hour(7).minute(0).second(0).format('YYYY-MM-DD HH:mm:ss'));
   const { mutate: updateVehicle, isPending } = useVehicleMutation(device.id);
 
   const handleSubmit = () => {
     updateVehicle({
       chargeSchedule: {
         targetPercentage,
-        targetTime: targetTime.toISOString()
+        targetTime: dayjs(targetTime).toISOString()
       }
     }, {
       onSuccess: () => closeModal()
@@ -65,7 +65,6 @@ export default function ChargeScheduleModal({ device, capability, closeModal }: 
         <DateTimePicker
           value={targetTime}
           onChange={(val) => val && setTargetTime(val)}
-          minDate={new Date()}
           clearable={false}
         />
       </Box>

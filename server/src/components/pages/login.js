@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { applicationFetch } from '../../helpers/fetch';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import styles from './login.module.css';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const { push } = useHistory();
+  const navigate = useNavigate();
 
   const attemptLogin = async (e) => {
     e.preventDefault();
@@ -19,7 +19,7 @@ export default function Login() {
     });
 
     if (res.ok) {
-      push('/');
+      navigate('/');
     } else {
       setIsLoggingIn(false);
     }

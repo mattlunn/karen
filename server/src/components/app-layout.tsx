@@ -1,5 +1,5 @@
-import React, { ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import React from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { AppShell } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import Header from './header';
@@ -7,11 +7,7 @@ import HouseStatus from './house-status';
 import NavLinks from './nav-links';
 import ErrorBoundary from './error-boundary';
 
-interface AppLayoutProps {
-  children: ReactNode;
-}
-
-export default function AppLayout({ children }: AppLayoutProps) {
+export default function AppLayout() {
   const location = useLocation();
   const isHome = location.pathname === '/';
   const [sidebarOpened, { toggle: toggleSidebar, close: closeSidebar }] = useDisclosure(false);
@@ -39,7 +35,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       <AppShell.Main>
         <ErrorBoundary>
-          {children}
+          <Outlet />
         </ErrorBoundary>
       </AppShell.Main>
     </AppShell>

@@ -1,6 +1,6 @@
 import React from 'react';
 import useApiCall from '../../hooks/api';
-import { RouteComponentProps } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import styles from './device.module.css';
 
 import type { DeviceApiResponse } from '../../api/types';
@@ -14,7 +14,8 @@ import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 import { getDeviceMetrics, getDeviceGraphs, MetricDisplayProvider } from '../capabilities';
 
-export default function Device({ match: { params: { id }}} : RouteComponentProps<{ id: string }>) {
+export default function Device() {
+  const { id } = useParams<{ id: string }>();
   const { loading, data } = useApiCall<DeviceApiResponse>(`/device/${id}`);
 
   if (loading || !data) {

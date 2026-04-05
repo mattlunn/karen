@@ -4,8 +4,7 @@ import './styles/global.css';
 import './dayjs';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { Route } from 'react-router';
-import { Switch, BrowserRouter } from 'react-router-dom';
+import { Route, Routes, BrowserRouter } from 'react-router-dom';
 import { createTheme, MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -55,19 +54,15 @@ window.onload = () => {
         <RealtimeProvider>
           <BrowserRouter>
             <ErrorBoundary>
-              <Switch>
-                <Route exact path="/login" component={Login} />
-                <Route path="/">
-                  <AppLayout>
-                    <Switch>
-                      <Route exact path="/" component={Home} />
-                      <Route exact path="/timeline" component={Timeline} />
-                      <Route exact path="/device/:id" component={Device} />
-                      <Route exact path="/device" component={Devices} />
-                    </Switch>
-                  </AppLayout>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/timeline" element={<Timeline />} />
+                  <Route path="/device/:id" element={<Device />} />
+                  <Route path="/device" element={<Devices />} />
                 </Route>
-              </Switch>
+              </Routes>
             </ErrorBoundary>
           </BrowserRouter>
         </RealtimeProvider>
