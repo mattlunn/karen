@@ -129,7 +129,7 @@ function HeatingDemandGraph() {
 
   return (
     <>
-      <Box style={{ height: '60px' }}>
+      <Box style={{ height: '120px', position: 'relative' }}>
         <Chart
           type="line"
           data={{ datasets: modeDatasets }}
