@@ -112,10 +112,9 @@ function HeatingDemandGraph() {
     x: {
       type: 'time',
       time: { unit: timeUnit },
-      ticks: { source: 'auto', stepSize: tickStepSize, display: false },
+      ticks: { source: 'auto', stepSize: tickStepSize },
       min,
-      max,
-      display: false
+      max
     }
   };
 
@@ -138,7 +137,7 @@ function HeatingDemandGraph() {
             scales: modeScales,
             plugins: {
               colors: { forceOverride: true },
-              legend: { display: false }
+              legend: { display: true }
             },
             maintainAspectRatio: false
           } as any}
