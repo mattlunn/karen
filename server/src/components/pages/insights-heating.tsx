@@ -131,7 +131,7 @@ function HeatingDemandGraph() {
       position: 'left',
       min: 0,
       max: 100,
-      ticks: { display: false },
+      ticks: { color: 'transparent' },
       grid: { display: false }
     }
   };
