@@ -115,6 +115,14 @@ function HeatingDemandGraph() {
       ticks: { source: 'auto', stepSize: tickStepSize },
       min,
       max
+    },
+    yPercentage: {
+      type: 'linear',
+      position: 'left',
+      min: 0,
+      max: 100,
+      ticks: { display: false },
+      grid: { display: false }
     }
   };
 
