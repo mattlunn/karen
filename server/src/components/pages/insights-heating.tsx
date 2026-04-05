@@ -86,7 +86,17 @@ function HeatingDemandGraph() {
 
   const sortedModeEvents = clampAndSortHistory(data.modes.data.history, data.modes.data.since, data.modes.data.until, true);
 
-  const modeDatasets = data.modes.details.map((mode, i) => ({
+  const modeDatasets: any[] = [{
+    type: 'line' as const,
+    data: [],
+    yAxisID: 'yPercentage',
+    label: '',
+    pointRadius: 0,
+    borderWidth: 0,
+    showLine: false
+  }];
+
+  modeDatasets.push(...data.modes.details.map((mode, i) => ({
     type: 'line' as const,
     fill: 'start' as const,
     data: sortedModeEvents.reduce((acc: { x: string; y: number }[], curr) => {
@@ -106,7 +116,7 @@ function HeatingDemandGraph() {
     borderWidth: 1,
     stepped: true as const,
     backgroundColor: mode.fillColor
-  }));
+  })));
 
   const modeScales: Record<string, any> = {
     x: {
@@ -145,7 +155,12 @@ function HeatingDemandGraph() {
             scales: modeScales,
             plugins: {
               colors: { forceOverride: true },
-              legend: { display: true }
+              legend: {
+                display: true,
+                labels: {
+                  filter: (item: any) => item.text !== ''
+                }
+              }
             },
             maintainAspectRatio: false
           } as any}
