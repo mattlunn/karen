@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import { Box, Table, Title } from '@mantine/core';
+import { Chart } from 'react-chartjs-2';
 import useApiCall from '../../hooks/api';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
-import { CapabilityGraph } from '../capability-graphs/capability-graph';
+import { CapabilityGraph, inferTimeUnit } from '../capability-graphs/capability-graph';
 import { HeatingInsightsApiResponse, RestDeviceResponse } from '../../api/types';
+import { clampAndSortHistory } from '../../helpers/history';
 import PageLoader from '../page-loader';
 
 function getThermostatDevices(devices: RestDeviceResponse[]) {
@@ -73,22 +75,86 @@ function HeatingDemandGraph() {
     return <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>;
   }
 
-  if (!data) {
+  if (!data || data.lines.length === 0) {
     return null;
   }
 
+  const min = data.lines[0].data.since;
+  const max = data.lines[0].data.until;
+  const timeUnit = inferTimeUnit(min, max);
+  const tickStepSize = timeUnit === 'day' ? 1 : 15;
+
+  const sortedModeEvents = clampAndSortHistory(data.modes.data.history, data.modes.data.since, data.modes.data.until, true);
+
+  const modeDatasets = data.modes.details.map((mode, i) => ({
+    type: 'line' as const,
+    fill: 'start' as const,
+    data: sortedModeEvents.reduce((acc: { x: string; y: number }[], curr) => {
+      if (curr.value === mode.value) {
+        acc.push(
+          { x: curr.start, y: 0 },
+          { x: curr.start, y: 1 },
+          { x: curr.end!, y: 1 },
+          { x: curr.end!, y: 0 }
+        );
+      }
+      return acc;
+    }, []),
+    label: mode.label,
+    yAxisID: `yMode${i}`,
+    pointRadius: 0,
+    borderWidth: 1,
+    stepped: true as const,
+    backgroundColor: mode.fillColor
+  }));
+
+  const modeScales: Record<string, any> = {
+    x: {
+      type: 'time',
+      time: { unit: timeUnit },
+      ticks: { source: 'auto', stepSize: tickStepSize, display: false },
+      min,
+      max,
+      display: false
+    }
+  };
+
+  data.modes.details.forEach((_, i) => {
+    modeScales[`yMode${i}`] = {
+      type: 'linear',
+      min: 0,
+      max: 1,
+      display: false
+    };
+  });
+
   return (
-    <CapabilityGraph
-      lines={data.lines}
-      modes={data.modes}
-      yAxis={{
-        yPercentage: {
-          position: 'left',
-          min: 0,
-          max: 100
-        }
-      }}
-    />
+    <>
+      <Box style={{ height: '60px' }}>
+        <Chart
+          type="line"
+          data={{ datasets: modeDatasets }}
+          options={{
+            scales: modeScales,
+            plugins: {
+              colors: { forceOverride: true },
+              legend: { display: false }
+            },
+            maintainAspectRatio: false
+          } as any}
+        />
+      </Box>
+      <CapabilityGraph
+        lines={data.lines}
+        yAxis={{
+          yPercentage: {
+            position: 'left',
+            min: 0,
+            max: 100
+          }
+        }}
+      />
+    </>
   );
 }
 

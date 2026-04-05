@@ -24,7 +24,7 @@ import { BooleanEventApiResponse, EnumEventApiResponse, HistoryDetailsApiRespons
 import { clampAndSortHistory } from '../../helpers/history';
 import { Box, Text } from '@mantine/core';
 
-function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'day' {
+export function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'day' {
   const diffDays = dayjs(max).diff(dayjs(min), 'day');
 
   if (diffDays >= 3) {
