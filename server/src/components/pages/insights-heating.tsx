@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
-import { Box, Table, Title } from '@mantine/core';
+import { Anchor, Box, Table, Title } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
 import { HeatingInsightsApiResponse, RestDeviceResponse } from '../../api/types';
 import PageLoader from '../page-loader';
+import { Link } from 'react-router-dom';
 
 function getThermostatDevices(devices: RestDeviceResponse[]) {
   return devices.filter(d => d.capabilities.some(c => c.type === 'THERMOSTAT'));
@@ -40,7 +41,11 @@ function ThermostatTable() {
 
           return (
             <Table.Tr key={device.id}>
-              <Table.Td>{device.name}</Table.Td>
+              <Table.Td>
+                <Anchor component={Link} to={`/device/${device.id}`}>
+                  {device.name}
+                </Anchor>
+              </Table.Td>
               <Table.Td>{cap.targetTemperature.value}°</Table.Td>
               <Table.Td>{cap.currentTemperature.value}°</Table.Td>
               <Table.Td>{cap.power.value}%</Table.Td>
