@@ -17,6 +17,7 @@ import deviceLockRouter from './device/lock';
 import deviceThermostatRouter from './device/thermostat';
 import deviceVehicleRouter from './device/vehicle';
 import eventsRouter from './events';
+import insightsHeatingHandler from './insights/heating';
 
 const router = express.Router();
 
@@ -33,6 +34,7 @@ router.use('/device/:id/light', deviceLightRouter);
 router.use('/device/:id/lock', deviceLockRouter);
 router.use('/device/:id/thermostat', deviceThermostatRouter);
 router.use('/device/:id/vehicle', deviceVehicleRouter);
+router.get('/insights/heating', insightsHeatingHandler);
 
 router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
   res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
