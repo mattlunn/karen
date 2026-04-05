@@ -261,15 +261,7 @@ export interface TimelineFeedApiResponse {
 }
 
 // /api/insights/heating endpoint
-export interface HeatingInsightsThermostat {
-  name: string;
-  targetTemperature: number;
-  currentTemperature: number;
-  power: number;
-}
-
 export interface HeatingInsightsApiResponse {
-  thermostats: HeatingInsightsThermostat[];
   lines: (HistoryLineApiResponse & { deviceName: string })[];
   modes: HistoryModesApiResponse;
 }
