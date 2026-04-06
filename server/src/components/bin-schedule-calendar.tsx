@@ -63,7 +63,7 @@ export default function BinScheduleCalendar({ bins }: BinScheduleCalendarProps) 
       events={events}
       mode="static"
       styles={{
-        yearViewDayIndicator: { width: 8, height: 8, borderRadius: 4 },
+        yearViewDayIndicator: { width: 12, height: 12, borderRadius: 4 },
         yearViewDayIndicators: { gap: 2 },
       }}
     />
