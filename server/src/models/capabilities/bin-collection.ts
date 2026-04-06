@@ -124,11 +124,4 @@ export class BinCollectionCapability extends BinCollectionBaseCapability {
     return override?.newDate ?? null;
   }
 
-  getOriginalDateForOverride(date: Date): string | null {
-    const dateStr = dayjs(date).format('YYYY-MM-DD');
-    const overrides = this.#getRelevantOverrides();
-    const override = overrides.find(o => o.newDate === dateStr);
-
-    return override?.originalDate ?? null;
-  }
 }
