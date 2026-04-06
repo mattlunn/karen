@@ -20,6 +20,10 @@ export default function BinScheduleCalendar({ bins }: BinScheduleCalendarProps) 
       const cap = bin.capability;
       const color = cap.color;
 
+      // Extract DTSTART from rrule so the library uses the correct anchor date
+      const dtstartMatch = cap.rrule.match(/DTSTART:(\d{8}T\d{6})/);
+      const dtstart = dtstartMatch ? dayjs(dtstartMatch[1]).format('YYYY-MM-DD HH:mm:ss') : undefined;
+
       // Main recurring series
       result.push({
         id: `${bin.name}-series`,
@@ -29,6 +33,7 @@ export default function BinScheduleCalendar({ bins }: BinScheduleCalendarProps) 
         color,
         recurrence: {
           rrule: cap.rrule,
+          dtstart,
           exdate: cap.exdates.map(d => `${d} 00:00:00`),
         },
       });
