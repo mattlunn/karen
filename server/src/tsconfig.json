@@ -11,7 +11,7 @@
     "moduleResolution": "Bundler",
     "esModuleInterop": true,
     "noEmit": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "declaration": true,
     "isolatedModules": true,
     "skipLibCheck": true,
