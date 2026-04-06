@@ -1,32 +1,27 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Title, Stack, Group, Text, Paper, Box } from '@mantine/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import useApiCall from '../../hooks/api';
-import type { DevicesApiResponse, CapabilityApiResponse } from '../../api/types';
+import type { DevicesApiResponse } from '../../api/types';
 import PageLoader from '../page-loader';
 import BinScheduleCalendar from '../bin-schedule-calendar';
 import dayjs from '../../dayjs';
-
-type BinCollectionCapability = Extract<CapabilityApiResponse, { type: 'BIN_COLLECTION' }>;
+import { forDeviceCapability } from '../../helpers/device';
 
 export default function InsightsBins() {
   const { data, loading } = useApiCall<DevicesApiResponse>('/devices');
 
-  const bins = useMemo(() => {
-    if (!data) return [];
+  if (loading || !data) {
+    return <PageLoader />;
+  }
 
-    return data.devices
-      .map(device => {
-        const cap = device.capabilities.find(
-          (c): c is BinCollectionCapability => c.type === 'BIN_COLLECTION'
-        );
-        return cap ? { name: device.name, capability: cap } : null;
-      })
-      .filter((b): b is NonNullable<typeof b> => b !== null);
-  }, [data]);
+  const bins = forDeviceCapability(data.devices, 'BIN_COLLECTION', (device, capability) => ({
+    name: device.name,
+    capability,
+  }));
 
-  const upcomingByDate = useMemo(() => {
+  const upcomingByDate = (() => {
     const groups = new Map<string, string[]>();
 
     for (const bin of bins) {
@@ -41,11 +36,7 @@ export default function InsightsBins() {
     return Array.from(groups.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, names]) => ({ date: dayjs(date), names }));
-  }, [bins]);
-
-  if (loading || !data) {
-    return <PageLoader />;
-  }
+  })();
 
   if (bins.length === 0) {
     return (
