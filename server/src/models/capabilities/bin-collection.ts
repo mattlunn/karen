@@ -92,12 +92,17 @@ export class BinCollectionCapability extends BinCollectionBaseCapability {
     const afterDay = dayjs(after);
     const overrides = this.#getRelevantOverrides();
 
-    // Override dates that fall on or after `after`
-    const futureOverrides = overrides
-      .map(o => ({ date: dayjs(o.newDate), originalDate: o.originalDate }))
-      .filter(o => o.date.isSameOrAfter(afterDay, 'day'));
+    // Check for the soonest overridden date on or after today
+    const soonestOverride = overrides
+      .map(o => dayjs(o.newDate))
+      .filter(d => d.isSameOrAfter(afterDay, 'day'))
+      .sort((a, b) => a.diff(b))[0];
 
-    // Find next regular occurrence, skipping excluded dates
+    if (soonestOverride) {
+      return { date: soonestOverride.toDate(), isOverride: true };
+    }
+
+    // Otherwise, find the next regular occurrence, skipping excluded dates
     const exdateSet = new Set(overrides.map(o => o.originalDate));
     let nextRegular = getNextOccurrence(bin.anchorDate, bin.intervalWeeks, afterDay);
 
@@ -105,15 +110,7 @@ export class BinCollectionCapability extends BinCollectionBaseCapability {
       nextRegular = nextRegular.add(bin.intervalWeeks * 7, 'day');
     }
 
-    let earliest: { date: Dayjs; isOverride: boolean } = { date: nextRegular, isOverride: false };
-
-    for (const override of futureOverrides) {
-      if (override.date.isBefore(earliest.date, 'day')) {
-        earliest = { date: override.date, isOverride: true };
-      }
-    }
-
-    return { date: earliest.date.toDate(), isOverride: earliest.isOverride };
+    return { date: nextRegular.toDate(), isOverride: false };
   }
 
   getOverrideForOriginalDate(date: Date): string | null {
