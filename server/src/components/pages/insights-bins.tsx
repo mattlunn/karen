@@ -19,7 +19,7 @@ export default function InsightsBins() {
     id: device.id,
     name: device.name,
     capability,
-  }));
+  })).sort((a, b) => a.capability.nextCollection.date.localeCompare(b.capability.nextCollection.date));
 
   if (bins.length === 0) {
     return (
