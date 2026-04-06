@@ -92,7 +92,15 @@ export class BinCollectionCapability extends BinCollectionBaseCapability {
     const afterDay = dayjs(after);
     const overrides = this.#getRelevantOverrides();
 
-    const nextRegular = getNextOccurrence(bin.anchorDate, bin.intervalWeeks, afterDay);
+    // Find the next regular occurrence that hasn't been overridden
+    const exdateSet = new Set(overrides.map(o => o.originalDate));
+    let nextRegular = getNextOccurrence(bin.anchorDate, bin.intervalWeeks, afterDay);
+
+    while (exdateSet.has(nextRegular.format('YYYY-MM-DD'))) {
+      nextRegular = nextRegular.add(bin.intervalWeeks * 7, 'day');
+    }
+
+    // Check if there's an override date that comes sooner
     const soonestOverride = overrides
       .map(o => dayjs(o.newDate))
       .filter(d => d.isSameOrAfter(afterDay, 'day'))
