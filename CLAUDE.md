@@ -166,7 +166,7 @@ Device.registerProvider('providerName', {
 
 **Event-Driven Updates**: Device changes emit events via `DeviceCapabilityEvents`, which trigger SSE (Server-Sent Events) for real-time UI updates.
 
-**Configuration-Driven Automations**: Automations are configured in `config.json` and dynamically loaded at startup. Each automation module receives parameters and registers event handlers.
+**Configuration-Driven Automations**: Automations are configured in `config.json` and dynamically loaded at startup. Each automation module receives parameters and registers event handlers. Each automation exports a default function with a named `FooAutomationParameters` type for its config object (see `automations/bathroom.ts`). Required parameters have no defaults.
 
 **Capability UI Registry**: UI configuration for device capabilities is centralized in `/components/capabilities/`. When adding a new capability type, only update `registry.tsx`:
 
