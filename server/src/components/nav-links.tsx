@@ -12,6 +12,7 @@ const navLinks = [
 
 const insightsLinks = [
   { label: 'Heating', to: '/insights/heating' },
+  { label: 'Bins', to: '/insights/bins' },
 ];
 
 interface NavLinksProps {

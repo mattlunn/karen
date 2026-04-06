@@ -5,6 +5,7 @@ export { LightCapability } from './light';
 export { LockCapability } from './lock';
 export { SpeakerCapability } from './speaker';
 export { ThermostatCapability } from './thermostat';
+export { BinCollectionCapability } from './bin-collection';
 export * from './capabilities.gen';
 
 export type ScheduledChange = {

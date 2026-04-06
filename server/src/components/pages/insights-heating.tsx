@@ -4,13 +4,10 @@ import useApiCall from '../../hooks/api';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
-import { HeatingInsightsApiResponse, RestDeviceResponse } from '../../api/types';
+import { HeatingInsightsApiResponse } from '../../api/types';
 import PageLoader from '../page-loader';
 import { Link } from 'react-router-dom';
-
-function getThermostatDevices(devices: RestDeviceResponse[]) {
-  return devices.filter(d => d.capabilities.some(c => c.type === 'THERMOSTAT'));
-}
+import { forDeviceCapability } from '../../helpers/device';
 
 function ThermostatTable() {
   const { data, isLoading } = useDevices();
@@ -18,8 +15,6 @@ function ThermostatTable() {
   if (isLoading || !data) {
     return <PageLoader />;
   }
-
-  const thermostats = getThermostatDevices(data.devices);
 
   return (
     <Table>
@@ -32,26 +27,18 @@ function ThermostatTable() {
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
-        {thermostats.map(device => {
-          const cap = device.capabilities.find(c => c.type === 'THERMOSTAT');
-
-          if (cap?.type !== 'THERMOSTAT') {
-            return null;
-          }
-
-          return (
-            <Table.Tr key={device.id}>
-              <Table.Td>
-                <Anchor component={Link} to={`/device/${device.id}`}>
-                  {device.name}
-                </Anchor>
-              </Table.Td>
-              <Table.Td>{cap.targetTemperature.value}°</Table.Td>
-              <Table.Td>{cap.currentTemperature.value}°</Table.Td>
-              <Table.Td>{cap.power.value}%</Table.Td>
-            </Table.Tr>
-          );
-        })}
+        {forDeviceCapability(data.devices, 'THERMOSTAT', (device, cap) => (
+          <Table.Tr key={device.id}>
+            <Table.Td>
+              <Anchor component={Link} to={`/device/${device.id}`}>
+                {device.name}
+              </Anchor>
+            </Table.Td>
+            <Table.Td>{cap.targetTemperature.value}°</Table.Td>
+            <Table.Td>{cap.currentTemperature.value}°</Table.Td>
+            <Table.Td>{cap.power.value}%</Table.Td>
+          </Table.Tr>
+        ))}
       </Table.Tbody>
     </Table>
   );

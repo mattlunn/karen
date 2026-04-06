@@ -334,4 +334,8 @@
       "eventName": "is_cable_connected"
     }
   ]
+}, {
+  "name": "BinCollection",
+  "capabilityModelClassName": "BinCollectionBase",
+  "properties": []
 }]

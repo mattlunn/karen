@@ -1,5 +1,6 @@
 import { Device, NumericEvent, BooleanEvent } from '../../models';
 import { DeviceStatus, NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
+import dayjs from '../../dayjs';
 
 type AwaitedObject<T> = {
   [K in keyof T]: T[K] extends Promise<infer U> ? U : T[K];
@@ -201,6 +202,19 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         type: 'BATTERY_LOW_INDICATOR' as const,
         isLow: mapBooleanEvent(battery.getIsBatteryLowEvent(), device)
       });
+    }
+
+    case 'BIN_COLLECTION': {
+      const cap = device.getBinCollectionCapability();
+      const schedule = cap.getScheduleData();
+      const next = cap.getNextCollectionDate();
+
+      return {
+        type: 'BIN_COLLECTION' as const,
+        color: cap.getColor(),
+        ...schedule,
+        nextCollection: { date: dayjs(next.date).format('YYYY-MM-DD'), isOverride: next.isOverride },
+      };
     }
 
     case 'ELECTRIC_VEHICLE': {

@@ -29,6 +29,7 @@ import {
   faRoad,
   faCalendarCheck,
   faPlug,
+  faTrash,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
@@ -503,6 +504,29 @@ export const registry: CapabilityUIRegistry = {
           isIssue: isLow,
         },
       ];
+    },
+  },
+
+  BIN_COLLECTION: {
+    priority: 45,
+    getCapabilityMetrics: (cap) => {
+      const next = dayjs(cap.nextCollection.date);
+      let footer: string | undefined;
+
+      if (cap.nextCollection.isOverride) {
+        const nextDateStr = next.format('YYYY-MM-DD');
+        const originalDate = cap.overrides.find(o => o.newDate === nextDateStr)!.originalDate;
+
+        footer = `Rescheduled from ${dayjs(originalDate).format('ddd D MMM')}`;
+      }
+
+      return [{
+        icon: faTrash,
+        title: 'Next Collection',
+        value: next.format('ddd D MMM'),
+        footer,
+        iconColor: cap.color,
+      }];
     },
   },
 

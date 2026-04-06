@@ -5,6 +5,7 @@ import Groups from '../groups';
 import HouseStatus from '../house-status';
 import PageLoader from '../page-loader';
 import { useDevices } from '../../hooks/queries/use-devices';
+import { forDeviceCapability } from '../../helpers/device';
 
 interface Camera {
   id: number;
@@ -20,19 +21,11 @@ export default function Home() {
     return <PageLoader />;
   }
 
-  const cameras: Camera[] = data.devices.reduce<Camera[]>((acc, device) => {
-    const cameraCapability = device.capabilities.find(cap => cap.type === 'CAMERA');
-
-    if (cameraCapability) {
-      acc.push({
-        id: device.id,
-        name: device.name,
-        snapshotUrl: cameraCapability.snapshotUrl.value
-      });
-    }
-
-    return acc;
-  }, []);
+  const cameras: Camera[] = forDeviceCapability(data.devices, 'CAMERA', (device, capability) => ({
+    id: device.id,
+    name: device.name,
+    snapshotUrl: capability.snapshotUrl.value,
+  }));
 
   return (
     <>
