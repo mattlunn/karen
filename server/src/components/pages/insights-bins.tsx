@@ -25,14 +25,50 @@ export default function InsightsBins() {
 
   const upcomingByDate = (() => {
     const groups = new Map<string, string[]>();
+    const today = dayjs().startOf('day');
+    const windowEnd = today.add(4, 'week');
 
     for (const bin of bins) {
-      const dateStr = dayjs(bin.capability.nextCollection.date).format('YYYY-MM-DD');
+      const cap = bin.capability;
+      const intervalMatch = cap.rrule.match(/INTERVAL=(\d+)/);
+      const dtstartMatch = cap.rrule.match(/DTSTART:(\d{4})(\d{2})(\d{2})/);
 
-      if (!groups.has(dateStr)) {
-        groups.set(dateStr, []);
+      if (!intervalMatch || !dtstartMatch) continue;
+
+      const interval = Number(intervalMatch[1]);
+      const anchor = dayjs(`${dtstartMatch[1]}-${dtstartMatch[2]}-${dtstartMatch[3]}`);
+      const periodDays = interval * 7;
+      const exdateSet = new Set(cap.exdates);
+      const overrideMap = new Map(cap.overrides.map(o => [o.originalDate, o.newDate]));
+
+      // Find the first occurrence on or after today
+      const diffDays = today.diff(anchor, 'day');
+      const periodsPassed = diffDays > 0 ? Math.floor(diffDays / periodDays) : 0;
+      let candidate = anchor.add(periodsPassed * periodDays, 'day');
+
+      if (candidate.isBefore(today, 'day')) {
+        candidate = candidate.add(periodDays, 'day');
       }
-      groups.get(dateStr)!.push(bin.name);
+
+      // Generate occurrences within the window
+      while (candidate.isBefore(windowEnd, 'day')) {
+        const dateStr = candidate.format('YYYY-MM-DD');
+
+        if (exdateSet.has(dateStr)) {
+          // Original date is excluded — use the override's new date instead
+          const newDate = overrideMap.get(dateStr);
+
+          if (newDate && dayjs(newDate).isBefore(windowEnd, 'day')) {
+            if (!groups.has(newDate)) groups.set(newDate, []);
+            groups.get(newDate)!.push(bin.name);
+          }
+        } else {
+          if (!groups.has(dateStr)) groups.set(dateStr, []);
+          groups.get(dateStr)!.push(bin.name);
+        }
+
+        candidate = candidate.add(periodDays, 'day');
+      }
     }
 
     return Array.from(groups.entries())
