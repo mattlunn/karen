@@ -16,16 +16,9 @@ export default function BinScheduleCalendar({ bins }: BinScheduleCalendarProps) 
   const events: ScheduleEventData[] = useMemo(() => {
     const result: ScheduleEventData[] = [];
 
-    const colorMap: Record<string, string> = {
-      blue: '#4dabf7',
-      black: '#495057',
-      green: '#51cf66',
-      brown: '#a0522d',
-    };
-
     for (const bin of bins) {
       const cap = bin.capability;
-      const color = colorMap[cap.color] ?? '#868e96';
+      const color = cap.color;
 
       // Main recurring series
       result.push({

@@ -212,7 +212,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         type: 'BIN_COLLECTION' as const,
         color: cap.getColor(),
         ...schedule,
-        nextCollection: next ? { date: next.date.toISOString(), isOverride: next.isOverride } : null,
+        nextCollection: { date: next.date.toISOString(), isOverride: next.isOverride },
       };
     }
 

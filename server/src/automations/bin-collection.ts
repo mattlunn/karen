@@ -1,5 +1,6 @@
 import bus, { NOTIFICATION_TO_ALL } from '../bus';
 import { Device } from '../models';
+import config from '../config';
 import dayjs from '../dayjs';
 import logger from '../logger';
 
@@ -31,57 +32,55 @@ export default function ({ reminderTime = '19:00' }: { reminderTime?: string }) 
   async function sendReminders() {
     const devices = await Device.findByProvider('bins');
     const tomorrow = dayjs().add(1, 'day');
+    const tomorrowStr = tomorrow.format('YYYY-MM-DD');
+
+    // Check if tomorrow has a top-level override (i.e. tomorrow was moved somewhere else)
+    const overrideFromTomorrow = config.bins.overrides.find(o => o.originalDate === tomorrowStr);
+    // Check if tomorrow is the target of an override (i.e. something was moved TO tomorrow)
+    const overrideToTomorrow = config.bins.overrides.find(o => o.newDate === tomorrowStr);
 
     // Group bins by what's happening tomorrow
     const collectTomorrow: string[] = [];
-    const movedFromTomorrow: Array<{ name: string; newDate: string }> = [];
-    const overrideTomorrow: Array<{ name: string; originalDate: string }> = [];
+    const movedFromTomorrow: string[] = [];
+    const overrideTomorrow: string[] = [];
 
     for (const device of devices) {
       const cap = device.getBinCollectionCapability();
       const next = cap.getNextCollectionDate();
 
-      // Check if tomorrow is a regular or override collection day
-      if (next && dayjs(next.date).isSame(tomorrow, 'day')) {
+      if (dayjs(next.date).isSame(tomorrow, 'day')) {
         if (next.isOverride) {
-          const originalDate = cap.getOriginalDateForOverride(next.date);
-          overrideTomorrow.push({ name: device.name, originalDate: originalDate ?? '' });
+          overrideTomorrow.push(device.name);
         } else {
           collectTomorrow.push(device.name);
         }
       }
 
-      // Check if tomorrow was supposed to be a collection day but was overridden
-      const overrideNewDate = cap.getOverrideForOriginalDate(tomorrow.toDate());
-
-      if (overrideNewDate) {
-        movedFromTomorrow.push({ name: device.name, newDate: overrideNewDate });
+      // If tomorrow was supposed to be a collection day but got overridden
+      if (overrideFromTomorrow && cap.getOverrideForOriginalDate(tomorrow.toDate())) {
+        movedFromTomorrow.push(device.name);
       }
     }
 
-    // Send grouped notifications
     if (collectTomorrow.length > 0) {
-      const binList = formatBinList(collectTomorrow);
       bus.emit(NOTIFICATION_TO_ALL, {
-        message: `🗑️ Put out the ${binList} - collection tomorrow (${tomorrow.format('ddd D MMM')})`,
+        message: `🗑️ Put out the ${formatBinList(collectTomorrow)} - collection tomorrow (${tomorrow.format('ddd D MMM')})`,
       });
     }
 
     if (overrideTomorrow.length > 0) {
-      const binList = formatBinList(overrideTomorrow.map(b => b.name));
-      const movedFrom = overrideTomorrow[0].originalDate
-        ? `, moved from ${dayjs(overrideTomorrow[0].originalDate).format('ddd D MMM')}`
+      const movedFrom = overrideToTomorrow
+        ? `, moved from ${dayjs(overrideToTomorrow.originalDate).format('ddd D MMM')}`
         : '';
       bus.emit(NOTIFICATION_TO_ALL, {
-        message: `🗑️ Put out the ${binList} - collection tomorrow (${tomorrow.format('ddd D MMM')}${movedFrom})`,
+        message: `🗑️ Put out the ${formatBinList(overrideTomorrow)} - collection tomorrow (${tomorrow.format('ddd D MMM')}${movedFrom})`,
       });
     }
 
     if (movedFromTomorrow.length > 0) {
-      const binList = formatBinList(movedFromTomorrow.map(b => b.name));
-      const newDate = dayjs(movedFromTomorrow[0].newDate);
+      const newDate = dayjs(overrideFromTomorrow!.newDate);
       bus.emit(NOTIFICATION_TO_ALL, {
-        message: `🗑️ ${binList} collection moved to ${newDate.format('ddd D MMM')}`,
+        message: `🗑️ ${formatBinList(movedFromTomorrow)} collection moved to ${newDate.format('ddd D MMM')}`,
       });
     }
   }

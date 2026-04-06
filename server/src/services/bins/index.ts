@@ -3,16 +3,7 @@ import config from '../../config';
 import logger from '../../logger';
 import type { Capability } from '../../models/capabilities';
 
-interface BinConfig {
-  id: string;
-  name: string;
-  color: string;
-  anchorDate: string;
-  intervalWeeks: number;
-  overrides: Array<{ originalDate: string; newDate: string }>;
-}
-
-const bins: BinConfig[] = (config as unknown as { bins?: BinConfig[] }).bins ?? [];
+const items = config.bins?.items ?? [];
 
 Device.registerProvider('bins', {
   getCapabilities(): Capability[] {
@@ -20,7 +11,7 @@ Device.registerProvider('bins', {
   },
 
   async synchronize() {
-    for (const bin of bins) {
+    for (const bin of items) {
       try {
         let device = await Device.findByProviderId('bins', bin.id);
 

@@ -19,6 +19,22 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
+.sectionLabel {
+  cursor: default;
+}
+
+.subLink {
+  padding-left: 12px;
+  font-size: 14px;
+}
+
+.dropdownLink {
+  text-decoration: none;
+  font-size: 14px;
+  display: block;
+  padding: 4px 8px;
+}
+
 .rootHeader .logout {
   color: rgba(255, 255, 255, 0.5);
 }

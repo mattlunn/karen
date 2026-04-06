@@ -29,7 +29,7 @@ import {
   faRoad,
   faCalendarCheck,
   faPlug,
-  faTrashCan,
+  faTrash,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
@@ -510,32 +510,14 @@ export const registry: CapabilityUIRegistry = {
   BIN_COLLECTION: {
     priority: 45,
     getCapabilityMetrics: (cap) => {
-      const colorMap: Record<string, string> = {
-        blue: '#4dabf7',
-        black: '#495057',
-        green: '#51cf66',
-        brown: '#a0522d',
-      };
-
-      const iconColor = colorMap[cap.color] ?? '#868e96';
-
-      if (!cap.nextCollection) {
-        return [{
-          icon: faTrashCan,
-          title: 'Next Collection',
-          value: 'Unknown',
-          iconColor,
-        }];
-      }
-
       const next = dayjs(cap.nextCollection.date);
 
       return [{
-        icon: faTrashCan,
+        icon: faTrash,
         title: 'Next Collection',
         value: next.format('ddd D MMM'),
         footer: cap.nextCollection.isOverride ? 'Rescheduled' : undefined,
-        iconColor,
+        iconColor: cap.color,
       }];
     },
   },

@@ -2,19 +2,23 @@ import { BinCollectionBaseCapability } from './capabilities.gen';
 import config from '../../config';
 import dayjs, { Dayjs } from '../../dayjs';
 
-interface BinConfig {
+interface BinItemConfig {
   id: string;
   name: string;
   color: string;
   anchorDate: string;
   intervalWeeks: number;
-  overrides: Array<{ originalDate: string; newDate: string }>;
+}
+
+interface Override {
+  originalDate: string;
+  newDate: string;
 }
 
 export interface BinScheduleData {
   rrule: string;
   exdates: string[];
-  overrides: Array<{ originalDate: string; newDate: string }>;
+  overrides: Override[];
 }
 
 function buildRruleString(anchorDate: string, intervalWeeks: number): string {
@@ -22,9 +26,15 @@ function buildRruleString(anchorDate: string, intervalWeeks: number): string {
   return `DTSTART:${dtstart}\nRRULE:FREQ=WEEKLY;INTERVAL=${intervalWeeks}`;
 }
 
-/**
- * Find the next occurrence of a fortnightly (or N-weekly) schedule on or after `after`.
- */
+function isCollectionDay(anchorDate: string, intervalWeeks: number, dateStr: string): boolean {
+  const anchor = dayjs(anchorDate).startOf('day');
+  const date = dayjs(dateStr).startOf('day');
+  const diffDays = date.diff(anchor, 'day');
+  const periodDays = intervalWeeks * 7;
+
+  return diffDays >= 0 && diffDays % periodDays === 0;
+}
+
 function getNextOccurrence(anchorDate: string, intervalWeeks: number, after: Dayjs): Dayjs {
   const anchor = dayjs(anchorDate);
   const diffDays = after.startOf('day').diff(anchor.startOf('day'), 'day');
@@ -45,9 +55,8 @@ function getNextOccurrence(anchorDate: string, intervalWeeks: number, after: Day
 }
 
 export class BinCollectionCapability extends BinCollectionBaseCapability {
-  #getBinConfig(): BinConfig {
-    const bins = (config as unknown as { bins: BinConfig[] }).bins;
-    const bin = bins.find(b => b.id === this.device.providerId);
+  #getBinItem(): BinItemConfig {
+    const bin = config.bins.items.find(b => b.id === this.device.providerId);
 
     if (!bin) {
       throw new Error(`No bin config for providerId ${this.device.providerId}`);
@@ -56,66 +65,69 @@ export class BinCollectionCapability extends BinCollectionBaseCapability {
     return bin;
   }
 
+  #getRelevantOverrides(): Override[] {
+    const bin = this.#getBinItem();
+    return config.bins.overrides.filter(o =>
+      isCollectionDay(bin.anchorDate, bin.intervalWeeks, o.originalDate)
+    );
+  }
+
   getColor(): string {
-    return this.#getBinConfig().color;
+    return '#' + this.#getBinItem().color;
   }
 
   getScheduleData(): BinScheduleData {
-    const bin = this.#getBinConfig();
+    const bin = this.#getBinItem();
+    const overrides = this.#getRelevantOverrides();
 
     return {
       rrule: buildRruleString(bin.anchorDate, bin.intervalWeeks),
-      exdates: bin.overrides.map(o => o.originalDate),
-      overrides: bin.overrides,
+      exdates: overrides.map(o => o.originalDate),
+      overrides,
     };
   }
 
-  getNextCollectionDate(after: Date = new Date()): { date: Date; isOverride: boolean } | null {
-    const bin = this.#getBinConfig();
+  getNextCollectionDate(after: Date = new Date()): { date: Date; isOverride: boolean } {
+    const bin = this.#getBinItem();
     const afterDay = dayjs(after);
+    const overrides = this.#getRelevantOverrides();
 
     // Override dates that fall on or after `after`
-    const futureOverrides = bin.overrides
+    const futureOverrides = overrides
       .map(o => ({ date: dayjs(o.newDate), originalDate: o.originalDate }))
       .filter(o => o.date.isSameOrAfter(afterDay, 'day'));
 
     // Find next regular occurrence, skipping excluded dates
-    const exdateSet = new Set(bin.overrides.map(o => o.originalDate));
+    const exdateSet = new Set(overrides.map(o => o.originalDate));
     let nextRegular = getNextOccurrence(bin.anchorDate, bin.intervalWeeks, afterDay);
 
-    // Skip up to 52 iterations to avoid infinite loop
     for (let i = 0; i < 52 && exdateSet.has(nextRegular.format('YYYY-MM-DD')); i++) {
       nextRegular = nextRegular.add(bin.intervalWeeks * 7, 'day');
     }
 
-    // Find the earliest date among overrides and regular occurrences
-    let earliest: { date: Dayjs; isOverride: boolean } | null = null;
-
-    if (!exdateSet.has(nextRegular.format('YYYY-MM-DD'))) {
-      earliest = { date: nextRegular, isOverride: false };
-    }
+    let earliest: { date: Dayjs; isOverride: boolean } = { date: nextRegular, isOverride: false };
 
     for (const override of futureOverrides) {
-      if (!earliest || override.date.isBefore(earliest.date, 'day')) {
+      if (override.date.isBefore(earliest.date, 'day')) {
         earliest = { date: override.date, isOverride: true };
       }
     }
 
-    return earliest ? { date: earliest.date.toDate(), isOverride: earliest.isOverride } : null;
+    return { date: earliest.date.toDate(), isOverride: earliest.isOverride };
   }
 
   getOverrideForOriginalDate(date: Date): string | null {
-    const bin = this.#getBinConfig();
     const dateStr = dayjs(date).format('YYYY-MM-DD');
-    const override = bin.overrides.find(o => o.originalDate === dateStr);
+    const overrides = this.#getRelevantOverrides();
+    const override = overrides.find(o => o.originalDate === dateStr);
 
     return override?.newDate ?? null;
   }
 
   getOriginalDateForOverride(date: Date): string | null {
-    const bin = this.#getBinConfig();
     const dateStr = dayjs(date).format('YYYY-MM-DD');
-    const override = bin.overrides.find(o => o.newDate === dateStr);
+    const overrides = this.#getRelevantOverrides();
+    const override = overrides.find(o => o.newDate === dateStr);
 
     return override?.originalDate ?? null;
   }

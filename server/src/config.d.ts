@@ -91,16 +91,18 @@ declare namespace _default {
     const default_charge_rate_pct_per_hour: number;
   }
   const bins: {
-    id: string;
-    name: string;
-    color: string;
-    anchorDate: string;
-    intervalWeeks: number;
     overrides: {
       originalDate: string;
       newDate: string;
     }[];
-  }[];
+    items: {
+      id: string;
+      name: string;
+      color: string;
+      anchorDate: string;
+      intervalWeeks: number;
+    }[];
+  };
   const port: number;
   const trust_proxy: boolean;
   const days_to_keep_recordings_while_home: number;

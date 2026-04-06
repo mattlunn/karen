@@ -66,7 +66,7 @@ export type CapabilityApiResponse = {
   rrule: string;
   exdates: string[];
   overrides: Array<{ originalDate: string; newDate: string }>;
-  nextCollection: { date: string; isOverride: boolean } | null;
+  nextCollection: { date: string; isOverride: boolean };
 } | {
   type: null;
 };
