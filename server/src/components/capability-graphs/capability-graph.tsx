@@ -24,7 +24,7 @@ import { BooleanEventApiResponse, EnumEventApiResponse, HistoryDetailsApiRespons
 import { clampAndSortHistory } from '../../helpers/history';
 import { Box, Text } from '@mantine/core';
 
-function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'day' {
+export function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'day' {
   const diffDays = dayjs(max).diff(dayjs(min), 'day');
 
   if (diffDays >= 3) {
@@ -104,38 +104,45 @@ export type CapabilityGraphProps = {
   yMin?: number
   yMax?: number
   timeUnit?: 'minute' | 'hour' | 'day'
+  height?: string
 };
 
-function assertAndGetMinMax(lines: { data: HistoryDetailsApiResponse<NumericEventApiResponse>; }[]): { min: string; max: string; } {
-  if (lines.length === 0) {
-    throw new Error('Graph has no data');
-  }
+function getMinMax(props: CapabilityGraphProps): { min: string; max: string } | null {
+  if (props.lines.length > 0) {
+    const min = props.lines[0].data.since;
+    const max = props.lines[0].data.until;
 
-  const min = lines[0].data.since;
-  const max = lines[0].data.until;
-
-  for (let i=1;i<lines.length;i++) {
-    if (lines[i].data.since !== min || lines[i].data.until !== max) {
-      throw new Error(`Dataset 0 and ${i} have differing since/ untils`);
+    for (let i = 1; i < props.lines.length; i++) {
+      if (props.lines[i].data.since !== min || props.lines[i].data.until !== max) {
+        throw new Error(`Dataset 0 and ${i} have differing since/ untils`);
+      }
     }
+
+    return { min, max };
   }
 
-  return {
-    min,
-    max
-  };
+  if (props.modes) {
+    return { min: props.modes.data.since, max: props.modes.data.until };
+  }
+
+  return null;
 }
 
 export function CapabilityGraph(props: CapabilityGraphProps) {
-  if (props.lines.length === 0) {
+  const height = props.height || '600px';
+  const minMax = getMinMax(props);
+
+  if (!minMax) {
     return (
-      <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} mb="lg">
+      <Box style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }} mb="lg">
         <Text c="dimmed">No data available</Text>
       </Box>
     );
   }
 
-  const { min, max } = assertAndGetMinMax(props.lines);
+  const { min, max } = minMax;
+  const modesOnly = props.lines.length === 0;
+
   const datasets: ChartDataset<"line", { x: string; y: number; }[]>[] = props.lines.map(x => ({
     type: 'line',
     data: mapNumericDataToDataset(x.data),
@@ -175,7 +182,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
     maintainAspectRatio: false
   };
-  
+
   if (props.bar) {
     datasets.push({
       type: 'line',
@@ -238,11 +245,38 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
   if (props.yAxis) {
     for (const [axisId, axisDetails] of Object.entries(props.yAxis)) {
-      chartOptions.scales[axisId] = {
+      const scaleConfig: any = {
         type: 'linear',
         ...axisDetails
       };
+
+      if (modesOnly) {
+        scaleConfig.ticks = { color: 'transparent' };
+        scaleConfig.grid = { display: false };
+      }
+
+      chartOptions.scales[axisId] = scaleConfig;
     }
+  }
+
+  // In modes-only mode, add a dummy dataset so Chart.js creates the yAxis
+  // scales (it only creates scales referenced by a dataset)
+  if (modesOnly && props.yAxis) {
+    const axisId = Object.keys(props.yAxis)[0];
+
+    datasets.unshift({
+      type: 'line',
+      data: [],
+      yAxisID: axisId,
+      label: '',
+      pointRadius: 0,
+      borderWidth: 0
+    });
+
+    chartOptions.plugins.legend = {
+      ...chartOptions.plugins.legend,
+      labels: { filter: (item: any) => item.text !== '' }
+    };
   }
 
   if (props.yMin || props.yMax) {
@@ -268,13 +302,13 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }
 
   return (
-    <Box style={{ height: '600px' }} mb="lg">
-      <Chart 
+    <Box style={{ height, position: 'relative' }} mb="lg">
+      <Chart
         type="line"
         data={{
           datasets
         }}
-        
+
         options={chartOptions}
       />
     </Box>

@@ -16,6 +16,7 @@ import Timeline from './components/pages/timeline';
 import Devices from './components/pages/devices';
 import Device from './components/pages/device';
 import Login from './components/pages/login';
+import HeatingInsights from './components/pages/insights-heating';
 import InsightsBins from './components/pages/insights-bins';
 
 const queryClient = new QueryClient({
@@ -60,6 +61,7 @@ window.onload = () => {
                 <Route element={<AppLayout />}>
                   <Route path="/" element={<Home />} />
                   <Route path="/timeline" element={<Timeline />} />
+                  <Route path="/insights/heating" element={<HeatingInsights />} />
                   <Route path="/device/:id" element={<Device />} />
                   <Route path="/device" element={<Devices />} />
                   <Route path="/insights/bins" element={<InsightsBins />} />
