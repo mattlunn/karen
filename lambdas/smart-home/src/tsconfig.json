@@ -2,17 +2,14 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "../dist",
-    "esModuleInterop": true,
+    "module": "node16",
+    "moduleResolution": "node16",
+    "types": ["node", "aws-lambda"],
     "typeRoots": [
       "node_modules/@types",
       "./custom-typings"
     ],
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strict": true,
-    "target": "ES2015",
-    "module": "commonjs",
-    "forceConsistentCasingInFileNames": true
+    "noImplicitAny": true
   },
-  "extends": "@tsconfig/node14/tsconfig.json"
+  "extends": "@tsconfig/node24/tsconfig.json"
 }

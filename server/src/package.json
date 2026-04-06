@@ -77,6 +77,8 @@
     "@types/jest": "^30.0.0",
     "@types/newrelic": "^9.14.4",
     "@types/node-fetch": "^2.6.11",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@types/uuid": "^9.0.8",
     "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
