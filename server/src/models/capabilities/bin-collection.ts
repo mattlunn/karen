@@ -73,7 +73,7 @@ export class BinCollectionCapability extends BinCollectionBaseCapability {
   }
 
   getColor(): string {
-    return '#' + this.#getBinItem().color;
+    return this.#getBinItem().color;
   }
 
   getScheduleData(): BinScheduleData {
