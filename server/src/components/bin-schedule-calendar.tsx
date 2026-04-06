@@ -20,9 +20,12 @@ export default function BinScheduleCalendar({ bins }: BinScheduleCalendarProps) 
       const cap = bin.capability;
       const color = cap.color;
 
-      // Extract DTSTART from rrule so the library uses the correct anchor date
-      const dtstartMatch = cap.rrule.match(/DTSTART:(\d{8}T\d{6})/);
-      const dtstart = dtstartMatch ? dayjs(dtstartMatch[1]).format('YYYY-MM-DD HH:mm:ss') : undefined;
+      // Extract DTSTART from rrule so the library uses the correct anchor date.
+      // Use UTC midnight (T00:00:00Z) so RRule generates occurrences at midnight UTC —
+      // consistent across DST boundaries. Exdates must also use UTC midnight so the
+      // recurrenceId comparison in expand-recurring-events works year-round.
+      const dtstartMatch = cap.rrule.match(/DTSTART:(\d{4})(\d{2})(\d{2})/);
+      const dtstart = dtstartMatch ? `${dtstartMatch[1]}-${dtstartMatch[2]}-${dtstartMatch[3]}T00:00:00Z` : undefined;
 
       // Main recurring series
       result.push({
@@ -34,7 +37,7 @@ export default function BinScheduleCalendar({ bins }: BinScheduleCalendarProps) 
         recurrence: {
           rrule: cap.rrule,
           dtstart,
-          exdate: cap.exdates.map(d => `${d} 00:00:00`),
+          exdate: cap.exdates.map(d => `${d}T00:00:00Z`),
         },
       });
 
@@ -59,6 +62,10 @@ export default function BinScheduleCalendar({ bins }: BinScheduleCalendarProps) 
       onDateChange={setDate}
       events={events}
       mode="static"
+      styles={{
+        yearViewDayIndicator: { width: 8, height: 8, borderRadius: 4 },
+        yearViewDayIndicators: { gap: 2 },
+      }}
     />
   );
 }

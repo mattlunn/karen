@@ -515,11 +515,9 @@ export const registry: CapabilityUIRegistry = {
 
       if (cap.nextCollection.isOverride) {
         const nextDateStr = next.format('YYYY-MM-DD');
-        const originalDate = cap.overrides.find(o => o.newDate === nextDateStr)?.originalDate;
+        const originalDate = cap.overrides.find(o => o.newDate === nextDateStr)!.originalDate;
 
-        footer = originalDate
-          ? `Rescheduled from ${dayjs(originalDate).format('ddd D MMM')}`
-          : 'Rescheduled';
+        footer = `Rescheduled from ${dayjs(originalDate).format('ddd D MMM')}`;
       }
 
       return [{
