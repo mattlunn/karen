@@ -1,7 +1,5 @@
 import React from 'react';
-import { Anchor, Title, Stack, Group, Text, Paper, Box, Table } from '@mantine/core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { Anchor, Title, Text, Box, Table, Group } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 import type { DevicesApiResponse } from '../../api/types';
 import PageLoader from '../page-loader';
@@ -22,59 +20,6 @@ export default function InsightsBins() {
     name: device.name,
     capability,
   }));
-
-  const upcomingByDate = (() => {
-    const groups = new Map<string, string[]>();
-    const today = dayjs().startOf('day');
-    const windowEnd = today.add(4, 'week');
-
-    for (const bin of bins) {
-      const cap = bin.capability;
-      const intervalMatch = cap.rrule.match(/INTERVAL=(\d+)/);
-      const dtstartMatch = cap.rrule.match(/DTSTART:(\d{4})(\d{2})(\d{2})/);
-
-      if (!intervalMatch || !dtstartMatch) continue;
-
-      const interval = Number(intervalMatch[1]);
-      const anchor = dayjs(`${dtstartMatch[1]}-${dtstartMatch[2]}-${dtstartMatch[3]}`);
-      const periodDays = interval * 7;
-      const exdateSet = new Set(cap.exdates);
-      const overrideMap = new Map(cap.overrides.map(o => [o.originalDate, o.newDate]));
-
-      // Find the first occurrence on or after today
-      const diffDays = today.diff(anchor, 'day');
-      const periodsPassed = diffDays > 0 ? Math.floor(diffDays / periodDays) : 0;
-      let candidate = anchor.add(periodsPassed * periodDays, 'day');
-
-      if (candidate.isBefore(today, 'day')) {
-        candidate = candidate.add(periodDays, 'day');
-      }
-
-      // Generate occurrences within the window
-      while (candidate.isBefore(windowEnd, 'day')) {
-        const dateStr = candidate.format('YYYY-MM-DD');
-
-        if (exdateSet.has(dateStr)) {
-          // Original date is excluded — use the override's new date instead
-          const newDate = overrideMap.get(dateStr);
-
-          if (newDate && dayjs(newDate).isBefore(windowEnd, 'day')) {
-            if (!groups.has(newDate)) groups.set(newDate, []);
-            groups.get(newDate)!.push(bin.name);
-          }
-        } else {
-          if (!groups.has(dateStr)) groups.set(dateStr, []);
-          groups.get(dateStr)!.push(bin.name);
-        }
-
-        candidate = candidate.add(periodDays, 'day');
-      }
-    }
-
-    return Array.from(groups.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, names]) => ({ date: dayjs(date), names }));
-  })();
 
   if (bins.length === 0) {
     return (
@@ -124,23 +69,6 @@ export default function InsightsBins() {
           })}
         </Table.Tbody>
       </Table>
-
-      {upcomingByDate.length > 0 && (
-        <Box mt="xl">
-          <Title order={3} mb="md">Upcoming Collections</Title>
-          <Stack gap="xs">
-            {upcomingByDate.map(({ date, names }) => (
-              <Paper key={date.format('YYYY-MM-DD')} withBorder p="sm" radius="md">
-                <Group gap="sm">
-                  <FontAwesomeIcon icon={faTrash} style={{ color: '#868e96' }} />
-                  <Text fw={500}>{date.format('ddd D MMM')}</Text>
-                  <Text c="dimmed">{names.join(', ')}</Text>
-                </Group>
-              </Paper>
-            ))}
-          </Stack>
-        </Box>
-      )}
 
       <Box mt="xl">
         <BinScheduleCalendar bins={bins} />
