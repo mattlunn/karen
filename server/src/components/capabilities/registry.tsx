@@ -511,12 +511,22 @@ export const registry: CapabilityUIRegistry = {
     priority: 45,
     getCapabilityMetrics: (cap) => {
       const next = dayjs(cap.nextCollection.date);
+      let footer: string | undefined;
+
+      if (cap.nextCollection.isOverride) {
+        const nextDateStr = next.format('YYYY-MM-DD');
+        const originalDate = cap.overrides.find(o => o.newDate === nextDateStr)?.originalDate;
+
+        footer = originalDate
+          ? `Rescheduled from ${dayjs(originalDate).format('ddd D MMM')}`
+          : 'Rescheduled';
+      }
 
       return [{
         icon: faTrash,
         title: 'Next Collection',
         value: next.format('ddd D MMM'),
-        footer: cap.nextCollection.isOverride ? 'Rescheduled' : undefined,
+        footer,
         iconColor: cap.color,
       }];
     },
