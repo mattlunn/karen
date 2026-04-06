@@ -3,43 +3,25 @@ import { Device } from '../models';
 import config from '../config';
 import dayjs from '../dayjs';
 import logger from '../logger';
+import setIntervalForTime from '../helpers/set-interval-for-time';
 
 export default function ({ reminderTime = '19:00' }: { reminderTime?: string }) {
-  function scheduleNextReminder() {
-    const now = dayjs();
-    const [hours, minutes] = reminderTime.split(':').map(Number);
-    let next = now.hour(hours).minute(minutes).second(0);
-
-    if (next.isSameOrBefore(now)) {
-      next = next.add(1, 'day');
+  setIntervalForTime(async () => {
+    try {
+      await sendReminders();
+    } catch (e) {
+      logger.error(e, 'Failed to send bin collection reminders');
     }
-
-    const delay = next.diff(now);
-
-    setTimeout(async () => {
-      try {
-        await sendReminders();
-      } catch (e) {
-        logger.error(e, 'Failed to send bin collection reminders');
-      }
-
-      scheduleNextReminder();
-    }, delay);
-
-    logger.info(`Bin collection reminder scheduled for ${next.format('YYYY-MM-DD HH:mm')}`);
-  }
+  }, reminderTime);
 
   async function sendReminders() {
     const devices = await Device.findByProvider('bins');
     const tomorrow = dayjs().add(1, 'day');
     const tomorrowStr = tomorrow.format('YYYY-MM-DD');
 
-    // Check if tomorrow has a top-level override (i.e. tomorrow was moved somewhere else)
     const overrideFromTomorrow = config.bins.overrides.find(o => o.originalDate === tomorrowStr);
-    // Check if tomorrow is the target of an override (i.e. something was moved TO tomorrow)
     const overrideToTomorrow = config.bins.overrides.find(o => o.newDate === tomorrowStr);
 
-    // Group bins by what's happening tomorrow
     const collectTomorrow: string[] = [];
     const movedFromTomorrow: string[] = [];
     const overrideTomorrow: string[] = [];
@@ -56,7 +38,6 @@ export default function ({ reminderTime = '19:00' }: { reminderTime?: string }) 
         }
       }
 
-      // If tomorrow was supposed to be a collection day but got overridden
       if (overrideFromTomorrow && cap.getOverrideForOriginalDate(tomorrow.toDate())) {
         movedFromTomorrow.push(device.name);
       }
@@ -84,8 +65,6 @@ export default function ({ reminderTime = '19:00' }: { reminderTime?: string }) 
       });
     }
   }
-
-  scheduleNextReminder();
 }
 
 function formatBinList(names: string[]): string {
