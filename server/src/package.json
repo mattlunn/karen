@@ -14,7 +14,6 @@
     "@mantine/schedule": "^9.0.0",
     "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-query-devtools": "^5.91.2",
-    "@tuyapi/cli": "^1.18.3",
     "auth-header": "^1.0.0",
     "@aws-sdk/client-s3": "^3.0.0",
     "@aws-sdk/lib-storage": "^3.0.0",
@@ -47,7 +46,7 @@
     "suncalc": "^1.8.0",
     "tplink-smarthome-api": "^5.0.0",
     "twilio": "^5.2.2",
-    "umzug": "^2.3.0",
+    "umzug": "^3.8.2",
     "uuid": "^10.0.0",
     "ws": "^8.18.0",
     "yargs": "^17.7.2"
@@ -121,6 +120,10 @@
   "author": "",
   "license": "ISC",
   "overrides": {
-    "debug": "^4.3.7"
+    "debug": "^4.3.7",
+    "axios": "^1.14.0",
+    "@rushstack/node-core-library": {
+      "ajv": "^8.18.0"
+    }
   }
 }
