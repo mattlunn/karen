@@ -1,68 +1,51 @@
-import AwsS3Client from 'aws-sdk/clients/s3';
+import { S3Client, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 
 export class S3 {
   constructor(options) {
-    this.client = new AwsS3Client({
-      apiVersion: '2006-03-01',
-      accessKeyId: options.access_key_id,
-      secretAccessKey: options.secret_access_key,
-      sslEnabled: true,
-      params: {
-        Bucket: options.bucket_name
+    this.bucket = options.bucket_name;
+    this.client = new S3Client({
+      credentials: {
+        accessKeyId: options.access_key_id,
+        secretAccessKey: options.secret_access_key,
       },
-      region: options.bucket_region
+      region: options.bucket_region,
     });
   }
 
   remove(handle) {
-    return new Promise((resolve, reject) => {
-      this.client.deleteObject({ Key: handle }, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(true);
-        }
-      });
-    });
+    return this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: handle }));
   }
 
   store(id, buffer, contentType) {
-    return new Promise((resolve, reject) => {
-      this.client.upload(
-        {
-          Body: buffer,
-          ContentType: contentType,
-          Key: id
-        },
-        (err) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(id);
-          }
-        }
-      );
+    const upload = new Upload({
+      client: this.client,
+      params: {
+        Bucket: this.bucket,
+        Key: id,
+        Body: buffer,
+        ContentType: contentType,
+      },
     });
+    return upload.done().then(() => id);
   }
 
-  serve(handle, start, end) {
-    let range;
+  async serve(handle, start, end) {
+    const range = start === null && end === null
+      ? 'bytes=0-'
+      : `bytes=${start ?? ''}-${end ?? ''}`;
 
-    if (start === null && end === null) {
-      range = '0-';
-    } else {
-      range = (start === null ? '' : start) + '-' + (end === null ? '' : end);
+    const response = await this.client.send(new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: handle,
+      Range: range,
+    }));
+
+    const chunks = [];
+    for await (const chunk of response.Body) {
+      chunks.push(chunk);
     }
-
-    return new Promise((resolve, reject) => {
-      this.client.getObject({ Key: handle, Range: 'bytes=' + range }, (err, data) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(data.Body);
-        }
-      });
-    });
+    return Buffer.concat(chunks);
   }
 }
 

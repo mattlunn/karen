@@ -39,7 +39,7 @@ export default class ZWaveClient {
 
   getNodes = () => {
     return Array.from(this.#nodes.values());
-  }
+  };
 
   connect = async () => {
     return new Promise<void>((res, rej) => {
@@ -119,7 +119,7 @@ export default class ZWaveClient {
         }
       });
     });
-  }
+  };
 
   makeRequest = async (command: string | object, data = {}) => {
     const id = uuid();
@@ -138,9 +138,9 @@ export default class ZWaveClient {
 
       this.#socket.send(JSON.stringify(msg));
     });
-  }
+  };
 
   on = (event: string, listener: (...args: any[]) => void) => {
     this.#events.on(event, listener);
-  }
+  };
 }
