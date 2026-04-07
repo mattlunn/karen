@@ -1,5 +1,4 @@
 import { stringify } from 'querystring';
-import fetch from 'node-fetch';
 import logger from '../../../logger';
 
 export default class Gen1DeviceClient {

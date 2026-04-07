@@ -1,6 +1,6 @@
 import logger from "../../../logger";
 import { EventEmitter } from 'events';
-import EventSource from 'eventsource';
+import { EventSource } from 'eventsource';
 
 enum Events {
   PROGRAM_START = 'PROGRAM_START',
@@ -51,16 +51,21 @@ export default class ApiClient {
   }
 
   subscribeToEvents() {
+    const accessToken = this.#accessToken;
     const sse = new EventSource('https://api.home-connect.com/api/homeappliances/events', {
-      headers: {
-        Authorization: `Bearer ${this.#accessToken}`
-      }
+      fetch: (url, init) => fetch(url, {
+        ...init,
+        headers: {
+          ...init?.headers as Record<string, string>,
+          Authorization: `Bearer ${accessToken}`
+        }
+      })
     });
 
     ['NOTIFY', 'EVENT', 'STATUS'].forEach((type) => {
-      sse.addEventListener(type, (message) => {
+      sse.addEventListener(type, (message: MessageEvent) => {
         const data = JSON.parse(message.data);
-  
+
         logger.info({
           type,
           data
@@ -68,7 +73,7 @@ export default class ApiClient {
       });
     });
 
-    sse.addEventListener('STATUS', (message) => {
+    sse.addEventListener('STATUS', (message: MessageEvent) => {
       const data = JSON.parse(message.data);
 
       this.#eventEmitter.emit(Events.PROGRAM_START, {

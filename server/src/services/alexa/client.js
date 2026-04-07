@@ -1,5 +1,4 @@
 import config from '../../config';
-import fetch from 'node-fetch';
 import logger from '../../logger';
 import { stringify } from 'querystring';
 import { saveConfig } from '../../helpers/config';

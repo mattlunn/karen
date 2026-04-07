@@ -14,7 +14,6 @@ import tadoRoutes from './routes/tado';
 import vehicleRoutes from './routes/vehicle';
 import auth from './middleware/auth';
 import { Device } from './models';
-import bodyParser from 'body-parser';
 import config from './config';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
@@ -42,9 +41,9 @@ const httpServer = createServer(app);
 
 app.set('trust proxy', config.trust_proxy);
 app.use(compression());
-app.use(bodyParser.urlencoded());
-app.use(bodyParser.json());
-app.use(bodyParser.text());
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+app.use(express.text());
 app.use(cookieParser());
 
 app.use('/alexa', alexaRoutes);
@@ -58,7 +57,7 @@ app.use('/tado', tadoRoutes);
 app.use('/vehicle', vehicleRoutes);
 app.use('/', express.static(__dirname + '/static'));
 
-app.use('*', (req, res) => res.sendFile(__dirname + '/static/index.html', {
+app.use((req, res) => res.sendFile(__dirname + '/static/index.html', {
   maxAge: dayjs.duration(1, 'year').asMilliseconds()
 }));
 
