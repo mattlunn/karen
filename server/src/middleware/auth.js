@@ -1,4 +1,3 @@
-import asyncWrapper from '../helpers/express-async-wrapper';
 import { Token } from '../models';
 
 const factories = [
@@ -15,7 +14,7 @@ const factories = [
   }
 ];
 
-export default asyncWrapper(async (req, res, next) => {
+export default async (req, res, next) => {
   req.token = null;
 
   for (const factory of factories) {
@@ -35,4 +34,4 @@ export default asyncWrapper(async (req, res, next) => {
   res
     .status(401)
     .end();
-});
+};

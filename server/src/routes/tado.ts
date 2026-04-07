@@ -1,5 +1,4 @@
 import express from 'express';
-import asyncWrapper from "../helpers/express-async-wrapper";
 import config from '../config';
 import { saveConfig } from '../helpers/config';
 import { stringify } from 'querystring';
@@ -69,7 +68,7 @@ router.use((req, res, next) => {
   }
 });
 
-router.get('/auth', asyncWrapper(async (req, res) => {
+router.get('/auth', async (req, res) => {
   const initialData = await initiateAuthFlow();
   const interval = Math.max(initialData.interval, 5);
 
@@ -96,6 +95,6 @@ router.get('/auth', asyncWrapper(async (req, res) => {
   }
 
   logger.error(`Failed to exchange a device code for refresh_token.`);
-}));
+});
 
 export default router;

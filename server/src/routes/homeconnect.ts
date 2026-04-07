@@ -1,5 +1,4 @@
 import express from 'express';
-import asyncWrapper from '../helpers/express-async-wrapper';
 import config from '../config';
 import { stringify} from 'querystring';
 import logger from '../logger';
@@ -14,7 +13,7 @@ router.use((req, res, next) => {
   }
 });
 
-router.get('/authorize', asyncWrapper(async (req, res) => {
+router.get('/authorize', async (req, res) => {
   if (typeof req.query.code === 'string') {
     const request = await fetch(`https://api.home-connect.com/security/oauth/token`, {
       body: stringify({
@@ -35,6 +34,6 @@ router.get('/authorize', asyncWrapper(async (req, res) => {
   } else {
     res.redirect(`https://api.home-connect.com/security/oauth/authorize?response_type=code&client_id=${config.homeconnect.client_id}`);
   }
-}));
+});
 
 export default router;

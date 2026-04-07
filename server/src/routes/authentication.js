@@ -1,14 +1,13 @@
 import { Token, User } from '../models';
 import auth from '../middleware/auth';
 import { Router } from 'express';
-import asyncWrapper from '../helpers/express-async-wrapper';
 import dayjs from '../dayjs';
 import config from '../config';
 import logger from '../logger';
 
 const router = Router();
 
-router.post('/login', asyncWrapper(async (req, res) => {
+router.post('/login', async (req, res) => {
   const user = await User.findByCredentials(req.body.username, req.body.password);
 
   if (user) {
@@ -31,17 +30,17 @@ router.post('/login', asyncWrapper(async (req, res) => {
       .status(404)
       .end();
   }
-}));
+});
 
-router.post('/logout', auth, asyncWrapper(async (req, res) => {
+router.post('/logout', auth, async (req, res) => {
   if (await Token.expire(req.token)) {
     res.redirect('/');
   } else {
     res.sendStatus(500);
   }
-}));
+});
 
-router.get('/authorize', asyncWrapper(async (req, res) => {
+router.get('/authorize', async (req, res) => {
   logger.info(config.authentication);
 
   const client = config.authentication.clients.find(x => x.client_id === req.query.client_id);
@@ -51,9 +50,9 @@ router.get('/authorize', asyncWrapper(async (req, res) => {
   } else {
     res.redirect(`${req.query.redirect_uri}?state=${req.query.state}&code=${Date.now()}`);
   }
-}));
+});
 
-router.post('/token', asyncWrapper(async (req, res) => {
+router.post('/token', async (req, res) => {
   const client = config.authentication.clients.find(x => x.client_id === req.body.client_id && x.client_secret === req.body.client_secret);
 
   if (!client) {
@@ -66,6 +65,6 @@ router.post('/token', asyncWrapper(async (req, res) => {
     expires_in: dayjs.duration(1, 'y').asSeconds(),
     refresh_token: 'invalid'
   });
-}));
+});
 
 export default router;

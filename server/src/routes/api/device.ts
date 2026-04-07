@@ -1,9 +1,9 @@
 import { Device } from '../../models';
-import expressAsyncWrapper from '../../helpers/express-async-wrapper';
+import { Request, Response, NextFunction } from 'express';
 import { DeviceApiResponse } from '../../api/types';
 import { mapDeviceToResponse } from './device-helpers';
 
-export default expressAsyncWrapper(async function (req, res, next) {
+export default async function (req: Request, res: Response, next: NextFunction) {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
@@ -17,4 +17,4 @@ export default expressAsyncWrapper(async function (req, res, next) {
   };
 
   res.json(response);
-});
+}

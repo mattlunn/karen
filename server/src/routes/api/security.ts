@@ -1,20 +1,19 @@
 import express from 'express';
-import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Arming } from '../../models';
 import { ArmingMode } from '../../models/arming';
-import { AlarmMode, AlarmStatusResponse, AlarmUpdateRequest } from '../../api/types';
+import { AlarmMode, AlarmStatusResponse, AlarmUpdateRequest, ApiErrorResponse } from '../../api/types';
 
 const router = express.Router();
 
-router.get<Record<string, never>, AlarmStatusResponse>('/', asyncWrapper(async (req, res) => {
+router.get<Record<string, never>, AlarmStatusResponse>('/', async (req, res) => {
   const activeArming = await Arming.getActiveArming();
 
   res.json({
     alarmMode: activeArming ? activeArming.mode as AlarmMode : 'OFF'
   });
-}));
+});
 
-router.put<Record<string, never>, AlarmStatusResponse, AlarmUpdateRequest>('/', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, AlarmStatusResponse | ApiErrorResponse, AlarmUpdateRequest>('/', async (req, res) => {
   const desiredMode = req.body.alarmMode;
 
   if (!['OFF', 'AWAY', 'NIGHT'].includes(desiredMode)) {
@@ -47,6 +46,6 @@ router.put<Record<string, never>, AlarmStatusResponse, AlarmUpdateRequest>('/', 
   res.json({
     alarmMode: desiredMode
   });
-}));
+});
 
 export default router;

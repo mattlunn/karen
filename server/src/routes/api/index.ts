@@ -1,5 +1,4 @@
 import express from 'express';
-import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Event, Recording } from '../../models';
 import { makeSynologyRequest } from '../../services/synology';
 import dayjs from '../../dayjs';
@@ -36,13 +35,13 @@ router.use('/device/:id/thermostat', deviceThermostatRouter);
 router.use('/device/:id/vehicle', deviceVehicleRouter);
 router.get('/insights/heating', insightsHeatingHandler);
 
-router.get('/snapshot/:id', asyncWrapper(async (req, res) => {
+router.get('/snapshot/:id', async (req, res) => {
   res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
     cameraId: req.params.id
   }, false, 8));
-}));
+});
 
-router.get('/event/:id/thumbnail', asyncWrapper(async (req, res) => {
+router.get('/event/:id/thumbnail', async (req, res) => {
   try {
     const file = await s3.serve(req.params.id);
 
@@ -51,9 +50,9 @@ router.get('/event/:id/thumbnail', asyncWrapper(async (req, res) => {
   } catch (e) {
     res.sendStatus(404);
   }
-}));
+});
 
-router.get('/recording/:id', asyncWrapper(async function (req, res) {
+router.get('/recording/:id', async function (req, res) {
   const recording = await Recording.findOne({
     where: {
       id: req.params.id
@@ -100,6 +99,6 @@ router.get('/recording/:id', asyncWrapper(async function (req, res) {
   return s3.serve(recording.recording, range.start, range.end).then((file) => {
     res.end(file);
   });
-}));
+});
 
 export default router;

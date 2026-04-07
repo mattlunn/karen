@@ -1,13 +1,12 @@
 import express from 'express';
-import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Device } from '../../models';
 import { setDHWMode, getDHWMode } from '../../services/ebusd';
 import { getPreWarmStartTime } from '../../automations/heating-warmup';
-import { HeatingUpdateRequest, HeatingStatusResponse, CentralHeatingMode } from '../../api/types';
+import { HeatingUpdateRequest, HeatingStatusResponse, CentralHeatingMode, ApiErrorResponse } from '../../api/types';
 
 const router = express.Router();
 
-router.get<Record<string, never>, HeatingStatusResponse>('/', asyncWrapper(async (_req, res) => {
+router.get<Record<string, never>, HeatingStatusResponse>('/', async (_req, res) => {
   const [dhwIsOn, thermostatDevices] = await Promise.all([
     getDHWMode(),
     Device.findByCapability('THERMOSTAT')
@@ -50,9 +49,9 @@ router.get<Record<string, never>, HeatingStatusResponse>('/', asyncWrapper(async
     dhw: dhwIsOn ? 'ON' : 'OFF',
     preWarmStartTime: preWarmStartTime?.toISOString() ?? null
   });
-}));
+});
 
-router.put<Record<string, never>, void, HeatingUpdateRequest>('/', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, void | ApiErrorResponse, HeatingUpdateRequest>('/', async (req, res) => {
   const { centralHeating, dhw } = req.body;
 
   if (centralHeating !== undefined) {
@@ -92,6 +91,6 @@ router.put<Record<string, never>, void, HeatingUpdateRequest>('/', asyncWrapper(
   }
 
   res.status(204).send();
-}));
+});
 
 export default router;

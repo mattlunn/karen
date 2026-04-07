@@ -2,12 +2,11 @@ import express from 'express';
 import config from '../config';
 import * as requestTypes from '../services/alexa/requestTypes';
 import { exchangeAuthenticationToken } from '../services/alexa/client';
-import asyncWrapper from '../helpers/express-async-wrapper';
 import auth from '../middleware/auth';
 
 const router = express.Router();
 
-router.post('/endpoint', asyncWrapper(async (req, res) => {
+router.post('/endpoint', async (req, res) => {
   if (req.body.context.System.application.applicationId !== config.alexa.id) {
     return res.status(401).end();
   }
@@ -21,7 +20,7 @@ router.post('/endpoint', asyncWrapper(async (req, res) => {
       .send('No handler setup to handle ' + req.body.request.type)
       .end();
   }
-}));
+});
 
 router.post('/grant', auth, (req, res) => {
    // For reasons no-one understands, Amazon provide a JSON body, but with a 'text/plain' Accept type.

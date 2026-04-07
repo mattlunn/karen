@@ -1,5 +1,4 @@
 import express from 'express';
-import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Event, Stay, Arming, Device, Recording, User, Op } from '../../models';
 import { TimelineFeedEvent, TimelineFeedApiResponse } from '../../api/types';
 
@@ -10,7 +9,7 @@ interface EventWithTimestamp {
   timestamp: number;
 }
 
-router.get('/', asyncWrapper(async (req, res) => {
+router.get('/', async (req, res) => {
   const since = Number(req.query.since) || Date.now();
   const limit = Math.min(Number(req.query.limit) || 100, 500);
 
@@ -192,6 +191,6 @@ router.get('/', asyncWrapper(async (req, res) => {
   };
 
   res.json(response);
-}));
+});
 
 export default router;

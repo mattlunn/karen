@@ -1,3 +1,7 @@
+export interface ApiErrorResponse {
+  error: string;
+}
+
 // Device API response - current status values with timestamps
 export type CapabilityApiResponse = {
   type: 'LIGHT';

@@ -1,12 +1,11 @@
 import express from 'express';
-import asyncWrapper from '../../../helpers/express-async-wrapper';
 import { Device } from '../../../models';
-import { ThermostatUpdateRequest, DeviceApiResponse } from '../../../api/types';
+import { ThermostatUpdateRequest, DeviceApiResponse, ApiErrorResponse } from '../../../api/types';
 import { mapDeviceToResponse } from '../device-helpers';
 
 const router = express.Router({ mergeParams: true });
 
-router.put<Record<string, never>, DeviceApiResponse, ThermostatUpdateRequest>('/', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, DeviceApiResponse | ApiErrorResponse, ThermostatUpdateRequest>('/', async (req, res) => {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
@@ -33,6 +32,6 @@ router.put<Record<string, never>, DeviceApiResponse, ThermostatUpdateRequest>('/
   };
 
   res.json(response);
-}));
+});
 
 export default router;

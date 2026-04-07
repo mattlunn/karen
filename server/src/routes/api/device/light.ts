@@ -1,12 +1,11 @@
 import express from 'express';
-import asyncWrapper from '../../../helpers/express-async-wrapper';
 import { Device } from '../../../models';
-import { LightUpdateRequest, DeviceApiResponse } from '../../../api/types';
+import { LightUpdateRequest, DeviceApiResponse, ApiErrorResponse } from '../../../api/types';
 import { mapDeviceToResponse } from '../device-helpers';
 
 const router = express.Router({ mergeParams: true });
 
-router.put<Record<string, never>, DeviceApiResponse, LightUpdateRequest>('/', asyncWrapper(async (req, res) => {
+router.put<Record<string, never>, DeviceApiResponse | ApiErrorResponse, LightUpdateRequest>('/', async (req, res) => {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
@@ -35,6 +34,6 @@ router.put<Record<string, never>, DeviceApiResponse, LightUpdateRequest>('/', as
   };
 
   res.json(response);
-}));
+});
 
 export default router;

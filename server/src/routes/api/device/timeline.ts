@@ -1,5 +1,5 @@
 import { Device, BooleanEvent, NumericEvent } from '../../../models';
-import expressAsyncWrapper from '../../../helpers/express-async-wrapper';
+import { Request, Response, NextFunction } from 'express';
 import dayjs from '../../../dayjs';
 import { TimeRangeSelector, HistorySelector } from '../../../models/capabilities/helpers';
 import { DeviceTimelineApiResponse, DeviceTimelineEventApiResponse } from '../../../api/types';
@@ -29,7 +29,7 @@ function mapEnumHistory(
   );
 }
 
-export default expressAsyncWrapper(async function (req, res, next) {
+export default async function (req: Request, res: Response, next: NextFunction) {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
@@ -115,4 +115,4 @@ export default expressAsyncWrapper(async function (req, res, next) {
     until: historySelector.until.toISOString(),
     events
   } satisfies DeviceTimelineApiResponse);
-});
+}
