@@ -1,5 +1,4 @@
 import express from 'express';
-import asyncWrapper from '../helpers/express-async-wrapper';
 import config from '../config';
 import { Device } from '../models';
 import DeviceClient from '../services/shelly/client/device';
@@ -14,14 +13,14 @@ router.use((req, res, next) => {
   }
 });
 
-router.get('/event', asyncWrapper(async (req, res) => {
+router.get('/event', async (req, res) => {
   const device = await Device.findByProviderIdOrError('shelly', req.query.id);
 
   await device.getLightCapability().setIsOnState(req.query.action === 'on');
   res.sendStatus(200).end();
-}));
+});
 
-router.get('/install', asyncWrapper(async (req, res) => {
+router.get('/install', async (req, res) => {
   const ip = req.query.ip;
 
   if (!ip) {
@@ -62,6 +61,6 @@ router.get('/install', asyncWrapper(async (req, res) => {
   await device.save();
 
   res.sendStatus(201).end();
-}));
+});
 
 export default router;

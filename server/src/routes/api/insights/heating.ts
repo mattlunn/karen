@@ -1,9 +1,9 @@
 import { Device } from '../../../models';
-import expressAsyncWrapper from '../../../helpers/express-async-wrapper';
+import { Request, Response } from 'express';
 import { HeatingInsightsApiResponse } from '../../../api/types';
 import { mapNumericHistoryToResponse, mapEnumHistoryToResponse } from '../history-helpers';
 
-export default expressAsyncWrapper(async function (req, res) {
+export default async function (req: Request, res: Response) {
   const selector = {
     since: new Date(req.query.since as string),
     until: new Date(req.query.until as string)
@@ -49,4 +49,4 @@ export default expressAsyncWrapper(async function (req, res) {
   };
 
   res.json(response);
-});
+}

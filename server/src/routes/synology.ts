@@ -1,5 +1,4 @@
 import express from 'express';
-import asyncWrapper from "../helpers/express-async-wrapper";
 import dayjs from '../dayjs';
 import config from '../config';
 import { onMotionDetected, onDoorbellRing } from '../services/synology';
@@ -14,18 +13,18 @@ router.use((req, res, next) => {
   }
 });
 
-router.get('/motion', asyncWrapper(async (req, res) => {
+router.get('/motion', async (req, res) => {
   const now = dayjs();
   const { camera_id } = req.query;
 
   if (typeof camera_id === 'string') {
     await onMotionDetected(camera_id, now);
   }
-  
-  res.sendStatus(200);
-}));
 
-router.get('/ring', asyncWrapper(async (req, res) => {
+  res.sendStatus(200);
+});
+
+router.get('/ring', async (req, res) => {
   const { camera_id } = req.query;
 
   if (typeof camera_id === 'string') {
@@ -34,6 +33,6 @@ router.get('/ring', asyncWrapper(async (req, res) => {
   } else {
     return res.sendStatus(400);
   }
-}));
+});
 
 export default router;

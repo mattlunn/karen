@@ -1,6 +1,6 @@
 import { Device } from '../../../models';
 import { TimeRangeSelector } from '../../../models/capabilities/helpers';
-import expressAsyncWrapper from '../../../helpers/express-async-wrapper';
+import { Request, Response, NextFunction } from 'express';
 import dayjs from '../../../dayjs';
 import {
   BooleanEventApiResponse,
@@ -266,7 +266,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
 
 // Route handler
 
-export default expressAsyncWrapper(async function (req, res, next) {
+export default async function (req: Request, res: Response, next: NextFunction) {
   const graphId = req.query.id as string | undefined;
 
   if (!graphId) {
@@ -295,4 +295,4 @@ export default expressAsyncWrapper(async function (req, res, next) {
 
   const response = await fetcher(device, historySelector);
   res.json(response);
-});
+}

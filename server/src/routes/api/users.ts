@@ -1,14 +1,13 @@
 import express from 'express';
-import asyncWrapper from '../../helpers/express-async-wrapper';
 import { User, Stay } from '../../models';
 import { HOME, AWAY } from '../../constants/status';
 import dayjs from '../../dayjs';
-import { UsersApiResponse, UserUpdateRequest, UserResponse } from '../../api/types';
+import { UsersApiResponse, UserUpdateRequest, UserResponse, ApiErrorResponse } from '../../api/types';
 import { mapUserToResponse } from './user-helpers';
 
 const router = express.Router();
 
-router.get<Record<string, never>, UsersApiResponse>('/', asyncWrapper(async (_req, res) => {
+router.get<Record<string, never>, UsersApiResponse>('/', async (_req, res) => {
   const users = await User.findAll();
   const userIds = users.map(u => u.id);
 
@@ -27,9 +26,9 @@ router.get<Record<string, never>, UsersApiResponse>('/', asyncWrapper(async (_re
   });
 
   res.json(usersResponse);
-}));
+});
 
-router.put<{ id: string }, UserResponse, UserUpdateRequest>('/:id', asyncWrapper(async (req, res) => {
+router.put<{ id: string }, UserResponse | ApiErrorResponse, UserUpdateRequest>('/:id', async (req, res) => {
   const user = await User.findOne({
     where: { handle: req.params.id }
   });
@@ -99,6 +98,6 @@ router.put<{ id: string }, UserResponse, UserUpdateRequest>('/:id', asyncWrapper
   }
 
   res.json(mapUserToResponse(user, current, upcoming));
-}));
+});
 
 export default router;

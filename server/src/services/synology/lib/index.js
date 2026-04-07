@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 function Synology(protocol, host, port, account, password, session) {
   this._protocol = protocol;
   this._host = host;

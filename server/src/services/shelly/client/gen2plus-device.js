@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 export default class Gen2PlusDeviceClient {
   constructor(ip, username, password, generation) {
     this._ip = ip;

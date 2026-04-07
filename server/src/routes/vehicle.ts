@@ -1,7 +1,6 @@
 import express, { Request } from 'express';
 import smartcar from 'smartcar';
 import config from '../config';
-import asyncWrapper from '../helpers/express-async-wrapper';
 import { Device } from '../models';
 import logger from '../logger';
 import { saveConfig } from '../helpers/config';
@@ -28,7 +27,7 @@ smartcarRouter.get('/login', (req, res) => {
 });
 
 // OAuth Callback Handler
-smartcarRouter.get('/callback', asyncWrapper(async (req, res) => {
+smartcarRouter.get('/callback', async (req, res) => {
   const code = req.query.code as string;
   if (!code) {
     return res.status(400).send('Missing authorization code');
@@ -52,9 +51,9 @@ smartcarRouter.get('/callback', asyncWrapper(async (req, res) => {
     logger.error(error, 'SmartCar OAuth callback error');
     res.status(500).send('Authorization failed. Check server logs.');
   }
-}));
+});
 
-smartcarRouter.post('/webhook', asyncWrapper(async (req, res) => {
+smartcarRouter.post('/webhook', async (req, res) => {
   logger.debug('Received /vehicle/smartcar/webhook request');
   logger.debug(JSON.stringify(req.body));
 
@@ -98,7 +97,7 @@ smartcarRouter.post('/webhook', asyncWrapper(async (req, res) => {
   logger.warn(`Unhandled SmartCar webhook event type: ${eventType}`);
 
   return res.sendStatus(200);
-}));
+});
 
 // Mount SmartCar subrouter
 router.use('/smartcar', smartcarRouter);

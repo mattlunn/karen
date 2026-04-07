@@ -1,5 +1,4 @@
 import express from 'express';
-import asyncWrapper from '../../helpers/express-async-wrapper';
 import { Device, Room } from '../../models';
 import {
   RestDeviceResponse,
@@ -12,7 +11,7 @@ import logger from '../../logger';
 
 const router = express.Router();
 
-router.get<Record<string, never>, DevicesApiResponse>('/', asyncWrapper(async (req, res) => {
+router.get<Record<string, never>, DevicesApiResponse>('/', async (req, res) => {
   const [allDevices, allRooms] = await Promise.all([
     Device.findAll(),
     Room.findAll()
@@ -51,6 +50,6 @@ router.get<Record<string, never>, DevicesApiResponse>('/', asyncWrapper(async (r
     devices,
     brokenDevices
   });
-}));
+});
 
 export default router;
