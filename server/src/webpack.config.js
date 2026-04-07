@@ -19,7 +19,7 @@ module.exports = {
         loader: 'babel-loader',
         options: {
           presets: ['@babel/preset-react', '@babel/preset-typescript', ['@babel/preset-env', { targets: { browsers: ['last 2 Chrome versions'] }}]],
-          plugins: ['@babel/plugin-proposal-class-properties']
+          plugins: ['@babel/plugin-transform-class-properties']
         }
       }]
     }, {

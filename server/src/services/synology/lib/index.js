@@ -1,4 +1,4 @@
-import request from 'request-promise-native';
+import fetch from 'node-fetch';
 
 function Synology(protocol, host, port, account, password, session) {
   this._protocol = protocol;
@@ -47,9 +47,8 @@ Synology.prototype._request = async function (endpoint, api, method, version, pa
 
   const query = Object.keys(params).map((key) => key + '=' + encodeURIComponent(params[key])).join('&');
   const url = `${this._protocol}://${this._host}:${this._port}/webapi/${endpoint}?${query}`;
-  const response = await request(url, {
-    encoding: (json ? 'utf8' : null)
-  });
+  const res = await fetch(url);
+  const response = json ? await res.text() : Buffer.from(await res.arrayBuffer());
 
   if (!json) {
     return response;
