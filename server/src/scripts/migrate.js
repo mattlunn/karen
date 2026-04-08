@@ -1,4 +1,5 @@
-import Umzug from 'umzug';
+import path from 'path';
+import { Umzug, SequelizeStorage } from 'umzug';
 import Sequelize from 'sequelize';
 import config from '../config';
 import yargs from 'yargs';
@@ -10,29 +11,28 @@ const instance = new Sequelize(config.database.name, config.database.user, confi
 });
 
 const umzug = new Umzug({
-  storage: 'sequelize',
-  storageOptions: {
-    sequelize: instance
-  },
   migrations: {
-    pattern: /^\d+[\w-]+\.js$/,
-    params: [instance.getQueryInterface(), Sequelize],
-    path: __dirname + '/../migrations'
-  }
+    glob: ['*.js', { cwd: path.join(__dirname, '..', 'migrations') }],
+    resolve: ({ name, path: filePath, context: [queryInterface, sequelize] }) => {
+      const migration = require(filePath);
+      return {
+        name,
+        up: async () => migration.up(queryInterface, sequelize),
+        down: async () => migration.down(queryInterface, sequelize),
+      };
+    },
+  },
+  context: [instance.getQueryInterface(), Sequelize],
+  storage: new SequelizeStorage({ sequelize: instance }),
+  logger: console,
 });
 
 let promise;
 
 if (argv.up) {
-  promise = umzug.execute({
-    migrations: argv.up,
-    method: 'up'
-  });
+  promise = umzug.up({ migrations: argv.up });
 } else if (argv.down) {
-  promise = umzug.execute({
-    migrations: argv.down,
-    method: 'down'
-  });
+  promise = umzug.down({ migrations: argv.down });
 } else {
   promise = umzug.up();
 }
