@@ -25,6 +25,7 @@ export type CapabilityApiResponse = {
 } | {
   type: 'MOTION_SENSOR';
   hasMotion: BooleanEventApiResponse;
+  sensitivity: NumericEventApiResponse;
 } | {
   type: 'HEAT_PUMP';
   mode: EnumEventApiResponse;
@@ -200,6 +201,11 @@ export interface LightUpdateRequest {
 // /api/device/:id/lock endpoint
 export interface LockUpdateRequest {
   isLocked: boolean;
+}
+
+// /api/device/:id/motion-sensor endpoint
+export interface MotionSensorUpdateRequest {
+  sensitivity: number;
 }
 
 // /api/device/:id/thermostat endpoint
