@@ -1,22 +1,46 @@
 import { Controller } from 'node-unifi';
 import config from '../../../config.json';
-import logger from '../../../logger';
 
-const controller = new Controller({
-  host: config.unifi.host,
-  port: config.unifi.port,
-  username: config.unifi.username,
-  password: config.unifi.password,
-});
+function createController() {
+  return new Controller({
+    host: config.unifi.host,
+    port: config.unifi.port,
+    username: config.unifi.username,
+    password: config.unifi.password,
+  });
+}
+
+let controller = createController();
+let reauthPromise = null;
+
+async function reauthenticate() {
+  if (!reauthPromise) {
+    reauthPromise = (async () => {
+      controller = createController();
+      await controller.login();
+    })().finally(() => {
+      reauthPromise = null;
+    });
+  }
+  return reauthPromise;
+}
+
+async function withRetry(fn) {
+  try {
+    return await fn();
+  } catch (e) {
+    if (e?.response?.status === 401) {
+      await reauthenticate();
+      return fn();
+    }
+    throw e;
+  }
+}
 
 export async function getAllUsers() {
-  await controller.login();
-
-  return await controller.getAllUsers();
+  return withRetry(() => controller.getAllUsers());
 }
 
 export async function getClientDevices() {
-  await controller.login();
-
-  return await controller.getClientDevices();
+  return withRetry(() => controller.getClientDevices());
 }
