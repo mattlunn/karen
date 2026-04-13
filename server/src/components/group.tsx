@@ -6,7 +6,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import type { IconName } from '@fortawesome/fontawesome-svg-core';
 import { faCouch, faHouseFire, faUtensils, faJugDetergent, faStairs, faDumbbell, faComputer, faBed, faToiletPaper, faDoorClosed, faDoorOpen, faShop, faTree } from '@fortawesome/free-solid-svg-icons';
 import type { RestDeviceResponse } from '../api/types';
-import styles from './groups.module.css';
+import * as styles from './groups.module.css';
 import { getDeviceIcon, getDeviceMetrics, MetricDisplayProvider } from './capabilities';
 
 library.add(faCouch, faUtensils, faJugDetergent, faStairs, faDumbbell, faBed, faToiletPaper, faComputer, faHouseFire, faDoorClosed, faDoorOpen, faShop, faTree);

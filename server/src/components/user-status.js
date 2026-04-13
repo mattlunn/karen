@@ -5,7 +5,7 @@ import { humanDate } from '../helpers/date';
 import { Anchor, Avatar, Box, Group, LoadingOverlay, Modal, Stack, Text } from '@mantine/core';
 import { useUserMutation } from '../hooks/mutations/use-user-mutations';
 import EtaPicker from './modals/eta-picker';
-import styles from './user-status.module.css';
+import * as styles from './user-status.module.css';
 
 function StatusMessage({ status, since, until, id }) {
   const [ showModal, setShowModal ] = React.useState(false);

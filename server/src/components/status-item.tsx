@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import dayjs from '../dayjs';
 import { humanDate } from '../helpers/date';
 import type { IconClickContext } from './capabilities';
-import styles from './status-item.module.css';
+import * as styles from './status-item.module.css';
 
 function formatTimestamp(start: string, lastReported: string): string {
   let lead = 'since';

@@ -12,3 +12,8 @@
   font-weight: 700;
   text-transform: uppercase;
 }
+
+.iconClickable:hover {
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}

@@ -15,9 +15,14 @@ Karen is a full-stack TypeScript/Node.js smart home automation platform with:
 
 All commands run from `/server/src/`:
 
+### Node.js version
+
+A `.nvmrc` is present in `/server/src/`. Always run `nvm use` before running any commands to ensure the correct Node.js version is active. Using the wrong version (e.g. Node 16) will cause build failures such as `findLastIndex is not a function`.
+
 ### First-time setup (required before lint/build/test)
 
 ```bash
+nvm use                  # Switch to the correct Node.js version
 npm install              # Install dependencies
 npm run codegen          # Generate capabilities.gen.ts (not checked in)
 ```

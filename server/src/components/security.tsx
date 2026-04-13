@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Center, Loader, SimpleGrid, Title } from '@mantine/core';
-import styles from './security.module.css';
+import * as styles from './security.module.css';
 
 interface Camera {
   id: number;
