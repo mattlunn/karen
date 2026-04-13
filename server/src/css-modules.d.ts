@@ -1,6 +1,6 @@
 // Fallback declaration for tsc CLI.
-// The typescript-plugin-css-modules provides IDE autocomplete and type checking.
+// The typescript-plugin-css-modules plugin provides IDE autocomplete and type checking.
 declare module '*.module.css' {
-  const classes: { [key: string]: string };
-  export default classes;
+  const classNames: { readonly [className: string]: string };
+  export = classNames;
 }

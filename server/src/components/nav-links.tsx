@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Anchor, Stack, Group, UnstyledButton, Popover } from '@mantine/core';
 import classnames from 'classnames';
-import styles from './nav-links.module.css';
+import * as styles from './nav-links.module.css';
 
 const navLinks = [
   { label: 'Home', to: '/' },

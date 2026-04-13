@@ -1,7 +1,7 @@
 import React from 'react';
 import useApiCall from '../../hooks/api';
 import { useParams } from 'react-router-dom';
-import styles from './device.module.css';
+import * as styles from './device.module.css';
 
 import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
