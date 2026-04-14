@@ -12,10 +12,10 @@
     "esModuleInterop": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "declaration": true,
     "isolatedModules": true,
     "skipLibCheck": true,
     "strictPropertyInitialization": false,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "types": ["node", "jest"]
   }
 }
