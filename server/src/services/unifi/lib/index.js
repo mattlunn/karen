@@ -5,9 +5,6 @@ const SITE = 'default';
 const TIMEOUT_MS = 5000;
 
 let cookies = {};
-let csrfToken = null;
-let isUnifiOS = false;
-let initialized = false;
 
 function buildCookieHeader() {
   return Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
@@ -35,9 +32,6 @@ function apiRequest(method, path, body = null) {
   if (cookieHeader) {
     headers['Cookie'] = cookieHeader;
   }
-  if (csrfToken) {
-    headers['x-csrf-token'] = csrfToken;
-  }
   if (data) {
     headers['Content-Length'] = Buffer.byteLength(data).toString();
   }
@@ -53,9 +47,6 @@ function apiRequest(method, path, body = null) {
       headers,
     }, (res) => {
       parseCookies(res.headers['set-cookie']);
-      if (res.headers['x-csrf-token']) {
-        csrfToken = res.headers['x-csrf-token'];
-      }
 
       let responseBody = '';
       res.on('data', (chunk) => { responseBody += chunk; });
@@ -92,55 +83,13 @@ function apiRequest(method, path, body = null) {
   });
 }
 
-function detectControllerType() {
-  return new Promise((resolve, reject) => {
-    const req = https.request({
-      hostname: config.unifi.host,
-      port: config.unifi.port,
-      path: '/',
-      method: 'GET',
-      rejectUnauthorized: true,
-      timeout: TIMEOUT_MS,
-    }, (res) => {
-      if (res.headers['x-csrf-token']) {
-        csrfToken = res.headers['x-csrf-token'];
-      }
-      res.resume();
-      res.on('end', () => {
-        if (res.statusCode === 302 && res.headers.location === '/manage') {
-          isUnifiOS = false;
-          resolve();
-        } else if (res.statusCode === 200) {
-          isUnifiOS = true;
-          resolve();
-        } else {
-          reject(new Error(`Failed to detect UniFi controller type: HTTP ${res.statusCode}`));
-        }
-      });
-    });
-    req.on('timeout', () => req.destroy(new Error('UniFi detection timed out')));
-    req.on('error', reject);
-    req.end();
-  });
-}
-
 async function login() {
-  if (!initialized) {
-    await detectControllerType();
-    initialized = true;
-  }
-  const endpoint = isUnifiOS ? '/api/auth/login' : '/api/login';
-  await apiRequest('POST', endpoint, {
+  cookies = {};
+  await apiRequest('POST', '/api/login', {
     username: config.unifi.username,
     password: config.unifi.password,
     rememberMe: true,
   });
-}
-
-function resetState() {
-  cookies = {};
-  csrfToken = null;
-  initialized = false;
 }
 
 let loginPromise = null;
@@ -160,7 +109,6 @@ async function withRetry(fn) {
     return await fn();
   } catch (e) {
     if (e?.response?.status === 401) {
-      resetState();
       await ensureAuthenticated();
       return fn();
     }
@@ -169,7 +117,7 @@ async function withRetry(fn) {
 }
 
 export async function getAllUsers() {
-  return withRetry(() => apiRequest('GET', `/api/s/<SITE>/stat/alluser?type=all&within=8760`));
+  return withRetry(() => apiRequest('GET', '/api/s/<SITE>/stat/alluser?type=all&within=8760'));
 }
 
 export async function getClientDevices() {
