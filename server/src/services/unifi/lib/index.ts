@@ -1,6 +1,3 @@
-import https from 'https';
-import { IncomingMessage } from 'http';
-
 const TIMEOUT_MS = 5000;
 
 export interface UnifiUser {
@@ -95,8 +92,7 @@ export class UnifiClient {
     }
   }
 
-  #apiRequest<T = void>(method: string, path: string, body?: object): Promise<T> {
-    const data = body ? JSON.stringify(body) : null;
+  async #apiRequest<T = void>(method: string, path: string, body?: object): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -104,61 +100,25 @@ export class UnifiClient {
     if (cookieHeader) {
       headers['Cookie'] = cookieHeader;
     }
-    if (data) {
-      headers['Content-Length'] = Buffer.byteLength(data).toString();
+
+    const res = await fetch(`https://${this.host}:${this.port}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+
+    this.#parseCookies(res.headers.getSetCookie());
+
+    if (res.status === 401) {
+      throw Object.assign(new Error('Unauthorized'), { response: { status: 401 } });
     }
 
-    return new Promise((resolve, reject) => {
-      const req = https.request(
-        {
-          hostname: this.host,
-          port: this.port,
-          path,
-          method,
-          rejectUnauthorized: true,
-          timeout: TIMEOUT_MS,
-          headers,
-        },
-        (res: IncomingMessage) => {
-          this.#parseCookies(res.headers['set-cookie']);
-
-          let responseBody = '';
-          res.on('data', (chunk: string) => {
-            responseBody += chunk;
-          });
-          res.on('end', () => {
-            if (res.statusCode === 401) {
-              const err = Object.assign(new Error('Unauthorized'), {
-                response: { status: 401 },
-              });
-              reject(err);
-              return;
-            }
-            if (!responseBody) {
-              resolve([] as unknown as T);
-              return;
-            }
-            try {
-              const json = JSON.parse(responseBody) as { meta?: { rc: string; msg?: string }; data?: T };
-              if (json.meta?.rc === 'error') {
-                reject(new Error(json.meta.msg ?? 'UniFi API error'));
-              } else {
-                resolve((json.data ?? []) as T);
-              }
-            } catch {
-              reject(new Error(`Failed to parse UniFi response: ${responseBody.slice(0, 200)}`));
-            }
-          });
-        },
-      );
-
-      req.on('timeout', () => req.destroy(new Error('UniFi request timed out')));
-      req.on('error', reject);
-      if (data) {
-        req.write(data);
-      }
-      req.end();
-    });
+    const json = await res.json() as { meta?: { rc: string; msg?: string }; data?: T };
+    if (json.meta?.rc === 'error') {
+      throw new Error(json.meta.msg ?? 'UniFi API error');
+    }
+    return (json.data ?? []) as T;
   }
 
   #buildCookieHeader(): string {
