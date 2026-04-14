@@ -17,7 +17,7 @@ function sendMessage(client: SSEClient, message: SSEEvent) {
   try {
     client.response.write(`data: ${JSON.stringify(message)}\n\n`);
   } catch (err) {
-    logger.error('Failed to send SSE message to client:', err);
+    logger.error({ err }, 'Failed to send SSE message to client');
     clients.delete(client);
   }
 }
