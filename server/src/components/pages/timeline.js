@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Center, Loader, Title } from '@mantine/core';
 import dayjs from '../../dayjs';
 import Event from '../event';
-import * as styles from './timeline.module.css';
+import styles from './timeline.module.css';
 import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
 import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
 import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { applicationFetch } from '../../helpers/fetch';
 import { useNavigate } from 'react-router-dom';
-import * as styles from './login.module.css';
+import styles from './login.module.css';
 
 export default function Login() {
   const [username, setUsername] = useState('');

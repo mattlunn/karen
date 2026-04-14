@@ -2,7 +2,7 @@ import React, { ReactNode, useState } from 'react';
 import dayjs from '../dayjs';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconProp } from '@fortawesome/fontawesome-svg-core';
-import * as styles from './pages/timeline.module.css';
+import styles from './pages/timeline.module.css';
 
 type EventProps = {
   timestamp: string;

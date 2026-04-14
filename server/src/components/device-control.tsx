@@ -10,7 +10,7 @@ import { faSync } from '@fortawesome/free-solid-svg-icons';
 import IssuesIndicator from './issues-indicator';
 import type { RestDeviceResponse } from '../api/types';
 import type { IconClickContext } from './capabilities';
-import * as styles from './device-control.module.css';
+import styles from './device-control.module.css';
 
 interface DeviceControlProps {
   icon: IconDefinition;

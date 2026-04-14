@@ -13,7 +13,7 @@ import { useHeatingMutation } from '../hooks/mutations/use-heating-mutations';
 import { humanDate } from '../helpers/date';
 import dayjs from '../dayjs';
 import type { AlarmMode, CentralHeatingMode, DHWHeatingMode } from '../api/types';
-import * as styles from './house-status.module.css';
+import styles from './house-status.module.css';
 
 export default function HouseStatus() {
   const { isLoading: usersLoading, data: usersData } = useUsers();

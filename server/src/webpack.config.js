@@ -26,7 +26,7 @@ module.exports = {
       test: /\.module\.css$/i,
       use: [
         MiniCssExtractPlugin.loader,
-        { loader: 'css-loader', options: { modules: { localIdentName: '[name]__[local]--[hash:base64:5]' } } },
+        { loader: 'css-loader', options: { modules: { localIdentName: '[name]__[local]--[hash:base64:5]', namedExport: false } } },
         'postcss-loader'
       ],
     }, {

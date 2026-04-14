@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import Group from './group';
 import type { IconName } from '@fortawesome/fontawesome-svg-core';
 import type { HomeRoom, RestDeviceResponse } from '../api/types';
-import * as styles from './groups.module.css';
+import styles from './groups.module.css';
 
 interface GroupsProps {
   rooms?: HomeRoom[];
