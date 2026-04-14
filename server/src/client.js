@@ -4,7 +4,7 @@ import './styles/global.css';
 import './dayjs';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { Route, Routes, BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { createTheme, MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -47,6 +47,21 @@ const theme = createTheme({
   primaryColor: 'karen'
 });
 
+const router = createBrowserRouter([
+  { path: '/login', element: <Login /> },
+  {
+    element: <AppLayout />,
+    children: [
+      { path: '/', element: <Home /> },
+      { path: '/timeline', element: <Timeline /> },
+      { path: '/insights/heating', element: <HeatingInsights /> },
+      { path: '/device/:id', element: <Device /> },
+      { path: '/device', element: <Devices /> },
+      { path: '/insights/bins', element: <InsightsBins /> },
+    ],
+  },
+]);
+
 window.onload = () => {
   const root = createRoot(document.getElementById('main'));
 
@@ -54,21 +69,9 @@ window.onload = () => {
     <QueryClientProvider client={queryClient}>
       <MantineProvider theme={theme}>
         <RealtimeProvider>
-          <BrowserRouter>
-            <ErrorBoundary>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route element={<AppLayout />}>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/timeline" element={<Timeline />} />
-                  <Route path="/insights/heating" element={<HeatingInsights />} />
-                  <Route path="/device/:id" element={<Device />} />
-                  <Route path="/device" element={<Devices />} />
-                  <Route path="/insights/bins" element={<InsightsBins />} />
-                </Route>
-              </Routes>
-            </ErrorBoundary>
-          </BrowserRouter>
+          <ErrorBoundary>
+            <RouterProvider router={router} />
+          </ErrorBoundary>
         </RealtimeProvider>
       </MantineProvider>
       {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
