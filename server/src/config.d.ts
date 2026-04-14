@@ -67,6 +67,14 @@ declare namespace _default {
     const app_name: string;
     const license_key: string;
   }
+  export namespace unifi {
+    const host: string;
+    const port: number;
+    const username: string;
+    const password: string;
+    const device_considered_gone_after_in_seconds: number;
+    const device_check_interval_in_seconds: number;
+  }
   export namespace ebusd {
     const host: string;
     const port: number;
