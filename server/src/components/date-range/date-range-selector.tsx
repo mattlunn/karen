@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { NativeSelect, Group, Button } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import dayjs, { Dayjs } from '../../dayjs';
@@ -36,12 +36,14 @@ export function DateRangeSelector({ preset, range, onPresetChange, onRangeChange
   // Pending state for custom range - only apply on Submit
   const [pendingSince, setPendingSince] = useState<Dayjs>(currentRange.since);
   const [pendingUntil, setPendingUntil] = useState<Dayjs>(currentRange.until);
+  const [syncedRange, setSyncedRange] = useState(currentRange);
 
-  // Sync pending state when range changes externally
-  useEffect(() => {
+  // Sync pending state when range changes externally (derived state pattern)
+  if (syncedRange !== currentRange) {
+    setSyncedRange(currentRange);
     setPendingSince(currentRange.since);
     setPendingUntil(currentRange.until);
-  }, [currentRange.since, currentRange.until]);
+  }
 
   const handlePresetChange = (newPreset: DateRangePreset) => {
     setActivePreset(newPreset);
