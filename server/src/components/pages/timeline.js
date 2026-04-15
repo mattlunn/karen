@@ -3,12 +3,7 @@ import { Center, Loader, Title } from '@mantine/core';
 import dayjs from '../../dayjs';
 import Event from '../event';
 import styles from './timeline.module.css';
-import { faWalking } from '@fortawesome/free-solid-svg-icons/faWalking';
-import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
-import { faHome } from '@fortawesome/free-solid-svg-icons/faHome';
-import { faLightbulb } from '@fortawesome/free-solid-svg-icons/faLightbulb';
-import { faShieldAlt } from '@fortawesome/free-solid-svg-icons/faShieldAlt';
-import { faBell } from '@fortawesome/free-solid-svg-icons/faBell';
+import { faWalking, faEye, faHome, faLightbulb, faShieldAlt, faBell } from '@fortawesome/free-solid-svg-icons';
 
 function groupEventsByDays(events) {
   const days = [];
