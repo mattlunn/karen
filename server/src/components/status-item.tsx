@@ -1,7 +1,8 @@
 import React, { ReactNode, useState } from 'react';
 import { Group, Modal, Paper, Text } from '@mantine/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { IconDefinition, faSync } from '@fortawesome/free-solid-svg-icons';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import { faSync } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import dayjs from '../dayjs';
 import { humanDate } from '../helpers/date';
