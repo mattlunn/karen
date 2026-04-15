@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Group } from '@mantine/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBatteryEmpty, faSignal } from '@fortawesome/free-solid-svg-icons';
@@ -15,12 +15,21 @@ export function getIsBatteryLow(device: RestDeviceResponse): boolean {
 }
 
 export default function IssuesIndicator({ device }: { device: RestDeviceResponse }) {
+  const [isStale, setIsStale] = useState(false);
+
+  useEffect(() => {
+    // Date.now() must be called outside of the render path to comply with
+    // react-hooks/purity. Use setTimeout to defer setState out of the effect body
+    // to comply with react-hooks/set-state-in-effect.
+    const id = setTimeout(() => {
+      setIsStale(new Date(device.lastSeen) < new Date(Date.now() - 3600000));
+    }, 0);
+    return () => clearTimeout(id);
+  }, [device.lastSeen]);
+
   const issues: React.ReactNode[] = [];
 
-  // Check if lastSeen > 1 hour
-  const lastSeenDate = new Date(device.lastSeen);
-  const hourAgo = new Date(Date.now() - 3600000);
-  if (lastSeenDate < hourAgo) {
+  if (isStale) {
     issues.push(<FontAwesomeIcon key="signal" icon={faSignal} color="red" title="Not seen recently" />);
   }
 
