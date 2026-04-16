@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Group } from '@mantine/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBatteryEmpty, faSignal } from '@fortawesome/free-solid-svg-icons';
@@ -15,12 +15,15 @@ export function getIsBatteryLow(device: RestDeviceResponse): boolean {
 }
 
 export default function IssuesIndicator({ device }: { device: RestDeviceResponse }) {
+  const [isStale] = useState(() => {
+    const lastSeenDate = new Date(device.lastSeen);
+    const hourAgo = new Date(Date.now() - 3600000);
+    return lastSeenDate < hourAgo;
+  });
+
   const issues: React.ReactNode[] = [];
 
-  // Check if lastSeen > 1 hour
-  const lastSeenDate = new Date(device.lastSeen);
-  const hourAgo = new Date(Date.now() - 3600000);
-  if (lastSeenDate < hourAgo) {
+  if (isStale) {
     issues.push(<FontAwesomeIcon key="signal" icon={faSignal} color="red" title="Not seen recently" />);
   }
 
