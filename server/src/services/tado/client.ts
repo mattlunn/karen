@@ -194,7 +194,7 @@ export default class TadoClient {
         }
       });
     } catch (e: any) {
-      throw new Error(`Tado request to ${url} failed: ${e.message} (code=${e.code}, type=${e.type}, errno=${e.errno})`);
+      throw new Error(`Tado request to ${url} failed: ${e.message} (code=${e.code}, type=${e.type}, errno=${e.errno})`, { cause: e });
     }
 
     const rateLimitPolicy = response.headers.get('ratelimit-policy');

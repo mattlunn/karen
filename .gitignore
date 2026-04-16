@@ -10,4 +10,5 @@ dist
 .vscode
 newrelic_agent.log
 .npmrc
+!server/src/.npmrc
 *.gen.ts
