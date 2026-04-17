@@ -39,7 +39,7 @@ function dayjs(input?: DateInput, format?: string): Dayjs {
   if (format !== undefined) {
     return dayjsLib.tz(input, format);
   }
-  return dayjsLib.tz(input);
+  return dayjsLib(input).tz('Europe/London');
 }
 
 // Attach static methods from dayjsLib to our dayjs function
