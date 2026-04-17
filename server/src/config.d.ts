@@ -97,6 +97,7 @@ declare namespace _default {
     const secret: string;
     const default_charge_limit: number;
     const default_charge_rate_pct_per_hour: number;
+    const charge_start_buffer_hours: number;
   }
   const bins: {
     overrides: {

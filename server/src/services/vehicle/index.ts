@@ -8,6 +8,42 @@ import { ensureHistoricalMileage, storeWeeklyMileage } from './mileage';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
 import setIntervalForTime from '../../helpers/set-interval-for-time';
+import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
+
+export async function synchronize() {
+  let device = await Device.findByProviderId('vehicle', config.smartcar.vehicle_id);
+  const attributes = await client.getVehicleAttributes();
+
+  if (!device) {
+    device = Device.build({
+      provider: 'vehicle',
+      providerId: config.smartcar.vehicle_id,
+      name: `${attributes.make} ${attributes.model}`,
+    });
+  }
+
+  device.manufacturer = attributes.make;
+  device.model = `${attributes.model} (${attributes.year})`;
+
+  await device.save();
+
+  const ev = device.getElectricVehicleCapability();
+  const signals = await client.getSignals();
+
+  for (const signal of signals.body.data) {
+    try {
+      await processSignal(ev, signal.attributes);
+    } catch (error) {
+      logger.error(error, `Error processing signal ${signal.attributes.code}`);
+    }
+  }
+
+  // We can't get the charge limit from SmartCar, so just one time force to 100
+  // so we are in-sync with what's set.
+  if (await ev.getChargeLimitEvent() === null) {
+    await client.setChargeLimit(100);
+  }
+}
 
 Device.registerProvider('vehicle', {
   getCapabilities() {
@@ -21,7 +57,7 @@ Device.registerProvider('vehicle', {
         await device.getElectricVehicleCapability().setChargeLimitState(value);
       },
 
-      async setIsCharging(device: Device, value: boolean) {
+      async setIsCharging(_device: Device, value: boolean) {
         if (value) {
           await client.startCharge();
         } else {
@@ -31,40 +67,7 @@ Device.registerProvider('vehicle', {
     };
   },
 
-  async synchronize() {
-    let device = await Device.findByProviderId('vehicle', config.smartcar.vehicle_id);
-    const attributes = await client.getVehicleAttributes();
-
-    if (!device) {
-      device = Device.build({
-        provider: 'vehicle',
-        providerId: config.smartcar.vehicle_id,
-        name: `${attributes.make} ${attributes.model}`,
-      });
-    }
-
-    device.manufacturer = attributes.make;
-    device.model = `${attributes.model} (${attributes.year})`;
-
-    await device.save();
-
-    const ev = device.getElectricVehicleCapability();
-    const signals = await client.getSignals();
-
-    for (const signal of signals.body.data) {
-      try {
-        await processSignal(ev, signal.attributes);
-      } catch (error) {
-        logger.error(error, `Error processing signal ${signal.attributes.code}`);
-      }
-    }
-
-    // We can't get the charge limit from SmartCar, so just one time force to 100
-    // so we are in-sync with what's set.
-    if (await ev.getChargeLimitEvent() === null) {
-      await client.setChargeLimit(100);
-    }
-  }
+  synchronize,
 });
 
 /**
@@ -178,7 +181,8 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async (
   const chargeRate = await estimateChargeRate(device);
   const percentageNeeded = schedule.targetPercentage - currentPercentage;
   const hoursNeeded = percentageNeeded / chargeRate;
-  const startTime = targetTime.subtract(hoursNeeded, 'hour');
+  const bufferHours = config.smartcar.charge_start_buffer_hours ?? 0;
+  const startTime = targetTime.subtract(hoursNeeded + bufferHours, 'hour');
 
   device.meta.chargeSchedule = { ...schedule, calculatedStartTime: startTime.toISOString() };
   await device.save();
@@ -187,7 +191,16 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async (
     logger.info(`Starting charge to reach ${schedule.targetPercentage}% by ${targetTime.format('HH:mm')}`);
 
     await ev.setChargeLimit(schedule.targetPercentage);
-    await ev.setIsCharging(true);
+
+    const isCableConnected = await ev.getIsCableConnected();
+
+    if (isCableConnected) {
+      await ev.setIsCharging(true);
+      bus.emit(NOTIFICATION_TO_ADMINS, { message: `Car charging started: targeting ${schedule.targetPercentage}% by ${targetTime.format('HH:mm')}` });
+    } else {
+      logger.warn('Charge schedule: cable not connected, cannot start charging');
+      bus.emit(NOTIFICATION_TO_ADMINS, { message: `Car needs to be plugged in to allow scheduled charge to ${schedule.targetPercentage}% by ${targetTime.format('HH:mm')}` });
+    }
   }
 }), 15 * 60 * 1000);
 

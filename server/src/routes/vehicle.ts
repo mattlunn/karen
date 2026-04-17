@@ -5,6 +5,7 @@ import { Device } from '../models';
 import logger from '../logger';
 import { saveConfig } from '../helpers/config';
 import { processSignal } from '../services/vehicle/signals';
+import { synchronize } from '../services/vehicle';
 
 const router = express.Router();
 const smartcarRouter = express.Router();
@@ -54,8 +55,8 @@ smartcarRouter.get('/callback', async (req, res) => {
 });
 
 smartcarRouter.post('/webhook', async (req, res) => {
-  logger.debug('Received /vehicle/smartcar/webhook request');
-  logger.debug(JSON.stringify(req.body));
+  logger.info('Received /vehicle/smartcar/webhook request');
+  logger.info(JSON.stringify(req.body));
 
   const { eventType } = req.body;
 
@@ -97,6 +98,20 @@ smartcarRouter.post('/webhook', async (req, res) => {
   logger.warn(`Unhandled SmartCar webhook event type: ${eventType}`);
 
   return res.sendStatus(200);
+});
+
+smartcarRouter.get('/update', async (req, res) => {
+  if (req.query.secret !== config.smartcar.secret) {
+    return res.sendStatus(401);
+  }
+
+  try {
+    await synchronize();
+    res.sendStatus(200);
+  } catch (err) {
+    logger.error(err, 'Error during manual vehicle sync');
+    res.sendStatus(500);
+  }
 });
 
 // Mount SmartCar subrouter
