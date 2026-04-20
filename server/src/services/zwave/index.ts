@@ -6,6 +6,16 @@ import config from '../../config';
 import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
 
+// Z-Wave Fibaro FGMS001: lower value = more sensitive (range 8-255, default 15)
+// App model: higher value = more sensitive (range 0-100)
+function zwaveToSensitivity(zwaveValue: number): number {
+  return Math.round((255 - zwaveValue) / (255 - 8) * 100);
+}
+
+function sensitivityToZwave(sensitivity: number): number {
+  return Math.round(255 - sensitivity / 100 * (255 - 8));
+}
+
 const deviceCapabilitiesMap = new Map<string, Capability[]>([
   ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'BATTERY_LEVEL_INDICATOR']],
   ['Fibargroup FGD212', ['LIGHT']],
@@ -50,6 +60,12 @@ deviceHandlers.set('Fibargroup FGMS001', [
     propertyKey: 'Battery.level',
     propertyMapper(device: Device, value: number) {
       return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
+    }
+  },
+  {
+    propertyKey: 'Configuration.1',
+    propertyMapper(device: Device, value: number) {
+      return device.getMotionSensorCapability().setSensitivityState(zwaveToSensitivity(value));
     }
   }
 ]);
@@ -227,6 +243,24 @@ Device.registerProvider('zwave', {
     };
   },
 
+  provideMotionSensorCapability() {
+    return {
+      async setSensitivity(device: Device, sensitivity: number) {
+        const { makeRequest } = await getClient();
+
+        await makeRequest('node.set_value', {
+          nodeId: Number(device.providerId),
+          valueId: {
+            commandClass: 112,
+            endpoint: 0,
+            property: 1,
+          },
+          value: sensitivityToZwave(sensitivity)
+        });
+      }
+    };
+  },
+
   provideLockCapability() {
     return {
       async setIsLocked(device: Device, isLocked: boolean): Promise<void> {
@@ -352,6 +386,21 @@ Device.registerProvider('zwave', {
               await knownDevice.getLightCapability().setBrightnessState(100, knownDevice.createdAt);
 
               logger.info(`Initialized brightness for zwave light device ${knownDevice.id}`);
+            }
+          }
+
+          if (knownDevice.getCapabilities().includes('MOTION_SENSOR')) {
+            const sensitivityEvent = await knownDevice.getMotionSensorCapability().getSensitivityEvent();
+
+            if (sensitivityEvent === null) {
+              const sensitivityValue = node.values?.find((v: any) => v.commandClass === 112 && v.property === 1);
+
+              await knownDevice.getMotionSensorCapability().setSensitivityState(
+                zwaveToSensitivity(sensitivityValue?.value ?? 15),
+                knownDevice.createdAt
+              );
+
+              logger.info(`Initialized sensitivity for zwave motion sensor device ${knownDevice.id}`);
             }
           }
         }
