@@ -7,7 +7,7 @@ import { processSignal } from './signals';
 import { ensureHistoricalMileage, storeWeeklyMileage } from './mileage';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
-import setIntervalForTime from '../../helpers/set-interval-for-time';
+import nowAndSetIntervalForTime from '../../helpers/now-and-set-interval-for-time';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 
 export async function synchronize() {
@@ -204,7 +204,7 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async (
   }
 }), 15 * 60 * 1000);
 
-setIntervalForTime(createBackgroundTransaction('vehicle:weekly-mileage', async () => {
+nowAndSetIntervalForTime(createBackgroundTransaction('vehicle:weekly-mileage', async () => {
   const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
   const capability = device.getElectricVehicleCapability();
   const startOfWeek = dayjs().startOf('week').toDate();

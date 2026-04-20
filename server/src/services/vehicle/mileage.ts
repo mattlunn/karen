@@ -46,7 +46,7 @@ export async function ensureHistoricalMileage(device: Device, capability: Electr
   const endDate = dayjs().startOf('week'); 
   const startDate = latestEvent === null
     ? dayjs(device.createdAt).startOf('week')
-    : dayjs(latestEvent.lastReported).startOf('week').add(1, 'week');
+    : dayjs(latestEvent.lastReported).startOf('week');
 
   for (let week = startDate; week.isBefore(endDate); week = week.add(1, 'week')) {
     const weekStart = week.toDate();
