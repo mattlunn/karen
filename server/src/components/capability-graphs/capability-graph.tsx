@@ -121,6 +121,10 @@ function getMinMax(props: CapabilityGraphProps): { min: string; max: string } | 
     return { min, max };
   }
 
+  if (props.bar) {
+    return { min: props.bar.data.since, max: props.bar.data.until };
+  }
+
   if (props.modes) {
     return { min: props.modes.data.since, max: props.modes.data.until };
   }
