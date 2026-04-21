@@ -41,7 +41,15 @@ async function refreshAccessToken(): Promise<string> {
     mode: 'live',
   });
 
-  const result = await authClient.exchangeRefreshToken(config.smartcar.refresh_token);
+  const oldRefreshToken = config.smartcar.refresh_token;
+
+  if (!tokenCache) {
+    logger.info(`SmartCar: starting with refresh token ...${oldRefreshToken?.slice(-8)}`);
+  }
+
+  const result = await authClient.exchangeRefreshToken(oldRefreshToken);
+
+  logger.info(`SmartCar: exchanged refresh token ...${oldRefreshToken?.slice(-8)} → ...${result.refreshToken?.slice(-8)}`);
 
   config.smartcar.refresh_token = result.refreshToken;
   saveConfig();
