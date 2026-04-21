@@ -28,12 +28,20 @@ const getAccessToken = (() => {
 
   async function getNewAccessToken(): Promise<string> {
     if (!token || token.expiresAt < Date.now() + 1000 * 60) {
-      const newToken = await exchangeRefreshTokenForAccessToken(config.tado.refresh_token);
+      const oldRefreshToken = config.tado.refresh_token;
+
+      if (!token) {
+        logger.info(`Tado: starting with refresh token ...${oldRefreshToken?.slice(-8)}`);
+      }
+
+      const newToken = await exchangeRefreshTokenForAccessToken(oldRefreshToken);
 
       token = {
         accessToken: newToken.accessToken,
         expiresAt: newToken.expiresAt
       };
+
+      logger.info(`Tado: exchanged refresh token ...${oldRefreshToken?.slice(-8)} → ...${newToken.refreshToken?.slice(-8)}`);
 
       config.tado.refresh_token = newToken.refreshToken;
       saveConfig();
