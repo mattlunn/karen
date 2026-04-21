@@ -228,6 +228,14 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 4. `npm run build`
 5. Docker build & push (master branch only)
 
+## Deferred upgrades
+
+These upgrades have been intentionally skipped. Do not recommend them until the blocker is resolved.
+
+| Package | Blocked on |
+|---|---|
+| `eslint` 9 → 10 | `eslint-plugin-react` v7.x calls `context.getFilename()`, removed in ESLint 10. No stable ESLint-10-compatible release exists yet. Re-evaluate when `eslint-plugin-react` v8 ships. |
+
 ## Local Development Setup
 
 1. Clone this repo and `george` dependency

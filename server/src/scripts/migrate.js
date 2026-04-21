@@ -3,8 +3,9 @@ import Sequelize from 'sequelize';
 import path from 'path';
 import config from '../config';
 import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 
-const argv = yargs.array('up').array('down').argv;
+const argv = yargs(hideBin(process.argv)).array('up').array('down').argv;
 const instance = new Sequelize(config.database.name, config.database.user, config.database.password, {
   host: config.database.host,
   dialect: 'mysql'
