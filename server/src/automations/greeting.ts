@@ -2,6 +2,7 @@ import bus, { FIRST_USER_HOME } from '../bus';
 import { Device, Stay } from '../models';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { DeviceCapabilityEvents } from '../models/capabilities';
+import logger from '../logger';
 
 const greetings: ((name: string) => string)[] = [
   (name) => `<voice name="Mizuki"><lang xml:lang="ja-JP">こんにちは ${name}</lang></voice>. That's hello, in Japanese!'`,
@@ -13,20 +14,33 @@ const greetings: ((name: string) => string)[] = [
   (name) => `<voice name="Geraint"><amazon:emotion name="excited" intensity="high">Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch ${name}</amazon:emotion></voice>. That's G, saying hello!`
 ];
 
-export default async function ({ alexa_name: alexaName }: { alexa_name: string }) {
+type GreetingAutomationParameters = {
+  alexa_name: string;
+  greeting_window_minutes?: number;
+};
+
+export default async function ({
+  alexa_name: alexaName,
+  greeting_window_minutes: greetingWindowMinutes = 10,
+}: GreetingAutomationParameters) {
   let unannouncedStay: Stay | null = null;
 
   DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:greeting', async (event) => {
     if (unannouncedStay !== null) {
-      const [
-        device,
-        user
-      ] = await Promise.all([
+      const stay = unannouncedStay;
+      unannouncedStay = null;
+
+      const millisecondsSinceArrival = event.start.getTime() - stay.arrival!.getTime();
+      if (millisecondsSinceArrival > greetingWindowMinutes * 60 * 1000) {
+        logger.info(`Suppressing greeting for stay ${stay.id}: first motion at ${event.start.toISOString()} was ${Math.round(millisecondsSinceArrival / 1000 / 60)} minutes after arrival at ${stay.arrival!.toISOString()}, outside ${greetingWindowMinutes} minute window`);
+        return;
+      }
+
+      const [device, user] = await Promise.all([
         Device.findByNameOrError(alexaName),
-        unannouncedStay.getUser()
+        stay.getUser()
       ]);
 
-      unannouncedStay = null;
       device.getSpeakerCapability().emitSound(greetings[Math.floor(Math.random() * greetings.length)](user.handle));
     }
   }));
