@@ -25,59 +25,39 @@ async function loadSnapshot(camera: Camera): Promise<string> {
 
 function useSnapshotData(cameras: Camera[]): SnapshotsMap {
   const [snapshots, setSnapshots] = useState<SnapshotsMap>({});
-  const updatedSnapshots = { ...snapshots };
 
-  for (const { id } of cameras) {
-    if (!(id in updatedSnapshots)) {
-      updatedSnapshots[id] = {
-        loading: true,
-        snapshot: null
-      };
-
-      setSnapshots(updatedSnapshots);
-    }
+  // Initialise entries for cameras not yet tracked. React discards this render and
+  // immediately re-renders with the updated state (setState-during-render pattern).
+  const uninitialized = cameras.filter(({ id }) => !(id in snapshots));
+  if (uninitialized.length > 0) {
+    setSnapshots(prev => ({
+      ...prev,
+      ...Object.fromEntries(
+        uninitialized.map(({ id }) => [id, { loading: true, snapshot: null } as SnapshotData])
+      ),
+    }));
   }
 
   useEffect(() => {
-    function loadSnapshots() {
-      setSnapshots(snapshots => {
-        const updatedSnapshots = { ...snapshots };
-
-        cameras.forEach(async (camera) => {
-          const updatedSnapshot = updatedSnapshots[camera.id];
-
-          if (updatedSnapshot.loading === true && updatedSnapshot.snapshot !== null) {
-            return;
-          } else {
-            updatedSnapshot.loading = true;
-          }
-
-          try {
-            const snapshot = await loadSnapshot(camera);
-
-            updatedSnapshot.loading = false;
-            updatedSnapshot.snapshot = snapshot;
-          } finally {
-            updatedSnapshot.loading = false;
-          }
-
-          updatedSnapshots[camera.id] = updatedSnapshot;
-        });
-
-        return updatedSnapshots;
-      });
+    async function loadCameraSnapshot(camera: Camera) {
+      try {
+        const snapshot = await loadSnapshot(camera);
+        setSnapshots(prev => ({ ...prev, [camera.id]: { loading: false, snapshot } }));
+      } catch {
+        setSnapshots(prev => ({ ...prev, [camera.id]: { ...prev[camera.id], loading: false } }));
+      }
     }
 
-    const interval = setInterval(loadSnapshots, 5000);
+    function loadAll() {
+      cameras.forEach(camera => loadCameraSnapshot(camera));
+    }
 
-    loadSnapshots();
-
-    return () => {
-      clearInterval(interval);
-    };
+    loadAll();
+    const interval = setInterval(loadAll, 5000);
+    return () => clearInterval(interval);
   }, [cameras]);
 
-  return updatedSnapshots;
+  return snapshots;
 }
 
 interface SecurityProps {

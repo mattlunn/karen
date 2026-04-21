@@ -4,6 +4,7 @@ export default function useApiCall<T>(endpoint: string, params?: Record<string, 
   const [data, setData] = useState<null | T>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<null | Error>(null);
+  const [fetchKey, setFetchKey] = useState(0);
   const controllerRef = useRef<null | AbortController>(null);
 
   const paramsKey = params ? JSON.stringify(params) : '';
@@ -18,56 +19,48 @@ export default function useApiCall<T>(endpoint: string, params?: Record<string, 
 
   const fullEndpoint = endpoint + queryString;
 
-  const fetchData = useCallback(async (signal: AbortSignal) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`/api${fullEndpoint}`, { signal });
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          window.location.assign('/login');
-          return;
-        }
-
-        throw new Error(res.status.toString());
-      }
-
-      setData(await res.json() as T);
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          return;
-        }
-
-        setError(err);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [fullEndpoint]);
-
   const refresh = useCallback(() => {
     if (controllerRef.current) {
       controllerRef.current.abort();
     }
-
-    controllerRef.current = new AbortController();
-
-    fetchData(controllerRef.current.signal);
-  }, [fetchData]);
+    setLoading(true);
+    setError(null);
+    setFetchKey(k => k + 1);
+  }, []);
 
   useEffect(() => {
     const ctrl = new AbortController();
-
     controllerRef.current = ctrl;
-    fetchData(ctrl.signal);
+
+    fetch(`/api${fullEndpoint}`, { signal: ctrl.signal })
+      .then(res => {
+        if (!res.ok) {
+          if (res.status === 401) {
+            window.location.assign('/login');
+            return undefined;
+          }
+          throw new Error(res.status.toString());
+        }
+        return res.json() as Promise<T>;
+      })
+      .then(json => {
+        if (json !== undefined) {
+          setData(json);
+          setError(null);
+        }
+      })
+      .catch(err => {
+        if (err instanceof Error && err.name !== 'AbortError') {
+          setError(err);
+        }
+      })
+      .finally(() => setLoading(false));
+
     return () => {
       ctrl.abort();
       controllerRef.current = null;
     };
-  }, [fetchData, fullEndpoint]);
+  }, [fullEndpoint, fetchKey]);
 
   return { data, loading, error, refresh };
 }

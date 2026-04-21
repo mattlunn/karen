@@ -125,17 +125,16 @@ function createEvent(event) {
 
 export default function Timeline() {
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
 
   const fetchEvents = useCallback(async (since) => {
-    setLoading(true);
     try {
       const res = await fetch(`/api/timeline?since=${since}&limit=100`);
       if (!res.ok) throw new Error(res.status.toString());
       const data = await res.json();
 
-      setEvents(prev => since === Date.now() ? data.events : [...prev, ...data.events]);
+      setEvents(prev => [...prev, ...data.events]);
       setHasMore(data.hasMore);
     } catch (err) {
       console.error('Failed to load timeline:', err);
@@ -145,8 +144,12 @@ export default function Timeline() {
   }, []);
 
   useEffect(() => {
-    fetchEvents(Date.now());
-  }, [fetchEvents]);
+    fetch(`/api/timeline?since=${Date.now()}&limit=100`)
+      .then(res => { if (!res.ok) throw new Error(res.status.toString()); return res.json(); })
+      .then(data => { setEvents(data.events); setHasMore(data.hasMore); })
+      .catch(err => console.error('Failed to load timeline:', err))
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
     function handleScroll() {
@@ -156,6 +159,7 @@ export default function Timeline() {
         document.body.clientHeight, document.documentElement.clientHeight
       ) - 200) {
         if (events.length > 0) {
+          setLoading(true);
           fetchEvents(events[events.length - 1].timestamp);
         }
       }
