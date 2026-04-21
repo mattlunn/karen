@@ -13,20 +13,30 @@ const greetings: ((name: string) => string)[] = [
   (name) => `<voice name="Geraint"><amazon:emotion name="excited" intensity="high">Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch ${name}</amazon:emotion></voice>. That's G, saying hello!`
 ];
 
-export default async function ({ alexa_name: alexaName }: { alexa_name: string }) {
+export default async function ({
+  alexa_name: alexaName,
+  greeting_window_minutes: greetingWindowMinutes = 10,
+}: {
+  alexa_name: string;
+  greeting_window_minutes?: number;
+}) {
   let unannouncedStay: Stay | null = null;
 
   DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:greeting', async (event) => {
     if (unannouncedStay !== null) {
-      const [
-        device,
-        user
-      ] = await Promise.all([
+      const stay = unannouncedStay;
+      unannouncedStay = null;
+
+      const millisecondsSinceArrival = event.start.getTime() - stay.arrival!.getTime();
+      if (millisecondsSinceArrival > greetingWindowMinutes * 60 * 1000) {
+        return;
+      }
+
+      const [device, user] = await Promise.all([
         Device.findByNameOrError(alexaName),
-        unannouncedStay.getUser()
+        stay.getUser()
       ]);
 
-      unannouncedStay = null;
       device.getSpeakerCapability().emitSound(greetings[Math.floor(Math.random() * greetings.length)](user.handle));
     }
   }));
