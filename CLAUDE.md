@@ -163,7 +163,7 @@ Device.registerProvider('providerName', {
 
 **Event Time-Series Model**: The `events` table is used for both real-time state tracking and daily aggregates. Key fields: `start` (when the value began), `end` (when it was superseded, null if current), `lastReported` (timestamp of the last observation that confirmed this value). The helpers `setNumericProperty` and `setBooleanProperty` (`models/capabilities/helpers/index.ts`) manage event lifecycle — notably, when a new observation has the same value as the current event, no new row is created; only `lastReported` is updated.
 
-**Weekly/Daily Aggregation Pattern**: For aggregating time-series data over periods (e.g., weekly mileage for ElectricVehicle, daily metrics for HeatPump), follow the pattern in `services/ebusd/history.ts` and `services/car/mileage.ts`:
+**Weekly/Daily Aggregation Pattern**: For aggregating time-series data over periods (e.g., weekly mileage for ElectricVehicle, daily metrics for HeatPump), follow the pattern in `services/ebusd/history.ts` and `services/vehicle/mileage.ts`:
 - Calculate aggregates periodically (e.g., every 15 minutes)
 - Store using the start of the period as the timestamp (e.g., Monday 00:00 for weekly data)
 - Use the same timestamp to update existing events rather than creating duplicates
@@ -227,14 +227,6 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 3. `npm run test`
 4. `npm run build`
 5. Docker build & push (master branch only)
-
-## Deferred upgrades
-
-These upgrades have been intentionally skipped. Do not recommend them until the blocker is resolved.
-
-| Package | Blocked on |
-|---|---|
-| `eslint` 9 → 10 | `eslint-plugin-react` v7.x calls `context.getFilename()`, removed in ESLint 10. No stable ESLint-10-compatible release exists yet. Re-evaluate when `eslint-plugin-react` v8 ships. |
 
 ## Local Development Setup
 
