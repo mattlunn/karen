@@ -1,5 +1,4 @@
 import { Context, SmartHomeRequest, SmartHomeResponse } from "../custom-typings/lambda";
-import fetch from 'cross-fetch';
 
 export async function AcceptGrant(request: SmartHomeRequest<{ grant: { code: string }}>, context: Context): Promise<SmartHomeResponse<{ type?: 'ACCEPT_GRANT_FAILED', message?: string }>> {
   try {
