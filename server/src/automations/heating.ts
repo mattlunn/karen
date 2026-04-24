@@ -21,7 +21,8 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold
       if (compressorLockedOutForCooldown === true) {
         const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
         const thermostats = await Device.findByCapability('THERMOSTAT');
-        const thermostatsHeatDemand = await Promise.all(thermostats.map((thermostat) => thermostat.getThermostatCapability().getIsOn()));
+        const activeThermostats = await Promise.all(thermostats.map(async (t) => ({ t, passive: await t.getThermostatCapability().getIsPassive() })));
+        const thermostatsHeatDemand = await Promise.all(activeThermostats.filter(({ passive }) => !passive).map(({ t }) => t.getThermostatCapability().getIsOn()));
         const thermostatsAreRequestingHeat = thermostatsHeatDemand.some(x => x);
 
         compressorLockedOutForCooldown = false;
@@ -42,15 +43,23 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold
    */
   async function getLargestTemperatureDelta() {
     const thermostats = await Device.findByCapability('THERMOSTAT');
-    const temperatureDeltas = await Promise.all(thermostats.map(async (thermostat) => {
-      return await thermostat.getThermostatCapability().getCurrentTemperature() - await thermostat.getThermostatCapability().getTargetTemperature();
-    }));
-    
+    const activeThermostats = await Promise.all(thermostats.map(async (t) => ({ t, passive: await t.getThermostatCapability().getIsPassive() })));
+    const temperatureDeltas = await Promise.all(
+      activeThermostats
+        .filter(({ passive }) => !passive)
+        .map(async ({ t }) => await t.getThermostatCapability().getCurrentTemperature() - await t.getThermostatCapability().getTargetTemperature())
+    );
+
     return Math.min(...temperatureDeltas);
   }
 
   DeviceCapabilityEvents.onThermostatPowerChanged(createBackgroundTransaction('automations:heating:thermostat-power-changed', async (event) => {
     const thermostat = await event.getDevice();
+
+    if (await thermostat.getThermostatCapability().getIsPassive()) {
+      return;
+    }
+
     const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
     const heatingIsOn = await heatingDevice.getSwitchCapability().getIsOn();
     const thermostatIsOn = event.value > 0;

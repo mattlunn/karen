@@ -173,7 +173,8 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         targetTemperature: mapNumericEvent(thermostat.getTargetTemperatureEvent()),
         currentTemperature: mapNumericEvent(thermostat.getCurrentTemperatureEvent()),
         isHeating: mapBooleanEvent(thermostat.getIsOnEvent(), device),
-        power: mapNumericEvent(thermostat.getPowerEvent())
+        power: mapNumericEvent(thermostat.getPowerEvent()),
+        isPassive: mapBooleanEvent(thermostat.getIsPassiveEvent(), device)
       });
     }
 

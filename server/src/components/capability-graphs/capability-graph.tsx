@@ -71,7 +71,8 @@ export type CapabilityGraphProps = {
   lines: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
-    yAxisID?: string
+    yAxisID?: string,
+    borderDash?: number[]
   }[]
 
   bar?: {
@@ -151,7 +152,8 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     type: 'line',
     data: mapNumericDataToDataset(x.data),
     label: x.label,
-    yAxisID: x.yAxisID || 'y'
+    yAxisID: x.yAxisID || 'y',
+    ...(x.borderDash ? { borderDash: x.borderDash, hidden: true } : {})
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);

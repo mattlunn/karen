@@ -20,12 +20,19 @@ export default async function (req: Request, res: Response) {
     Promise.all(
       thermostats.map(async (device) => {
         const thermostat = device.getThermostatCapability();
-        const data = await mapNumericHistoryToResponse(
-          (hs) => thermostat.getPowerHistory(hs),
-          selector
-        );
+        const [data, isPassive] = await Promise.all([
+          mapNumericHistoryToResponse((hs) => thermostat.getPowerHistory(hs), selector),
+          thermostat.getIsPassive()
+        ]);
 
-        return { data, label: device.name, deviceName: device.name, yAxisID: 'yPercentage' };
+        return {
+          data,
+          label: device.name,
+          deviceName: device.name,
+          yAxisID: 'yPercentage',
+          isPassive,
+          borderDash: isPassive ? [5, 5] : undefined
+        };
       })
     ),
     mapEnumHistoryToResponse(

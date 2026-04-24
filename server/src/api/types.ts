@@ -13,6 +13,7 @@ export type CapabilityApiResponse = {
   targetTemperature: NumericEventApiResponse;
   power: NumericEventApiResponse;
   isHeating: BooleanEventApiResponse;
+  isPassive: BooleanEventApiResponse;
 } | {
   type: 'HUMIDITY_SENSOR';
   humidity: NumericEventApiResponse;
@@ -115,6 +116,7 @@ export type HistoryLineApiResponse = {
   data: HistoryDetailsApiResponse<NumericEventApiResponse>;
   label: string;
   yAxisID?: string;
+  borderDash?: number[];
 };
 
 export type HistoryModeDetailApiResponse = {
@@ -276,7 +278,7 @@ export interface TimelineFeedApiResponse {
 
 // /api/insights/heating endpoint
 export interface HeatingInsightsApiResponse {
-  lines: (HistoryLineApiResponse & { deviceName: string })[];
+  lines: (HistoryLineApiResponse & { deviceName: string; isPassive: boolean })[];
   modes: HistoryModesApiResponse;
 }
 

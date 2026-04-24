@@ -279,6 +279,12 @@
       "isWriteable": true,
       "type": "number",
       "eventName": "target"
+    },
+    {
+      "name": "IsPassive",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "passive"
     }
   ]
 }, {

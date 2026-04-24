@@ -157,6 +157,8 @@ Device.registerProvider('providerName', {
 
 **Capability Codegen**: Capability classes are auto-generated from `capabilities.json` via Handlebars templates (`codegen/templates/capabilities.ts.hbs`) into `models/capabilities/capabilities.gen.ts`. Run `npm run codegen` after changing `capabilities.json` or the template. Do not hand-edit `capabilities.gen.ts`.
 
+**`device.meta` vs `capabilities.json`**: Use `device.meta` only for provider-specific runtime data that stays within that provider's own code (e.g. Shelly's hardware `generation`, Vehicle's `chargeSchedule`). If a property needs to be accessible to automations or the API in a provider-agnostic way — even if it's static config rather than a live sensor reading — add it to `capabilities.json` instead. Custom capability subclass methods (like `getNextScheduledChange`) are for provider-specific *behaviours* that can't be meaningfully generalised across providers, not for properties.
+
 **Available Capabilities**: Light, Lock, Thermostat, Switch, Camera, Speaker, BatteryLevelIndicator, BatteryLowIndicator, HeatPump, HumiditySensor, TemperatureSensor, LightSensor, MotionSensor, ElectricVehicle, BinCollection.
 
 **Custom Capability Subclasses**: For capabilities that need methods beyond codegen'd event properties, set `"capabilityModelClassName": "FooBase"` in `capabilities.json` so codegen generates a base class (e.g. `FooBaseCapability`), then create a custom subclass `FooCapability` extending it (e.g. `models/capabilities/bin-collection.ts`). Export the custom class from `models/capabilities/index.ts`.

@@ -7,7 +7,7 @@ import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
-import { Box, Grid, Paper, SimpleGrid, Title } from '@mantine/core';
+import { Badge, Box, Grid, Paper, SimpleGrid, Title } from '@mantine/core';
 import PageLoader from '../page-loader';
 import { StatusItem } from '../status-item';
 import dayjs from '../../dayjs';
@@ -28,6 +28,8 @@ export default function Device() {
   const metrics = getDeviceMetrics(device);
   const graphs = getDeviceGraphs(device);
   const binCap = device.capabilities.find((c): c is Extract<CapabilityApiResponse, { type: 'BIN_COLLECTION' }> => c.type === 'BIN_COLLECTION');
+  const thermostatCap = device.capabilities.find((c): c is Extract<CapabilityApiResponse, { type: 'THERMOSTAT' }> => c.type === 'THERMOSTAT');
+  const isPassiveThermostat = thermostatCap?.isPassive.value === true;
 
   return (
     <>
@@ -60,6 +62,7 @@ export default function Device() {
                 <dt>Last Seen</dt>
                 <dd>{`${lastSeen.format('HH:mm')} ${humanDate(lastSeen)}`}</dd>
               </dl>
+              {isPassiveThermostat && <Badge mt="sm" variant="outline" color="gray">Passive — does not control heating</Badge>}
             </Paper>
           </Grid.Col>
         </Grid>
