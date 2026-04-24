@@ -191,7 +191,7 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
     await Promise.all([
       deviceCapability.setPowerState(zoneState.activityDataPoints.heatingPower.percentage, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
       deviceCapability.setIsOnState(zoneState.activityDataPoints.heatingPower.percentage > 0, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
-      deviceCapability.setHumidityState(zoneState.sensorDataPoints.humidity.percentage, new Date(zoneState.sensorDataPoints.humidity.timestamp)),
+      device.getHumiditySensorCapability().setHumidityState(zoneState.sensorDataPoints.humidity.percentage, new Date(zoneState.sensorDataPoints.humidity.timestamp)),
       deviceCapability.setCurrentTemperatureState(zoneState.sensorDataPoints.insideTemperature.celsius, new Date(zoneState.sensorDataPoints.insideTemperature.timestamp)),
       deviceCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date())
     ]);
