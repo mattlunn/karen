@@ -11,9 +11,9 @@ export function humanDate(date: Dayjs): string {
     return 'tomorrow';
   } else {
     return 'on ' + (
-      date.diff(now, 'months')
-        ? date.format('ddd Do MMM')
-        : date.format('ddd Do')
+      date.isSame(now, 'month')
+        ? date.format('ddd Do')
+        : date.format('ddd Do MMM')
     );
   }
 }
