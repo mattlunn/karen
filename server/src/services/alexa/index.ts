@@ -90,8 +90,14 @@ Device.registerProvider('alexa', {
           }
         }, ttlInSeconds * 1000);
       
-        sendChangeReport(device.name);
-      
+        sendChangeReport(device.name, {
+          namespace: 'Alexa.SimpleEventSource',
+          name: 'eventDetectionState',
+          value: { state: 'DETECTED', trigger: { source: { type: 'SIMPLE' } } },
+          timeOfSample: new Date().toISOString(),
+          uncertaintyInMilliseconds: 0
+        }, 'PHYSICAL_INTERACTION');
+
         return promise;
       }
     };
@@ -119,5 +125,11 @@ Device.registerProvider('alexa', {
 
 DeviceCapabilityEvents.onButtonPressed(async (event) => {
   const device = await event.getDevice();
-  await sendChangeReport(String(device.id));
+  await sendChangeReport(String(device.id), {
+    namespace: 'Alexa.SimpleEventSource',
+    name: 'eventDetectionState',
+    value: { state: 'DETECTED', trigger: { source: { type: 'SIMPLE' } } },
+    timeOfSample: new Date().toISOString(),
+    uncertaintyInMilliseconds: 0
+  }, 'PHYSICAL_INTERACTION');
 });
