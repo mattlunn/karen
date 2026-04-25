@@ -23,7 +23,8 @@ import {
   HeatPumpCapability,
   SpeakerCapability,
   ElectricVehicleCapability,
-  BinCollectionCapability
+  BinCollectionCapability,
+  ButtonCapability
 } from './capabilities';
 
 export class Device extends Model<InferAttributes<Device>, InferCreationAttributes<Device>> {
@@ -123,6 +124,10 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   getBinCollectionCapability(): BinCollectionCapability {
     return this.#getCapabilityOrThrow(() => new BinCollectionCapability(this));
+  }
+
+  getButtonCapability(): ButtonCapability {
+    return this.#getCapabilityOrThrow(() => new ButtonCapability(this));
   }
 
   getCapabilities(): Capability[] {

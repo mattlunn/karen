@@ -338,4 +338,14 @@
   "name": "BinCollection",
   "capabilityModelClassName": "BinCollectionBase",
   "properties": []
+}, {
+  "name": "Button",
+  "properties": [
+    {
+      "name": "Pressed",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "pressed"
+    }
+  ]
 }]

@@ -28,7 +28,7 @@ interface SmartHomeEndpointCapability {
   }
 }
 
-type SmartHomeDisplayCategory = 'LIGHT' | 'TEMPERATURE_SENSOR' | 'CHRISTMAS_TREE' | 'THERMOSTAT' | 'SECURITY_PANEL' | 'CONTACT_SENSOR';
+type SmartHomeDisplayCategory = 'LIGHT' | 'TEMPERATURE_SENSOR' | 'CHRISTMAS_TREE' | 'THERMOSTAT' | 'SECURITY_PANEL' | 'CONTACT_SENSOR' | 'ACTIVITY_TRIGGER';
 
 // https://developer.amazon.com/en-US/docs/alexa/device-apis/alexa-discovery-objects.html
 interface SmartHomeEndpoint {
@@ -139,20 +139,13 @@ function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
   return {
     friendlyName: device.name,
     endpointId: device.name,
-    displayCategories: ['CONTACT_SENSOR'],
+    displayCategories: ['ACTIVITY_TRIGGER'],
     manufacturerName: 'Karen',
-    description: `Fake sensor for ${device.name}`,
+    description: `Event trigger for ${device.name}`,
     capabilities: [{
       type: 'AlexaInterface',
-      interface: 'Alexa.ContactSensor',
+      interface: 'Alexa.SimpleEventSource',
       version: '3',
-      properties: {
-        supported: [{
-          name: 'detectionState'
-        }],
-        proactivelyReported: true,
-        retrievable: false
-      }
     }, {
       type: 'AlexaInterface',
       interface: 'Alexa.EndpointHealth',
@@ -161,9 +154,28 @@ function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
         supported: [{
           name: 'connectivity'
         }],
-        proactivelyReported: true,
+        proactivelyReported: false,
         retrievable: false
       }
+    }, {
+      type: 'AlexaInterface',
+      interface: 'Alexa',
+      version: '3'
+    }]
+  };
+}
+
+function mapButtonToEndpoint(device: RestDeviceResponse): SmartHomeEndpoint {
+  return {
+    friendlyName: device.name,
+    endpointId: String(device.id),
+    displayCategories: ['ACTIVITY_TRIGGER'],
+    manufacturerName: device.manufacturer ?? 'Karen',
+    description: `Button: ${device.name}`,
+    capabilities: [{
+      type: 'AlexaInterface',
+      interface: 'Alexa.SimpleEventSource',
+      version: '3',
     }, {
       type: 'AlexaInterface',
       interface: 'Alexa',
@@ -247,6 +259,11 @@ export async function Discover(request: SmartHomeRequest, context: Context): Pro
 
             if (capability === 'SPEAKER') {
               allDevices.push(mapAlexaToEndpoints(device));
+              break;
+            }
+
+            if (capability === 'BUTTON') {
+              allDevices.push(mapButtonToEndpoint(device));
               break;
             }
           }

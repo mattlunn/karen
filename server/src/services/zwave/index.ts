@@ -10,7 +10,8 @@ const deviceCapabilitiesMap = new Map<string, Capability[]>([
   ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'BATTERY_LEVEL_INDICATOR']],
   ['Fibargroup FGD212', ['LIGHT']],
   ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR']],
-  ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']]
+  ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']],
+  ['Fibargroup FGBP-10', ['BUTTON', 'BATTERY_LEVEL_INDICATOR']]
 ]);
 
 type DeviceHandler = {
@@ -174,6 +175,13 @@ async function getClient() {
 
             if (eventHandler) {
               eventHandler.propertyMapper(device, data.args.newValue);
+            }
+          }
+
+          if (data.source === 'node' && data.event === 'value notification') {
+            if (data.args.commandClassName === 'Central Scene' && data.args.value === 0) {
+              const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
+              await device.getButtonCapability().setPressedState(data.args.propertyKey);
             }
           }
         });
