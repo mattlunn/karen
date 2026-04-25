@@ -138,7 +138,7 @@ function mapLightToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
 }
 
 function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
-  const instanceId = `00000000-0000-0000-0000-${String(device.id).padStart(12, '0')}`;
+  const instanceId = `${device.id}-1`;
   return {
     friendlyName: device.name,
     endpointId: String(device.id),
@@ -179,7 +179,7 @@ function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
 }
 
 function mapButtonToEndpoint(device: RestDeviceResponse): SmartHomeEndpoint {
-  const instanceId = `00000000-0000-0000-0000-${String(device.id).padStart(12, '0')}`;
+  const instanceId = `${device.id}-1`;
   return {
     friendlyName: device.name,
     endpointId: String(device.id),

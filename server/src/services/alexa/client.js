@@ -51,53 +51,9 @@ export async function getAccessToken() {
   return tokenDetails.accessToken;
 }
 
-export async function sendChangeReport(deviceId, changedProperty, changeReason, otherProperties = []) {
-  deviceId = String(deviceId);
-  const bearer = await getAccessToken();
-  const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${bearer}`
-    },
-    body: JSON.stringify({
-      event: {
-        header: {
-          namespace: 'Alexa',
-          name: 'ChangeReport',
-          messageId: uuid(),
-          payloadVersion: '3'
-        },
-        endpoint: {
-          scope: {
-            type: 'BearerToken',
-            token: bearer
-          },
-          endpointId: deviceId
-        },
-        payload: {
-          change: {
-            cause: {
-              type: changeReason
-            },
-            properties: [changedProperty]
-          }
-        }
-      },
-      context: {
-        properties: otherProperties
-      }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Got a ${response.status} back, while trying to update property for ${deviceId}`);
-  }
-}
-
 export async function sendSimpleEventSource(deviceId) {
   deviceId = String(deviceId);
-  const instanceId = `00000000-0000-0000-0000-${deviceId.padStart(12, '0')}`;
+  const instanceId = `${deviceId}-1`;
   const bearer = await getAccessToken();
   const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
     method: 'POST',
