@@ -151,7 +151,7 @@ function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
       instance: instanceId,
       version: '1.0',
       capabilityResources: {
-        friendlyNames: [{ '@type': 'text', value: { text: device.name, locale: 'en-US' } }]
+        friendlyNames: [{ '@type': 'text', value: { text: 'Synthetic trigger', locale: 'en-US' } }]
       },
       configuration: {
         supportedEvents: [{
