@@ -138,7 +138,7 @@ function mapLightToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
 function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
   return {
     friendlyName: device.name,
-    endpointId: device.name,
+    endpointId: String(device.id),
     displayCategories: ['ACTIVITY_TRIGGER'],
     manufacturerName: device.manufacturer,
     description: `Event trigger for ${device.name}`,
