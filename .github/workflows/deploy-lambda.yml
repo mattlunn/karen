@@ -54,13 +54,13 @@ jobs:
           aws lambda wait function-updated \
             --function-name "$LAMBDA_FUNCTION_NAME" \
             --region eu-west-1
-          # Select NewRelicNodeJS24X (index 2 of 4 options for nodejs24.x: generic, generic-slim, 24X, 24X-slim)
-          printf "2\n" | newrelic-lambda layers install \
+          newrelic-lambda layers install \
             --function "$LAMBDA_FUNCTION_NAME" \
             --nr-account-id "$NEW_RELIC_ACCOUNT_ID" \
             --nr-api-key "$NEW_RELIC_API_KEY" \
             --nr-region eu \
             --aws-region eu-west-1 \
+            --layer-arn "arn:aws:lambda:eu-west-1:451483290750:layer:NewRelicNodeJS24X:25" \
             --apm \
             --upgrade
         env:
