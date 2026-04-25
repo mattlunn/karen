@@ -16,7 +16,9 @@ interface SmartHomeEndpointAdditionalAttributes {
 interface SmartHomeEndpointCapability {
   type: 'AlexaInterface';
   interface: string;
-  version: '3';
+  version: string;
+  instance?: string;
+  capabilityResources?: any;
   configuration?: any
   properties?: {
     supported: {
@@ -136,6 +138,7 @@ function mapLightToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
 }
 
 function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
+  const instanceId = `00000000-0000-0000-0000-${String(device.id).padStart(12, '0')}`;
   return {
     friendlyName: device.name,
     endpointId: String(device.id),
@@ -145,7 +148,17 @@ function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
     capabilities: [{
       type: 'AlexaInterface',
       interface: 'Alexa.SimpleEventSource',
-      version: '3',
+      instance: instanceId,
+      version: '1.0',
+      capabilityResources: {
+        friendlyNames: [{ '@type': 'text', value: { text: device.name, locale: 'en-US' } }]
+      },
+      configuration: {
+        supportedEvents: [{
+          id: 'Button.SinglePush.1',
+          friendlyNames: [{ '@type': 'text', value: { text: 'Single push', locale: 'en-US' } }]
+        }]
+      }
     }, {
       type: 'AlexaInterface',
       interface: 'Alexa.EndpointHealth',
@@ -166,6 +179,7 @@ function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
 }
 
 function mapButtonToEndpoint(device: RestDeviceResponse): SmartHomeEndpoint {
+  const instanceId = `00000000-0000-0000-0000-${String(device.id).padStart(12, '0')}`;
   return {
     friendlyName: device.name,
     endpointId: String(device.id),
@@ -175,7 +189,17 @@ function mapButtonToEndpoint(device: RestDeviceResponse): SmartHomeEndpoint {
     capabilities: [{
       type: 'AlexaInterface',
       interface: 'Alexa.SimpleEventSource',
-      version: '3',
+      instance: instanceId,
+      version: '1.0',
+      capabilityResources: {
+        friendlyNames: [{ '@type': 'text', value: { text: device.name, locale: 'en-US' } }]
+      },
+      configuration: {
+        supportedEvents: [{
+          id: 'Button.SinglePush.1',
+          friendlyNames: [{ '@type': 'text', value: { text: 'Single push', locale: 'en-US' } }]
+        }]
+      }
     }, {
       type: 'AlexaInterface',
       interface: 'Alexa',

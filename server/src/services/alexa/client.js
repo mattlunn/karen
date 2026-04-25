@@ -96,11 +96,40 @@ export async function sendChangeReport(deviceId, changedProperty, changeReason, 
 }
 
 export async function sendSimpleEventSource(deviceId) {
-  await sendChangeReport(deviceId, {
-    namespace: 'Alexa.SimpleEventSource',
-    name: 'eventDetectionState',
-    value: { state: 'DETECTED', trigger: { source: { type: 'SIMPLE' } } },
-    timeOfSample: new Date().toISOString(),
-    uncertaintyInMilliseconds: 0
-  }, 'PHYSICAL_INTERACTION');
+  deviceId = String(deviceId);
+  const instanceId = `00000000-0000-0000-0000-${deviceId.padStart(12, '0')}`;
+  const bearer = await getAccessToken();
+  const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${bearer}`
+    },
+    body: JSON.stringify({
+      event: {
+        header: {
+          namespace: 'Alexa.SimpleEventSource',
+          name: 'Event',
+          instance: instanceId,
+          messageId: uuid(),
+          payloadVersion: '1.0'
+        },
+        endpoint: {
+          scope: {
+            type: 'BearerToken',
+            token: bearer
+          },
+          endpointId: deviceId
+        },
+        payload: {
+          id: 'Button.SinglePush.1',
+          timestamp: new Date().toISOString()
+        }
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Got a ${response.status} back, while trying to send SimpleEvent for ${deviceId}`);
+  }
 }
