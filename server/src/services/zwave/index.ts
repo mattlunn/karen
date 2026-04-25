@@ -11,7 +11,7 @@ const deviceCapabilitiesMap = new Map<string, Capability[]>([
   ['Fibargroup FGD212', ['LIGHT']],
   ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR']],
   ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']],
-  ['Fibargroup FGBP-10', ['BUTTON', 'BATTERY_LEVEL_INDICATOR']]
+  ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR']]
 ]);
 
 type DeviceHandler = {
