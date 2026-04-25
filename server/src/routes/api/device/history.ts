@@ -8,7 +8,7 @@ import {
   HistoryDetailsApiResponse,
   NumericEventApiResponse
 } from '../../../api/types';
-import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapEnumHistoryToResponse, computeCumulativeEnergyResponse } from '../history-helpers';
+import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapEnumHistoryToResponse, computeCumulativeNumericResponse } from '../history-helpers';
 
 // Types
 
@@ -128,8 +128,8 @@ const historyFetchers = new Map<string, HistoryFetcher>([
 
     return {
       lines: [
-        { data: computeCumulativeEnergyResponse(yieldEvents, selector), label: 'Cumulative Yield (kWh)' },
-        { data: computeCumulativeEnergyResponse(powerEvents, selector), label: 'Cumulative Power (kWh)' }
+        { data: computeCumulativeNumericResponse(yieldEvents, selector), label: 'Cumulative Yield (kWh)' },
+        { data: computeCumulativeNumericResponse(powerEvents, selector), label: 'Cumulative Power (kWh)' }
       ]
     };
   }],

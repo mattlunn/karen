@@ -39,7 +39,7 @@ export function mapNumericHistoryToResponse(
   }));
 }
 
-export function computeCumulativeEnergyResponse(
+export function computeCumulativeNumericResponse(
   events: NumericEvent[],
   selector: TimeRangeSelector
 ): HistoryDetailsApiResponse<NumericEventApiResponse> {
