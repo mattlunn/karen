@@ -180,7 +180,7 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
   const zonesState = await client.getZonesState();
 
   for (const device of devices) {
-    const deviceCapability = device.getThermostatCapability();
+    const thermostatCapability = device.getThermostatCapability();
     const zoneState = zonesState[Number(device.providerId)];
 
     if (zoneState === undefined) {
@@ -189,11 +189,12 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
     }
 
     await Promise.all([
-      deviceCapability.setPowerState(zoneState.activityDataPoints.heatingPower.percentage, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
-      deviceCapability.setIsOnState(zoneState.activityDataPoints.heatingPower.percentage > 0, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
       device.getHumiditySensorCapability().setHumidityState(zoneState.sensorDataPoints.humidity.percentage, new Date(zoneState.sensorDataPoints.humidity.timestamp)),
-      deviceCapability.setCurrentTemperatureState(zoneState.sensorDataPoints.insideTemperature.celsius, new Date(zoneState.sensorDataPoints.insideTemperature.timestamp)),
-      deviceCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date())
+
+      thermostatCapability.setPowerState(zoneState.activityDataPoints.heatingPower.percentage, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
+      thermostatCapability.setIsOnState(zoneState.activityDataPoints.heatingPower.percentage > 0, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
+      thermostatCapability.setCurrentTemperatureState(zoneState.sensorDataPoints.insideTemperature.celsius, new Date(zoneState.sensorDataPoints.insideTemperature.timestamp)),
+      thermostatCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date())
     ]);
   }
 }), Math.max(config.tado.sync_interval_seconds, 10) * 1000);
