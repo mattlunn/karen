@@ -45,3 +45,17 @@ jobs:
             --zip-file fileb://lambda.zip
         env:
           LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+
+      - name: Configure Lambda
+        run: |
+          aws lambda wait function-updated \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
+            --region eu-west-1
+          aws lambda update-function-configuration \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
+            --handler "newrelic-lambda-wrapper.handler" \
+            --layers "$NEW_RELIC_LAYER_ARN" \
+            --region eu-west-1
+        env:
+          LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
+          NEW_RELIC_LAYER_ARN: "arn:aws:lambda:eu-west-1:451483290750:layer:NewRelicNodeJS22X:24"
