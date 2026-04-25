@@ -595,10 +595,12 @@ export const registry: CapabilityUIRegistry = {
           icon: faCalendarCheck,
           title: 'Schedule',
           value: cap.chargeSchedule
-            ? `${cap.chargeSchedule.targetPercentage}% by ${dayjs(cap.chargeSchedule.targetTime).format('HH:mm')}`
+            ? `${cap.chargeSchedule.targetPercentage}% by ${dayjs(cap.chargeSchedule.targetTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.targetTime))}`
             : 'No schedule',
-          footer: cap.chargeSchedule?.calculatedStartTime
-            ? `starts ${dayjs(cap.chargeSchedule.calculatedStartTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.calculatedStartTime))}`
+          footer: cap.chargeSchedule
+            ? cap.chargeSchedule.calculatedStartTime
+              ? `starts ${dayjs(cap.chargeSchedule.calculatedStartTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.calculatedStartTime))}`
+              : 'start TBC'
             : undefined,
           iconColor: cap.chargeSchedule ? '#3498db' : undefined,
           onIconClick: ({ openModal, closeModal }) => {
