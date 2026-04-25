@@ -9,6 +9,8 @@ on:
         required: true
       LAMBDA_FUNCTION_NAME:
         required: true
+      NEW_RELIC_API_KEY:
+        required: true
 
 jobs:
   deploy:
@@ -46,16 +48,19 @@ jobs:
         env:
           LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
 
-      - name: Configure Lambda
+      - name: Configure New Relic instrumentation
         run: |
+          pip3 install newrelic-lambda-cli
           aws lambda wait function-updated \
             --function-name "$LAMBDA_FUNCTION_NAME" \
             --region eu-west-1
-          aws lambda update-function-configuration \
-            --function-name "$LAMBDA_FUNCTION_NAME" \
-            --handler "newrelic-lambda-wrapper.handler" \
-            --layers "$NEW_RELIC_LAYER_ARN" \
-            --region eu-west-1
+          newrelic-lambda layers install \
+            --function "$LAMBDA_FUNCTION_NAME" \
+            --nr-account-id 3088230 \
+            --nr-api-key "$NEW_RELIC_API_KEY" \
+            --aws-region eu-west-1 \
+            --apm \
+            --upgrade
         env:
           LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
-          NEW_RELIC_LAYER_ARN: "arn:aws:lambda:eu-west-1:451483290750:layer:NewRelicNodeJS22X:24"
+          NEW_RELIC_API_KEY: ${{ secrets.NEW_RELIC_API_KEY }}
