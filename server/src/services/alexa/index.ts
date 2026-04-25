@@ -1,7 +1,7 @@
 import config from '../../config';
 import { Device } from '../../models';
 import { DeviceCapabilityEvents } from '../../models/capabilities';
-import { sendSimpleEventSourceTrigger } from './client';
+import { sendChangeReport } from './client';
 import logger from '../../logger';
 
 export const messages = new Map();
@@ -90,7 +90,7 @@ Device.registerProvider('alexa', {
           }
         }, ttlInSeconds * 1000);
       
-        sendSimpleEventSourceTrigger(device.name);
+        sendChangeReport(device.name);
       
         return promise;
       }
@@ -117,7 +117,7 @@ Device.registerProvider('alexa', {
   }
 });
 
-DeviceCapabilityEvents.onButtonPressedStart(async (event) => {
+DeviceCapabilityEvents.onButtonPressed(async (event) => {
   const device = await event.getDevice();
-  await sendSimpleEventSourceTrigger(String(device.id));
+  await sendChangeReport(String(device.id));
 });

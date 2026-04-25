@@ -40,7 +40,7 @@ describe('setNumericProperty', () => {
       const historicTimestamp = new Date('2024-01-14T00:00:00Z');
 
       await expect(
-        setNumericProperty(mockDevice as unknown as Device, 'temperature', 50, historicTimestamp)
+        setNumericProperty(mockDevice as unknown as Device, 'temperature', 50, false, historicTimestamp)
       ).rejects.toThrow('Cannot insert historic event');
     });
   });
@@ -55,6 +55,7 @@ describe('setNumericProperty', () => {
         mockDevice as unknown as Device,
         'temperature',
         50,
+        false,
         new Date('2024-01-15T00:00:00Z')
       );
 
@@ -76,6 +77,7 @@ describe('setNumericProperty', () => {
         mockDevice as unknown as Device,
         'temperature',
         200,
+        false,
         newTimestamp
       );
 
@@ -93,6 +95,7 @@ describe('setNumericProperty', () => {
         mockDevice as unknown as Device,
         'temperature',
         100, // Same value
+        false,
         newTimestamp
       );
 
@@ -112,6 +115,7 @@ describe('setNumericProperty', () => {
         mockDevice as unknown as Device,
         'temperature',
         200, // Different value
+        false,
         sameTimestamp
       );
 
@@ -129,11 +133,36 @@ describe('setNumericProperty', () => {
         mockDevice as unknown as Device,
         'temperature',
         100, // Same value
+        false,
         sameTimestamp
       );
 
       expect(mockEvent.save).not.toHaveBeenCalled();
       expect(result).toBeNull();
+    });
+  });
+
+  describe('isMomentary', () => {
+    it('creates a self-closing event (start = end = timestamp)', async () => {
+      mockDevice.getLatestEvent.mockResolvedValue(null);
+      const timestamp = new Date('2024-01-15T12:00:00Z');
+      const newEvent = { id: 1 };
+      (Event.create as jest.Mock).mockResolvedValue(newEvent);
+
+      const result = await setNumericProperty(
+        mockDevice as unknown as Device,
+        'counter',
+        1,
+        true,
+        timestamp
+      );
+
+      expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+        start: timestamp,
+        end: timestamp,
+        value: 1,
+      }));
+      expect(result).toBe(newEvent);
     });
   });
 });
@@ -173,7 +202,7 @@ describe('setBooleanProperty', () => {
       const historicTimestamp = new Date('2024-01-14T00:00:00Z');
 
       await expect(
-        setBooleanProperty(mockDevice as unknown as Device, 'isOn', true, historicTimestamp)
+        setBooleanProperty(mockDevice as unknown as Device, 'isOn', true, false, historicTimestamp)
       ).rejects.toThrow('Cannot insert historic event');
     });
   });
@@ -188,6 +217,7 @@ describe('setBooleanProperty', () => {
         mockDevice as unknown as Device,
         'isOn',
         true,
+        false,
         new Date('2024-01-15T00:00:00Z')
       );
 
@@ -209,6 +239,7 @@ describe('setBooleanProperty', () => {
         mockDevice as unknown as Device,
         'isOn',
         true,
+        false,
         newTimestamp
       );
 
@@ -223,6 +254,7 @@ describe('setBooleanProperty', () => {
       await setBooleanProperty(
         mockDevice as unknown as Device,
         'isOn',
+        false,
         false,
         newTimestamp
       );
@@ -240,6 +272,7 @@ describe('setBooleanProperty', () => {
         mockDevice as unknown as Device,
         'isOn',
         true,
+        false,
         newTimestamp
       );
 
@@ -256,6 +289,7 @@ describe('setBooleanProperty', () => {
       const result = await setBooleanProperty(
         mockDevice as unknown as Device,
         'isOn',
+        false,
         false,
         newTimestamp
       );
@@ -276,6 +310,7 @@ describe('setBooleanProperty', () => {
         mockDevice as unknown as Device,
         'isOn',
         true,
+        false,
         sameTimestamp
       );
 
@@ -292,6 +327,7 @@ describe('setBooleanProperty', () => {
         mockDevice as unknown as Device,
         'isOn',
         false,
+        false,
         sameTimestamp
       );
 
@@ -305,7 +341,7 @@ describe('setBooleanProperty', () => {
       const sameTimestamp = new Date('2024-01-15T00:00:00Z');
 
       await expect(
-        setBooleanProperty(mockDevice as unknown as Device, 'isOn', true, sameTimestamp)
+        setBooleanProperty(mockDevice as unknown as Device, 'isOn', true, false, sameTimestamp)
       ).rejects.toThrow('Cannot turn on');
     });
 
@@ -317,12 +353,46 @@ describe('setBooleanProperty', () => {
         mockDevice as unknown as Device,
         'isOn',
         false,
+        false,
         sameTimestamp
       );
 
       expect(mockEventOff.save).toHaveBeenCalled();
       expect(mockEventOff.destroy).not.toHaveBeenCalled();
       expect(result).toBeNull();
+    });
+  });
+
+  describe('isMomentary', () => {
+    it('creates a self-closing event (start = end = timestamp)', async () => {
+      mockDevice.getLatestEvent.mockResolvedValue(null);
+      const timestamp = new Date('2024-01-15T12:00:00Z');
+      const newEvent = { id: 1 };
+      (Event.create as jest.Mock).mockResolvedValue(newEvent);
+
+      const result = await setBooleanProperty(
+        mockDevice as unknown as Device,
+        'pressed',
+        true,
+        true,
+        timestamp
+      );
+
+      expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+        start: timestamp,
+        end: timestamp,
+        value: 1,
+      }));
+      expect(result).toBe(newEvent);
+    });
+
+    it('still rejects historic inserts', async () => {
+      mockDevice.getLatestEvent.mockResolvedValue(mockEventOn);
+      const historicTimestamp = new Date('2024-01-14T00:00:00Z');
+
+      await expect(
+        setBooleanProperty(mockDevice as unknown as Device, 'pressed', true, true, historicTimestamp)
+      ).rejects.toThrow('Cannot insert historic event');
     });
   });
 });

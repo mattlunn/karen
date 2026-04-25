@@ -183,7 +183,6 @@ async function getClient() {
               const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
               const pressedAt = new Date();
               await device.getButtonCapability().setPressedState(true, pressedAt);
-              await device.getButtonCapability().setPressedState(false, pressedAt);
             }
           }
         });

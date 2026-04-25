@@ -51,7 +51,7 @@ function mapThermostatToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint
     friendlyName: device.name,
     endpointId: String(device.id),
     displayCategories: ['THERMOSTAT', 'TEMPERATURE_SENSOR'],
-    manufacturerName: 'Tado',
+    manufacturerName: device.manufacturer,
     description: 'Tado Thermostat',
     capabilities: [{
       type: 'AlexaInterface',
@@ -103,7 +103,7 @@ function mapLightToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
     friendlyName: device.name,
     endpointId: String(device.id),
     displayCategories: ['LIGHT'],
-    manufacturerName: 'Karen',
+    manufacturerName: device.manufacturer,
     description: `${device.name} light`,
     capabilities: [{
       type: 'AlexaInterface',
@@ -140,7 +140,7 @@ function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
     friendlyName: device.name,
     endpointId: device.name,
     displayCategories: ['ACTIVITY_TRIGGER'],
-    manufacturerName: 'Karen',
+    manufacturerName: device.manufacturer,
     description: `Event trigger for ${device.name}`,
     capabilities: [{
       type: 'AlexaInterface',
@@ -170,7 +170,7 @@ function mapButtonToEndpoint(device: RestDeviceResponse): SmartHomeEndpoint {
     friendlyName: device.name,
     endpointId: String(device.id),
     displayCategories: ['ACTIVITY_TRIGGER'],
-    manufacturerName: device.manufacturer ?? 'Karen',
+    manufacturerName: device.manufacturer,
     description: `Button: ${device.name}`,
     capabilities: [{
       type: 'AlexaInterface',

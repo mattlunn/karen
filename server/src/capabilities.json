@@ -345,7 +345,8 @@
       "name": "Pressed",
       "isWriteable": false,
       "type": "boolean",
-      "eventName": "pressed"
+      "eventName": "pressed",
+      "isMomentary": true
     }
   ]
 }]
