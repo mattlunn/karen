@@ -269,12 +269,6 @@
       "eventName": "setback"
     },
     {
-      "name": "Humidity",
-      "isWriteable": false,
-      "type": "number",
-      "eventName": "humidity"
-    },
-    {
       "name": "CurrentTemperature",
       "isWriteable": false,
       "type": "number",

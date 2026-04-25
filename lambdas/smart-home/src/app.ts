@@ -1,26 +1,32 @@
+import newrelic from 'newrelic';
 import { SmartHomeHandler } from './custom-typings/lambda';
 import handlers from './handlers';
 
 export const handler: SmartHomeHandler = async function (request, context) {
-  console.log(JSON.stringify(request));
-
   const interfaceName = request.directive.header.namespace;
   const interfaceHandler = request.directive.header.name;
 
-  if (handlers.hasOwnProperty(interfaceName)) {
-    const handler = handlers[interfaceName];
+  console.log(JSON.stringify(request));
 
-    if (typeof handler[interfaceHandler] === 'function') {
-      const response = await handler[interfaceHandler](request, context);
+  newrelic.setTransactionName(`${interfaceName}/${interfaceHandler}`);
+  newrelic.addCustomAttributes({
+    'alexa.namespace': interfaceName,
+    'alexa.action': interfaceHandler,
+  });
 
-      console.log(JSON.stringify(response));
+  if (!handlers.hasOwnProperty(interfaceName)) {
+    throw new Error(`There is no handler for "${interfaceName}"`);
+  }
 
-      return response;
-    }
+  const handler = handlers[interfaceName];
 
+  if (typeof handler[interfaceHandler] !== 'function') {
     throw new Error(`The "${interfaceName}" handler does not know how to handle "${interfaceHandler}"`);
   }
 
-  throw new Error(`There is no handler for "${interfaceName}"`);
-};
+  const response = await handler[interfaceHandler](request, context);
 
+  console.log(JSON.stringify(response));
+
+  return response;
+};
