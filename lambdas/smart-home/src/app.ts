@@ -8,6 +8,7 @@ export const handler: SmartHomeHandler = async function (request, context) {
 
   console.log(JSON.stringify(request));
 
+  newrelic.setTransactionName(`${interfaceName}/${interfaceHandler}`);
   newrelic.addCustomAttributes({
     'alexa.namespace': interfaceName,
     'alexa.action': interfaceHandler,
