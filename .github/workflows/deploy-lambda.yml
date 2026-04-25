@@ -54,13 +54,6 @@ jobs:
           aws lambda wait function-updated \
             --function-name "$LAMBDA_FUNCTION_NAME" \
             --region eu-west-1
-          aws lambda update-function-configuration \
-            --function-name "$LAMBDA_FUNCTION_NAME" \
-            --handler "app.handler" \
-            --region eu-west-1
-          aws lambda wait function-updated \
-            --function-name "$LAMBDA_FUNCTION_NAME" \
-            --region eu-west-1
           newrelic-lambda layers install \
             --function "$LAMBDA_FUNCTION_NAME" \
             --nr-account-id "$NEW_RELIC_ACCOUNT_ID" \
