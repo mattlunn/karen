@@ -5,11 +5,10 @@
   "author": "mattlunn",
   "license": "MIT",
   "dependencies": {
-    "cross-fetch": "^4.1.0",
-    "newrelic": "^13.19.0"
+    "cross-fetch": "^4.1.0"
   },
   "scripts": {
-    "build": "rm -rf ../dist/ && tsc && cp newrelic.js ../dist/ && cp -r node_modules ../dist"
+    "build": "rm -rf ../dist/ && tsc && cp -r node_modules ../dist"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.0",
