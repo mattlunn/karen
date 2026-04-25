@@ -11,8 +11,6 @@ on:
         required: true
       NEW_RELIC_API_KEY:
         required: true
-      NEW_RELIC_LICENSE_KEY:
-        required: true
 
 jobs:
   deploy:
@@ -56,16 +54,20 @@ jobs:
           aws lambda wait function-updated \
             --function-name "$LAMBDA_FUNCTION_NAME" \
             --region eu-west-1
+          LAYER_ARN=$(aws lambda list-layer-versions \
+            --layer-name "arn:aws:lambda:eu-west-1:451483290750:layer:NewRelicNodeJS24X" \
+            --region eu-west-1 \
+            --query 'LayerVersions[0].LayerVersionArn' \
+            --output text)
           newrelic-lambda layers install \
             --function "$LAMBDA_FUNCTION_NAME" \
             --nr-account-id "$NEW_RELIC_ACCOUNT_ID" \
             --nr-api-key "$NEW_RELIC_API_KEY" \
-            --license-key "$NEW_RELIC_LICENSE_KEY" \
+            --nr-region eu \
             --aws-region eu-west-1 \
-            --apm \
-            --upgrade
+            --layer-arn "$LAYER_ARN" \
+            --apm
         env:
           LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
           NEW_RELIC_API_KEY: ${{ secrets.NEW_RELIC_API_KEY }}
-          NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
           NEW_RELIC_ACCOUNT_ID: ${{ vars.NEW_RELIC_ACCOUNT_ID }}
