@@ -52,6 +52,7 @@ export async function getAccessToken() {
 }
 
 export async function sendChangeReport(deviceId, changedProperty, changeReason, otherProperties = []) {
+  deviceId = String(deviceId);
   const bearer = await getAccessToken();
   const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
     method: 'POST',

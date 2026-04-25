@@ -90,7 +90,7 @@ Device.registerProvider('alexa', {
           }
         }, ttlInSeconds * 1000);
       
-        sendSimpleEventSource(String(device.id));
+        sendSimpleEventSource(device.id);
 
         return promise;
       }
@@ -119,5 +119,5 @@ Device.registerProvider('alexa', {
 
 DeviceCapabilityEvents.onButtonPressed(async (event) => {
   const device = await event.getDevice();
-  await sendSimpleEventSource(String(device.id));
+  await sendSimpleEventSource(device.id);
 });
