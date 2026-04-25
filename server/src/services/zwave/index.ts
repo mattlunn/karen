@@ -181,7 +181,9 @@ async function getClient() {
           if (data.source === 'node' && data.event === 'value notification') {
             if (data.args.commandClassName === 'Central Scene' && data.args.value === 0) {
               const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
-              await device.getButtonCapability().setPressedState(data.args.propertyKey);
+              const pressedAt = new Date();
+              await device.getButtonCapability().setPressedState(true, pressedAt);
+              await device.getButtonCapability().setPressedState(false, pressedAt);
             }
           }
         });

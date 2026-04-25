@@ -117,7 +117,7 @@ Device.registerProvider('alexa', {
   }
 });
 
-DeviceCapabilityEvents.onButtonPressedChanged(async (event) => {
+DeviceCapabilityEvents.onButtonPressedStart(async (event) => {
   const device = await event.getDevice();
   await sendSimpleEventSourceTrigger(String(device.id));
 });

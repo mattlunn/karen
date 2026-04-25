@@ -344,7 +344,7 @@
     {
       "name": "Pressed",
       "isWriteable": false,
-      "type": "number",
+      "type": "boolean",
       "eventName": "pressed"
     }
   ]
