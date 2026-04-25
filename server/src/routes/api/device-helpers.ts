@@ -177,6 +177,9 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
+    case 'BUTTON':
+      return { type: 'BUTTON' };
+
     case 'SPEAKER':
       return { type: 'SPEAKER' };
 

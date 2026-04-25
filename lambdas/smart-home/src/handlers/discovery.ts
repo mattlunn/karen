@@ -156,7 +156,7 @@ function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
       configuration: {
         supportedEvents: [{
           id: 'Button.SinglePush.1',
-          friendlyNames: [{ '@type': 'text', value: { text: 'Single push', locale: 'en-US' } }]
+          friendlyNames: [{ '@type': 'text', value: { text: 'Synthetic trigger', locale: 'en-US' } }]
         }]
       }
     }, {
