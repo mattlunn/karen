@@ -11,6 +11,8 @@ on:
         required: true
       NEW_RELIC_API_KEY:
         required: true
+      NEW_RELIC_LICENSE_KEY:
+        required: true
 
 jobs:
   deploy:
@@ -58,10 +60,12 @@ jobs:
             --function "$LAMBDA_FUNCTION_NAME" \
             --nr-account-id "$NEW_RELIC_ACCOUNT_ID" \
             --nr-api-key "$NEW_RELIC_API_KEY" \
+            --license-key "$NEW_RELIC_LICENSE_KEY" \
             --aws-region eu-west-1 \
             --apm \
             --upgrade
         env:
           LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
           NEW_RELIC_API_KEY: ${{ secrets.NEW_RELIC_API_KEY }}
+          NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
           NEW_RELIC_ACCOUNT_ID: ${{ vars.NEW_RELIC_ACCOUNT_ID }}
