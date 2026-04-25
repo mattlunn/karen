@@ -46,7 +46,7 @@ declare namespace _default {
     let refresh_token: string;
     const secret: string;
     const sync_interval_seconds: number;
-    const passive_zone_names: string[] | undefined;
+    const passive_zone_names: string[];
   }
   export namespace shelly {
     const user: string;
