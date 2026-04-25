@@ -93,3 +93,13 @@ export async function sendChangeReport(deviceId, changedProperty, changeReason, 
     throw new Error(`Got a ${response.status} back, while trying to update property for ${deviceId}`);
   }
 }
+
+export async function sendSimpleEventSource(deviceId) {
+  await sendChangeReport(deviceId, {
+    namespace: 'Alexa.SimpleEventSource',
+    name: 'eventDetectionState',
+    value: { state: 'DETECTED', trigger: { source: { type: 'SIMPLE' } } },
+    timeOfSample: new Date().toISOString(),
+    uncertaintyInMilliseconds: 0
+  }, 'PHYSICAL_INTERACTION');
+}
