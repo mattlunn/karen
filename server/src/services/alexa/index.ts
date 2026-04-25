@@ -1,8 +1,10 @@
 import config from '../../config';
 import { Device } from '../../models';
-import { sendChangeReport } from './client';
+import { sendChangeReport, sendAddOrUpdateReport } from './client';
 import sleep from '../../helpers/sleep';
 import logger from '../../logger';
+import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import { createBackgroundTransaction } from '../../helpers/newrelic';
 
 export const messages = new Map();
 
@@ -130,13 +132,209 @@ Device.registerProvider('alexa', {
           provider: 'alexa',
           providerId: id
         });
-      } 
+      }
 
       knownDevice.manufacturer = 'Amazon';
       knownDevice.model = 'Echo';
       knownDevice.name = name;
-      
+
       await knownDevice.save();
     }
   }
 });
+
+const ALARM_ENDPOINT_ID = '044feaa3-6236-48b1-805f-56cd190ae96d';
+
+interface AlexaCapability {
+  type: 'AlexaInterface';
+  interface: string;
+  version: '3';
+  configuration?: Record<string, unknown>;
+  properties?: {
+    supported: { name: string }[];
+    configuration?: Record<string, unknown>;
+    proactivelyReported: boolean;
+    retrievable: boolean;
+  };
+}
+
+interface AlexaEndpoint {
+  friendlyName: string;
+  endpointId: string;
+  displayCategories: string[];
+  manufacturerName: string;
+  description: string;
+  capabilities: AlexaCapability[];
+}
+
+function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
+  const endpoints: AlexaEndpoint[] = [{
+    friendlyName: 'Alarm',
+    endpointId: ALARM_ENDPOINT_ID,
+    displayCategories: ['SECURITY_PANEL'],
+    manufacturerName: 'Karen',
+    description: 'Security Alarm',
+    capabilities: [{
+      type: 'AlexaInterface',
+      interface: 'Alexa.SecurityPanelController',
+      version: '3',
+      properties: {
+        supported: [{ name: 'armState' }, { name: 'burglaryAlarm' }],
+        proactivelyReported: false,
+        retrievable: true
+      },
+      configuration: {
+        supportedArmStates: [
+          { value: 'ARMED_AWAY' },
+          { value: 'ARMED_NIGHT' },
+          { value: 'DISARMED' }
+        ],
+        supportedAuthorizationTypes: []
+      }
+    }, {
+      type: 'AlexaInterface',
+      interface: 'Alexa.EndpointHealth',
+      version: '3',
+      properties: {
+        supported: [{ name: 'connectivity' }],
+        proactivelyReported: false,
+        retrievable: true
+      }
+    }, {
+      type: 'AlexaInterface',
+      interface: 'Alexa',
+      version: '3'
+    }]
+  }];
+
+  for (const device of devices) {
+    const capabilities = device.getCapabilities();
+
+    if (capabilities.includes('THERMOSTAT')) {
+      endpoints.push({
+        friendlyName: device.name,
+        endpointId: String(device.id),
+        displayCategories: ['THERMOSTAT', 'TEMPERATURE_SENSOR'],
+        manufacturerName: 'Tado',
+        description: 'Tado Thermostat',
+        capabilities: [{
+          type: 'AlexaInterface',
+          interface: 'Alexa.TemperatureSensor',
+          version: '3',
+          properties: {
+            supported: [{ name: 'temperature' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.ThermostatController',
+          version: '3',
+          properties: {
+            supported: [{ name: 'targetSetpoint' }],
+            configuration: {
+              supportsScheduling: true,
+              supportedModes: ['HEAT', 'OFF']
+            },
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.EndpointHealth',
+          version: '3',
+          properties: {
+            supported: [{ name: 'connectivity' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa',
+          version: '3'
+        }]
+      });
+    } else if (capabilities.includes('LIGHT')) {
+      endpoints.push({
+        friendlyName: device.name,
+        endpointId: String(device.id),
+        displayCategories: ['LIGHT'],
+        manufacturerName: 'Karen',
+        description: `${device.name} light`,
+        capabilities: [{
+          type: 'AlexaInterface',
+          interface: 'Alexa.BrightnessController',
+          version: '3',
+          properties: {
+            supported: [{ name: 'brightness' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.PowerController',
+          version: '3',
+          properties: {
+            supported: [{ name: 'powerState' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa',
+          version: '3'
+        }]
+      });
+    } else if (capabilities.includes('SPEAKER')) {
+      endpoints.push({
+        friendlyName: device.name,
+        endpointId: device.name,
+        displayCategories: ['CONTACT_SENSOR'],
+        manufacturerName: 'Karen',
+        description: `Fake sensor for ${device.name}`,
+        capabilities: [{
+          type: 'AlexaInterface',
+          interface: 'Alexa.ContactSensor',
+          version: '3',
+          properties: {
+            supported: [{ name: 'detectionState' }],
+            proactivelyReported: true,
+            retrievable: false
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.EndpointHealth',
+          version: '3',
+          properties: {
+            supported: [{ name: 'connectivity' }],
+            proactivelyReported: true,
+            retrievable: false
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa',
+          version: '3'
+        }]
+      });
+    }
+  }
+
+  return endpoints;
+}
+
+async function syncDiscovery() {
+  if (!config.alexa.refresh_token) {
+    return;
+  }
+
+  const devices = await Device.findAll();
+  const endpoints = buildDiscoveryEndpoints(devices);
+
+  await sendAddOrUpdateReport(endpoints);
+  logger.info(`Alexa discovery sync complete: reported ${endpoints.length} endpoints`);
+}
+
+nowAndSetInterval(
+  createBackgroundTransaction('alexa:discovery-sync', syncDiscovery),
+  24 * 60 * 60 * 1000
+);

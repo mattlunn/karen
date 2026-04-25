@@ -51,6 +51,38 @@ export async function getAccessToken() {
   return tokenDetails.accessToken;
 }
 
+export async function sendAddOrUpdateReport(endpoints) {
+  const bearer = await getAccessToken();
+  const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${bearer}`
+    },
+    body: JSON.stringify({
+      event: {
+        header: {
+          namespace: 'Alexa.Discovery',
+          name: 'AddOrUpdateReport',
+          messageId: uuid(),
+          payloadVersion: '3'
+        },
+        payload: {
+          endpoints,
+          scope: {
+            type: 'BearerToken',
+            token: bearer
+          }
+        }
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Got a ${response.status} back while sending Alexa.Discovery AddOrUpdateReport`);
+  }
+}
+
 export async function sendChangeReport(deviceId, changedProperty, changeReason, otherProperties = []) {
   const bearer = await getAccessToken();
   const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
