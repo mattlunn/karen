@@ -339,6 +339,9 @@ export const registry: CapabilityUIRegistry = {
     ],
     getGraphs: () => [
       { id: 'heatpump-power', title: 'Power' },
+      { id: 'heatpump-compressor-power', title: 'Compressor Power', yMin: 0 },
+      { id: 'heatpump-compressor-modulation', title: 'Compressor Modulation', yMin: 0, yMax: 100 },
+      { id: 'heatpump-cumulative-energy', title: 'Cumulative Energy', yMin: 0 },
       { id: 'heatpump-outside-temp', title: 'Outside Temperature', yMin: -10 },
       { id: 'heatpump-dhw-temp', title: 'DHW Temperature' },
       { id: 'heatpump-flow-temp', title: 'Flow/ Return Temperatures' },

@@ -8,7 +8,7 @@ import {
   HistoryDetailsApiResponse,
   NumericEventApiResponse
 } from '../../../api/types';
-import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapEnumHistoryToResponse } from '../history-helpers';
+import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapEnumHistoryToResponse, computeCumulativeEnergyResponse } from '../history-helpers';
 
 // Types
 
@@ -88,6 +88,50 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         ]
       }))
     });
+  }],
+
+  // Heat Pump - Compressor Power
+  ['heatpump-compressor-power', async (device, selector) => {
+    const heatPump = device.getHeatPumpCapability();
+
+    return {
+      lines: [
+        {
+          data: await mapNumericHistoryToResponse((hs) => heatPump.getCompressorPowerHistory(hs), selector),
+          label: 'Compressor Power (W)'
+        }
+      ]
+    };
+  }],
+
+  // Heat Pump - Compressor Modulation
+  ['heatpump-compressor-modulation', async (device, selector) => {
+    const heatPump = device.getHeatPumpCapability();
+
+    return {
+      lines: [
+        {
+          data: await mapNumericHistoryToResponse((hs) => heatPump.getCompressorModulationHistory(hs), selector),
+          label: 'Compressor Modulation (%)'
+        }
+      ]
+    };
+  }],
+
+  // Heat Pump - Cumulative Energy (running total of yield and power over the time period)
+  ['heatpump-cumulative-energy', async (device, selector) => {
+    const heatPump = device.getHeatPumpCapability();
+    const [yieldEvents, powerEvents] = await Promise.all([
+      heatPump.getCurrentYieldHistory(selector),
+      heatPump.getCurrentPowerHistory(selector)
+    ]);
+
+    return {
+      lines: [
+        { data: computeCumulativeEnergyResponse(yieldEvents, selector), label: 'Cumulative Yield (kWh)' },
+        { data: computeCumulativeEnergyResponse(powerEvents, selector), label: 'Cumulative Power (kWh)' }
+      ]
+    };
   }],
 
   // Heat Pump - Outside Temperature
