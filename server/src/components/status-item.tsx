@@ -77,7 +77,7 @@ export function StatusItem(props: StatusItemProps) {
         />
       </Group>
 
-      <Group align="flex-end" gap="xs" mt={typeof value === 'string' ? 25 : 0}>
+      <Group align="flex-end" gap="xs" mt={typeof value === 'string' ? 20 : 0}>
         <Text className={styles.value}>{value}</Text>
       </Group>
 
