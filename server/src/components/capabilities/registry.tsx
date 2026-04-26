@@ -538,9 +538,9 @@ export const registry: CapabilityUIRegistry = {
         ? {
             icon: faHandPointer,
             title: 'Last Pressed',
-            value: humanDate(dayjs(cap.lastPressed)),
-            since: cap.lastPressed,
-            lastReported: cap.lastPressed,
+            value: humanDate(dayjs(cap.lastPressed.start)),
+            since: cap.lastPressed.start,
+            lastReported: cap.lastPressed.lastReported,
             iconColor: '#04A7F4',
           }
         : {

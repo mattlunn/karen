@@ -182,7 +182,12 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const pressedEvent = await button.getPressedEvent();
       return {
         type: 'BUTTON',
-        lastPressed: pressedEvent ? pressedEvent.start.toISOString() : null,
+        lastPressed: pressedEvent ? {
+          start: pressedEvent.start.toISOString(),
+          end: pressedEvent.end?.toISOString() ?? null,
+          lastReported: pressedEvent.lastReported.toISOString(),
+          value: !pressedEvent.end,
+        } : null,
       };
     }
 
