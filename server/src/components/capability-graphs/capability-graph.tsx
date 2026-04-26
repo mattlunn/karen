@@ -153,7 +153,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     data: mapNumericDataToDataset(x.data),
     label: x.label,
     yAxisID: x.yAxisID || 'y',
-    ...(x.borderDash ? { borderDash: x.borderDash, hidden: true } : {})
+    ...(x.borderDash ? { borderDash: x.borderDash } : {})
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
