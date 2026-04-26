@@ -49,6 +49,7 @@ export type CapabilityApiResponse = {
   type: 'SPEAKER';
 } | {
   type: 'BUTTON';
+  lastPressed: BooleanEventApiResponse | null;
 } | {
   type: 'SWITCH';
   isOn: BooleanEventApiResponse;

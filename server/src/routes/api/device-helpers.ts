@@ -177,8 +177,19 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
-    case 'BUTTON':
-      return { type: 'BUTTON' };
+    case 'BUTTON': {
+      const button = device.getButtonCapability();
+      const pressedEvent = await button.getPressedEvent();
+      return {
+        type: 'BUTTON',
+        lastPressed: pressedEvent ? {
+          start: pressedEvent.start.toISOString(),
+          end: pressedEvent.end!.toISOString(),
+          lastReported: pressedEvent.lastReported.toISOString(),
+          value: Boolean(pressedEvent.value),
+        } : null,
+      };
+    }
 
     case 'SPEAKER':
       return { type: 'SPEAKER' };
