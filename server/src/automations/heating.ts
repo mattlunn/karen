@@ -2,6 +2,7 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../bus';
 import { Device } from '../models';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { DeviceCapabilityEvents } from '../models/capabilities';
+import { asyncFilterAndMap } from '../helpers/array';
 
 type HeatingAutomationParameters = {
   heatingSwitchName: string;
@@ -21,8 +22,11 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold
       if (compressorLockedOutForCooldown === true) {
         const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
         const thermostats = await Device.findByCapability('THERMOSTAT');
-        const activeThermostats = await Promise.all(thermostats.map(async (t) => ({ t, passive: await t.getThermostatCapability().getIsPassive() })));
-        const thermostatsHeatDemand = await Promise.all(activeThermostats.filter(({ passive }) => !passive).map(({ t }) => t.getThermostatCapability().getIsOn()));
+        const thermostatsHeatDemand = await asyncFilterAndMap(
+          thermostats,
+          async t => !await t.getThermostatCapability().getIsPassive(),
+          t => t.getThermostatCapability().getIsOn()
+        );
         const thermostatsAreRequestingHeat = thermostatsHeatDemand.some(x => x);
 
         compressorLockedOutForCooldown = false;
@@ -43,11 +47,10 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold
    */
   async function getLargestTemperatureDelta() {
     const thermostats = await Device.findByCapability('THERMOSTAT');
-    const activeThermostats = await Promise.all(thermostats.map(async (t) => ({ t, passive: await t.getThermostatCapability().getIsPassive() })));
-    const temperatureDeltas = await Promise.all(
-      activeThermostats
-        .filter(({ passive }) => !passive)
-        .map(async ({ t }) => await t.getThermostatCapability().getCurrentTemperature() - await t.getThermostatCapability().getTargetTemperature())
+    const temperatureDeltas = await asyncFilterAndMap(
+      thermostats,
+      async t => !await t.getThermostatCapability().getIsPassive(),
+      async t => await t.getThermostatCapability().getCurrentTemperature() - await t.getThermostatCapability().getTargetTemperature()
     );
 
     return Math.min(...temperatureDeltas);
