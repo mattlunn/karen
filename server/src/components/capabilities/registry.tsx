@@ -31,6 +31,7 @@ import {
   faPlug,
   faTrash,
   faHandPointer,
+  faSnowflake,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
@@ -193,6 +194,14 @@ export const registry: CapabilityUIRegistry = {
         since: cap.power.start,
         lastReported: cap.power.lastReported,
         iconColor: '#ff6f22',
+      },
+      {
+        icon: faSnowflake,
+        title: 'Passive',
+        value: cap.isPassive.value ? 'Yes' : 'No',
+        since: cap.isPassive.start,
+        lastReported: cap.isPassive.lastReported,
+        iconColor: '#aaaaaa',
       },
     ],
     getGraphs: () => [
