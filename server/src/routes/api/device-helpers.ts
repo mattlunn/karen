@@ -184,9 +184,9 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         type: 'BUTTON',
         lastPressed: pressedEvent ? {
           start: pressedEvent.start.toISOString(),
-          end: pressedEvent.end?.toISOString() ?? null,
+          end: pressedEvent.end!.toISOString(),
           lastReported: pressedEvent.lastReported.toISOString(),
-          value: !pressedEvent.end,
+          value: Boolean(pressedEvent.value),
         } : null,
       };
     }
