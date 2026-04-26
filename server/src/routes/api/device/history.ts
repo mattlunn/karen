@@ -250,22 +250,6 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     });
   }],
 
-  // Button - Presses
-  ['button', async (device, selector) => {
-    const button = device.getButtonCapability();
-
-    return {
-      lines: [],
-      modes: await mapBooleanHistoryToResponse((hs) => button.getPressedHistory(hs), selector)
-        .then(data => ({
-          data,
-          details: [
-            { value: true as const, label: 'Pressed', fillColor: 'rgba(4, 167, 244, 0.6)' }
-          ]
-        }))
-    };
-  }],
-
   // Electric Vehicle - Weekly Mileage
   ['vehicle-weekly-mileage', async (device, selector) => {
     const ev = device.getElectricVehicleCapability();

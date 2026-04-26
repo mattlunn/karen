@@ -533,7 +533,6 @@ export const registry: CapabilityUIRegistry = {
   BUTTON: {
     priority: 100,
     getCapabilityMetrics: () => [],
-    getGraphs: () => [{ id: 'button', title: 'Presses' }],
   },
 
   ELECTRIC_VEHICLE: {
