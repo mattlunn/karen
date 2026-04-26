@@ -530,6 +530,11 @@ export const registry: CapabilityUIRegistry = {
     },
   },
 
+  BUTTON: {
+    priority: 100,
+    getCapabilityMetrics: () => [],
+  },
+
   ELECTRIC_VEHICLE: {
     priority: 15,
     getCapabilityMetrics: (cap, device) => {

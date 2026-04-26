@@ -81,6 +81,19 @@ export default async function (req: Request, res: Response, next: NextFunction) 
         break;
       }
 
+      case 'BUTTON': {
+        const button = device.getButtonCapability();
+        historyPromises.push(
+          mapBooleanHistory((hs) => button.getPressedHistory(hs), historySelector)
+            .then(history => {
+              for (const event of history) {
+                events.push({ type: 'button-press', timestamp: event.start });
+              }
+            })
+        );
+        break;
+      }
+
       case 'HEAT_PUMP': {
         const heatPump = device.getHeatPumpCapability();
         historyPromises.push(

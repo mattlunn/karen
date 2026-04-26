@@ -51,7 +51,9 @@ export async function getAccessToken() {
   return tokenDetails.accessToken;
 }
 
-export async function sendChangeReport(deviceId, changedProperty, changeReason, otherProperties = []) {
+export async function sendSimpleEventSource(deviceId) {
+  deviceId = String(deviceId);
+  const instanceId = `${deviceId}-1`;
   const bearer = await getAccessToken();
   const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
     method: 'POST',
@@ -62,10 +64,11 @@ export async function sendChangeReport(deviceId, changedProperty, changeReason, 
     body: JSON.stringify({
       event: {
         header: {
-          namespace: 'Alexa',
-          name: 'ChangeReport',
+          namespace: 'Alexa.SimpleEventSource',
+          name: 'Event',
+          instance: instanceId,
           messageId: uuid(),
-          payloadVersion: '3'
+          payloadVersion: '1.0'
         },
         endpoint: {
           scope: {
@@ -75,21 +78,14 @@ export async function sendChangeReport(deviceId, changedProperty, changeReason, 
           endpointId: deviceId
         },
         payload: {
-          change: {
-            cause: {
-              type: changeReason
-            },
-            properties: [changedProperty]
-          }
+          id: 'Button.SinglePush.1',
+          timestamp: new Date().toISOString()
         }
-      },
-      context: {
-        properties: otherProperties
       }
     })
   });
 
   if (!response.ok) {
-    throw new Error(`Got a ${response.status} back, while trying to update property for ${deviceId}`);
+    throw new Error(`Got a ${response.status} back, while trying to send SimpleEvent for ${deviceId}`);
   }
 }

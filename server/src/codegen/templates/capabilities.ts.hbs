@@ -36,9 +36,12 @@ export class {{className}} {
   }
 
   async set{{propertyName}}State(value: boolean, timestamp?: Date): Promise<void> {
-    const event = await setBooleanProperty(this.device, '{{fieldName}}', value, timestamp);
+    const event = await setBooleanProperty(this.device, '{{fieldName}}', value, {{#if isMomentary}}true{{else}}false{{/if}}, timestamp);
 
     if (event !== null) {
+      {{#if isMomentary}}
+      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}(new BooleanEvent(event));
+      {{else}}
       const eventWrapper = new BooleanEvent(event);
       if (value) {
         DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Start(eventWrapper);
@@ -47,6 +50,7 @@ export class {{className}} {
       }
 
       DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
+      {{/if}}
     }
   }
   {{#if isWriteable}}
@@ -68,7 +72,7 @@ export class {{className}} {
   }
 
   async set{{propertyName}}State(value: number, timestamp?: Date): Promise<void> {
-    const event = await setNumericProperty(this.device, '{{fieldName}}', value, timestamp);
+    const event = await setNumericProperty(this.device, '{{fieldName}}', value, false, timestamp);
 
     if (event !== null) {
       DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(new NumericEvent(event));
@@ -97,20 +101,24 @@ export type {{#if providerClassName}}{{providerClassName}}{{else}}Provider{{capa
 
 {{/each}}
 
-export type Capability = 
+export type Capability =
   {{#each capabilities}}
   | '{{capabilityEnumName}}'
   {{/each}}
 
-export type DeviceCapabilityEvent = 
+export type DeviceCapabilityEvent =
     | 'ON_DEVICE_CAPABILITY_PROPERTY_CHANGED'
   {{#each capabilities}}
   {{#each properties}}
+  {{#if isMomentary}}
+    | 'ON_{{../capabilityEnumName}}_{{propertyEnumName}}'
+  {{else}}
   {{#if isBoolean}}
     | 'ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START'
     | 'ON_{{../capabilityEnumName}}_{{propertyEnumName}}_END'
   {{/if}}
     | 'ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED'
+  {{/if}}
   {{/each}}
   {{/each}}
 
@@ -146,6 +154,23 @@ export class DeviceCapabilityEvents {
 
   {{#each capabilities}}
   {{#each properties}}
+  {{#if isMomentary}}
+
+  static on{{../capabilityName}}{{propertyName}}(deviceFilter: (d: Device) => boolean, handler: (e: BooleanEvent) => unknown): void;
+  static on{{../capabilityName}}{{propertyName}}(handler: (e: BooleanEvent) => unknown): void
+  static on{{../capabilityName}}{{propertyName}}(arg1: ((d: Device) => boolean) | ((e: BooleanEvent) => unknown), arg2?: (e: BooleanEvent) => unknown) {
+    return this.onPropertyChangedHelper('ON_{{../capabilityEnumName}}_{{propertyEnumName}}', arg1, arg2);
+  }
+
+  static off{{../capabilityName}}{{propertyName}}(handler: (e: BooleanEvent) => unknown): void {
+    return this.offPropertyChangedHelper('ON_{{../capabilityEnumName}}_{{propertyEnumName}}', handler);
+  }
+
+  static emit{{../capabilityName}}{{propertyName}}(e: BooleanEvent) {
+    bus.emit('ON_{{../capabilityEnumName}}_{{propertyEnumName}}', e);
+    bus.emit('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', e);
+  }
+  {{else}}
   {{#if isBoolean}}
 
   static on{{../capabilityName}}{{propertyName}}Start(deviceFilter: (d: Device) => boolean, handler: (e: BooleanEvent) => unknown): void;
@@ -153,7 +178,7 @@ export class DeviceCapabilityEvents {
   static on{{../capabilityName}}{{propertyName}}Start(arg1: ((d: Device) => boolean) | ((e: BooleanEvent) => unknown), arg2?: (e: BooleanEvent) => unknown) {
     return this.onPropertyChangedHelper('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START', arg1, arg2);
   }
-  
+
   static off{{../capabilityName}}{{propertyName}}Start(handler: (e: BooleanEvent) => unknown): void {
     return this.offPropertyChangedHelper('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_START', handler);
   }
@@ -192,6 +217,7 @@ export class DeviceCapabilityEvents {
     bus.emit('ON_{{../capabilityEnumName}}_{{propertyEnumName}}_CHANGED', e);
     bus.emit('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', e);
   }
+  {{/if}}
   {{/each}}
   {{/each}}
 

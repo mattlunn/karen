@@ -1,27 +1,19 @@
 import config from '../../config';
 import { Device } from '../../models';
-import { sendChangeReport } from './client';
-import sleep from '../../helpers/sleep';
+import { DeviceCapabilityEvents } from '../../models/capabilities';
+import { sendSimpleEventSource } from './client';
 import logger from '../../logger';
 
 export const messages = new Map();
 
 /**
- * This integration is a bit of a hack. Alexa does not allow you to trigger unsolicited TTS.
+ * Alexa does not allow unsolicited TTS, so we use Alexa.SimpleEventSource to trigger a Routine.
  *
- * Notifications come close, but don't quite fit the bill (don't actually read out the message, they
- * just go into an "inbox" which a user can read when it's convenient for them).
- *
- * What we instead do is;
- *
- *  1. Register a fake Contact Sensor for each Alexa (this is done in the Discovery response from the smart-home Lambda)
- *  2. Register a Routine (in the Alexa App) so that when the Contact sensor is opened, Alexa asks Karen
- *     for the latest messages
- *  3. Register an Intent ("WhatsTheMessage") which returns whatever text we want Alexa to read out.
- *
- * ... and that is orchestrated within this file. So when the app "say"'s something to Alexa, we trigger
- * the Contact sensor, put the message in the queue, then wait for Alexa to call our Intent to return the
- * message.
+ * Each Alexa speaker device is exposed as a SimpleEventSource endpoint. When say() is called:
+ *  1. The message is stored in the messages Map
+ *  2. A SimpleEventSource trigger is sent to Alexa via the Events API
+ *  3. The user's Routine fires (triggered by the SimpleEventSource event)
+ *  4. The Routine calls the WhatsTheMessage Intent, which retrieves and reads the message
  */
 
 Device.registerProvider('alexa', {
@@ -98,24 +90,8 @@ Device.registerProvider('alexa', {
           }
         }, ttlInSeconds * 1000);
       
-        sendChangeReport(device.name, {
-          namespace: 'Alexa.ContactSensor',
-          name: 'detectionState',
-          value: 'DETECTED',
-          timeOfSample: new Date().toISOString(),
-          uncertaintyInMilliseconds: 0
-        }, 'PHYSICAL_INTERACTION');
-      
-        await sleep(10);
-      
-        sendChangeReport(device.name, {
-          namespace: 'Alexa.ContactSensor',
-          name: 'detectionState',
-          value: 'NOT_DETECTED',
-          timeOfSample: new Date().toISOString(),
-          uncertaintyInMilliseconds: 0
-        }, 'PHYSICAL_INTERACTION');
-      
+        sendSimpleEventSource(device.id);
+
         return promise;
       }
     };
@@ -130,13 +106,18 @@ Device.registerProvider('alexa', {
           provider: 'alexa',
           providerId: id
         });
-      } 
+      }
 
       knownDevice.manufacturer = 'Amazon';
       knownDevice.model = 'Echo';
       knownDevice.name = name;
-      
+
       await knownDevice.save();
     }
   }
+});
+
+DeviceCapabilityEvents.onButtonPressed(async (event) => {
+  const device = await event.getDevice();
+  await sendSimpleEventSource(device.id);
 });

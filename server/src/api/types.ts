@@ -48,6 +48,8 @@ export type CapabilityApiResponse = {
 } | {
   type: 'SPEAKER';
 } | {
+  type: 'BUTTON';
+} | {
   type: 'SWITCH';
   isOn: BooleanEventApiResponse;
 } | {
@@ -139,7 +141,7 @@ export type HistoryApiResponse = {
 
 // Device Timeline API response types (/api/device/:id/timeline)
 export type DeviceTimelineEventApiResponse = {
-  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode';
+  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press';
   timestamp: string;
   value?: string;
 };

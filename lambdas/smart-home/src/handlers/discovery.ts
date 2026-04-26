@@ -16,7 +16,9 @@ interface SmartHomeEndpointAdditionalAttributes {
 interface SmartHomeEndpointCapability {
   type: 'AlexaInterface';
   interface: string;
-  version: '3';
+  version: string;
+  instance?: string;
+  capabilityResources?: any;
   configuration?: any
   properties?: {
     supported: {
@@ -28,7 +30,7 @@ interface SmartHomeEndpointCapability {
   }
 }
 
-type SmartHomeDisplayCategory = 'LIGHT' | 'TEMPERATURE_SENSOR' | 'CHRISTMAS_TREE' | 'THERMOSTAT' | 'SECURITY_PANEL' | 'CONTACT_SENSOR';
+type SmartHomeDisplayCategory = 'LIGHT' | 'TEMPERATURE_SENSOR' | 'CHRISTMAS_TREE' | 'THERMOSTAT' | 'SECURITY_PANEL' | 'CONTACT_SENSOR' | 'ACTIVITY_TRIGGER';
 
 // https://developer.amazon.com/en-US/docs/alexa/device-apis/alexa-discovery-objects.html
 interface SmartHomeEndpoint {
@@ -51,7 +53,7 @@ function mapThermostatToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint
     friendlyName: device.name,
     endpointId: String(device.id),
     displayCategories: ['THERMOSTAT', 'TEMPERATURE_SENSOR'],
-    manufacturerName: 'Tado',
+    manufacturerName: device.manufacturer,
     description: 'Tado Thermostat',
     capabilities: [{
       type: 'AlexaInterface',
@@ -103,7 +105,7 @@ function mapLightToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
     friendlyName: device.name,
     endpointId: String(device.id),
     displayCategories: ['LIGHT'],
-    manufacturerName: 'Karen',
+    manufacturerName: device.manufacturer,
     description: `${device.name} light`,
     capabilities: [{
       type: 'AlexaInterface',
@@ -136,22 +138,26 @@ function mapLightToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
 }
 
 function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
+  const instanceId = `${device.id}-1`;
   return {
     friendlyName: device.name,
-    endpointId: device.name,
-    displayCategories: ['CONTACT_SENSOR'],
-    manufacturerName: 'Karen',
-    description: `Fake sensor for ${device.name}`,
+    endpointId: String(device.id),
+    displayCategories: ['ACTIVITY_TRIGGER'],
+    manufacturerName: device.manufacturer,
+    description: `Event trigger for ${device.name}`,
     capabilities: [{
       type: 'AlexaInterface',
-      interface: 'Alexa.ContactSensor',
-      version: '3',
-      properties: {
-        supported: [{
-          name: 'detectionState'
-        }],
-        proactivelyReported: true,
-        retrievable: false
+      interface: 'Alexa.SimpleEventSource',
+      instance: instanceId,
+      version: '1.0',
+      capabilityResources: {
+        friendlyNames: [{ '@type': 'text', value: { text: 'Synthetic trigger', locale: 'en-US' } }]
+      },
+      configuration: {
+        supportedEvents: [{
+          id: 'Button.SinglePush.1',
+          friendlyNames: [{ '@type': 'text', value: { text: 'Synthetic trigger', locale: 'en-US' } }]
+        }]
       }
     }, {
       type: 'AlexaInterface',
@@ -161,8 +167,38 @@ function mapAlexaToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
         supported: [{
           name: 'connectivity'
         }],
-        proactivelyReported: true,
+        proactivelyReported: false,
         retrievable: false
+      }
+    }, {
+      type: 'AlexaInterface',
+      interface: 'Alexa',
+      version: '3'
+    }]
+  };
+}
+
+function mapButtonToEndpoint(device: RestDeviceResponse): SmartHomeEndpoint {
+  const instanceId = `${device.id}-1`;
+  return {
+    friendlyName: device.name,
+    endpointId: String(device.id),
+    displayCategories: ['ACTIVITY_TRIGGER'],
+    manufacturerName: device.manufacturer,
+    description: `Button: ${device.name}`,
+    capabilities: [{
+      type: 'AlexaInterface',
+      interface: 'Alexa.SimpleEventSource',
+      instance: instanceId,
+      version: '1.0',
+      capabilityResources: {
+        friendlyNames: [{ '@type': 'text', value: { text: device.name, locale: 'en-US' } }]
+      },
+      configuration: {
+        supportedEvents: [{
+          id: 'Button.SinglePush.1',
+          friendlyNames: [{ '@type': 'text', value: { text: 'Single push', locale: 'en-US' } }]
+        }]
       }
     }, {
       type: 'AlexaInterface',
@@ -247,6 +283,11 @@ export async function Discover(request: SmartHomeRequest, context: Context): Pro
 
             if (capability === 'SPEAKER') {
               allDevices.push(mapAlexaToEndpoints(device));
+              break;
+            }
+
+            if (capability === 'BUTTON') {
+              allDevices.push(mapButtonToEndpoint(device));
               break;
             }
           }

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, ReactNode } from 'react';
 import { Checkbox, Group, Title } from '@mantine/core';
-import { faLightbulb, faPersonWalking, faFireBurner } from '@fortawesome/free-solid-svg-icons';
+import { faLightbulb, faPersonWalking, faFireBurner, faHandPointer } from '@fortawesome/free-solid-svg-icons';
 import useApiCall from '../../hooks/api';
 import { useDateRange, DateRangeSelector } from '../date-range';
 import dayjs, { Dayjs } from '../../dayjs';
@@ -71,8 +71,8 @@ function mapEventToComponent(event: DeviceTimelineEventApiResponse): ReactNode {
       return <Event icon={faPersonWalking} title="Motion ended" timestamp={event.timestamp} />;
     case 'heatpump-mode':
       return <Event icon={faFireBurner} title={`Mode changed to ${event.value}`} timestamp={event.timestamp} />;
-    default:
-      return null;
+    case 'button-press':
+      return <Event icon={faHandPointer} title="Button pressed" timestamp={event.timestamp} />;
   }
 }
 
@@ -113,10 +113,10 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
     return null;
   }
 
-  const timelineItems: TimelineItem[] = data.events.map(event => ({
-    timestamp: new Date(event.timestamp),
-    component: mapEventToComponent(event)
-  }));
+  const timelineItems: TimelineItem[] = data.events.flatMap(event => {
+    const component = mapEventToComponent(event);
+    return component ? [{ timestamp: new Date(event.timestamp), component }] : [];
+  });
 
   return (
     <div className="timeline-section">
