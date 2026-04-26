@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Anchor, Box, Table, Title } from '@mantine/core';
+import { Anchor, Badge, Box, Table, Title } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
@@ -33,6 +33,7 @@ function ThermostatTable() {
               <Anchor component={Link} to={`/device/${device.id}`}>
                 {device.name}
               </Anchor>
+              {cap.isPassive.value && <Badge ml="xs" size="xs" variant="outline" color="gray">Passive</Badge>}
             </Table.Td>
             <Table.Td>{cap.targetTemperature.value}°</Table.Td>
             <Table.Td>{cap.currentTemperature.value}°</Table.Td>

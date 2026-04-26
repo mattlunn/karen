@@ -194,7 +194,8 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
       thermostatCapability.setPowerState(zoneState.activityDataPoints.heatingPower.percentage, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
       thermostatCapability.setIsOnState(zoneState.activityDataPoints.heatingPower.percentage > 0, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
       thermostatCapability.setCurrentTemperatureState(zoneState.sensorDataPoints.insideTemperature.celsius, new Date(zoneState.sensorDataPoints.insideTemperature.timestamp)),
-      thermostatCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date())
+      thermostatCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date()),
+      thermostatCapability.setIsPassiveState(config.tado.passive_zone_names.includes(device.name))
     ]);
   }
 }), Math.max(config.tado.sync_interval_seconds, 10) * 1000);
