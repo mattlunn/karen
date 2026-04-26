@@ -278,7 +278,7 @@ export interface TimelineFeedApiResponse {
 
 // /api/insights/heating endpoint
 export interface HeatingInsightsApiResponse {
-  lines: (HistoryLineApiResponse & { deviceName: string; isPassive: boolean })[];
+  lines: (HistoryLineApiResponse & { deviceName: string })[];
   modes: HistoryModesApiResponse;
 }
 

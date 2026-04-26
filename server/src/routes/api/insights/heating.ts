@@ -30,7 +30,6 @@ export default async function (req: Request, res: Response) {
           label: device.name,
           deviceName: device.name,
           yAxisID: 'yPercentage',
-          isPassive,
           borderDash: isPassive ? [5, 5] : undefined
         };
       })
