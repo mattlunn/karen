@@ -177,8 +177,14 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
-    case 'BUTTON':
-      return { type: 'BUTTON' };
+    case 'BUTTON': {
+      const button = device.getButtonCapability();
+      const pressedEvent = await button.getPressedEvent();
+      return {
+        type: 'BUTTON',
+        lastPressed: pressedEvent ? pressedEvent.start.toISOString() : null,
+      };
+    }
 
     case 'SPEAKER':
       return { type: 'SPEAKER' };
