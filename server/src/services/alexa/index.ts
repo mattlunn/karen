@@ -143,7 +143,7 @@ Device.registerProvider('alexa', {
   }
 });
 
-const ALARM_ENDPOINT_ID = '044feaa3-6236-48b1-805f-56cd190ae96d';
+export const ALARM_ENDPOINT_ID = '044feaa3-6236-48b1-805f-56cd190ae96d';
 
 interface AlexaCapability {
   type: 'AlexaInterface';
@@ -167,7 +167,7 @@ interface AlexaEndpoint {
   capabilities: AlexaCapability[];
 }
 
-function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
+export function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
   const endpoints: AlexaEndpoint[] = [{
     friendlyName: 'Alarm',
     endpointId: ALARM_ENDPOINT_ID,

@@ -4,7 +4,12 @@ import { stringify } from 'querystring';
 import { saveConfig } from '../../helpers/config';
 import { v4 as uuid } from 'uuid';
 
-export async function exchangeAuthenticationToken(grantType, exchangeToken) {
+interface TokenDetails {
+  accessToken: string;
+  expiresAt: number;
+}
+
+export async function exchangeAuthenticationToken(grantType: 'refresh_token' | 'authorization_code', exchangeToken: string): Promise<TokenDetails> {
   const response = await fetch('https://api.amazon.com/auth/o2/token', {
     method: 'POST',
     headers: {
@@ -23,7 +28,7 @@ export async function exchangeAuthenticationToken(grantType, exchangeToken) {
 
     throw new Error(`Received a ${response.status} while exchanging auth tokens`);
   } else {
-    const json = await response.json();
+    const json = await response.json() as { access_token: string; refresh_token: string; expires_in: number };
 
     config.alexa.access_token = json.access_token;
     config.alexa.refresh_token = json.refresh_token;
@@ -36,22 +41,22 @@ export async function exchangeAuthenticationToken(grantType, exchangeToken) {
 
     return {
       accessToken: json.access_token,
-      expiresAt: new Date(Date.now() + (json.expires_in * 1000) - 5000)
+      expiresAt: Date.now() + (json.expires_in * 1000) - 5000
     };
   }
 }
 
-let tokenDetails;
+let tokenDetails: TokenDetails | undefined;
 
-export async function getAccessToken() {
-  if (!tokenDetails || Date.now() > tokenDetails?.expiresAt) {
+export async function getAccessToken(): Promise<string> {
+  if (!tokenDetails || Date.now() > tokenDetails.expiresAt) {
     tokenDetails = await exchangeAuthenticationToken('refresh_token', config.alexa.refresh_token);
   }
 
   return tokenDetails.accessToken;
 }
 
-export async function sendAddOrUpdateReport(endpoints) {
+export async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void> {
   const bearer = await getAccessToken();
   const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
     method: 'POST',
@@ -83,7 +88,12 @@ export async function sendAddOrUpdateReport(endpoints) {
   }
 }
 
-export async function sendChangeReport(deviceId, changedProperty, changeReason, otherProperties = []) {
+export async function sendChangeReport(
+  deviceId: string,
+  changedProperty: { namespace: string; name: string; value: unknown; timeOfSample: string; uncertaintyInMilliseconds: number },
+  changeReason: string,
+  otherProperties: unknown[] = []
+): Promise<void> {
   const bearer = await getAccessToken();
   const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
     method: 'POST',

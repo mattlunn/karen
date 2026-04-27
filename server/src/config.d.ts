@@ -7,8 +7,8 @@ declare namespace _default {
       id: string;
       name: string;
     }[];
-    const access_token: string;
-    const refresh_token: string;
+    let access_token: string;
+    let refresh_token: string;
   }
   export const automations: {
     name: string;

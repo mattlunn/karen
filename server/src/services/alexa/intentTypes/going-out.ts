@@ -1,13 +1,18 @@
 import dayjs from '../../../dayjs';
-import config from '../../../config.json';
 import { parse, end } from 'iso8601-duration';
 import { Stay } from '../../../models';
 
-function figureOutEta(slots) {
+interface GoingOutSlots {
+  duration: { value: string | null };
+  dateBack: { value: string | null };
+  timeBack: { value: string | null };
+}
+
+function figureOutEta(slots: GoingOutSlots): Date | null {
   if (slots.duration.value) {
     return end(parse(slots.duration.value));
   } else if (slots.dateBack.value) {
-    const date = dayjs.tz(`${slots.dateBack.value} ${slots.timeBack.value}`, 'YYYY-MM-DD HH:mm', config.timezone);
+    const date = dayjs.tz(`${slots.dateBack.value} ${slots.timeBack.value}`, 'YYYY-MM-DD HH:mm', 'Europe/London');
 
     if (date.isValid()) {
       return date.toDate();
@@ -32,7 +37,7 @@ function figureOutEta(slots) {
   return null;
 }
 
-export default async function (intent) {
+export default async function (intent: { slots: GoingOutSlots }) {
   const eta = figureOutEta(intent.slots);
   const stay = new Stay();
 
