@@ -210,7 +210,13 @@ export async function ensureHistoricalMetrics(device: Device, capability: HeatPu
     capability.getDayHeatingYieldEvent(),
     capability.getDayDHWCoPEvent(),
     capability.getDayDHWPowerEvent(),
-    capability.getDayDHWYieldEvent()
+    capability.getDayDHWYieldEvent(),
+    capability.getDayCumulativePowerEvent(),
+    capability.getDayCumulativeYieldEvent(),
+    capability.getDayHeatingCumulativePowerEvent(),
+    capability.getDayHeatingCumulativeYieldEvent(),
+    capability.getDayDHWCumulativePowerEvent(),
+    capability.getDayDHWCumulativeYieldEvent(),
   ]);
 
   for (let i=0;i<latestEvents.length - 1;i++) {
