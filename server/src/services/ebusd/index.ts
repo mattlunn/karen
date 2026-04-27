@@ -67,8 +67,6 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     updateState(() => client.getCurrentPower(), (v) => deviceCapability.setCurrentPowerState(roundTo1DecimalPlace(v))),
     updateState(() => client.getCurrentYield(), (v) => deviceCapability.setCurrentYieldState(roundTo1DecimalPlace(v))),
     updateState(() => client.getMode(), (v) => deviceCapability.setModeState(v)),
-    updateState(() => client.getCopHwc(), (v) => deviceCapability.setDHWCoPState(v)),
-    updateState(() => client.getCopHc(), (v) => deviceCapability.setHeatingCoPState(v)),
     updateState(() => client.getDHWIsOn(), (v) => deviceCapability.setDHWIsOnState(v))
   ]);
 }), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);

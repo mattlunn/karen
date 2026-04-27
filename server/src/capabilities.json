@@ -29,18 +29,6 @@
       "eventName": "mode"
     },
     {
-      "name": "DHWCoP",
-      "isWriteable": false,
-      "type": "number",
-      "eventName": "cop_hwc"
-    },
-    {
-      "name": "HeatingCoP",
-      "isWriteable": false,
-      "type": "number",
-      "eventName": "cop_hc"
-    },
-    {
       "name": "DHWIsOn",
       "isWriteable": false,
       "type": "boolean",
@@ -159,6 +147,42 @@
       "isWriteable": false,
       "type": "number",
       "eventName": "yield_day_dhw"
+    },
+    {
+      "name": "DayCumulativePower",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "cumulative_power_day"
+    },
+    {
+      "name": "DayCumulativeYield",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "cumulative_yield_day"
+    },
+    {
+      "name": "DayHeatingCumulativePower",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "cumulative_power_day_heating"
+    },
+    {
+      "name": "DayHeatingCumulativeYield",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "cumulative_yield_day_heating"
+    },
+    {
+      "name": "DayDHWCumulativePower",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "cumulative_power_day_dhw"
+    },
+    {
+      "name": "DayDHWCumulativeYield",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "cumulative_yield_day_dhw"
     }
   ]
 }, {

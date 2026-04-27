@@ -167,9 +167,11 @@ export async function calculateDailyHeatPumpMetrics(
 export async function storeDailyMetrics(
   capability: HeatPumpCapability,
   startOfDay: Date,
-  endOfDay: Date
+  endOfDay: Date,
+  cumulativeAt?: Date
 ): Promise<void> {
   const metrics = await calculateDailyHeatPumpMetrics(capability, startOfDay, endOfDay);
+  const cumulativeTimestamp = cumulativeAt ?? endOfDay;
 
   await Promise.all([
     capability.setDayCoPState(metrics.dayCoP, startOfDay),
@@ -181,9 +183,15 @@ export async function storeDailyMetrics(
     capability.setDayDHWCoPState(metrics.dhwCoP, startOfDay),
     capability.setDayDHWPowerState(metrics.dhwPower, startOfDay),
     capability.setDayDHWYieldState(metrics.dhwYield, startOfDay),
+    capability.setDayCumulativePowerState(metrics.dayPower, cumulativeTimestamp),
+    capability.setDayCumulativeYieldState(metrics.dayYield, cumulativeTimestamp),
+    capability.setDayHeatingCumulativePowerState(metrics.heatingPower, cumulativeTimestamp),
+    capability.setDayHeatingCumulativeYieldState(metrics.heatingYield, cumulativeTimestamp),
+    capability.setDayDHWCumulativePowerState(metrics.dhwPower, cumulativeTimestamp),
+    capability.setDayDHWCumulativeYieldState(metrics.dhwYield, cumulativeTimestamp),
   ]);
 
-  logger.info(`Daily metrics for ${dayjs(startOfDay).format('DD/MM/YYYY')}: CoP=${metrics.dayCoP.toFixed(1)}, HeatingCoP=${metrics.heatingCoP.toFixed(1)}, DHWCoP=${metrics.dhwCoP.toFixed(1)}`);
+  logger.info(`Daily metrics for ${dayjs(startOfDay).format('DD/MM/YYYY')}: CoP=${metrics.dayCoP.toFixed(1)}`);
 }
 
 /**
@@ -229,7 +237,8 @@ export async function ensureHistoricalMetrics(device: Device, capability: HeatPu
     const dayEnd = day.add(1, 'day').toDate();
 
     logger.info(`Calculating heat pump metrics for ${day.format('YYYY-MM-DD')}`);
-    await storeDailyMetrics(capability, dayStart, dayEnd);
+    const cumulativeAt = day.endOf('day').toDate();
+    await storeDailyMetrics(capability, dayStart, dayEnd, cumulativeAt);
   }
 }
 

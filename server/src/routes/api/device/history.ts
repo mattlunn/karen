@@ -8,7 +8,7 @@ import {
   HistoryDetailsApiResponse,
   NumericEventApiResponse
 } from '../../../api/types';
-import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapEnumHistoryToResponse, computeCumulativeNumericResponse } from '../history-helpers';
+import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapEnumHistoryToResponse } from '../history-helpers';
 
 // Types
 
@@ -118,19 +118,25 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     };
   }],
 
-  // Heat Pump - Cumulative Energy (running total of yield and power over the time period)
+  // Heat Pump - Cumulative Energy (per-day running totals stored every 15 min)
   ['heatpump-cumulative-energy', async (device, selector) => {
     const heatPump = device.getHeatPumpCapability();
-    const [yieldEvents, powerEvents] = await Promise.all([
-      heatPump.getCurrentYieldHistory(selector),
-      heatPump.getCurrentPowerHistory(selector)
-    ]);
 
     return {
-      lines: [
-        { data: computeCumulativeNumericResponse(yieldEvents, selector), label: 'Cumulative Yield (kWh)' },
-        { data: computeCumulativeNumericResponse(powerEvents, selector), label: 'Cumulative Power (kWh)' }
-      ]
+      lines: await Promise.all([
+        mapNumericHistoryToResponse((hs) => heatPump.getDayCumulativePowerHistory(hs), selector)
+          .then(data => ({ data, label: 'Total Power (Wh)' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCumulativePowerHistory(hs), selector)
+          .then(data => ({ data, label: 'Heating Power (Wh)' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCumulativePowerHistory(hs), selector)
+          .then(data => ({ data, label: 'DHW Power (Wh)' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayCumulativeYieldHistory(hs), selector)
+          .then(data => ({ data, label: 'Total Yield (Wh)' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCumulativeYieldHistory(hs), selector)
+          .then(data => ({ data, label: 'Heating Yield (Wh)' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCumulativeYieldHistory(hs), selector)
+          .then(data => ({ data, label: 'DHW Yield (Wh)' })),
+      ])
     };
   }],
 
