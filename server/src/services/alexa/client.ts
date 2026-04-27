@@ -4,7 +4,12 @@ import { stringify } from 'querystring';
 import { saveConfig } from '../../helpers/config';
 import { v4 as uuid } from 'uuid';
 
-export async function exchangeAuthenticationToken(grantType, exchangeToken) {
+interface TokenDetails {
+  accessToken: string;
+  expiresAt: number;
+}
+
+export async function exchangeAuthenticationToken(grantType: 'refresh_token' | 'authorization_code', exchangeToken: string): Promise<TokenDetails> {
   const response = await fetch('https://api.amazon.com/auth/o2/token', {
     method: 'POST',
     headers: {
@@ -23,7 +28,7 @@ export async function exchangeAuthenticationToken(grantType, exchangeToken) {
 
     throw new Error(`Received a ${response.status} while exchanging auth tokens`);
   } else {
-    const json = await response.json();
+    const json = await response.json() as { access_token: string; refresh_token: string; expires_in: number };
 
     config.alexa.access_token = json.access_token;
     config.alexa.refresh_token = json.refresh_token;
@@ -36,24 +41,56 @@ export async function exchangeAuthenticationToken(grantType, exchangeToken) {
 
     return {
       accessToken: json.access_token,
-      expiresAt: new Date(Date.now() + (json.expires_in * 1000) - 5000)
+      expiresAt: Date.now() + (json.expires_in * 1000) - 5000
     };
   }
 }
 
-let tokenDetails;
+let tokenDetails: TokenDetails | undefined;
 
-export async function getAccessToken() {
-  if (!tokenDetails || Date.now() > tokenDetails?.expiresAt) {
+export async function getAccessToken(): Promise<string> {
+  if (!tokenDetails || Date.now() > tokenDetails.expiresAt) {
     tokenDetails = await exchangeAuthenticationToken('refresh_token', config.alexa.refresh_token);
   }
 
   return tokenDetails.accessToken;
 }
 
-export async function sendSimpleEventSource(deviceId) {
-  deviceId = String(deviceId);
-  const instanceId = `${deviceId}-1`;
+export async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void> {
+  const bearer = await getAccessToken();
+  const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${bearer}`
+    },
+    body: JSON.stringify({
+      event: {
+        header: {
+          namespace: 'Alexa.Discovery',
+          name: 'AddOrUpdateReport',
+          messageId: uuid(),
+          payloadVersion: '3'
+        },
+        payload: {
+          endpoints,
+          scope: {
+            type: 'BearerToken',
+            token: bearer
+          }
+        }
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Got a ${response.status} back while sending Alexa.Discovery AddOrUpdateReport`);
+  }
+}
+
+export async function sendSimpleEventSource(deviceId: number | string): Promise<void> {
+  const endpointId = String(deviceId);
+  const instanceId = `${endpointId}-1`;
   const bearer = await getAccessToken();
   const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
     method: 'POST',
@@ -75,7 +112,7 @@ export async function sendSimpleEventSource(deviceId) {
             type: 'BearerToken',
             token: bearer
           },
-          endpointId: deviceId
+          endpointId
         },
         payload: {
           id: 'Button.SinglePush.1',
@@ -86,6 +123,6 @@ export async function sendSimpleEventSource(deviceId) {
   });
 
   if (!response.ok) {
-    throw new Error(`Got a ${response.status} back, while trying to send SimpleEvent for ${deviceId}`);
+    throw new Error(`Got a ${response.status} back, while trying to send SimpleEvent for ${endpointId}`);
   }
 }
