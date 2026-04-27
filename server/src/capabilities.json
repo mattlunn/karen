@@ -279,6 +279,12 @@
       "isWriteable": true,
       "type": "number",
       "eventName": "target"
+    },
+    {
+      "name": "IsPassive",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "passive"
     }
   ]
 }, {
@@ -332,4 +338,15 @@
   "name": "BinCollection",
   "capabilityModelClassName": "BinCollectionBase",
   "properties": []
+}, {
+  "name": "Button",
+  "properties": [
+    {
+      "name": "Pressed",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "pressed",
+      "isMomentary": true
+    }
+  ]
 }]

@@ -22,6 +22,18 @@
     7. Go to More, Skills & Games, Your Skills, Dev, (the skill)
     8. Click "Enable to use".
 
+## Updating config.json in production
+
+Always edit `config.json` from **inside** the container, not from the host:
+
+```bash
+docker exec -it george-karen-1 vi /usr/src/app/config.json
+```
+
+**Why:** Editors like vim save by writing to a temp file and then renaming it over the original. This creates a new inode at the host path. Docker bind mounts attach to the inode that existed when the container started — so after a host-side vim edit, the running container's bind mount silently points to the old inode. Karen keeps writing `saveConfig()` updates to that old inode while the host file (new inode) stays frozen at whatever you typed. The next time Watchtower recreates the container from a new image, it picks up the stale host file and loads outdated tokens.
+
+Editing from inside the container writes directly through the bind mount to the correct inode, avoiding this problem entirely.
+
 ## Deploy
 
 Deploys should be automated upon push to master, because of the webhook in the GHA pipeline, which calls out to the karen-updater container of watchtower. But, to do manually;

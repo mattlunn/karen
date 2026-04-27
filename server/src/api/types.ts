@@ -13,6 +13,7 @@ export type CapabilityApiResponse = {
   targetTemperature: NumericEventApiResponse;
   power: NumericEventApiResponse;
   isHeating: BooleanEventApiResponse;
+  isPassive: BooleanEventApiResponse;
 } | {
   type: 'HUMIDITY_SENSOR';
   humidity: NumericEventApiResponse;
@@ -47,6 +48,9 @@ export type CapabilityApiResponse = {
   isLocked: BooleanEventApiResponse;
 } | {
   type: 'SPEAKER';
+} | {
+  type: 'BUTTON';
+  lastPressed: BooleanEventApiResponse | null;
 } | {
   type: 'SWITCH';
   isOn: BooleanEventApiResponse;
@@ -112,6 +116,7 @@ export type HistoryLineApiResponse = {
   data: HistoryDetailsApiResponse<NumericEventApiResponse>;
   label: string;
   yAxisID?: string;
+  borderDash?: number[];
 };
 
 export type HistoryModeDetailApiResponse = {
@@ -139,7 +144,7 @@ export type HistoryApiResponse = {
 
 // Device Timeline API response types (/api/device/:id/timeline)
 export type DeviceTimelineEventApiResponse = {
-  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode';
+  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press';
   timestamp: string;
   value?: string;
 };

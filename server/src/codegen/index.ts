@@ -17,6 +17,7 @@ type PropertyDescriptor = {
   type: 'boolean' | 'number';
   isWriteable: boolean;
   eventName: string;
+  isMomentary?: boolean;
 }
 
 const toSnakeCase = (x: string) => x.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '');
@@ -37,6 +38,7 @@ const capabilities = (JSON.parse(readFileSync(__dirname + '/../capabilities.json
         propertyName: x.name,
         propertyEnumName: toPascalUpperCase(x.name),
         isBoolean: x.type === 'boolean',
+        isMomentary: x.isMomentary ?? false,
         isWriteable: x.isWriteable,
         eventType: x.type === 'boolean' ? 'BooleanEvent' : 'NumericEvent',
         fieldName: x.eventName,

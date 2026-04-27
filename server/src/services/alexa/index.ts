@@ -1,7 +1,7 @@
 import config from '../../config';
 import { Device } from '../../models';
-import { sendChangeReport, sendAddOrUpdateReport } from './client';
-import sleep from '../../helpers/sleep';
+import { DeviceCapabilityEvents } from '../../models/capabilities';
+import { sendAddOrUpdateReport, sendSimpleEventSource } from './client';
 import logger from '../../logger';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
@@ -9,21 +9,13 @@ import { createBackgroundTransaction } from '../../helpers/newrelic';
 export const messages = new Map();
 
 /**
- * This integration is a bit of a hack. Alexa does not allow you to trigger unsolicited TTS.
+ * Alexa does not allow unsolicited TTS, so we use Alexa.SimpleEventSource to trigger a Routine.
  *
- * Notifications come close, but don't quite fit the bill (don't actually read out the message, they
- * just go into an "inbox" which a user can read when it's convenient for them).
- *
- * What we instead do is;
- *
- *  1. Register a fake Contact Sensor for each Alexa (this is done in the Discovery response from the smart-home Lambda)
- *  2. Register a Routine (in the Alexa App) so that when the Contact sensor is opened, Alexa asks Karen
- *     for the latest messages
- *  3. Register an Intent ("WhatsTheMessage") which returns whatever text we want Alexa to read out.
- *
- * ... and that is orchestrated within this file. So when the app "say"'s something to Alexa, we trigger
- * the Contact sensor, put the message in the queue, then wait for Alexa to call our Intent to return the
- * message.
+ * Each Alexa speaker device is exposed as a SimpleEventSource endpoint. When say() is called:
+ *  1. The message is stored in the messages Map
+ *  2. A SimpleEventSource trigger is sent to Alexa via the Events API
+ *  3. The user's Routine fires (triggered by the SimpleEventSource event)
+ *  4. The Routine calls the WhatsTheMessage Intent, which retrieves and reads the message
  */
 
 Device.registerProvider('alexa', {
@@ -47,77 +39,61 @@ Device.registerProvider('alexa', {
         if (Array.isArray(message) && message.length > 5) {
           throw new Error('Amazon only allow a maximum of 5 speech segments');
         }
-      
+
         logger.info('Say called with...');
         logger.info(message);
-      
+
         let fulfilled = false;
         let resolve: () => void;
         let reject: (error: Error) => void;
-      
+
         const promise = new Promise<void>((res, rej) => {
           resolve = () => {
             fulfilled = true;
             res();
           };
-      
+
           reject = (reason) => {
             fulfilled = true;
             rej(reason);
           };
         });
-      
+
         if (messages.has(device.name)) {
           messages.get(device.name).markMessageAsReplaced();
         }
-      
+
         messages.set(device.name, {
           getMessageToSend() {
             if (fulfilled) {
               return null;
             }
-      
+
             resolve();
             return Array.isArray(message) ? message.join('') : message;
           },
-      
+
           markMessageAsReplaced() {
             if (!fulfilled) {
               const error = 'Message was not picked up by Alexa within the TTL';
-      
+
               logger.error(error);
               reject(new Error(error));
             }
           }
         });
-      
+
         setTimeout(() => {
           if (!fulfilled) {
             const error = 'Message was not picked up by Alexa within the TTL';
-      
+
             logger.error(error);
             reject(new Error(error));
           }
         }, ttlInSeconds * 1000);
-      
-        sendChangeReport(device.name, {
-          namespace: 'Alexa.ContactSensor',
-          name: 'detectionState',
-          value: 'DETECTED',
-          timeOfSample: new Date().toISOString(),
-          uncertaintyInMilliseconds: 0
-        }, 'PHYSICAL_INTERACTION');
-      
-        await sleep(10);
-      
-        sendChangeReport(device.name, {
-          namespace: 'Alexa.ContactSensor',
-          name: 'detectionState',
-          value: 'NOT_DETECTED',
-          timeOfSample: new Date().toISOString(),
-          uncertaintyInMilliseconds: 0
-        }, 'PHYSICAL_INTERACTION');
-      
+
+        sendSimpleEventSource(device.id);
+
         return promise;
       }
     };
@@ -143,12 +119,19 @@ Device.registerProvider('alexa', {
   }
 });
 
+DeviceCapabilityEvents.onButtonPressed(async (event) => {
+  const device = await event.getDevice();
+  await sendSimpleEventSource(device.id);
+});
+
 export const ALARM_ENDPOINT_ID = '044feaa3-6236-48b1-805f-56cd190ae96d';
 
 interface AlexaCapability {
   type: 'AlexaInterface';
   interface: string;
-  version: '3';
+  version: string;
+  instance?: string;
+  capabilityResources?: Record<string, unknown>;
   configuration?: Record<string, unknown>;
   properties?: {
     supported: { name: string }[];
@@ -215,7 +198,7 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
         friendlyName: device.name,
         endpointId: String(device.id),
         displayCategories: ['THERMOSTAT', 'TEMPERATURE_SENSOR'],
-        manufacturerName: 'Tado',
+        manufacturerName: device.manufacturer,
         description: 'Tado Thermostat',
         capabilities: [{
           type: 'AlexaInterface',
@@ -259,7 +242,7 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
         friendlyName: device.name,
         endpointId: String(device.id),
         displayCategories: ['LIGHT'],
-        manufacturerName: 'Karen',
+        manufacturerName: device.manufacturer,
         description: `${device.name} light`,
         capabilities: [{
           type: 'AlexaInterface',
@@ -285,21 +268,28 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
           version: '3'
         }]
       });
-    } else if (capabilities.includes('SPEAKER')) {
+    } else if (capabilities.includes('SPEAKER') || capabilities.includes('BUTTON')) {
+      const instanceId = `${device.id}-1`;
+      const isButton = capabilities.includes('BUTTON');
       endpoints.push({
         friendlyName: device.name,
-        endpointId: device.name,
-        displayCategories: ['CONTACT_SENSOR'],
-        manufacturerName: 'Karen',
-        description: `Fake sensor for ${device.name}`,
+        endpointId: String(device.id),
+        displayCategories: ['ACTIVITY_TRIGGER'],
+        manufacturerName: device.manufacturer,
+        description: isButton ? `Button: ${device.name}` : `Event trigger for ${device.name}`,
         capabilities: [{
           type: 'AlexaInterface',
-          interface: 'Alexa.ContactSensor',
-          version: '3',
-          properties: {
-            supported: [{ name: 'detectionState' }],
-            proactivelyReported: true,
-            retrievable: false
+          interface: 'Alexa.SimpleEventSource',
+          instance: instanceId,
+          version: '1.0',
+          capabilityResources: {
+            friendlyNames: [{ '@type': 'text', value: { text: isButton ? device.name : 'Synthetic trigger', locale: 'en-US' } }]
+          },
+          configuration: {
+            supportedEvents: [{
+              id: 'Button.SinglePush.1',
+              friendlyNames: [{ '@type': 'text', value: { text: isButton ? 'Single push' : 'Synthetic trigger', locale: 'en-US' } }]
+            }]
           }
         }, {
           type: 'AlexaInterface',
@@ -307,7 +297,7 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
           version: '3',
           properties: {
             supported: [{ name: 'connectivity' }],
-            proactivelyReported: true,
+            proactivelyReported: false,
             retrievable: false
           }
         }, {

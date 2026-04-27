@@ -30,6 +30,8 @@ import {
   faCalendarCheck,
   faPlug,
   faTrash,
+  faHandPointer,
+  faSnowflake,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
@@ -192,6 +194,14 @@ export const registry: CapabilityUIRegistry = {
         since: cap.power.start,
         lastReported: cap.power.lastReported,
         iconColor: '#ff6f22',
+      },
+      {
+        icon: faSnowflake,
+        title: 'Passive',
+        value: cap.isPassive.value ? 'Yes' : 'No',
+        since: cap.isPassive.start,
+        lastReported: cap.isPassive.lastReported,
+        iconColor: '#aaaaaa',
       },
     ],
     getGraphs: () => [
@@ -530,6 +540,27 @@ export const registry: CapabilityUIRegistry = {
     },
   },
 
+  BUTTON: {
+    priority: 85,
+    getCapabilityMetrics: (cap) => [
+      cap.lastPressed
+        ? {
+            icon: faHandPointer,
+            title: 'Last Pressed',
+            value: `${humanDate(dayjs(cap.lastPressed.start))} at ${dayjs(cap.lastPressed.start).format('HH:mm')}`,
+            since: cap.lastPressed.start,
+            lastReported: cap.lastPressed.lastReported,
+            iconColor: '#04A7F4',
+          }
+        : {
+            icon: faHandPointer,
+            title: 'Last Pressed',
+            value: 'Never',
+            iconColor: '#04A7F4',
+          },
+    ],
+  },
+
   ELECTRIC_VEHICLE: {
     priority: 15,
     getCapabilityMetrics: (cap, device) => {
@@ -547,6 +578,13 @@ export const registry: CapabilityUIRegistry = {
       };
 
       return [
+        {
+          icon: faRoad,
+          title: 'Mileage',
+          value: `${Math.round(cap.odometer.value).toLocaleString()} mi`,
+          since: cap.odometer.start,
+          lastReported: cap.odometer.lastReported,
+        },
         {
           icon: getBatteryIcon(),
           title: 'Battery',
@@ -583,13 +621,6 @@ export const registry: CapabilityUIRegistry = {
           onIconClick: ({ openModal, closeModal }) => {
             openModal(<ChargeLimitModal device={device} capability={cap} closeModal={closeModal} />);
           },
-        },
-        {
-          icon: faRoad,
-          title: 'Mileage',
-          value: `${Math.round(cap.odometer.value).toLocaleString()} mi`,
-          since: cap.odometer.start,
-          lastReported: cap.odometer.lastReported,
         },
         {
           icon: faCalendarCheck,

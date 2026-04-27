@@ -41,8 +41,6 @@ router.post('/logout', auth, async (req, res) => {
 });
 
 router.get('/authorize', async (req, res) => {
-  logger.info(config.authentication);
-
   const client = config.authentication.clients.find(x => x.client_id === req.query.client_id);
 
   if (!client) {

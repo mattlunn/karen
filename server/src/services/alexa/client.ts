@@ -88,12 +88,9 @@ export async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void>
   }
 }
 
-export async function sendChangeReport(
-  deviceId: string,
-  changedProperty: { namespace: string; name: string; value: unknown; timeOfSample: string; uncertaintyInMilliseconds: number },
-  changeReason: string,
-  otherProperties: unknown[] = []
-): Promise<void> {
+export async function sendSimpleEventSource(deviceId: number | string): Promise<void> {
+  const endpointId = String(deviceId);
+  const instanceId = `${endpointId}-1`;
   const bearer = await getAccessToken();
   const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
     method: 'POST',
@@ -104,34 +101,28 @@ export async function sendChangeReport(
     body: JSON.stringify({
       event: {
         header: {
-          namespace: 'Alexa',
-          name: 'ChangeReport',
+          namespace: 'Alexa.SimpleEventSource',
+          name: 'Event',
+          instance: instanceId,
           messageId: uuid(),
-          payloadVersion: '3'
+          payloadVersion: '1.0'
         },
         endpoint: {
           scope: {
             type: 'BearerToken',
             token: bearer
           },
-          endpointId: deviceId
+          endpointId
         },
         payload: {
-          change: {
-            cause: {
-              type: changeReason
-            },
-            properties: [changedProperty]
-          }
+          id: 'Button.SinglePush.1',
+          timestamp: new Date().toISOString()
         }
-      },
-      context: {
-        properties: otherProperties
       }
     })
   });
 
   if (!response.ok) {
-    throw new Error(`Got a ${response.status} back, while trying to update property for ${deviceId}`);
+    throw new Error(`Got a ${response.status} back, while trying to send SimpleEvent for ${endpointId}`);
   }
 }
