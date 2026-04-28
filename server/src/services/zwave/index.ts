@@ -115,6 +115,15 @@ deviceHandlers.set('Zooz ZSE44', [
   }
 ]);
 
+deviceHandlers.set('Fibargroup FGPB-101', [
+  {
+    propertyKey: 'Battery.level',
+    propertyMapper(device: Device, value: number) {
+      return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
+    }
+  }
+]);
+
 deviceHandlers.set('Yale SD-L1000-CH', [
   {
     propertyKey: 'Door Lock.boltStatus',
@@ -171,7 +180,7 @@ async function getClient() {
             const device = await Device.findByProviderIdOrError('zwave', deviceId);
             const node = Array.from(client.getNodes()).find((x: any) => x.nodeId === deviceId) as any;
             const nodeType = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
-            const eventHandler = deviceHandlers.get(nodeType)!.find(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
+            const eventHandler = deviceHandlers.get(nodeType)?.find(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
 
             if (eventHandler) {
               eventHandler.propertyMapper(device, data.args.newValue);
