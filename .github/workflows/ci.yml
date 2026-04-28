@@ -65,7 +65,7 @@ jobs:
       - name: Trigger Deployment
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
-          curl -I -H "Authorization: Bearer ${{ secrets.DEPLOYMENT_TOKEN }}" ${{ secrets.DEPLOYMENT_WEBHOOK }}
+          curl -X POST -H "Authorization: Bearer ${{ secrets.DEPLOYMENT_TOKEN }}" ${{ secrets.DEPLOYMENT_WEBHOOK }}
 
   deploy-lambda-production:
     name: Deploy Lambda (Production)
