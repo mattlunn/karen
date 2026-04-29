@@ -194,15 +194,15 @@ async function getClient() {
           }
 
           if (data.source === 'node' && data.event === 'value notification') {
-            logger.info({
-              nodeId: data.nodeId,
-              commandClassName: data.args.commandClassName,
-              property: data.args.property,
-              propertyKey: data.args.propertyKey,
-              value: data.args.value
-            }, 'ZWave value notification received');
-
             if (data.args.commandClassName === 'Central Scene' && data.args.value === 0) {
+              logger.info({
+                nodeId: data.nodeId,
+                commandClassName: data.args.commandClassName,
+                property: data.args.property,
+                propertyKey: data.args.propertyKey,
+                value: data.args.value
+              }, 'ZWave value notification received');
+
               const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
               const pressedAt = new Date();
 
