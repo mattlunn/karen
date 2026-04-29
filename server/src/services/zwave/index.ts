@@ -194,10 +194,32 @@ async function getClient() {
           }
 
           if (data.source === 'node' && data.event === 'value notification') {
+            logger.info({
+              nodeId: data.nodeId,
+              commandClassName: data.args.commandClassName,
+              property: data.args.property,
+              propertyKey: data.args.propertyKey,
+              value: data.args.value
+            }, 'ZWave value notification received');
+
             if (data.args.commandClassName === 'Central Scene' && data.args.value === 0) {
               const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
               const pressedAt = new Date();
-              await device.getButtonCapability().setPressedState(true, pressedAt);
+
+              logger.info({
+                nodeId: data.nodeId,
+                deviceId: device.id,
+                deviceName: device.name,
+                pressedAt: pressedAt.toISOString()
+              }, 'ZWave button press detected; setting pressed state');
+
+              try {
+                await device.getButtonCapability().setPressedState(true, pressedAt);
+                logger.info({ deviceId: device.id }, 'ZWave button pressed state set');
+              } catch (err) {
+                logger.error({ err, deviceId: device.id }, 'ZWave failed to set button pressed state');
+                throw err;
+              }
             }
           }
         });
