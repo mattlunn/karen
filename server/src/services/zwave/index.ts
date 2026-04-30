@@ -202,7 +202,8 @@ async function getClient() {
               value: data.args.value
             }, 'ZWave value notification received');
 
-            if (data.args.commandClassName === 'Central Scene' && data.args.value === 0) {
+            // Central Scene key attribute values: 0=single press, 1=released, 2=held, 3+=multi-press
+            if (data.args.commandClassName === 'Central Scene' && data.args.value !== 1 && data.args.value !== 2) {
               const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
               const pressedAt = new Date();
 
