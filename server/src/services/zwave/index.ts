@@ -202,7 +202,7 @@ async function getClient() {
               value: data.args.value
             }, 'ZWave value notification received');
 
-            if (data.args.commandClassName === 'Central Scene' && data.args.value === 0) {
+            if (data.args.commandClassName === 'Central Scene' && data.args.value === 1) {
               const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
               const pressedAt = new Date();
 
