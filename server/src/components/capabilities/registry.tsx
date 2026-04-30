@@ -32,6 +32,8 @@ import {
   faTrash,
   faHandPointer,
   faSnowflake,
+  faCalendarDay,
+  faHashtag,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
@@ -558,6 +560,19 @@ export const registry: CapabilityUIRegistry = {
             value: 'Never',
             iconColor: '#04A7F4',
           },
+      {
+        icon: faCalendarDay,
+        title: "Today's Presses",
+        value: cap.pressesToday.toString(),
+        iconColor: '#04A7F4',
+        iconHighlighted: cap.pressesToday > 0,
+      },
+      {
+        icon: faHashtag,
+        title: 'Total Presses',
+        value: cap.totalPresses.toString(),
+        iconColor: '#04A7F4',
+      },
     ],
   },
 

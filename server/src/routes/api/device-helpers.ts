@@ -180,7 +180,17 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
     case 'BUTTON': {
       const button = device.getButtonCapability();
-      const pressedEvent = await button.getPressedEvent();
+      const now = new Date();
+      const startOfToday = dayjs().startOf('day').toDate();
+
+      const [pressedEvent, pressedHistory] = await Promise.all([
+        button.getPressedEvent(),
+        button.getPressedHistory({ since: device.createdAt, until: now }),
+      ]);
+
+      const totalPresses = pressedHistory.length;
+      const pressesToday = pressedHistory.filter(event => event.start >= startOfToday).length;
+
       return {
         type: 'BUTTON',
         lastPressed: pressedEvent ? {
@@ -189,6 +199,8 @@ export async function getCapabilityData(device: Device, capability: string): Pro
           lastReported: pressedEvent.lastReported.toISOString(),
           value: Boolean(pressedEvent.value),
         } : null,
+        pressesToday,
+        totalPresses,
       };
     }
 

@@ -208,6 +208,22 @@ The registry provides:
 
 Interactive controls use `onIconClick` which receives `{ openModal, closeModal, queryClient }`. The `value` field can be a React component for interactive controls (e.g., brightness dropdown).
 
+**Exposing capability data in the UI registry**: To surface a value (live state, derived metric, or aggregate) on a device card, follow this layered flow — never short-circuit it:
+
+1. **Source of truth**: read via the codegen'd capability methods, never the raw `Event` model. For a `Foo` property:
+   - Latest event → `capability.getFooEvent()`
+   - History over a window → `capability.getFooHistory({ since, until })`
+   - `HistorySelector` requires both `since` and `until` — there is no all-time variant. Use `device.createdAt` as the lower bound when you genuinely want everything (e.g. a lifetime count).
+2. **API mapping**: in `routes/api/device-helpers.ts`, inside the relevant `case` of `getCapabilityData`, await the capability call(s) and shape the response. Run independent capability calls in `Promise.all`. Derived values (counts, filters, sums over a momentary-event history) are computed here, not in the registry.
+3. **API type**: add the new field(s) to the matching variant of `CapabilityApiResponse` in `api/types.ts`. This is the single source of truth for the wire format and is consumed by the registry.
+4. **Registry**: in `components/capabilities/registry.tsx`, read the new field(s) off `cap` inside `getCapabilityMetrics`. The function is **synchronous** — no fetching here, only formatting. Each `CapabilityMetric` needs either `since + lastReported` (for live state) or an optional `footer` (for derived/aggregate values that have no single timestamp).
+
+Two patterns for "today's X" / "this week's X" aggregates:
+- *On-demand* (cheap source data, e.g. button press counts, last-pressed): query in `device-helpers.ts` per request. See the `BUTTON` case.
+- *Pre-computed* (expensive integration over time-series, e.g. heat-pump watt-hours, vehicle weekly mileage): a scheduled service writes a numeric event (`setDayPowerState` etc.) and the API just reads the latest event. See `services/ebusd/history.ts` and `services/vehicle/mileage.ts`.
+
+Pick on-demand unless the calculation is too heavy to do per-request. Adding a brand-new capability property (not just exposing an existing one) instead requires a `capabilities.json` edit and `npm run codegen` — see "Capability Codegen" above.
+
 ### Data Flow
 
 1. Integration service detects device change

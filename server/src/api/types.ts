@@ -51,6 +51,8 @@ export type CapabilityApiResponse = {
 } | {
   type: 'BUTTON';
   lastPressed: BooleanEventApiResponse | null;
+  pressesToday: number;
+  totalPresses: number;
 } | {
   type: 'SWITCH';
   isOn: BooleanEventApiResponse;
