@@ -92,9 +92,14 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold
   }));
 
   DeviceCapabilityEvents.onThermostatCurrentTemperatureChanged(createBackgroundTransaction('automations:heating:thermostat-temperature-changed', async (event) => {
-    const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
     const thermostat = await event.getDevice();
-    const target = await thermostat.getThermostatCapability().getTargetTemperature(); 
+
+    if (await thermostat.getThermostatCapability().getIsPassive()) {
+      return;
+    }
+
+    const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
+    const target = await thermostat.getThermostatCapability().getTargetTemperature();
     const temperatureDelta = target - event.value;
 
     if (temperatureDelta > temperatureDeltaSwitchOnThreshold && compressorLockedOutForCooldown) {
@@ -102,8 +107,8 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold
 
       compressorLockedOutForCooldown = false;
 
-      bus.emit(NOTIFICATION_TO_ADMINS, { 
-        message: `Ending lockout and turning heating on, as ${thermostat.name} is ${temperatureDelta}° below target of ${target}°C`
+      bus.emit(NOTIFICATION_TO_ADMINS, {
+        message: `Ending lockout and turning heating on, as ${thermostat.name} is ${temperatureDelta.toFixed(1)}° below target of ${target}°C`
       });
     }
   }));
