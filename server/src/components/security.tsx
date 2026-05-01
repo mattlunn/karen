@@ -25,47 +25,31 @@ async function loadSnapshot(camera: Camera): Promise<string> {
 
 function useSnapshotData(cameras: Camera[]): SnapshotsMap {
   const [snapshots, setSnapshots] = useState<SnapshotsMap>({});
-  const updatedSnapshots = { ...snapshots };
-
-  for (const { id } of cameras) {
-    if (!(id in updatedSnapshots)) {
-      updatedSnapshots[id] = {
-        loading: true,
-        snapshot: null
-      };
-
-      setSnapshots(updatedSnapshots);
-    }
-  }
 
   useEffect(() => {
-    function loadSnapshots() {
-      setSnapshots(snapshots => {
-        const updatedSnapshots = { ...snapshots };
+    setSnapshots(prev => {
+      const next = { ...prev };
+      let changed = false;
+      for (const { id } of cameras) {
+        if (!(id in next)) {
+          next[id] = { loading: true, snapshot: null };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [cameras]);
 
-        cameras.forEach(async (camera) => {
-          const updatedSnapshot = updatedSnapshots[camera.id];
-
-          if (updatedSnapshot.loading === true && updatedSnapshot.snapshot !== null) {
-            return;
-          } else {
-            updatedSnapshot.loading = true;
-          }
-
-          try {
-            const snapshot = await loadSnapshot(camera);
-
-            updatedSnapshot.loading = false;
-            updatedSnapshot.snapshot = snapshot;
-          } finally {
-            updatedSnapshot.loading = false;
-          }
-
-          updatedSnapshots[camera.id] = updatedSnapshot;
-        });
-
-        return updatedSnapshots;
-      });
+  useEffect(() => {
+    async function loadSnapshots() {
+      await Promise.all(cameras.map(async (camera) => {
+        try {
+          const snapshot = await loadSnapshot(camera);
+          setSnapshots(prev => ({ ...prev, [camera.id]: { loading: false, snapshot } }));
+        } catch {
+          setSnapshots(prev => ({ ...prev, [camera.id]: { ...prev[camera.id], loading: false } }));
+        }
+      }));
     }
 
     const interval = setInterval(loadSnapshots, 5000);
@@ -77,7 +61,7 @@ function useSnapshotData(cameras: Camera[]): SnapshotsMap {
     };
   }, [cameras]);
 
-  return updatedSnapshots;
+  return snapshots;
 }
 
 interface SecurityProps {
