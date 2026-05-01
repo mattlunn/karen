@@ -140,7 +140,10 @@ async function storeIntervalMetrics(
     capability.setDayHeatingCumulativeYieldState(heating.yield, intervalEnd),
     capability.setDayDHWCumulativePowerState(dhw.power, intervalEnd),
     capability.setDayDHWCumulativeYieldState(dhw.yield, intervalEnd),
-    ...(isLastInterval ? [
+  ]);
+
+  if (isLastInterval) {
+    await Promise.all([
       capability.setDayCoPState(total.coP, intervalEnd),
       capability.setDayPowerState(total.power, intervalEnd),
       capability.setDayYieldState(total.yield, intervalEnd),
@@ -150,8 +153,8 @@ async function storeIntervalMetrics(
       capability.setDayDHWCoPState(dhw.coP, intervalEnd),
       capability.setDayDHWPowerState(dhw.power, intervalEnd),
       capability.setDayDHWYieldState(dhw.yield, intervalEnd),
-    ] : []),
-  ]);
+    ]);
+  }
 }
 
 export async function calculateDailyHeatPumpMetrics(
