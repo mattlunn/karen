@@ -131,11 +131,11 @@ async function getEventsInRange(device: Device, propertyName: string, timeRangeS
       deviceId: device.id,
       type: propertyName,
       [Op.or]: [
-        // events that start inside the range (since, until]
+        // events that start inside the range [since, until)
         {
           start: {
-            [Op.gt]: timeRangeSelector.since,
-            [Op.lte]: timeRangeSelector.until
+            [Op.gte]: timeRangeSelector.since,
+            [Op.lt]: timeRangeSelector.until
           }
         },
         // events that started before or at `since` and either end after since OR have no end (ongoing)
