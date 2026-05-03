@@ -1,6 +1,6 @@
 import dayjs from '../../dayjs';
 import { ElectricVehicleCapability } from '../../models/capabilities';
-import { clampAndSortHistory } from '../../helpers/history';
+import { filterClampAndSortHistory } from '../../helpers/history';
 import { Device } from '../../models';
 import logger from '../../logger';
 
@@ -17,7 +17,7 @@ export async function calculateWeeklyMileage(
     until: endOfWeek
   });
 
-  const clamped = clampAndSortHistory(odometerHistory, startOfWeek, endOfWeek, false);
+  const clamped = filterClampAndSortHistory(odometerHistory, startOfWeek, endOfWeek, false);
 
   if (clamped.length === 0) {
     return 0;
