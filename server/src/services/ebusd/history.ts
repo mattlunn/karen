@@ -1,7 +1,7 @@
 import dayjs from '../../dayjs';
 import { NumericEvent } from '../../models/event';
 import { HeatPumpMode, HeatPumpCapability } from '../../models/capabilities';
-import { clampAndSortHistory } from '../../helpers/history';
+import { filterClampAndSortHistory } from '../../helpers/history';
 import config from '../../config';
 import { Device } from '../../models';
 import logger from '../../logger';
@@ -109,9 +109,9 @@ function computeIntervalMetrics(
   dayStart: Date,
   intervalEnd: Date
 ): IntervalMetrics {
-  const clampedPower = clampAndSortHistory(powerHistory, dayStart, intervalEnd, false);
-  const clampedYield = clampAndSortHistory(yieldHistory, dayStart, intervalEnd, false);
-  const clampedMode = clampAndSortHistory(modeHistory, dayStart, intervalEnd, false);
+  const clampedPower = filterClampAndSortHistory(powerHistory, dayStart, intervalEnd, false);
+  const clampedYield = filterClampAndSortHistory(yieldHistory, dayStart, intervalEnd, false);
+  const clampedMode = filterClampAndSortHistory(modeHistory, dayStart, intervalEnd, false);
 
   function computeSegment(modes: HeatPumpMode[]): SegmentMetrics {
     const windows = getModeWindows(clampedMode, modes);
@@ -225,7 +225,7 @@ export async function storeRunningMetrics(device: Device, capability: HeatPumpCa
       && latestTimestamp < dayEnd;
     const startMs = dayHasPartialData
       ? latestTimestamp.getTime() + INTERVAL_MS
-      : dayStart.getTime() + INTERVAL_MS;
+      : dayStart.getTime();
 
     if (startMs > dayEnd.getTime()) continue;
 
