@@ -1,7 +1,7 @@
 import dayjs from '../../dayjs';
 import { NumericEvent } from '../../models/event';
 import { HeatPumpMode, HeatPumpCapability } from '../../models/capabilities';
-import { clampAndSortHistory } from '../../helpers/history';
+import { filterClampAndSortHistory } from '../../helpers/history';
 import config from '../../config';
 import { Device } from '../../models';
 import logger from '../../logger';
@@ -11,16 +11,16 @@ interface TimeWindow {
   end: Date;
 }
 
-export interface DailyHeatPumpMetrics {
-  dayPower: number;
-  dayYield: number;
-  dayCoP: number;
-  heatingPower: number;
-  heatingYield: number;
-  heatingCoP: number;
-  dhwPower: number;
-  dhwYield: number;
-  dhwCoP: number;
+interface SegmentMetrics {
+  power: number;
+  yield: number;
+  coP: number;
+}
+
+interface IntervalMetrics {
+  total: SegmentMetrics;
+  heating: SegmentMetrics;
+  dhw: SegmentMetrics;
 }
 
 /**
@@ -100,99 +100,83 @@ export function calculateCoP(powerValue: number, yieldValue: number): number {
   return Math.round(powerValue > 0 ? ((powerValue + yieldValue) / powerValue) * 100 : 0) / 100;
 }
 
-/**
- * Main aggregation function - calculates all daily metrics for the heat pump.
- * Filters data by mode to calculate separate metrics for heating and DHW.
- */
-export async function calculateDailyHeatPumpMetrics(
-  capability: HeatPumpCapability,
-  startOfDay: Date,
-  endOfDay: Date
-): Promise<DailyHeatPumpMetrics> {
-  // Fetch all required history data
-  const [powerHistory, yieldHistory, modeHistory] = await Promise.all([
-    capability.getCurrentPowerHistory({ since: startOfDay, until: endOfDay }),
-    capability.getCurrentYieldHistory({ since: startOfDay, until: endOfDay }),
-    capability.getModeHistory({ since: startOfDay, until: endOfDay })
-  ]);
+const INTERVAL_MS = 15 * 60 * 1000;
 
-  // Clamp and sort all histories
-  const clampedPower = clampAndSortHistory(powerHistory, startOfDay, endOfDay, false);
-  const clampedYield = clampAndSortHistory(yieldHistory, startOfDay, endOfDay, false);
-  const clampedMode = clampAndSortHistory(modeHistory, startOfDay, endOfDay, false);
+function computeIntervalMetrics(
+  powerHistory: NumericEvent[],
+  yieldHistory: NumericEvent[],
+  modeHistory: NumericEvent[],
+  dayStart: Date,
+  intervalEnd: Date
+): IntervalMetrics {
+  const clampedPower = filterClampAndSortHistory(powerHistory, dayStart, intervalEnd, false);
+  const clampedYield = filterClampAndSortHistory(yieldHistory, dayStart, intervalEnd, false);
+  const clampedMode = filterClampAndSortHistory(modeHistory, dayStart, intervalEnd, false);
 
-  // Extract time windows for each mode type
-  const heatingWindows = getModeWindows(clampedMode, [HeatPumpMode.HEATING]);
-  const dhwWindows = getModeWindows(clampedMode, [HeatPumpMode.DHW]);
-  const activeWindows = getModeWindows(clampedMode, [HeatPumpMode.HEATING, HeatPumpMode.DHW]);
-
-  // Calculate overall metrics (only when in HEATING or DHW mode)
-  const activePower = filterEventsToModeWindows(clampedPower, activeWindows);
-  const activeYield = filterEventsToModeWindows(clampedYield, activeWindows);
-  const dayPower = calculateWattHours(activePower);
-  const dayYield = calculateWattHours(activeYield);
-  const dayCoP = calculateCoP(dayPower, dayYield);
-
-  // Calculate heating-specific metrics
-  const heatingPowerEvents = filterEventsToModeWindows(clampedPower, heatingWindows);
-  const heatingYieldEvents = filterEventsToModeWindows(clampedYield, heatingWindows);
-  const heatingPower = calculateWattHours(heatingPowerEvents);
-  const heatingYield = calculateWattHours(heatingYieldEvents);
-  const heatingCoP = calculateCoP(heatingPower, heatingYield);
-
-  // Calculate DHW-specific metrics
-  const dhwPowerEvents = filterEventsToModeWindows(clampedPower, dhwWindows);
-  const dhwYieldEvents = filterEventsToModeWindows(clampedYield, dhwWindows);
-  const dhwPower = calculateWattHours(dhwPowerEvents);
-  const dhwYield = calculateWattHours(dhwYieldEvents);
-  const dhwCoP = calculateCoP(dhwPower, dhwYield);
+  function computeSegment(modes: HeatPumpMode[]): SegmentMetrics {
+    const windows = getModeWindows(clampedMode, modes);
+    const power = calculateWattHours(filterEventsToModeWindows(clampedPower, windows));
+    const yield_ = calculateWattHours(filterEventsToModeWindows(clampedYield, windows));
+    return { power, yield: yield_, coP: calculateCoP(power, yield_) };
+  }
 
   return {
-    dayPower,
-    dayYield,
-    dayCoP,
-    heatingPower,
-    heatingYield,
-    heatingCoP,
-    dhwPower,
-    dhwYield,
-    dhwCoP
+    total:   computeSegment([HeatPumpMode.HEATING, HeatPumpMode.DHW]),
+    heating: computeSegment([HeatPumpMode.HEATING]),
+    dhw:     computeSegment([HeatPumpMode.DHW]),
   };
 }
 
-/**
- * Store daily metrics for a given day.
- * Timestamp is always startOfDay (the day these metrics represent).
- */
-export async function storeDailyMetrics(
+async function storeIntervalMetrics(
   capability: HeatPumpCapability,
-  startOfDay: Date,
-  endOfDay: Date
+  { total, heating, dhw }: IntervalMetrics,
+  intervalEnd: Date,
+  isLastInterval: boolean
 ): Promise<void> {
-  const metrics = await calculateDailyHeatPumpMetrics(capability, startOfDay, endOfDay);
-
   await Promise.all([
-    capability.setDayCoPState(metrics.dayCoP, startOfDay),
-    capability.setDayPowerState(metrics.dayPower, startOfDay),
-    capability.setDayYieldState(metrics.dayYield, startOfDay),
-    capability.setDayHeatingCoPState(metrics.heatingCoP, startOfDay),
-    capability.setDayHeatingPowerState(metrics.heatingPower, startOfDay),
-    capability.setDayHeatingYieldState(metrics.heatingYield, startOfDay),
-    capability.setDayDHWCoPState(metrics.dhwCoP, startOfDay),
-    capability.setDayDHWPowerState(metrics.dhwPower, startOfDay),
-    capability.setDayDHWYieldState(metrics.dhwYield, startOfDay),
+    capability.setDayCumulativePowerState(total.power, intervalEnd),
+    capability.setDayCumulativeYieldState(total.yield, intervalEnd),
+    capability.setDayHeatingCumulativePowerState(heating.power, intervalEnd),
+    capability.setDayHeatingCumulativeYieldState(heating.yield, intervalEnd),
+    capability.setDayDHWCumulativePowerState(dhw.power, intervalEnd),
+    capability.setDayDHWCumulativeYieldState(dhw.yield, intervalEnd),
   ]);
 
-  logger.info(`Daily metrics for ${dayjs(startOfDay).format('DD/MM/YYYY')}: CoP=${metrics.dayCoP.toFixed(1)}, HeatingCoP=${metrics.heatingCoP.toFixed(1)}, DHWCoP=${metrics.dhwCoP.toFixed(1)}`);
+  if (isLastInterval) {
+    await Promise.all([
+      capability.setDayCoPState(total.coP, intervalEnd),
+      capability.setDayPowerState(total.power, intervalEnd),
+      capability.setDayYieldState(total.yield, intervalEnd),
+      capability.setDayHeatingCoPState(heating.coP, intervalEnd),
+      capability.setDayHeatingPowerState(heating.power, intervalEnd),
+      capability.setDayHeatingYieldState(heating.yield, intervalEnd),
+      capability.setDayDHWCoPState(dhw.coP, intervalEnd),
+      capability.setDayDHWPowerState(dhw.power, intervalEnd),
+      capability.setDayDHWYieldState(dhw.yield, intervalEnd),
+    ]);
+  }
 }
 
-/**
- * Ensure all historical daily metrics exist.
- * Called every 15 minutes to fill in any missing days from the last known metric to yesterday.
- * To recalculate all metrics, use the reset-daily-metrics script first.
- */
-export async function ensureHistoricalMetrics(device: Device, capability: HeatPumpCapability): Promise<void> {
-  // Find the latest metric event for each of the 9 types
+export async function calculateDailyHeatPumpMetrics(
+  capability: HeatPumpCapability,
+  dayStart: Date,
+  dayEnd: Date,
+  startMs: number
+): Promise<void> {
+  const [powerHistory, yieldHistory, modeHistory] = await Promise.all([
+    capability.getCurrentPowerHistory({ since: dayStart, until: dayEnd }),
+    capability.getCurrentYieldHistory({ since: dayStart, until: dayEnd }),
+    capability.getModeHistory({ since: dayStart, until: dayEnd }),
+  ]);
+
+  for (let ms = startMs; ms <= dayEnd.getTime(); ms += INTERVAL_MS) {
+    const intervalEnd = new Date(ms);
+    const metrics = computeIntervalMetrics(powerHistory, yieldHistory, modeHistory, dayStart, intervalEnd);
+    await storeIntervalMetrics(capability, metrics, intervalEnd, ms === dayEnd.getTime());
+  }
+}
+
+export async function storeRunningMetrics(device: Device, capability: HeatPumpCapability): Promise<void> {
   const latestEvents = await Promise.all([
     capability.getDayCoPEvent(),
     capability.getDayPowerEvent(),
@@ -202,44 +186,50 @@ export async function ensureHistoricalMetrics(device: Device, capability: HeatPu
     capability.getDayHeatingYieldEvent(),
     capability.getDayDHWCoPEvent(),
     capability.getDayDHWPowerEvent(),
-    capability.getDayDHWYieldEvent()
+    capability.getDayDHWYieldEvent(),
+    capability.getDayCumulativePowerEvent(),
+    capability.getDayCumulativeYieldEvent(),
+    capability.getDayHeatingCumulativePowerEvent(),
+    capability.getDayHeatingCumulativeYieldEvent(),
+    capability.getDayDHWCumulativePowerEvent(),
+    capability.getDayDHWCumulativeYieldEvent(),
   ]);
 
-  for (let i=0;i<latestEvents.length - 1;i++) {
+  for (let i = 0; i < latestEvents.length - 1; i++) {
     const curr = latestEvents[i];
-    const next = latestEvents[i+1];
-
-    if (curr === null && next === null) {
-      continue;
-    }
-
+    const next = latestEvents[i + 1];
+    if (curr === null && next === null) continue;
     if (curr === null || next === null || curr.lastReported.toISOString() !== next.lastReported.toISOString()) {
       throw new Error(`Heat Pump daily metrics have inconsistent latest timestamps. Run 'npm run reset-daily-metrics' to fix`);
     }
   }
 
-  const endDate = dayjs().startOf('day');
-  const startDate = latestEvents[0] === null
-    ? dayjs(device.createdAt).startOf('day')
-    : dayjs(latestEvents[0].lastReported).startOf('day').add(1, 'day');
-
-  // Fill in missing days
-  for (let day = startDate; day.isBefore(endDate); day = day.add(1, 'day')) {
-    const dayStart = day.toDate();
-    const dayEnd = day.add(1, 'day').toDate();
-
-    logger.info(`Calculating heat pump metrics for ${day.format('YYYY-MM-DD')}`);
-    await storeDailyMetrics(capability, dayStart, dayEnd);
-  }
-}
-
-/**
- * Calculate and store today's running metrics.
- * Uses start of day as timestamp so updates modify existing events.
- */
-export async function storeTodayRunningMetrics(capability: HeatPumpCapability): Promise<void> {
-  const startOfDay = dayjs().startOf('day').toDate();
+  const latestTimestamp = latestEvents[0]?.lastReported ?? null;
   const now = new Date();
+  const today = dayjs(now).startOf('day');
+  const dayMetricsStart = latestTimestamp === null
+    ? dayjs(device.createdAt).startOf('day')
+    : dayjs(latestTimestamp).startOf('day');
 
-  await storeDailyMetrics(capability, startOfDay, now);
+  for (let day = dayMetricsStart; day.isSameOrBefore(today); day = day.add(1, 'day')) {
+    const dayStart = day.toDate();
+    const isToday = day.isSame(today, 'day');
+    const dayEnd = isToday
+      ? new Date(Math.floor(now.getTime() / INTERVAL_MS) * INTERVAL_MS)
+      : day.add(1, 'day').toDate();
+
+    if (dayEnd.getTime() <= dayStart.getTime()) continue;
+
+    const dayHasPartialData = latestTimestamp !== null
+      && latestTimestamp > dayStart
+      && latestTimestamp < dayEnd;
+    const startMs = dayHasPartialData
+      ? latestTimestamp.getTime() + INTERVAL_MS
+      : dayStart.getTime();
+
+    if (startMs > dayEnd.getTime()) continue;
+
+    logger.info(`Processing heat pump metrics for ${day.format('YYYY-MM-DD')}`);
+    await calculateDailyHeatPumpMetrics(capability, dayStart, dayEnd, startMs);
+  }
 }

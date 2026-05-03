@@ -3,7 +3,7 @@ interface HistoryEvent<T> {
   end: T | null
 }
 
-export function clampAndSortHistory<U, T extends HistoryEvent<U>>(history: T[], start: U, end: U, expectGaps: boolean): T[] {
+export function filterClampAndSortHistory<U, T extends HistoryEvent<U>>(history: T[], start: U, end: U, expectGaps: boolean): T[] {
   if (history.length === 0) {
     return history;
   }
@@ -30,16 +30,34 @@ export function clampAndSortHistory<U, T extends HistoryEvent<U>>(history: T[], 
     }
   }
 
-  // If the last event is ongoing, set its end to the end of the window requested.
+  // Remove events that start at or after the window end — they are outside the requested range.
+  while (sortedHistory.length > 0 && sortedHistory.at(-1)!.start >= end) {
+    sortedHistory.pop();
+  }
+
+  if (sortedHistory.length === 0) {
+    return sortedHistory;
+  }
+
+  // If the last most event is ongoing, set its end to the end of the window requested.
   if (sortedHistory.at(-1)!.end === null) {
+    sortedHistory.at(-1)!.end = end;
+  }
+
+  // Clamp the last remaining event's end to the window end if it extends past it.
+  if (sortedHistory.at(-1)!.end! > end) {
     sortedHistory.at(-1)!.end = end;
   }
 
   // Having fixed the above, we can end up in scenarios where there were multiple open events
   // prior to the time range selected, so we now have a number of events at the start of the
   // array which aren't for the time period requested.
-  while (sortedHistory[0].end! <= start) {
+  while (sortedHistory.length > 0 && sortedHistory[0].end! <= start) {
     sortedHistory.shift();
+  }
+
+  if (sortedHistory.length === 0) {
+    return sortedHistory;
   }
 
   // If the first event starts before the start of the window, clamp it to the start.

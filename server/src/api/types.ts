@@ -29,10 +29,8 @@ export type CapabilityApiResponse = {
 } | {
   type: 'HEAT_PUMP';
   mode: EnumEventApiResponse;
-  heatingCoP: NumericEventApiResponse;
   compressorModulation: NumericEventApiResponse;
   dhwTemperature: NumericEventApiResponse;
-  dHWCoP: NumericEventApiResponse;
   outsideTemperature: NumericEventApiResponse;
   actualFlowTemperature: NumericEventApiResponse;
   returnTemperature: NumericEventApiResponse;

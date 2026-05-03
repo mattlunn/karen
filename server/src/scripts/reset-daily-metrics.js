@@ -10,7 +10,13 @@ const DAILY_METRIC_EVENT_TYPES = [
   'power_day_dhw',
   'yield_day',
   'yield_day_heating',
-  'yield_day_dhw'
+  'yield_day_dhw',
+  'cumulative_power_day',
+  'cumulative_power_day_heating',
+  'cumulative_power_day_dhw',
+  'cumulative_yield_day',
+  'cumulative_yield_day_heating',
+  'cumulative_yield_day_dhw',
 ];
 
 const instance = new Sequelize(config.database.name, config.database.user, config.database.password, {

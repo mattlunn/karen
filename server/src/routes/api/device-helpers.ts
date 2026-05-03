@@ -128,10 +128,8 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       return awaitPromises({
         type: 'HEAT_PUMP' as const,
         mode: mapHeatPumpModeEvent(heatPump.getModeEvent()),
-        heatingCoP: mapNumericEvent(heatPump.getHeatingCoPEvent()),
         compressorModulation: mapNumericEvent(heatPump.getCompressorModulationEvent()),
         dhwTemperature: mapNumericEvent(heatPump.getDHWTemperatureEvent()),
-        dHWCoP: mapNumericEvent(heatPump.getDHWCoPEvent()),
         outsideTemperature: mapNumericEvent(heatPump.getOutsideTemperatureEvent()),
         actualFlowTemperature: mapNumericEvent(heatPump.getActualFlowTemperatureEvent()),
         returnTemperature: mapNumericEvent(heatPump.getReturnTemperatureEvent()),
