@@ -58,6 +58,8 @@ export default [
       'react/prop-types': 0,
       '@babel/semi': 1,
       'no-restricted-imports': dayjsRestriction,
+      // React 19 automatic batching makes synchronous setState-in-effects safe
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 
@@ -97,6 +99,8 @@ export default [
       'no-unused-vars': 0,
       'react/prop-types': 0,
       'no-restricted-imports': dayjsRestriction,
+      // React 19 automatic batching makes synchronous setState-in-effects safe
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 

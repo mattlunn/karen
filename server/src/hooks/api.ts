@@ -48,16 +48,6 @@ export default function useApiCall<T>(endpoint: string, params?: Record<string, 
     }
   }, [fullEndpoint]);
 
-  const refresh = useCallback(() => {
-    if (controllerRef.current) {
-      controllerRef.current.abort();
-    }
-
-    controllerRef.current = new AbortController();
-
-    fetchData(controllerRef.current.signal);
-  }, [fetchData]);
-
   useEffect(() => {
     const ctrl = new AbortController();
 
@@ -69,5 +59,5 @@ export default function useApiCall<T>(endpoint: string, params?: Record<string, 
     };
   }, [fetchData, fullEndpoint]);
 
-  return { data, loading, error, refresh };
+  return { data, loading, error };
 }
