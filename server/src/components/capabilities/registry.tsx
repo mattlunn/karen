@@ -668,7 +668,7 @@ export const registry: CapabilityUIRegistry = {
   },
 
   CONNECTIVITY: {
-    priority: 5,
+    priority: 999,
     getCapabilityMetrics: (cap) => [
       {
         icon: faSignal,
