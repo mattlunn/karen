@@ -17,7 +17,7 @@ export { makeSynologyRequest };
 const SYNOLOGY_CAMERA_STATUS_NORMAL = 1;
 const latestCameraEvents = new Map();
 
-type SynologyCamera = { id: number; status: number; enabled: boolean };
+type SynologyCamera = { id: number; status: number; enabled: boolean; vendor: string; model: string; newName: string };
 
 // Have a map of camera ids -> timeouts which make the last motion as ended.
 // when receiving new motion, clear that timeout, and set a new one.
@@ -169,6 +169,7 @@ setInterval(createBackgroundTransaction('synology:clear-old-recordings', async (
   }
 }), dayjs.duration(1, 'day').asMilliseconds());
 
+
 async function updateCamerasConnectivity(cameras: SynologyCamera[]) {
   const devices = await Device.findByProvider('synology');
 
@@ -188,7 +189,7 @@ export async function onConnectivityChanged() {
   let cameras: SynologyCamera[];
 
   try {
-    const data = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List'));
+    const data = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
 
     cameras = data.data.cameras;
   } catch (e) {
@@ -206,7 +207,7 @@ Device.registerProvider('synology', {
   },
 
   async synchronize() {
-    let cameras: (SynologyCamera & { vendor: string; model: string; newName: string })[];
+    let cameras: SynologyCamera[];
 
     try {
       ({ data: { cameras } } = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List'));
