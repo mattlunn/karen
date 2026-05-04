@@ -15,8 +15,17 @@ router.use((req, res, next) => {
 
 router.get('/event', async (req, res) => {
   const device = await Device.findByProviderIdOrError('shelly', req.query.id);
+  const isOn = req.query.action === 'on';
+  const capabilities = device.getCapabilities();
 
-  await device.getLightCapability().setIsOnState(req.query.action === 'on');
+  if (capabilities.includes('CONTACT_SENSOR')) {
+    await device.getContactSensorCapability().setIsClosedState(isOn);
+  } else if (capabilities.includes('LIGHT')) {
+    await device.getLightCapability().setIsOnState(isOn);
+  } else if (capabilities.includes('SWITCH')) {
+    await device.getSwitchCapability().setIsOnState(isOn);
+  }
+
   res.sendStatus(200).end();
 });
 
@@ -29,6 +38,7 @@ router.get('/install', async (req, res) => {
 
   const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
   const model = await client.getModel();
+  const generation = client.getGeneration();
   let device = await Device.findByProviderId('shelly', ip);
 
   if (!device) {
@@ -38,16 +48,39 @@ router.get('/install', async (req, res) => {
     });
   }
 
+  let role = 'switch';
+
+  if (generation >= 2) {
+    try {
+      const switchConfig = await client.getSwitchConfig();
+
+      if (switchConfig && switchConfig.in_mode === 'detached') {
+        role = 'contact';
+      }
+    } catch (e) {
+      // Some Gen 2+ models may not expose Switch.GetConfig (e.g. dimmers); fall back to switch.
+    }
+  }
+
   device.name = ip;
   device.manufacturer = 'Shelly';
   device.model = model;
   device.meta.endpoint = ip;
-  device.meta.generation = client.getGeneration();
-  
+  device.meta.generation = generation;
+  device.meta.role = role;
+
   await client.setCloudStatus(false);
   await client.setupAuthentication();
-  await client.setOutputOffWebhook(`http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=off`);
-  await client.setOutputOnWebhook(`http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=on`);
+
+  const eventUrl = (action) => `http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=${action}`;
+
+  if (role === 'contact') {
+    await client.setInputOnWebhook(eventUrl('on'));
+    await client.setInputOffWebhook(eventUrl('off'));
+  } else {
+    await client.setOutputOffWebhook(eventUrl('off'));
+    await client.setOutputOnWebhook(eventUrl('on'));
+  }
 
   switch (model) {
     case 'SNPL-00112UK': {  // plug
@@ -56,7 +89,7 @@ router.get('/install', async (req, res) => {
       break;
     }
   }
-  
+
   await client.reboot();
   await device.save();
 

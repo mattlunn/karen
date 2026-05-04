@@ -34,6 +34,7 @@ import {
   faSnowflake,
   faCalendarDay,
   faHashtag,
+  faBell,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
@@ -41,8 +42,8 @@ import ThermostatModal from '../modals/thermostat-modal';
 import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import ChargeLimitModal from '../modals/charge-limit-modal';
 import dayjs from '../../dayjs';
-import { humanDate } from '../../helpers/date';
-import type { MetricDisplayVariant, CapabilityUIRegistry } from './types';
+import { humanDate, formatDuration } from '../../helpers/date';
+import type { MetricDisplayVariant, CapabilityUIRegistry, CapabilityMetric } from './types';
 
 // ============================================================================
 // Mutation Functions
@@ -562,6 +563,45 @@ export const registry: CapabilityUIRegistry = {
         value: cap.totalPresses.toString(),
         iconColor: '#04A7F4',
       },
+    ],
+  },
+
+  CONTACT_SENSOR: {
+    priority: 55,
+    getCapabilityMetrics: (cap) => {
+      const isClosed = cap.isClosed.value;
+      const metrics: CapabilityMetric[] = [
+        {
+          icon: faBell,
+          title: 'Status',
+          value: isClosed ? 'TRIGGERED' : 'OK',
+          since: cap.isClosed.start,
+          lastReported: cap.isClosed.lastReported,
+          iconColor: isClosed ? '#e74c3c' : '#2ecc71',
+          iconHighlighted: isClosed,
+          isIssue: isClosed,
+        },
+      ];
+
+      if (cap.lastTriggered) {
+        const start = dayjs(cap.lastTriggered.start);
+        const footer = cap.lastTriggered.durationSeconds === null
+          ? 'Still active'
+          : `Triggered for ${formatDuration(cap.lastTriggered.durationSeconds)}`;
+
+        metrics.push({
+          icon: faBell,
+          title: 'Last Triggered',
+          value: `${humanDate(start)} at ${start.format('HH:mm')}`,
+          iconColor: '#04A7F4',
+          footer,
+        });
+      }
+
+      return metrics;
+    },
+    getGraphs: () => [
+      { id: 'contact-sensor', title: 'Activity' },
     ],
   },
 

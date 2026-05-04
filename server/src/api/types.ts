@@ -69,6 +69,10 @@ export type CapabilityApiResponse = {
   odometer: NumericEventApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string; calculatedStartTime: string | null } | null;
 } | {
+  type: 'CONTACT_SENSOR';
+  isClosed: BooleanEventApiResponse;
+  lastTriggered: { start: string; end: string | null; durationSeconds: number | null } | null;
+} | {
   type: 'BIN_COLLECTION';
   color: string;
   rrule: string;

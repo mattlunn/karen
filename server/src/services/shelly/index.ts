@@ -11,6 +11,8 @@ Device.registerProvider('shelly', {
         return ['LIGHT'];
       case 3:
         return ['SWITCH'];
+      case 4:
+        return device.meta.role === 'contact' ? ['CONTACT_SENSOR'] : ['SWITCH'];
       default:
         throw new Error(`Cannot infer capabilities for device ${device.id}`);
     }

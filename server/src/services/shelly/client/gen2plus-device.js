@@ -52,6 +52,18 @@ export default class Gen2PlusDeviceClient {
     return await this._request(`/rpc/Webhook.Create?cid=0&enable=true&event="switch.off"&urls=["${encodeURIComponent(endpoint)}"]`);
   }
 
+  async setInputOnWebhook(endpoint) {
+    return await this._request(`/rpc/Webhook.Create?cid=0&enable=true&event="input.toggle_on"&urls=["${encodeURIComponent(endpoint)}"]`);
+  }
+
+  async setInputOffWebhook(endpoint) {
+    return await this._request(`/rpc/Webhook.Create?cid=0&enable=true&event="input.toggle_off"&urls=["${encodeURIComponent(endpoint)}"]`);
+  }
+
+  async getSwitchConfig() {
+    return await this._request('/rpc/Switch.GetConfig?id=0');
+  }
+
   async setBrightness() {
     throw new Error();
   }

@@ -373,4 +373,14 @@
       "isMomentary": true
     }
   ]
+}, {
+  "name": "ContactSensor",
+  "properties": [
+    {
+      "name": "IsClosed",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "closed"
+    }
+  ]
 }]
