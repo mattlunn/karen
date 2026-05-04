@@ -403,7 +403,6 @@ Device.registerProvider('zwave', {
           knownDevice.model = model;
 
           await knownDevice.save();
-
           await knownDevice.getConnectivityCapability().setIsConnectedState(node.status !== ZWAVE_NODE_STATUS_DEAD);
 
           // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)

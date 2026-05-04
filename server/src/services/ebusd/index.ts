@@ -71,9 +71,9 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   ]);
 
   const anySucceeded = results.some(r => r.status === 'fulfilled');
-  await device.getConnectivityCapability().setIsConnectedState(anySucceeded);
-
   const failures = results.filter(r => r.status === 'rejected');
+
+  await device.getConnectivityCapability().setIsConnectedState(anySucceeded);
 
   if (failures.length > 0) {
     throw failures[0].reason;

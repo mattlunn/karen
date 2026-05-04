@@ -7,13 +7,12 @@ import sleep from '../../helpers/sleep';
 
 Device.registerProvider('shelly', {
   getCapabilities(device) {
-    const baseCapabilities = ['CONNECTIVITY'] as const;
     switch (device.meta.generation) {
       case 1:
       case 2:
-        return ['LIGHT', ...baseCapabilities];
+        return ['LIGHT', 'CONNECTIVITY'];
       case 3:
-        return ['SWITCH', ...baseCapabilities];
+        return ['SWITCH', 'CONNECTIVITY'];
       default:
         throw new Error(`Cannot infer capabilities for device ${device.id}`);
     }
@@ -84,7 +83,7 @@ async function probeShellyDevice(device: Device): Promise<boolean> {
 
   const result = await Promise.race([
     shellyDevice.getDeviceName().then(() => true).catch(() => false),
-    sleep(Math.max(config.shelly.connect_timeout_milliseconds, 1)).then(() => false)
+    sleep(Math.max(config.shelly.connect_timeout_milliseconds, 5000)).then(() => false)
   ]);
 
   return result;

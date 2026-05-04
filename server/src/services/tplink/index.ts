@@ -30,10 +30,8 @@ nowAndSetInterval(async () => {
       continue;
     }
 
-    await Promise.all([
-      device.getLightCapability().setIsOnState(await tpLinkDevice.getPowerState()),
-      device.getConnectivityCapability().setIsConnectedState(true)
-    ]);
+    await device.getLightCapability().setIsOnState(await tpLinkDevice.getPowerState());
+    await device.getConnectivityCapability().setIsConnectedState(true);
   }
 }, Math.max(config.tplink.sync_interval_seconds, 60) * 1000);
 
