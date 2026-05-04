@@ -76,7 +76,8 @@ Device.registerProvider('tado', {
       'HUMIDITY_SENSOR',
       'TEMPERATURE_SENSOR',
       'THERMOSTAT',
-      'BATTERY_LOW_INDICATOR'
+      'BATTERY_LOW_INDICATOR',
+      'CONNECTIVITY'
     ];
   },
 
@@ -195,7 +196,8 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
       thermostatCapability.setIsOnState(zoneState.activityDataPoints.heatingPower.percentage > 0, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
       thermostatCapability.setCurrentTemperatureState(zoneState.sensorDataPoints.insideTemperature.celsius, new Date(zoneState.sensorDataPoints.insideTemperature.timestamp)),
       thermostatCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date()),
-      thermostatCapability.setIsPassiveState(config.tado.passive_zone_names.includes(device.name))
+      thermostatCapability.setIsPassiveState(config.tado.passive_zone_names.includes(device.name)),
+      device.getConnectivityCapability().setIsConnectedState(zoneState.link.state === 'ONLINE')
     ]);
   }
 }), Math.max(config.tado.sync_interval_seconds, 10) * 1000);

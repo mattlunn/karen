@@ -7,7 +7,7 @@ import { storeRunningMetrics } from './history';
 
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
-    return ['HEAT_PUMP'];
+    return ['HEAT_PUMP', 'CONNECTIVITY'];
   },
 
   async synchronize() {
@@ -42,7 +42,7 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const deviceCapability = device.getHeatPumpCapability();
-  
+
   async function updateState<T>(getter: () => Promise<T>, updater: (value: T) => Promise<unknown>) {
     await updater(await getter());
   }
@@ -51,7 +51,7 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     return Math.round(val * 10) / 10;
   }
 
-  await Promise.all([
+  const results = await Promise.allSettled([
     updateState(() => client.getOutsideTemperature(), (v) => deviceCapability.setOutsideTemperatureState(roundTo1DecimalPlace(v))),
 
     updateState(() => client.getActualFlowTemperature(), (v) => deviceCapability.setActualFlowTemperatureState(roundTo1DecimalPlace(v))),
@@ -69,6 +69,15 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     updateState(() => client.getMode(), (v) => deviceCapability.setModeState(v)),
     updateState(() => client.getDHWIsOn(), (v) => deviceCapability.setDHWIsOnState(v))
   ]);
+
+  const anySucceeded = results.some(r => r.status === 'fulfilled');
+  const failures = results.filter(r => r.status === 'rejected');
+
+  await device.getConnectivityCapability().setIsConnectedState(anySucceeded);
+
+  if (failures.length > 0) {
+    throw failures[0].reason;
+  }
 }), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);
 
 nowAndSetInterval(createBackgroundTransaction('ebusd:daily-metrics', async () => {

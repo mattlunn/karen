@@ -11,7 +11,7 @@ function Synology(protocol, host, port, account, password, session) {
 Synology.prototype.init = async function () {
   const data = await this._request('query.cgi', 'SYNO.API.Info', 'Query', 1, { query: 'ALL' }, true);
 
-  this._apis = data.data;
+  this._apis = data;
 
   const auth = await this.request('SYNO.API.Auth', 'login', {
     account: this._account,
@@ -20,7 +20,7 @@ Synology.prototype.init = async function () {
     format: 'sid'
   }, true);
 
-  this._sid = auth.data.sid;
+  this._sid = auth.sid;
 };
 
 Synology.prototype.request = function (api, method, params = {}, json = true, version = undefined) {
@@ -61,7 +61,7 @@ Synology.prototype._request = async function (endpoint, api, method, version, pa
     throw error;
   }
 
-  return parsed;
+  return parsed.data;
 };
 
 export default async function (protocol, host, port, account, password, session) {

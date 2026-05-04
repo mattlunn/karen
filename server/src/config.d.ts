@@ -53,6 +53,8 @@ declare namespace _default {
     const password: string;
     const secret: string;
     const webhook_host: string;
+    const connectivity_poll_seconds: number;
+    const connect_timeout_milliseconds: number;
   }
   export namespace tplink {
     const sync_interval_seconds: number;
