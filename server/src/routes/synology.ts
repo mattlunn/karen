@@ -1,7 +1,7 @@
 import express from 'express';
 import dayjs from '../dayjs';
 import config from '../config';
-import { onMotionDetected, onDoorbellRing } from '../services/synology';
+import { onMotionDetected, onDoorbellRing, onConnectivityChanged } from '../services/synology';
 
 const router = express.Router();
 
@@ -33,6 +33,11 @@ router.get('/ring', async (req, res) => {
   } else {
     return res.sendStatus(400);
   }
+});
+
+router.get('/connectivity-changed', async (req, res) => {
+  await onConnectivityChanged();
+  res.sendStatus(200);
 });
 
 export default router;
