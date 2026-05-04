@@ -35,7 +35,7 @@ router.get('/ring', async (req, res) => {
   }
 });
 
-router.get('/connectivity-changed', async (req, res) => {
+router.get('/connectivity', async (req, res) => {
   await onConnectivityChanged();
   res.sendStatus(200);
 });
