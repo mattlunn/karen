@@ -13,32 +13,23 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 export async function synchronize() {
   let device = await Device.findByProviderId('vehicle', config.smartcar.vehicle_id);
 
-  let attributes;
   try {
-    attributes = await client.getVehicleAttributes();
-  } catch (e) {
-    if (device) {
-      await device.getConnectivityCapability().setIsConnectedState(false);
+    const attributes = await client.getVehicleAttributes();
+
+    if (!device) {
+      device = Device.build({
+        provider: 'vehicle',
+        providerId: config.smartcar.vehicle_id,
+        name: `${attributes.make} ${attributes.model}`,
+      });
     }
-    throw e;
-  }
 
-  if (!device) {
-    device = Device.build({
-      provider: 'vehicle',
-      providerId: config.smartcar.vehicle_id,
-      name: `${attributes.make} ${attributes.model}`,
-    });
-  }
+    device.manufacturer = attributes.make;
+    device.model = `${attributes.model} (${attributes.year})`;
 
-  device.manufacturer = attributes.make;
-  device.model = `${attributes.model} (${attributes.year})`;
+    await device.save();
 
-  await device.save();
-
-  const ev = device.getElectricVehicleCapability();
-
-  try {
+    const ev = device.getElectricVehicleCapability();
     const signals = await client.getSignals();
 
     for (const signal of signals.body.data) {
@@ -49,16 +40,18 @@ export async function synchronize() {
       }
     }
 
+    // We can't get the charge limit from SmartCar, so just one time force to 100
+    // so we are in-sync with what's set.
+    if (await ev.getChargeLimitEvent() === null) {
+      await client.setChargeLimit(100);
+    }
+
     await device.getConnectivityCapability().setIsConnectedState(true);
   } catch (e) {
-    await device.getConnectivityCapability().setIsConnectedState(false);
+    if (device) {
+      await device.getConnectivityCapability().setIsConnectedState(false);
+    }
     throw e;
-  }
-
-  // We can't get the charge limit from SmartCar, so just one time force to 100
-  // so we are in-sync with what's set.
-  if (await ev.getChargeLimitEvent() === null) {
-    await client.setChargeLimit(100);
   }
 }
 
