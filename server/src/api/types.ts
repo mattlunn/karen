@@ -76,6 +76,9 @@ export type CapabilityApiResponse = {
   overrides: Array<{ originalDate: string; newDate: string }>;
   nextCollection: { date: string; isOverride: boolean };
 } | {
+  type: 'CONNECTIVITY';
+  isConnected: BooleanEventApiResponse;
+} | {
   type: null;
 };
 
@@ -156,7 +159,6 @@ export type DeviceTimelineApiResponse = {
 };
 
 // Common types
-export type DeviceStatus = 'OK' | 'OFFLINE';
 export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';
 export type UserStatus = 'HOME' | 'AWAY';
 export type CentralHeatingMode = 'ON' | 'OFF' | 'SETBACK';
@@ -178,7 +180,6 @@ export interface RestDeviceResponse {
   provider: string;
   providerId: string;
   roomId: number | null;
-  status: DeviceStatus;
   lastSeen: string;
   capabilities: CapabilityApiResponse[];
 }

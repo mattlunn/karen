@@ -7,12 +7,17 @@ import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
 
 const deviceCapabilitiesMap = new Map<string, Capability[]>([
-  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'BATTERY_LEVEL_INDICATOR']],
-  ['Fibargroup FGD212', ['LIGHT']],
-  ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR']],
-  ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']],
-  ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR']]
+  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
+  ['Fibargroup FGD212', ['LIGHT', 'CONNECTIVITY']],
+  ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
+  ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
+  ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']]
 ]);
+
+// zwave-js NodeStatus: 0=Unknown, 1=Asleep, 2=Awake, 3=Dead, 4=Alive.
+// Battery-powered devices spend most of their time asleep but are still reachable;
+// only "Dead" means the controller has lost contact.
+const ZWAVE_NODE_STATUS_DEAD = 3;
 
 type DeviceHandler = {
   propertyKey: string,
@@ -175,6 +180,14 @@ async function getClient() {
         });
 
         client.on('event', async (data: any) => {
+          if (data.source === 'node' && (data.event === 'alive' || data.event === 'dead')) {
+            const device = await Device.findByProviderId('zwave', data.nodeId);
+
+            if (device !== null) {
+              await device.getConnectivityCapability().setIsConnectedState(data.event === 'alive');
+            }
+          }
+
           if (data.source === 'node' && data.event === 'value updated') {
             const deviceId = data.nodeId;
             const device = await Device.findByProviderIdOrError('zwave', deviceId);
@@ -390,6 +403,8 @@ Device.registerProvider('zwave', {
           knownDevice.model = model;
 
           await knownDevice.save();
+
+          await knownDevice.getConnectivityCapability().setIsConnectedState(node.status !== ZWAVE_NODE_STATUS_DEAD);
 
           // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)
           if (knownDevice.getCapabilities().includes('LIGHT')) {

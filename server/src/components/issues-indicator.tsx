@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Group } from '@mantine/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBatteryEmpty, faSignal } from '@fortawesome/free-solid-svg-icons';
 import type { RestDeviceResponse } from '../api/types';
+import { getIsConnected } from './capabilities/helpers';
 
 export function getIsBatteryLow(device: RestDeviceResponse): boolean {
   const batteryLowCapability = device.capabilities.find(x => x.type === 'BATTERY_LOW_INDICATOR');
@@ -15,19 +16,12 @@ export function getIsBatteryLow(device: RestDeviceResponse): boolean {
 }
 
 export default function IssuesIndicator({ device }: { device: RestDeviceResponse }) {
-  const [isStale] = useState(() => {
-    const lastSeenDate = new Date(device.lastSeen);
-    const hourAgo = new Date(Date.now() - 3600000);
-    return lastSeenDate < hourAgo;
-  });
-
   const issues: React.ReactNode[] = [];
 
-  if (isStale) {
-    issues.push(<FontAwesomeIcon key="signal" icon={faSignal} color="red" title="Not seen recently" />);
+  if (!getIsConnected(device)) {
+    issues.push(<FontAwesomeIcon key="signal" icon={faSignal} color="red" title="Not connected" />);
   }
 
-  // Check for low battery
   if (getIsBatteryLow(device)) {
     issues.push(<FontAwesomeIcon key="battery" icon={faBatteryEmpty} color="red" title="Battery Low" />);
   }

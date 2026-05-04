@@ -73,3 +73,8 @@ export function getDeviceGraphs(device: RestDeviceResponse): GraphConfig[] {
 export function getDeviceIssues(device: RestDeviceResponse): CapabilityMetric[] {
   return getDeviceMetrics(device).filter((m) => m.isIssue);
 }
+
+export function getIsConnected(device: RestDeviceResponse): boolean {
+  const conn = device.capabilities.find(c => c.type === 'CONNECTIVITY');
+  return conn ? conn.isConnected.value : true;
+}

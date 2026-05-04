@@ -9,6 +9,7 @@ import sleep from '../../helpers/sleep';
 import { enqueueWorkItem } from '../../queue';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import bus, { NOTIFICATION_TO_ALL } from '../../bus';
+import nowAndSetInterval from '../../helpers/now-and-set-interval';
 
 export { makeSynologyRequest };
 
@@ -164,9 +165,13 @@ setInterval(createBackgroundTransaction('synology:clear-old-recordings', async (
   }
 }), dayjs.duration(1, 'day').asMilliseconds());
 
+// Surveillance Station camera status: 1 = Normal/Connected. Anything else (Disconnected, Disabled,
+// Migrating, etc.) means the camera isn't actively reachable.
+const SYNOLOGY_CAMERA_STATUS_NORMAL = 1;
+
 Device.registerProvider('synology', {
   getCapabilities(device) {
-    return ['CAMERA'];
+    return ['CAMERA', 'CONNECTIVITY'];
   },
 
   async synchronize() {
@@ -190,3 +195,22 @@ Device.registerProvider('synology', {
     }
   }
 });
+
+nowAndSetInterval(createBackgroundTransaction('synology:connectivity', async () => {
+  const devices = await Device.findByProvider('synology');
+  let cameras: { id: number; status: number; enabled: boolean }[];
+
+  try {
+    ({ data: { cameras } } = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List'));
+  } catch (e) {
+    logger.error(e, 'Synology: failed to list cameras for connectivity check');
+    await Promise.all(devices.map(d => d.getConnectivityCapability().setIsConnectedState(false)));
+    return;
+  }
+
+  await Promise.all(devices.map(async device => {
+    const camera = cameras.find(c => String(c.id) === device.providerId);
+    const isConnected = camera !== undefined && camera.enabled !== false && camera.status === SYNOLOGY_CAMERA_STATUS_NORMAL;
+    await device.getConnectivityCapability().setIsConnectedState(isConnected);
+  }));
+}), 2 * 60 * 1000);

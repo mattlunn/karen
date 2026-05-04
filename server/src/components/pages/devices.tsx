@@ -9,6 +9,7 @@ import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 import IssuesIndicator from '../issues-indicator';
 import { getDeviceIcon } from '../capabilities';
+import { getIsConnected } from '../capabilities/helpers';
 import type { DevicesApiResponse, BrokenDeviceResponse, RestDeviceResponse } from '../../api/types';
 
 function formatLastSeen(lastSeen: string): string {
@@ -94,7 +95,7 @@ export default function Devices() {
   const { active, old } = data.devices
     .toSorted((a, b) => a.name.localeCompare(b.name))
     .reduce<{ active: RestDeviceResponse[]; old: RestDeviceResponse[] }>((acc, device) => {
-      acc[device.status === 'OK' ? 'active' : 'old'].push(device);
+      acc[getIsConnected(device) ? 'active' : 'old'].push(device);
 
       return acc;
     }, { active: [], old: [] });

@@ -12,7 +12,16 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 
 export async function synchronize() {
   let device = await Device.findByProviderId('vehicle', config.smartcar.vehicle_id);
-  const attributes = await client.getVehicleAttributes();
+
+  let attributes;
+  try {
+    attributes = await client.getVehicleAttributes();
+  } catch (e) {
+    if (device) {
+      await device.getConnectivityCapability().setIsConnectedState(false);
+    }
+    throw e;
+  }
 
   if (!device) {
     device = Device.build({
@@ -28,14 +37,22 @@ export async function synchronize() {
   await device.save();
 
   const ev = device.getElectricVehicleCapability();
-  const signals = await client.getSignals();
 
-  for (const signal of signals.body.data) {
-    try {
-      await processSignal(ev, signal.attributes);
-    } catch (error) {
-      logger.error(error, `Error processing signal ${signal.attributes.code}`);
+  try {
+    const signals = await client.getSignals();
+
+    for (const signal of signals.body.data) {
+      try {
+        await processSignal(ev, signal.attributes);
+      } catch (error) {
+        logger.error(error, `Error processing signal ${signal.attributes.code}`);
+      }
     }
+
+    await device.getConnectivityCapability().setIsConnectedState(true);
+  } catch (e) {
+    await device.getConnectivityCapability().setIsConnectedState(false);
+    throw e;
   }
 
   // We can't get the charge limit from SmartCar, so just one time force to 100
@@ -47,7 +64,7 @@ export async function synchronize() {
 
 Device.registerProvider('vehicle', {
   getCapabilities() {
-    return ['ELECTRIC_VEHICLE'];
+    return ['ELECTRIC_VEHICLE', 'CONNECTIVITY'];
   },
 
   provideElectricVehicleCapability() {

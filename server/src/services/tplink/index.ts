@@ -26,16 +26,20 @@ nowAndSetInterval(async () => {
     const tpLinkDevice = await getTpLinkDeviceFromDevice(device) as Plug | null;
 
     if (tpLinkDevice === null) {
+      await device.getConnectivityCapability().setIsConnectedState(false);
       continue;
     }
 
-    device.getLightCapability().setIsOnState(await tpLinkDevice.getPowerState());
+    await Promise.all([
+      device.getLightCapability().setIsOnState(await tpLinkDevice.getPowerState()),
+      device.getConnectivityCapability().setIsConnectedState(true)
+    ]);
   }
 }, Math.max(config.tplink.sync_interval_seconds, 60) * 1000);
 
 Device.registerProvider('tplink', {
   getCapabilities() {
-    return ['LIGHT'];
+    return ['LIGHT', 'CONNECTIVITY'];
   },
 
   provideLightCapability() {

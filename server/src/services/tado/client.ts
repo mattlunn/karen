@@ -37,7 +37,7 @@ export type ZoneState = {
   setting: ZoneSetting,
   openWindow: null,
   link: {
-    state: "ONLINE"
+    state: "ONLINE" | "OFFLINE"
   },
   runningOfflineSchedule: false,
   activityDataPoints: {
