@@ -54,6 +54,8 @@ export function createResponseProperties(device: RestDeviceResponse, sampleTime:
     throw new Error('Light capability not found');
   }
 
+  const connectivityCapability = device.capabilities.find(c => c.type === 'CONNECTIVITY');
+
   return [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
@@ -70,7 +72,7 @@ export function createResponseProperties(device: RestDeviceResponse, sampleTime:
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
     value: {
-      value: device.status === 'OK' ? 'OK' : 'UNREACHABLE'
+      value: connectivityCapability?.isConnected.value === false ? 'UNREACHABLE' : 'OK'
     },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
