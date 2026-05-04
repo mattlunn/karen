@@ -70,7 +70,7 @@ async function captureRecording(event: Event, providerId: string, startOfRecordi
       toTime: endOfRecording.format('X')
     }, true, 5);
 
-    cameraRecording = synologyRecordings.data.events.find((recording: { cameraId: number, startTime: number, stopTime: number }) => {
+    cameraRecording = synologyRecordings.events.find((recording: { cameraId: number, startTime: number, stopTime: number }) => {
       return String(recording.cameraId) === providerId
         && dayjs.unix(recording.startTime).isBefore(startOfRecording)
         && dayjs.unix(recording.stopTime).isAfter(endOfRecording);
@@ -189,9 +189,7 @@ export async function onConnectivityChanged() {
   let cameras: SynologyCamera[];
 
   try {
-    const data = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
-
-    cameras = data.data.cameras;
+    ({ cameras } = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List'));
   } catch (e) {
     logger.error(e, 'Synology: failed to list cameras after connectivity webhook');
     await markAllCamerasDisconnected();
@@ -210,7 +208,7 @@ Device.registerProvider('synology', {
     let cameras: SynologyCamera[];
 
     try {
-      ({ data: { cameras } } = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List'));
+      ({ cameras } = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List'));
     } catch (e) {
       await markAllCamerasDisconnected();
       throw e;
