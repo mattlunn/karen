@@ -95,7 +95,7 @@ export default function Devices() {
   const { active, old } = data.devices
     .toSorted((a, b) => a.name.localeCompare(b.name))
     .reduce<{ active: RestDeviceResponse[]; old: RestDeviceResponse[] }>((acc, device) => {
-      acc[getIsConnected(device) ? 'active' : 'old'].push(device);
+      acc[getIsConnected(device) !== false ? 'active' : 'old'].push(device);
 
       return acc;
     }, { active: [], old: [] });

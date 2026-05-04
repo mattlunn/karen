@@ -74,7 +74,7 @@ export function getDeviceIssues(device: RestDeviceResponse): CapabilityMetric[] 
   return getDeviceMetrics(device).filter((m) => m.isIssue);
 }
 
-export function getIsConnected(device: RestDeviceResponse): boolean {
+export function getIsConnected(device: RestDeviceResponse): boolean | null {
   const conn = device.capabilities.find(c => c.type === 'CONNECTIVITY');
-  return conn ? conn.isConnected.value : true;
+  return conn ? conn.isConnected.value : null;
 }

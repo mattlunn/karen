@@ -18,7 +18,7 @@ export function getIsBatteryLow(device: RestDeviceResponse): boolean {
 export default function IssuesIndicator({ device }: { device: RestDeviceResponse }) {
   const issues: React.ReactNode[] = [];
 
-  if (!getIsConnected(device)) {
+  if (getIsConnected(device) === false) {
     issues.push(<FontAwesomeIcon key="signal" icon={faSignal} color="red" title="Not connected" />);
   }
 
