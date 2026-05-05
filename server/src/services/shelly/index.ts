@@ -2,17 +2,21 @@ import { Device } from '../../models';
 import DeviceClient from './client/device';
 import config from '../../config';
 import logger from '../../logger';
+import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import sleep from '../../helpers/sleep';
 
 Device.registerProvider('shelly', {
   getCapabilities(device) {
     switch (device.meta.generation) {
       case 1:
       case 2:
-        return ['LIGHT'];
+        return ['LIGHT', 'CONNECTIVITY'];
       case 3:
-        return ['SWITCH'];
+        return ['SWITCH', 'CONNECTIVITY'];
       case 4:
-        return device.meta.role === 'contact' ? ['CONTACT_SENSOR'] : ['SWITCH'];
+        return device.meta.role === 'contact'
+          ? ['CONTACT_SENSOR', 'CONNECTIVITY']
+          : ['SWITCH', 'CONNECTIVITY'];
       default:
         throw new Error(`Cannot infer capabilities for device ${device.id}`);
     }
@@ -55,7 +59,7 @@ Device.registerProvider('shelly', {
         if (newName !== null) {
           device.name = newName;
         }
-        
+
         // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)
         if (device.getCapabilities().includes('LIGHT')) {
           const brightnessEvent = await device.getLightCapability().getBrightnessEvent();
@@ -77,3 +81,23 @@ Device.registerProvider('shelly', {
     }
   }
 });
+
+async function probeShellyDevice(device: Device): Promise<boolean> {
+  const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
+
+  const result = await Promise.race([
+    shellyDevice.getDeviceName().then(() => true).catch(() => false),
+    sleep(Math.max(config.shelly.connect_timeout_milliseconds, 5000)).then(() => false)
+  ]);
+
+  return result;
+}
+
+nowAndSetInterval(async () => {
+  const devices = await Device.findByProvider('shelly');
+
+  await Promise.all(devices.map(async device => {
+    const isConnected = await probeShellyDevice(device);
+    await device.getConnectivityCapability().setIsConnectedState(isConnected);
+  }));
+}, Math.max(config.shelly.connectivity_poll_seconds, 30) * 1000);

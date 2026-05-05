@@ -80,6 +80,9 @@ export type CapabilityApiResponse = {
   overrides: Array<{ originalDate: string; newDate: string }>;
   nextCollection: { date: string; isOverride: boolean };
 } | {
+  type: 'CONNECTIVITY';
+  isConnected: BooleanEventApiResponse;
+} | {
   type: null;
 };
 
@@ -148,7 +151,7 @@ export type HistoryApiResponse = {
 
 // Device Timeline API response types (/api/device/:id/timeline)
 export type DeviceTimelineEventApiResponse = {
-  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press';
+  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline';
   timestamp: string;
   value?: string;
 };
@@ -160,7 +163,6 @@ export type DeviceTimelineApiResponse = {
 };
 
 // Common types
-export type DeviceStatus = 'OK' | 'OFFLINE';
 export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';
 export type UserStatus = 'HOME' | 'AWAY';
 export type CentralHeatingMode = 'ON' | 'OFF' | 'SETBACK';
@@ -182,7 +184,6 @@ export interface RestDeviceResponse {
   provider: string;
   providerId: string;
   roomId: number | null;
-  status: DeviceStatus;
   lastSeen: string;
   capabilities: CapabilityApiResponse[];
 }

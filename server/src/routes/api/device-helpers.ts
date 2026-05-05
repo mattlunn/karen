@@ -1,5 +1,5 @@
 import { Device, NumericEvent, BooleanEvent } from '../../models';
-import { DeviceStatus, NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
+import { NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 import dayjs from '../../dayjs';
 
 type AwaitedObject<T> = {
@@ -275,6 +275,14 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
+    case 'CONNECTIVITY': {
+      const conn = device.getConnectivityCapability();
+      return awaitPromises({
+        type: 'CONNECTIVITY' as const,
+        isConnected: mapBooleanEvent(conn.getIsConnectedEvent(), device)
+      });
+    }
+
     default:
       return { type: null };
   }
@@ -295,8 +303,6 @@ function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fall
 }
 
 export async function mapDeviceToResponse(device: Device): Promise<RestDeviceResponse> {
-  const isConnected = await device.getIsConnected();
-
   const capabilities = device.getCapabilities();
   const capabilityData = await Promise.all(
     capabilities.map(cap => getCapabilityData(device, cap))
@@ -312,7 +318,6 @@ export async function mapDeviceToResponse(device: Device): Promise<RestDeviceRes
     provider: device.provider,
     providerId: device.providerId,
     roomId: device.roomId,
-    status: (isConnected ? 'OK' : 'OFFLINE') as DeviceStatus,
     lastSeen,
     capabilities: capabilityData
   };

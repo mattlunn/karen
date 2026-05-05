@@ -1,6 +1,6 @@
 import React, { useState, useMemo, ReactNode } from 'react';
 import { Checkbox, Group, Title } from '@mantine/core';
-import { faLightbulb, faPersonWalking, faFireBurner, faHandPointer } from '@fortawesome/free-solid-svg-icons';
+import { faLightbulb, faPersonWalking, faFireBurner, faHandPointer, faSignal } from '@fortawesome/free-solid-svg-icons';
 import useApiCall from '../../hooks/api';
 import { useDateRange, DateRangeSelector } from '../date-range';
 import dayjs, { Dayjs } from '../../dayjs';
@@ -73,6 +73,10 @@ function mapEventToComponent(event: DeviceTimelineEventApiResponse): ReactNode {
       return <Event icon={faFireBurner} title={`Mode changed to ${event.value}`} timestamp={event.timestamp} />;
     case 'button-press':
       return <Event icon={faHandPointer} title="Button pressed" timestamp={event.timestamp} />;
+    case 'connectivity-online':
+      return <Event icon={faSignal} title="Device came online" timestamp={event.timestamp} iconColor='#33aa33' />;
+    case 'connectivity-offline':
+      return <Event icon={faSignal} title="Device went offline" timestamp={event.timestamp} iconColor='#cc3333' />;
   }
 }
 

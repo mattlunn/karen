@@ -131,6 +131,15 @@ function mapLightToEndpoints(device: RestDeviceResponse): SmartHomeEndpoint {
       }
     }, {
       type: 'AlexaInterface',
+      interface: 'Alexa.EndpointHealth',
+      version: '3',
+      properties: {
+        supported: [{ name: 'connectivity' }],
+        proactivelyReported: false,
+        retrievable: true
+      }
+    }, {
+      type: 'AlexaInterface',
       interface: 'Alexa',
       version: '3'
     }]

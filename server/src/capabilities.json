@@ -383,4 +383,14 @@
       "eventName": "closed"
     }
   ]
+}, {
+  "name": "Connectivity",
+  "properties": [
+    {
+      "name": "IsConnected",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "is_connected"
+    }
+  ]
 }]
