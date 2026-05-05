@@ -1,6 +1,7 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, NonAttribute, CreationOptional, Op } from 'sequelize';
 import bcrypt from 'bcrypt';
 import { createHash } from 'crypto';
+import { Stay } from './stay';
 
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare public id: CreationOptional<number>;
@@ -57,6 +58,32 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
         }
       }
     });
+  }
+
+  static async getUsersAtHome(): Promise<User[]> {
+    const [currentStays, allUsers] = await Promise.all([
+      Stay.findCurrentStays(),
+      this.findAll()
+    ]);
+    const homeUserIds = new Set(currentStays.map(s => s.userId));
+
+    return allUsers.filter(u => homeUserIds.has(u.id));
+  }
+
+  static async getAbsentUsersWithMobileNumber(): Promise<User[]> {
+    const [currentStays, allUsers] = await Promise.all([
+      Stay.findCurrentStays(),
+      this.findAll()
+    ]);
+    const homeUserIds = new Set(currentStays.map(s => s.userId));
+
+    return allUsers.filter(u => !!u.mobileNumber && !homeUserIds.has(u.id));
+  }
+
+  static async getUsersWithMobileNumber(): Promise<User[]> {
+    const allUsers = await this.findAll();
+
+    return allUsers.filter(u => !!u.mobileNumber);
   }
 }
 
