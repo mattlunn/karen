@@ -120,7 +120,7 @@ export default function ({
         const startTime = await calculateWarmupStartTime(device, nextScheduledChange.temperature, nextScheduledChange.timestamp);
 
         if (dayjs().isAfter(startTime)) {
-          await thermostat.setTargetTemperature(nextScheduledChange.temperature);
+          await thermostat.setTargetTemperatureUntilNextScheduledChange(nextScheduledChange.temperature);
         }
       }
     }
@@ -144,7 +144,7 @@ export default function ({
           earliestWarmup = startTime;
         }
 
-        setTargetTemperatureActors.push(() => thermostat.setTargetTemperature(scheduledTemp));
+        setTargetTemperatureActors.push(() => thermostat.setTargetTemperatureUntilNextScheduledChange(scheduledTemp));
       }
     }
 

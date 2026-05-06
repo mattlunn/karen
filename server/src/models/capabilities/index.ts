@@ -16,6 +16,7 @@ export type ScheduledChange = {
 export interface ProviderThermostatCapability extends ProviderThermostatCapabilityBase {
   getNextScheduledChange(device: Device): Promise<ScheduledChange | null>;
   getScheduledTemperatureAtTime(device: Device, timestamp: Date): Promise<number | null>;
+  setTargetTemperatureUntilNextScheduledChange(device: Device, value: number): Promise<void>;
 }
 
 export type ProviderSpeakerCapability = {

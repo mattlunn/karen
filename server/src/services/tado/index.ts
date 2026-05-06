@@ -83,9 +83,16 @@ Device.registerProvider('tado', {
 
   provideThermostatCapability() {
     return {
-      async setTargetTemperature(device: Device, value: number | null) {
+      async setTargetTemperature(device: Device, value: number) {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
-        const response = await client.setHeatingPowerForZone(device.providerId, value === null ? false : value, false);
+        const response = await client.setHeatingPowerForZone(device.providerId, value, false);
+
+        await updateTargetTemperatureFromOverlay(device, response);
+      },
+
+      async setTargetTemperatureUntilNextScheduledChange(device: Device, value: number) {
+        const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+        const response = await client.setHeatingPowerForZone(device.providerId, value, true);
 
         await updateTargetTemperatureFromOverlay(device, response);
       },
