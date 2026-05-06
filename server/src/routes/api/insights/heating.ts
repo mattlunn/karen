@@ -1,6 +1,6 @@
 import { Device, NumericEvent } from '../../../models';
 import { Request, Response } from 'express';
-import { HeatingInsightsApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../../api/types';
+import { HistoryDetailsApiResponse, NumericEventApiResponse } from '../../../api/types';
 import { TimeRangeSelector } from '../../../models/capabilities/helpers';
 import { mapNumericHistoryToResponse, mapEnumHistoryToResponse } from '../history-helpers';
 import { awaitPromises } from '../../../helpers/promises';
@@ -69,7 +69,7 @@ export default async function (req: Request, res: Response) {
 
   const heatpump = heatpumps[0].getHeatPumpCapability();
 
-  const { lines, modesData, temperatureDeltas } = await awaitPromises({
+  res.json(await awaitPromises({
     lines: asyncMap(thermostats, async (device) => {
       const thermostat = device.getThermostatCapability();
       const [data, isPassive] = await Promise.all([
@@ -85,11 +85,19 @@ export default async function (req: Request, res: Response) {
         borderDash: isPassive ? [5, 5] : undefined
       };
     }),
-    modesData: mapEnumHistoryToResponse(
+    modes: mapEnumHistoryToResponse(
       (hs) => heatpump.getModeHistory(hs),
       selector,
       { 0: 'UNKNOWN', 1: 'STANDBY', 2: 'HEATING', 3: 'DHW', 4: 'DEICING', 5: 'FROST_PROTECTION' }
-    ),
+    ).then(data => ({
+      data,
+      details: [
+        { value: 'HEATING', label: 'Heating' },
+        { value: 'DEICING', label: 'Deicing' },
+        { value: 'FROST_PROTECTION', label: 'Frost Protection' },
+        { value: 'DHW', label: 'Hot Water' }
+      ]
+    })),
     temperatureDeltas: asyncMap(thermostats, async (device) => {
       const thermostat = device.getThermostatCapability();
       const [currentEvents, targetEvents, isPassive] = await Promise.all([
@@ -105,23 +113,7 @@ export default async function (req: Request, res: Response) {
         yAxisID: 'yDelta',
         borderDash: isPassive ? [5, 5] : undefined
       };
-    })
-  });
-
-  const response: HeatingInsightsApiResponse = {
-    lines,
-    modes: {
-      data: modesData,
-      details: [
-        { value: 'HEATING', label: 'Heating' },
-        { value: 'DEICING', label: 'Deicing' },
-        { value: 'FROST_PROTECTION', label: 'Frost Protection' },
-        { value: 'DHW', label: 'Hot Water' }
-      ]
-    },
-    temperatureDeltas,
+    }),
     heatPump: { id: heatpumps[0].id, name: heatpumps[0].name }
-  };
-
-  res.json(response);
+  }));
 }
