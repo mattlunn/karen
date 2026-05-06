@@ -82,8 +82,8 @@ export type CapabilityGraphProps = {
   }
 
   zones?: {
-    min: number;
-    max: number;
+    min?: number;
+    max?: number;
     color: string;
   }[]
 
@@ -299,8 +299,8 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         type: 'box',
         xMin: min,
         xMax: max,
-        yMin: zone.min,
-        yMax: zone.max,
+        ...(zone.min !== undefined ? { yMin: zone.min } : {}),
+        ...(zone.max !== undefined ? { yMax: zone.max } : {}),
         backgroundColor: zone.color,
         borderWidth: 0
       };

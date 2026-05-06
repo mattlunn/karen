@@ -5,6 +5,7 @@ import { TimeRangeSelector } from '../../../models/capabilities/helpers';
 import { mapNumericHistoryToResponse, mapEnumHistoryToResponse } from '../history-helpers';
 import { awaitPromises } from '../../../helpers/promises';
 import { asyncMap } from '../../../helpers/array';
+import config from '../../../config';
 
 function findEventAt(events: NumericEvent[], t: number): NumericEvent | null {
   for (let i = events.length - 1; i >= 0; i--) {
@@ -69,6 +70,9 @@ export default async function (req: Request, res: Response) {
 
   const heatpump = heatpumps[0].getHeatPumpCapability();
 
+  const heatingAutomation = config.automations.find((a) => a.name === 'heating');
+  const switchOnThreshold = heatingAutomation?.parameters?.temperatureDeltaSwitchOnThreshold;
+
   res.json(await awaitPromises({
     lines: asyncMap(thermostats, async (device) => {
       const thermostat = device.getThermostatCapability();
@@ -114,6 +118,7 @@ export default async function (req: Request, res: Response) {
         borderDash: isPassive ? [5, 5] : undefined
       };
     }),
-    heatPump: { id: heatpumps[0].id, name: heatpumps[0].name }
+    heatPump: { id: heatpumps[0].id, name: heatpumps[0].name },
+    temperatureDeltaSwitchOnThreshold: typeof switchOnThreshold === 'number' ? switchOnThreshold : null
   }) satisfies HeatingInsightsApiResponse);
 }

@@ -120,6 +120,11 @@ function HeatingDemandGraph() {
       <CapabilityGraph
         lines={data.temperatureDeltas}
         yAxis={yAxisDelta}
+        zones={
+          data.temperatureDeltaSwitchOnThreshold !== null
+            ? [{ max: -data.temperatureDeltaSwitchOnThreshold, color: 'rgba(255, 0, 55, 0.15)' }]
+            : []
+        }
       />
     </>
   );
