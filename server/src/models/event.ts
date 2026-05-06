@@ -1,6 +1,7 @@
-import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, HasOneGetAssociationMixin, CreationOptional } from 'sequelize';
+import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, HasOneGetAssociationMixin, CreationOptional, QueryTypes } from 'sequelize';
 import { Recording } from './recording';
 import { Device } from './device';
+import logger from '../logger';
 
 export class Event extends Model<InferAttributes<Event>, InferCreationAttributes<Event>> {
   declare public id: CreationOptional<number>;
@@ -43,6 +44,33 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
 
     deviceCache.set(type, latestEvent);
     return latestEvent;
+  }
+
+  /**
+   * Load the latest event for every (deviceId, type) pair into the cache in a
+   * single query. Run this at boot so the first /api/devices request doesn't
+   * trigger a thundering-herd of N+1 lookups against an empty cache.
+   */
+  static async primeLatestEventCache(): Promise<void> {
+    const events = await Event.sequelize!.query<Event>(
+      `SELECT e.* FROM events e
+       INNER JOIN (SELECT MAX(id) AS id FROM events GROUP BY deviceId, type) latest
+       ON e.id = latest.id`,
+      { model: Event, mapToModel: true, type: QueryTypes.SELECT }
+    );
+
+    this.latestEventCache.clear();
+
+    for (const event of events) {
+      let deviceCache = this.latestEventCache.get(event.deviceId);
+      if (!deviceCache) {
+        deviceCache = new Map();
+        this.latestEventCache.set(event.deviceId, deviceCache);
+      }
+      deviceCache.set(event.type, event);
+    }
+
+    logger.info(`Primed latest-event cache with ${events.length} entries across ${this.latestEventCache.size} devices`);
   }
 
   /**

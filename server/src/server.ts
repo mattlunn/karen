@@ -13,7 +13,7 @@ import shellyRoutes from './routes/shelly';
 import tadoRoutes from './routes/tado';
 import vehicleRoutes from './routes/vehicle';
 import auth from './middleware/auth';
-import { Device } from './models';
+import { Device, Event } from './models';
 import config from './config';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
@@ -61,8 +61,13 @@ app.use((req, res) => res.sendFile(__dirname + '/static/index.html', {
   maxAge: dayjs.duration(1, 'year').asMilliseconds()
 }));
 
-httpServer.listen(config.port, () => {
-  logger.info(`Listening on ${config.port}`);
+Event.primeLatestEventCache().then(() => {
+  httpServer.listen(config.port, () => {
+    logger.info(`Listening on ${config.port}`);
+  });
+}).catch((err) => {
+  logger.error({ err }, 'Failed to prime latest-event cache; aborting startup');
+  process.exit(1);
 });
 
 setInterval(createBackgroundTransaction('device:synchronize', () => Device.synchronize()), dayjs.duration(1, 'day').asMilliseconds());
