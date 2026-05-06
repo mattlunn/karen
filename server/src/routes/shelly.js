@@ -15,15 +15,15 @@ router.use((req, res, next) => {
 
 router.get('/event', async (req, res) => {
   const device = await Device.findByProviderIdOrError('shelly', req.query.id);
-  const isOn = req.query.action === 'on';
+  const action = req.query.action;
   const capabilities = device.getCapabilities();
 
   if (capabilities.includes('CONTACT_SENSOR')) {
-    await device.getContactSensorCapability().setIsClosedState(isOn);
+    await device.getContactSensorCapability().setIsClosedState(action === 'closed');
   } else if (capabilities.includes('LIGHT')) {
-    await device.getLightCapability().setIsOnState(isOn);
+    await device.getLightCapability().setIsOnState(action === 'on');
   } else if (capabilities.includes('SWITCH')) {
-    await device.getSwitchCapability().setIsOnState(isOn);
+    await device.getSwitchCapability().setIsOnState(action === 'on');
   }
 
   res.sendStatus(200).end();
@@ -75,8 +75,8 @@ router.get('/install', async (req, res) => {
   const eventUrl = (action) => `http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=${action}`;
 
   if (role === 'contact') {
-    await client.setInputOnWebhook(eventUrl('on'));
-    await client.setInputOffWebhook(eventUrl('off'));
+    await client.setInputOnWebhook(eventUrl('closed'));
+    await client.setInputOffWebhook(eventUrl('open'));
   } else {
     await client.setOutputOffWebhook(eventUrl('off'));
     await client.setOutputOnWebhook(eventUrl('on'));

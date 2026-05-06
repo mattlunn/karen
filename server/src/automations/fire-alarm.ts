@@ -1,4 +1,4 @@
-import { BooleanEvent, User } from '../models';
+import { BooleanEvent, Device, User } from '../models';
 import { callWithKarenMessage } from '../services/twilio';
 import bus, { NOTIFICATION_TO_ALL } from '../bus';
 import dayjs from '../dayjs';
@@ -22,7 +22,7 @@ async function describeWhoIsHome(): Promise<string> {
 }
 
 export default function ({ device_name: deviceName }: FireAlarmAutomationParameters) {
-  const isThisDevice = (d: { name: string }) => d.name === deviceName;
+  const isThisDevice = (d: Device) => d.name === deviceName;
 
   DeviceCapabilityEvents.onContactSensorIsClosedStart(isThisDevice, createBackgroundTransaction('automations:fire-alarm:triggered', async (event: BooleanEvent) => {
     const time = dayjs(event.start).format('HH:mm');
@@ -38,15 +38,15 @@ export default function ({ device_name: deviceName }: FireAlarmAutomationParamet
     }
   }));
 
-  DeviceCapabilityEvents.onConnectivityIsConnectedEnd(isThisDevice, createBackgroundTransaction('automations:fire-alarm:offline', async () => {
-    const message = 'Fire alarm has gone offline.';
+  DeviceCapabilityEvents.onConnectivityIsConnectedEnd(isThisDevice, createBackgroundTransaction('automations:fire-alarm:offline', async (event: BooleanEvent) => {
+    const message = `Fire alarm has gone offline as of ${dayjs(event.start).format('HH:mm')}.`;
 
     logger.warn({ event: 'fire-alarm-offline' }, message);
     bus.emit(NOTIFICATION_TO_ALL, { message, priority: 1 });
   }));
 
-  DeviceCapabilityEvents.onConnectivityIsConnectedStart(isThisDevice, createBackgroundTransaction('automations:fire-alarm:online', async () => {
-    const message = 'Fire alarm is back online.';
+  DeviceCapabilityEvents.onConnectivityIsConnectedStart(isThisDevice, createBackgroundTransaction('automations:fire-alarm:online', async (event: BooleanEvent) => {
+    const message = `Fire alarm is back online as of ${dayjs(event.start).format('HH:mm')}.`;
 
     logger.info({ event: 'fire-alarm-online' }, message);
     bus.emit(NOTIFICATION_TO_ALL, { message, priority: 0 });
