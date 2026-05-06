@@ -122,7 +122,7 @@ export default async function (req: Request, res: Response) {
       ]
     },
     temperatureDeltas,
-    heatPump: heatpumps[0] ? { id: heatpumps[0].id, name: heatpumps[0].name } : null
+    heatPump: { id: heatpumps[0].id, name: heatpumps[0].name }
   };
 
   res.json(response);

@@ -282,7 +282,7 @@ export interface HeatingInsightsApiResponse {
   lines: (HistoryLineApiResponse & { deviceName: string })[];
   modes: HistoryModesApiResponse;
   temperatureDeltas: (HistoryLineApiResponse & { deviceName: string })[];
-  heatPump: { id: number; name: string } | null;
+  heatPump: { id: number; name: string };
 }
 
 export interface DeviceUpdateEvent {

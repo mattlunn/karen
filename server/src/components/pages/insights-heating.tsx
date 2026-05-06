@@ -52,20 +52,14 @@ function HeatPumpLink() {
     return null;
   }
 
-  const links = forDeviceCapability(data.devices, 'HEAT_PUMP', (device) => (
-    <Anchor key={device.id} component={Link} to={`/device/${device.id}`}>
-      {device.name}
-    </Anchor>
-  ));
-
-  if (links.length === 0) {
-    return null;
-  }
-
   return (
     <Group gap="xs" mt="md">
       <Text size="sm" c="dimmed">Heat pump:</Text>
-      {links}
+      {forDeviceCapability(data.devices, 'HEAT_PUMP', (device) => (
+        <Anchor key={device.id} component={Link} to={`/device/${device.id}`}>
+          {device.name}
+        </Anchor>
+      ))}
     </Group>
   );
 }
