@@ -1,6 +1,8 @@
 import { Device, NumericEvent, BooleanEvent } from '../../models';
 import { NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 import dayjs from '../../dayjs';
+import config from '../../config';
+import { pickActiveOccurrence, ChargeScheduleOverride } from '../../services/vehicle/schedule';
 
 type AwaitedObject<T> = {
   [K in keyof T]: T[K] extends Promise<infer U> ? U : T[K];
@@ -244,6 +246,13 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
     case 'ELECTRIC_VEHICLE': {
       const ev = device.getElectricVehicleCapability();
+      const override = (device.meta.chargeScheduleOverride ?? null) as ChargeScheduleOverride | null;
+      const active = pickActiveOccurrence(config.smartcar.chargeSchedules ?? [], override, dayjs());
+      const stored = device.meta.chargeSchedule as { targetTime: string; calculatedStartTime: string } | undefined;
+      const calculatedStartTime = active && stored && stored.targetTime === active.targetTime.toISOString()
+        ? stored.calculatedStartTime
+        : null;
+
       return awaitPromises({
         type: 'ELECTRIC_VEHICLE' as const,
         chargePercentage: mapNumericEvent(ev.getChargePercentageEvent()),
@@ -251,10 +260,14 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         isCableConnected: mapBooleanEvent(ev.getIsCableConnectedEvent(), device),
         chargeLimit: mapNumericEvent(ev.getChargeLimitEvent()),
         odometer: mapNumericEvent(ev.getOdometerEvent()),
-        chargeSchedule: Promise.resolve((() => {
-          const s = device.meta.chargeSchedule as { targetPercentage: number; targetTime: string; calculatedStartTime?: string | null } | undefined;
-          return s ? { targetPercentage: s.targetPercentage, targetTime: s.targetTime, calculatedStartTime: s.calculatedStartTime ?? null } : null;
-        })())
+        chargeSchedule: active ? {
+          source: active.source,
+          scheduleId: active.scheduleId,
+          targetPercentage: active.targetPercentage,
+          targetTime: active.targetTime.toISOString(),
+          calculatedStartTime,
+        } : null,
+        chargeScheduleOverride: override,
       });
     }
 

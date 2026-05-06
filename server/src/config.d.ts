@@ -101,6 +101,13 @@ declare namespace _default {
     const default_charge_limit: number;
     const default_charge_rate_pct_per_hour: number;
     const charge_start_buffer_hours: number;
+    const chargeSchedules: {
+      id: string;
+      targetPercentage: number;
+      targetTimeOfDay: string;
+      anchorDate: string;
+      intervalWeeks: number;
+    }[];
   }
   const bins: {
     overrides: {

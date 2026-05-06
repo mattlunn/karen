@@ -1,6 +1,7 @@
 import { BinCollectionBaseCapability } from './capabilities.gen';
 import config from '../../config';
-import dayjs, { Dayjs } from '../../dayjs';
+import dayjs from '../../dayjs';
+import { buildRruleString, isOccurrenceDay, getNextOccurrence } from '../../helpers/recurrence';
 
 interface BinItemConfig {
   id: string;
@@ -21,39 +22,6 @@ export interface BinScheduleData {
   overrides: Override[];
 }
 
-function buildRruleString(anchorDate: string, intervalWeeks: number): string {
-  const dtstart = anchorDate.replace(/-/g, '') + 'T000000';
-  return `DTSTART:${dtstart}\nRRULE:FREQ=WEEKLY;INTERVAL=${intervalWeeks}`;
-}
-
-function isCollectionDay(anchorDate: string, intervalWeeks: number, dateStr: string): boolean {
-  const anchor = dayjs(anchorDate).startOf('day');
-  const date = dayjs(dateStr).startOf('day');
-  const diffDays = date.diff(anchor, 'day');
-  const periodDays = intervalWeeks * 7;
-
-  return diffDays >= 0 && diffDays % periodDays === 0;
-}
-
-function getNextOccurrence(anchorDate: string, intervalWeeks: number, after: Dayjs): Dayjs {
-  const anchor = dayjs(anchorDate);
-  const diffDays = after.startOf('day').diff(anchor.startOf('day'), 'day');
-  const periodDays = intervalWeeks * 7;
-
-  if (diffDays <= 0) {
-    return anchor;
-  }
-
-  const periodsPassed = Math.floor(diffDays / periodDays);
-  let candidate = anchor.add(periodsPassed * periodDays, 'day');
-
-  if (candidate.isBefore(after, 'day')) {
-    candidate = candidate.add(periodDays, 'day');
-  }
-
-  return candidate;
-}
-
 export class BinCollectionCapability extends BinCollectionBaseCapability {
   #getBinItem(): BinItemConfig {
     const bin = config.bins.items.find(b => b.id === this.device.providerId);
@@ -68,7 +36,7 @@ export class BinCollectionCapability extends BinCollectionBaseCapability {
   #getRelevantOverrides(): Override[] {
     const bin = this.#getBinItem();
     return config.bins.overrides.filter(o =>
-      isCollectionDay(bin.anchorDate, bin.intervalWeeks, o.originalDate)
+      isOccurrenceDay(bin.anchorDate, bin.intervalWeeks, o.originalDate)
     );
   }
 

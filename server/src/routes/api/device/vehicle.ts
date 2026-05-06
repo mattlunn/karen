@@ -2,6 +2,7 @@ import express from 'express';
 import { Device } from '../../../models';
 import { VehicleUpdateRequest, DeviceApiResponse } from '../../../api/types';
 import { mapDeviceToResponse } from '../device-helpers';
+import dayjs from '../../../dayjs';
 
 const router = express.Router({ mergeParams: true });
 
@@ -25,8 +26,18 @@ router.put<Record<string, never>, DeviceApiResponse, VehicleUpdateRequest>('/', 
     await ev.setChargeLimit(body.chargeLimit);
   }
 
-  if ('chargeSchedule' in body) {
-    device.meta.chargeSchedule = body.chargeSchedule;
+  if ('chargeScheduleOverride' in body) {
+    if (body.chargeScheduleOverride !== null) {
+      const targetTime = dayjs(body.chargeScheduleOverride!.targetTime);
+
+      if (!targetTime.isValid() || !targetTime.isAfter(dayjs())) {
+        res.status(400).json({ error: 'chargeScheduleOverride.targetTime must be a valid future timestamp' } as any);
+        return;
+      }
+    }
+
+    device.meta.chargeScheduleOverride = body.chargeScheduleOverride;
+    device.meta.chargeSchedule = undefined;
     await device.save();
   }
 

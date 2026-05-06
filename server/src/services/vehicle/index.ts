@@ -5,10 +5,17 @@ import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';
 import { processSignal } from './signals';
 import { ensureHistoricalMileage, storeWeeklyMileage } from './mileage';
+import { pickActiveOccurrence, buildScheduleNotification, ChargeScheduleOverride } from './schedule';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
 import nowAndSetIntervalForTime from '../../helpers/now-and-set-interval-for-time';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
+
+interface StoredChargeSchedule {
+  targetTime: string;
+  calculatedStartTime: string;
+  hasStarted: boolean;
+}
 
 export async function synchronize() {
   let device = await Device.findByProviderId('vehicle', config.smartcar.vehicle_id);
@@ -158,59 +165,91 @@ async function estimateChargeRate(device: Device): Promise<number> {
   return totalPercentageGained / (totalChargingMinutes / 60);
 }
 
-// Run charge schedule check and mileage update every 15 minutes
+// Run charge schedule check every 15 minutes
 nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async () => {
   const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
   const ev = device.getElectricVehicleCapability();
-  const schedule = device.meta.chargeSchedule as { targetPercentage: number; targetTime: string; calculatedStartTime?: string | null } | undefined;
-
-  if (!schedule) {
-    return;
-  }
-
-  const targetTime = dayjs(schedule.targetTime);
   const now = dayjs();
+  const stored = device.meta.chargeSchedule as StoredChargeSchedule | undefined;
 
-  // If target time has passed, clear schedule and reset charge limit
-  if (now.isAfter(targetTime)) {
+  // 1. Roll-over: the occurrence we were tracking has now passed.
+  //    Reset the charge limit and consume the override if it was the source.
+  if (stored && now.isAfter(dayjs(stored.targetTime))) {
     logger.info('Charge schedule target time passed, resetting charge limit');
-    device.meta.chargeSchedule = undefined;
-
-    await device.save();
     await ev.setChargeLimit(config.smartcar.default_charge_limit);
 
+    const override = device.meta.chargeScheduleOverride as ChargeScheduleOverride | null | undefined;
+    if (override && dayjs(override.targetTime).isSame(dayjs(stored.targetTime))) {
+      device.meta.chargeScheduleOverride = null;
+    }
+
+    device.meta.chargeSchedule = undefined;
+    await device.save();
+  }
+
+  // 2. Re-derive the active occurrence from config + override on each tick.
+  const override = (device.meta.chargeScheduleOverride ?? null) as ChargeScheduleOverride | null;
+  const active = pickActiveOccurrence(config.smartcar.chargeSchedules ?? [], override, now);
+
+  if (!active) {
     return;
   }
 
-  const currentPercentage = await ev.getChargePercentage();
+  const previous = device.meta.chargeSchedule as StoredChargeSchedule | undefined;
+  const isNewOccurrence = !previous || previous.targetTime !== active.targetTime.toISOString();
 
-  if (currentPercentage >= schedule.targetPercentage) {
+  if (await ev.getChargePercentage() >= active.targetPercentage) {
+    if (isNewOccurrence) {
+      device.meta.chargeSchedule = {
+        targetTime: active.targetTime.toISOString(),
+        calculatedStartTime: active.targetTime.toISOString(),
+        hasStarted: true,
+      } satisfies StoredChargeSchedule;
+      await device.save();
+    }
+
     return;
   }
 
+  // 3. Recompute calculatedStartTime each cycle (drifts with charge rate / current %).
   const chargeRate = await estimateChargeRate(device);
-  const percentageNeeded = schedule.targetPercentage - currentPercentage;
+  const percentageNeeded = active.targetPercentage - await ev.getChargePercentage();
   const hoursNeeded = percentageNeeded / chargeRate;
   const bufferHours = config.smartcar.charge_start_buffer_hours ?? 0;
-  const startTime = targetTime.subtract(hoursNeeded + bufferHours, 'hour');
+  const startTime = active.targetTime.subtract(hoursNeeded + bufferHours, 'hour');
 
-  device.meta.chargeSchedule = { ...schedule, calculatedStartTime: startTime.toISOString() };
+  const hasStarted = !isNewOccurrence && (previous?.hasStarted ?? false);
+
+  device.meta.chargeSchedule = {
+    targetTime: active.targetTime.toISOString(),
+    calculatedStartTime: startTime.toISOString(),
+    hasStarted,
+  } satisfies StoredChargeSchedule;
   await device.save();
 
-  if (now.isSameOrAfter(startTime)) {
-    logger.info(`Starting charge to reach ${schedule.targetPercentage}% by ${targetTime.format('HH:mm')}`);
+  // 4. Fire start actions exactly once per occurrence.
+  if (now.isSameOrAfter(startTime) && !hasStarted) {
+    logger.info(`Starting charge to reach ${active.targetPercentage}% by ${active.targetTime.format('HH:mm')}`);
 
-    await ev.setChargeLimit(schedule.targetPercentage);
+    await ev.setChargeLimit(active.targetPercentage);
 
     const isCableConnected = await ev.getIsCableConnected();
 
     if (isCableConnected) {
       await ev.setIsCharging(true);
-      bus.emit(NOTIFICATION_TO_ADMINS, { message: `Car charging started: targeting ${schedule.targetPercentage}% by ${targetTime.format('HH:mm')}` });
     } else {
       logger.warn('Charge schedule: cable not connected, cannot start charging');
-      bus.emit(NOTIFICATION_TO_ADMINS, { message: `Car needs to be plugged in to allow scheduled charge to ${schedule.targetPercentage}% by ${targetTime.format('HH:mm')}` });
     }
+
+    bus.emit(NOTIFICATION_TO_ADMINS, {
+      message: buildScheduleNotification(active.targetPercentage, startTime, active.targetTime, isCableConnected),
+    });
+
+    device.meta.chargeSchedule = {
+      ...(device.meta.chargeSchedule as StoredChargeSchedule),
+      hasStarted: true,
+    } satisfies StoredChargeSchedule;
+    await device.save();
   }
 }), 15 * 60 * 1000);
 

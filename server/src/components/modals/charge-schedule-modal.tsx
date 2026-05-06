@@ -20,7 +20,7 @@ export default function ChargeScheduleModal({ device, capability, closeModal }: 
 
   const handleSubmit = () => {
     updateVehicle({
-      chargeSchedule: {
+      chargeScheduleOverride: {
         targetPercentage,
         targetTime: dayjs(targetTime).toISOString()
       }
