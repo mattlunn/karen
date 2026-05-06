@@ -22,7 +22,11 @@ router.put<Record<string, never>, DeviceApiResponse | ApiErrorResponse, Thermost
   const body = req.body;
 
   if ('targetTemperature' in body) {
-    await thermostat.setTargetTemperature(body.targetTemperature === 0 ? null : body.targetTemperature);
+    if (body.targetTemperature === 0) {
+      await thermostat.setIsOn(false);
+    } else {
+      await thermostat.setTargetTemperature(body.targetTemperature);
+    }
   }
 
   const deviceResponse = await mapDeviceToResponse(device);
