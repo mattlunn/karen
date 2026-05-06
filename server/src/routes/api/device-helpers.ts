@@ -3,8 +3,6 @@ import { NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse,
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
 
-export { awaitPromises };
-
 export function mapNumericEvent(eventPromise: Promise<NumericEvent | null>): Promise<NumericEventApiResponse> {
   return eventPromise.then(event => {
     if (!event) {

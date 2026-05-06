@@ -72,10 +72,10 @@ export default async function (req: Request, res: Response) {
   const { lines, modesData, temperatureDeltas } = await awaitPromises({
     lines: asyncMap(thermostats, async (device) => {
       const thermostat = device.getThermostatCapability();
-      const { data, isPassive } = await awaitPromises({
-        data: mapNumericHistoryToResponse((hs) => thermostat.getPowerHistory(hs), selector),
-        isPassive: thermostat.getIsPassive()
-      });
+      const [data, isPassive] = await Promise.all([
+        mapNumericHistoryToResponse((hs) => thermostat.getPowerHistory(hs), selector),
+        thermostat.getIsPassive()
+      ]);
 
       return {
         data,
@@ -92,11 +92,11 @@ export default async function (req: Request, res: Response) {
     ),
     temperatureDeltas: asyncMap(thermostats, async (device) => {
       const thermostat = device.getThermostatCapability();
-      const { currentEvents, targetEvents, isPassive } = await awaitPromises({
-        currentEvents: thermostat.getCurrentTemperatureHistory(selector),
-        targetEvents: thermostat.getTargetTemperatureHistory(selector),
-        isPassive: thermostat.getIsPassive()
-      });
+      const [currentEvents, targetEvents, isPassive] = await Promise.all([
+        thermostat.getCurrentTemperatureHistory(selector),
+        thermostat.getTargetTemperatureHistory(selector),
+        thermostat.getIsPassive()
+      ]);
 
       return {
         data: computeTemperatureDelta(currentEvents, targetEvents, selector),
