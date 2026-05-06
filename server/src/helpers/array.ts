@@ -19,3 +19,7 @@ export async function asyncFilterAndMap<T, U>(arr: T[], predicate: (item: T) => 
   const filtered = await asyncFilter(arr, predicate);
   return Promise.all(filtered.map(mapper));
 }
+
+export function asyncMap<T, U>(arr: T[], mapper: (item: T) => Promise<U>): Promise<U[]> {
+  return Promise.all(arr.map(mapper));
+}
