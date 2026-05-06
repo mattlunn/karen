@@ -1,6 +1,6 @@
 import { Device, NumericEvent } from '../../../models';
 import { Request, Response } from 'express';
-import { HistoryDetailsApiResponse, NumericEventApiResponse } from '../../../api/types';
+import { HeatingInsightsApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../../api/types';
 import { TimeRangeSelector } from '../../../models/capabilities/helpers';
 import { mapNumericHistoryToResponse, mapEnumHistoryToResponse } from '../history-helpers';
 import { awaitPromises } from '../../../helpers/promises';
@@ -85,19 +85,19 @@ export default async function (req: Request, res: Response) {
         borderDash: isPassive ? [5, 5] : undefined
       };
     }),
-    modes: mapEnumHistoryToResponse(
-      (hs) => heatpump.getModeHistory(hs),
-      selector,
-      { 0: 'UNKNOWN', 1: 'STANDBY', 2: 'HEATING', 3: 'DHW', 4: 'DEICING', 5: 'FROST_PROTECTION' }
-    ).then(data => ({
-      data,
+    modes: awaitPromises({
+      data: mapEnumHistoryToResponse(
+        (hs) => heatpump.getModeHistory(hs),
+        selector,
+        { 0: 'UNKNOWN', 1: 'STANDBY', 2: 'HEATING', 3: 'DHW', 4: 'DEICING', 5: 'FROST_PROTECTION' }
+      ),
       details: [
         { value: 'HEATING', label: 'Heating' },
         { value: 'DEICING', label: 'Deicing' },
         { value: 'FROST_PROTECTION', label: 'Frost Protection' },
         { value: 'DHW', label: 'Hot Water' }
       ]
-    })),
+    }),
     temperatureDeltas: asyncMap(thermostats, async (device) => {
       const thermostat = device.getThermostatCapability();
       const [currentEvents, targetEvents, isPassive] = await Promise.all([
@@ -115,5 +115,5 @@ export default async function (req: Request, res: Response) {
       };
     }),
     heatPump: { id: heatpumps[0].id, name: heatpumps[0].name }
-  }));
+  }) satisfies HeatingInsightsApiResponse);
 }
