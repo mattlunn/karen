@@ -7,131 +7,87 @@ import { asyncFilterAndMap } from '../helpers/array';
 type HeatingAutomationParameters = {
   heatingSwitchName: string;
   temperatureDeltaSwitchOnThreshold: number;
-  temperatureDeltaSwitchOffThreshold: number;
-  heatPumpDeviceName: string;
-  compressorCooldownPeriodInMinutes: number;
 };
 
-let compressorLockedOutForCooldown = false;
+export default function ({ heatingSwitchName, temperatureDeltaSwitchOnThreshold }: HeatingAutomationParameters) {
+  async function evaluateTurnOn(triggeringDevice: Device) {
+    if (await triggeringDevice.getThermostatCapability().getIsPassive()) {
+      return;
+    }
 
-export default function ({ heatingSwitchName, temperatureDeltaSwitchOffThreshold, temperatureDeltaSwitchOnThreshold, heatPumpDeviceName, compressorCooldownPeriodInMinutes }: HeatingAutomationParameters) {
-  function lockoutCompressor() {
-    compressorLockedOutForCooldown = true;
+    const target = await triggeringDevice.getThermostatCapability().getTargetTemperature();
+    const current = await triggeringDevice.getThermostatCapability().getCurrentTemperature();
+    const delta = target - current;
 
-    setTimeout(async () => {
-      if (compressorLockedOutForCooldown === true) {
-        const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
-        const thermostats = await Device.findByCapability('THERMOSTAT');
-        const thermostatsHeatDemand = await asyncFilterAndMap(
-          thermostats,
-          async t => !await t.getThermostatCapability().getIsPassive(),
-          t => t.getThermostatCapability().getIsOn()
-        );
-        const thermostatsAreRequestingHeat = thermostatsHeatDemand.some(x => x);
+    if (delta <= temperatureDeltaSwitchOnThreshold) {
+      return;
+    }
 
-        compressorLockedOutForCooldown = false;
+    const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
 
-        if (thermostatsAreRequestingHeat) {
-          await heatingDevice.getSwitchCapability().setIsOn(true);
-        }
+    if (await heatingDevice.getSwitchCapability().getIsOn()) {
+      return;
+    }
 
-        bus.emit(NOTIFICATION_TO_ADMINS, {
-          message: `Heat pump lockout ended.${thermostatsAreRequestingHeat ? ' Turning heating on as thermostats are requesting heat' : ''}`
-        });
-      }
-    }, compressorCooldownPeriodInMinutes * 60 * 1000);
+    await heatingDevice.getSwitchCapability().setIsOn(true);
+
+    bus.emit(NOTIFICATION_TO_ADMINS, {
+      message: `Turning heating on, as ${triggeringDevice.name} is ${delta.toFixed(1)}° below target of ${target}°C`
+    });
   }
 
-  /**
-   * @returns < 0 === How many degrees below target temperature. > 0 === How many degrees above target temperature
-   */
-  async function getLargestTemperatureDelta() {
-    const thermostats = await Device.findByCapability('THERMOSTAT');
-    const temperatureDeltas = await asyncFilterAndMap(
+  async function evaluateTurnOff() {
+    const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
+
+    if (!await heatingDevice.getSwitchCapability().getIsOn()) {
+      return;
+    }
+
+    const [thermostats, heatPumps] = await Promise.all([
+      Device.findByCapability('THERMOSTAT'),
+      Device.findByCapability('HEAT_PUMP')
+    ]);
+
+    if (heatPumps.length === 0) {
+      return;
+    }
+
+    const compressorModulation = await heatPumps[0].getHeatPumpCapability().getCompressorModulation();
+
+    if (compressorModulation !== 0) {
+      return;
+    }
+
+    const nonPassivePowers = await asyncFilterAndMap(
       thermostats,
       async t => !await t.getThermostatCapability().getIsPassive(),
-      async t => await t.getThermostatCapability().getCurrentTemperature() - await t.getThermostatCapability().getTargetTemperature()
+      t => t.getThermostatCapability().getPower()
     );
 
-    return Math.min(...temperatureDeltas);
+    if (!nonPassivePowers.every(p => p === 0)) {
+      return;
+    }
+
+    await heatingDevice.getSwitchCapability().setIsOn(false);
+
+    bus.emit(NOTIFICATION_TO_ADMINS, {
+      message: 'Turning heating off, as heat pump has modulated to 0 and no thermostats are requesting heat'
+    });
   }
 
-  DeviceCapabilityEvents.onThermostatPowerChanged(createBackgroundTransaction('automations:heating:thermostat-power-changed', async (event) => {
-    const thermostat = await event.getDevice();
-
-    if (await thermostat.getThermostatCapability().getIsPassive()) {
-      return;
-    }
-
-    const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
-    const heatingIsOn = await heatingDevice.getSwitchCapability().getIsOn();
-    const thermostatIsOn = event.value > 0;
-
-    // On power change, if any heating demand, then turn on.
-    if (thermostatIsOn) {
-      if (!heatingIsOn && !compressorLockedOutForCooldown) {
-        await heatingDevice.getSwitchCapability().setIsOn(true);
-
-        bus.emit(NOTIFICATION_TO_ADMINS, {
-          message: `Turning heating on, as ${thermostat.name} is requesting heat (${event.value}%)`
-        });
-      }
-
-    // On power change to 0, if no thermostats within X degrees, then turn off
-    } else {
-      const maximumTemperatureDelta = await getLargestTemperatureDelta();
-
-      if (maximumTemperatureDelta > temperatureDeltaSwitchOffThreshold && heatingIsOn) {
-        await heatingDevice.getSwitchCapability().setIsOn(false);
-
-        bus.emit(NOTIFICATION_TO_ADMINS, { 
-          message: `Turning heating off, as no thermostats are within ${temperatureDeltaSwitchOffThreshold}° of their target temperature`
-        });
-      }
-    }
+  DeviceCapabilityEvents.onThermostatCurrentTemperatureChanged(createBackgroundTransaction('automations:heating:thermostat-current-temperature-changed', async (event) => {
+    await evaluateTurnOn(await event.getDevice());
   }));
 
-  DeviceCapabilityEvents.onThermostatCurrentTemperatureChanged(createBackgroundTransaction('automations:heating:thermostat-temperature-changed', async (event) => {
-    const thermostat = await event.getDevice();
-
-    if (await thermostat.getThermostatCapability().getIsPassive()) {
-      return;
-    }
-
-    const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
-    const target = await thermostat.getThermostatCapability().getTargetTemperature();
-    const temperatureDelta = target - event.value;
-
-    if (temperatureDelta > temperatureDeltaSwitchOnThreshold && compressorLockedOutForCooldown) {
-      await heatingDevice.getSwitchCapability().setIsOn(true);
-
-      compressorLockedOutForCooldown = false;
-
-      bus.emit(NOTIFICATION_TO_ADMINS, {
-        message: `Ending lockout and turning heating on, as ${thermostat.name} is ${temperatureDelta.toFixed(1)}° below target of ${target}°C`
-      });
-    }
+  DeviceCapabilityEvents.onThermostatTargetTemperatureChanged(createBackgroundTransaction('automations:heating:thermostat-target-temperature-changed', async (event) => {
+    await evaluateTurnOn(await event.getDevice());
   }));
 
-  DeviceCapabilityEvents.onHeatPumpCompressorModulationChanged(createBackgroundTransaction('automations:heating:compressor-modulation-changed', async (event) => {
-    const heatingDevice = await Device.findByNameOrError(heatingSwitchName);
-    const heatingIsOn = await heatingDevice.getSwitchCapability().getIsOn();
+  DeviceCapabilityEvents.onThermostatPowerChanged(createBackgroundTransaction('automations:heating:thermostat-power-changed', async () => {
+    await evaluateTurnOff();
+  }));
 
-    // Either because we have already turned heat demand off from above, or there is not enough heat demand to keep
-    // the heat pump on, so turn it off.
-    if (event.value === 0 && heatingIsOn) {
-      const maximumTemperatureDelta = await getLargestTemperatureDelta();
-
-      // ... but only if all rooms are warm enough, otherwise the above condition will just switch the heating on again.
-      if (maximumTemperatureDelta > temperatureDeltaSwitchOnThreshold) {
-        await heatingDevice.getSwitchCapability().setIsOn(false);
-        
-        lockoutCompressor();
-
-        bus.emit(NOTIFICATION_TO_ADMINS, {
-          message: `Turning heating off, and locking out for max ${compressorCooldownPeriodInMinutes} minutes as heat pump compressor has modulated down to 0`
-        });
-      }
-    }
+  DeviceCapabilityEvents.onHeatPumpCompressorModulationChanged(createBackgroundTransaction('automations:heating:heat-pump-compressor-modulation-changed', async () => {
+    await evaluateTurnOff();
   }));
 }
