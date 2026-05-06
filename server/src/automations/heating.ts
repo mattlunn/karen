@@ -49,7 +49,7 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOnThreshold 
     ]);
 
     if (heatPumps.length === 0) {
-      return;
+      throw new Error('Heating automation: expected at least one HEAT_PUMP device, but none were found');
     }
 
     const compressorModulation = await heatPumps[0].getHeatPumpCapability().getCompressorModulation();
