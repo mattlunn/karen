@@ -1,6 +1,7 @@
 import dayjs, { Dayjs } from '../../dayjs';
 import { getNextOccurrence } from '../../helpers/recurrence';
 import { humanDate } from '../../helpers/date';
+import { ManualChargeSchedule } from '../../models/capabilities';
 
 export interface ChargeScheduleConfig {
   id: string;
@@ -10,29 +11,20 @@ export interface ChargeScheduleConfig {
   intervalWeeks: number;
 }
 
-export interface ChargeScheduleOverride {
-  targetPercentage: number;
-  targetTime: string;
-}
-
-export interface ActiveOccurrence {
-  source: 'config' | 'override';
-  scheduleId: string | null;
+export interface NextChargeOccurrence {
   targetPercentage: number;
   targetTime: Dayjs;
 }
 
-export function pickActiveOccurrence(
+export function pickNextChargeSchedule(
   schedules: ChargeScheduleConfig[],
-  override: ChargeScheduleOverride | null,
+  manual: ManualChargeSchedule | null,
   now: Dayjs,
-): ActiveOccurrence | null {
-  if (override && dayjs(override.targetTime).isAfter(now)) {
+): NextChargeOccurrence | null {
+  if (manual && dayjs(manual.targetTime).isAfter(now)) {
     return {
-      source: 'override',
-      scheduleId: null,
-      targetPercentage: override.targetPercentage,
-      targetTime: dayjs(override.targetTime),
+      targetPercentage: manual.targetPercentage,
+      targetTime: dayjs(manual.targetTime),
     };
   }
 
@@ -46,8 +38,6 @@ export function pickActiveOccurrence(
     }
 
     return {
-      source: 'config' as const,
-      scheduleId: s.id,
       targetPercentage: s.targetPercentage,
       targetTime: target,
     };

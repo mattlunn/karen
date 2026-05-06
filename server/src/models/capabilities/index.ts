@@ -1,10 +1,11 @@
 import { Device } from '../';
-import { ProviderThermostatCapabilityBase } from './capabilities.gen';
+import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase } from './capabilities.gen';
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
 export { SpeakerCapability } from './speaker';
 export { ThermostatCapability } from './thermostat';
+export { ElectricVehicleCapability } from './electric-vehicle';
 export { BinCollectionCapability } from './bin-collection';
 export * from './capabilities.gen';
 
@@ -16,6 +17,22 @@ export type ScheduledChange = {
 export interface ProviderThermostatCapability extends ProviderThermostatCapabilityBase {
   getNextScheduledChange(device: Device): Promise<ScheduledChange | null>;
   getScheduledTemperatureAtTime(device: Device, timestamp: Date): Promise<number | null>;
+}
+
+export interface NextChargeSchedule {
+  targetPercentage: number;
+  targetTime: string;
+  calculatedStartTime: string | null;
+}
+
+export interface ManualChargeSchedule {
+  targetPercentage: number;
+  targetTime: string;
+}
+
+export interface ProviderElectricVehicleCapability extends ProviderElectricVehicleCapabilityBase {
+  getNextChargeSchedule(device: Device): NextChargeSchedule | null;
+  setManualChargeSchedule(device: Device, schedule: ManualChargeSchedule | null): Promise<void>;
 }
 
 export type ProviderSpeakerCapability = {

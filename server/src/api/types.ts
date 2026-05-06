@@ -67,14 +67,7 @@ export type CapabilityApiResponse = {
   isCableConnected: BooleanEventApiResponse;
   chargeLimit: NumericEventApiResponse;
   odometer: NumericEventApiResponse;
-  chargeSchedule: {
-    source: 'config' | 'override';
-    scheduleId: string | null;
-    targetPercentage: number;
-    targetTime: string;
-    calculatedStartTime: string | null;
-  } | null;
-  chargeScheduleOverride: { targetPercentage: number; targetTime: string } | null;
+  chargeSchedule: { targetPercentage: number; targetTime: string; calculatedStartTime: string | null } | null;
 } | {
   type: 'BIN_COLLECTION';
   color: string;
@@ -223,7 +216,7 @@ export interface ThermostatUpdateRequest {
 // /api/device/:id/vehicle endpoint
 export interface VehicleUpdateRequest {
   chargeLimit?: number;
-  chargeScheduleOverride?: { targetPercentage: number; targetTime: string } | null;
+  manualChargeSchedule?: { targetPercentage: number; targetTime: string } | null;
 }
 
 // /api/security endpoint

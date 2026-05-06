@@ -26,19 +26,17 @@ router.put<Record<string, never>, DeviceApiResponse, VehicleUpdateRequest>('/', 
     await ev.setChargeLimit(body.chargeLimit);
   }
 
-  if ('chargeScheduleOverride' in body) {
-    if (body.chargeScheduleOverride !== null) {
-      const targetTime = dayjs(body.chargeScheduleOverride!.targetTime);
+  if ('manualChargeSchedule' in body) {
+    if (body.manualChargeSchedule !== null) {
+      const targetTime = dayjs(body.manualChargeSchedule!.targetTime);
 
       if (!targetTime.isValid() || !targetTime.isAfter(dayjs())) {
-        res.status(400).json({ error: 'chargeScheduleOverride.targetTime must be a valid future timestamp' } as any);
+        res.status(400).json({ error: 'manualChargeSchedule.targetTime must be a valid future timestamp' } as any);
         return;
       }
     }
 
-    device.meta.chargeScheduleOverride = body.chargeScheduleOverride;
-    device.meta.chargeSchedule = undefined;
-    await device.save();
+    await ev.setManualChargeSchedule(body.manualChargeSchedule ?? null);
   }
 
   const deviceResponse = await mapDeviceToResponse(device);

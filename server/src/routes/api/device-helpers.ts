@@ -233,12 +233,6 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
     case 'ELECTRIC_VEHICLE': {
       const ev = device.getElectricVehicleCapability();
-      const override = (device.meta.chargeScheduleOverride ?? null) as ChargeScheduleOverride | null;
-      const active = pickActiveOccurrence(config.smartcar.chargeSchedules ?? [], override, dayjs());
-      const stored = device.meta.chargeSchedule as { targetTime: string; calculatedStartTime: string } | undefined;
-      const calculatedStartTime = active && stored && stored.targetTime === active.targetTime.toISOString()
-        ? stored.calculatedStartTime
-        : null;
 
       return awaitPromises({
         type: 'ELECTRIC_VEHICLE' as const,
@@ -247,14 +241,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         isCableConnected: mapBooleanEvent(ev.getIsCableConnectedEvent(), device),
         chargeLimit: mapNumericEvent(ev.getChargeLimitEvent()),
         odometer: mapNumericEvent(ev.getOdometerEvent()),
-        chargeSchedule: active ? {
-          source: active.source,
-          scheduleId: active.scheduleId,
-          targetPercentage: active.targetPercentage,
-          targetTime: active.targetTime.toISOString(),
-          calculatedStartTime,
-        } : null,
-        chargeScheduleOverride: override,
+        chargeSchedule: ev.getNextChargeSchedule(),
       });
     }
 
