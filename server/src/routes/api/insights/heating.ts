@@ -3,6 +3,8 @@ import { Request, Response } from 'express';
 import { HeatingInsightsApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../../api/types';
 import { TimeRangeSelector } from '../../../models/capabilities/helpers';
 import { mapNumericHistoryToResponse, mapEnumHistoryToResponse } from '../history-helpers';
+import { awaitPromises } from '../../../helpers/promises';
+import { asyncMap } from '../../../helpers/array';
 
 function findEventAt(events: NumericEvent[], t: number): NumericEvent | null {
   for (let i = events.length - 1; i >= 0; i--) {
@@ -67,48 +69,44 @@ export default async function (req: Request, res: Response) {
 
   const heatpump = heatpumps[0].getHeatPumpCapability();
 
-  const [lines, modesData, temperatureDeltas] = await Promise.all([
-    Promise.all(
-      thermostats.map(async (device) => {
-        const thermostat = device.getThermostatCapability();
-        const [data, isPassive] = await Promise.all([
-          mapNumericHistoryToResponse((hs) => thermostat.getPowerHistory(hs), selector),
-          thermostat.getIsPassive()
-        ]);
+  const { lines, modesData, temperatureDeltas } = await awaitPromises({
+    lines: asyncMap(thermostats, async (device) => {
+      const thermostat = device.getThermostatCapability();
+      const { data, isPassive } = await awaitPromises({
+        data: mapNumericHistoryToResponse((hs) => thermostat.getPowerHistory(hs), selector),
+        isPassive: thermostat.getIsPassive()
+      });
 
-        return {
-          data,
-          label: device.name,
-          deviceName: device.name,
-          yAxisID: 'yPercentage',
-          borderDash: isPassive ? [5, 5] : undefined
-        };
-      })
-    ),
-    mapEnumHistoryToResponse(
+      return {
+        data,
+        label: device.name,
+        deviceName: device.name,
+        yAxisID: 'yPercentage',
+        borderDash: isPassive ? [5, 5] : undefined
+      };
+    }),
+    modesData: mapEnumHistoryToResponse(
       (hs) => heatpump.getModeHistory(hs),
       selector,
       { 0: 'UNKNOWN', 1: 'STANDBY', 2: 'HEATING', 3: 'DHW', 4: 'DEICING', 5: 'FROST_PROTECTION' }
     ),
-    Promise.all(
-      thermostats.map(async (device) => {
-        const thermostat = device.getThermostatCapability();
-        const [currentEvents, targetEvents, isPassive] = await Promise.all([
-          thermostat.getCurrentTemperatureHistory(selector),
-          thermostat.getTargetTemperatureHistory(selector),
-          thermostat.getIsPassive()
-        ]);
+    temperatureDeltas: asyncMap(thermostats, async (device) => {
+      const thermostat = device.getThermostatCapability();
+      const { currentEvents, targetEvents, isPassive } = await awaitPromises({
+        currentEvents: thermostat.getCurrentTemperatureHistory(selector),
+        targetEvents: thermostat.getTargetTemperatureHistory(selector),
+        isPassive: thermostat.getIsPassive()
+      });
 
-        return {
-          data: computeTemperatureDelta(currentEvents, targetEvents, selector),
-          label: device.name,
-          deviceName: device.name,
-          yAxisID: 'yDelta',
-          borderDash: isPassive ? [5, 5] : undefined
-        };
-      })
-    )
-  ]);
+      return {
+        data: computeTemperatureDelta(currentEvents, targetEvents, selector),
+        label: device.name,
+        deviceName: device.name,
+        yAxisID: 'yDelta',
+        borderDash: isPassive ? [5, 5] : undefined
+      };
+    })
+  });
 
   const response: HeatingInsightsApiResponse = {
     lines,
