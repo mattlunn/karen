@@ -36,9 +36,11 @@ function useSnapshotData(cameras: Camera[]): SnapshotsMap {
       try {
         const snapshot = await loadSnapshot(camera);
         const old = urls.get(camera.id);
+
         if (old) {
           URL.revokeObjectURL(old);
         }
+
         urls.set(camera.id, snapshot);
         setSnapshots(prev => ({ ...prev, [camera.id]: { loading: false, snapshot } }));
       } catch {
