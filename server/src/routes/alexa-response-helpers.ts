@@ -1,5 +1,5 @@
 import { AlarmMode } from '../api/types';
-import { LightCapability, ThermostatCapability } from '../models/capabilities';
+import { Device } from '../models';
 
 export interface AlexaEndpointProperty {
   namespace: string;
@@ -9,8 +9,24 @@ export interface AlexaEndpointProperty {
   uncertaintyInMilliseconds: number;
 }
 
-export async function createLightResponseProperties(light: LightCapability, sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
-  const [isOn, brightness] = await Promise.all([light.getIsOn(), light.getBrightness()]);
+async function getConnectivityValue(device: Device): Promise<'OK' | 'UNREACHABLE'> {
+  if (!device.getCapabilities().includes('CONNECTIVITY')) {
+    return 'OK';
+  }
+
+  const isConnected = await device.getConnectivityCapability().getIsConnected();
+
+  return isConnected ? 'OK' : 'UNREACHABLE';
+}
+
+export async function createLightResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
+  const light = device.getLightCapability();
+
+  const [isOn, brightness, connectivity] = await Promise.all([
+    light.getIsOn(),
+    light.getBrightness(),
+    getConnectivityValue(device)
+  ]);
 
   return [{
     namespace: 'Alexa.PowerController',
@@ -27,17 +43,20 @@ export async function createLightResponseProperties(light: LightCapability, samp
   }, {
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
-    value: { value: 'OK' },
+    value: { value: connectivity },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }];
 }
 
-export async function createThermostatResponseProperties(thermostat: ThermostatCapability, sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
-  const [currentTemperature, targetTemperature, isHeating] = await Promise.all([
+export async function createThermostatResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
+  const thermostat = device.getThermostatCapability();
+
+  const [currentTemperature, targetTemperature, isHeating, connectivity] = await Promise.all([
     thermostat.getCurrentTemperature(),
     thermostat.getTargetTemperature(),
-    thermostat.getIsOn()
+    thermostat.getIsOn(),
+    getConnectivityValue(device)
   ]);
 
   return [{
@@ -61,7 +80,7 @@ export async function createThermostatResponseProperties(thermostat: ThermostatC
   }, {
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
-    value: { value: 'OK' },
+    value: { value: connectivity },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }];

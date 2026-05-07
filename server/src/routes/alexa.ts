@@ -89,16 +89,13 @@ async function handleReportState(directive: AlexaDirective) {
     return stateReport(directive, createAlarmResponseProperties(alarmMode, then, Date.now() - then.valueOf()));
   }
 
-  const device = await Device.findById(endpointId);
-  if (!device) throw new Error(`Device ${endpointId} not found`);
+  const device = await Device.findByIdOrError(endpointId);
   const capabilities = device.getCapabilities();
 
   if (capabilities.includes('LIGHT')) {
-    const light = device.getLightCapability();
-    return stateReport(directive, await createLightResponseProperties(light, then, Date.now() - then.valueOf()));
+    return stateReport(directive, await createLightResponseProperties(device, then, Date.now() - then.valueOf()));
   } else if (capabilities.includes('THERMOSTAT')) {
-    const thermostat = device.getThermostatCapability();
-    return stateReport(directive, await createThermostatResponseProperties(thermostat, then, Date.now() - then.valueOf()));
+    return stateReport(directive, await createThermostatResponseProperties(device, then, Date.now() - then.valueOf()));
   } else {
     throw new Error(`Unable to report state on ${endpointId}`);
   }
@@ -106,12 +103,8 @@ async function handleReportState(directive: AlexaDirective) {
 
 async function handleLightControl(directive: AlexaDirective, update: { isOn?: boolean; brightness?: number }) {
   const id = directive.endpoint!.endpointId;
-  const device = await Device.findById(id);
-  if (!device) throw new Error(`Device ${id} not found`);
-
+  const device = await Device.findByIdOrError(id);
   const light = device.getLightCapability();
-  if (!light) throw new Error(`Device ${id} does not have light capability`);
-
   const then = new Date();
 
   if ('brightness' in update && update.brightness !== undefined) {
@@ -120,7 +113,7 @@ async function handleLightControl(directive: AlexaDirective, update: { isOn?: bo
     await light.setIsOn(update.isOn);
   }
 
-  return controlResponse(directive, await createLightResponseProperties(light, then, Date.now() - then.valueOf()));
+  return controlResponse(directive, await createLightResponseProperties(device, then, Date.now() - then.valueOf()));
 }
 
 async function handleAlarmControl(directive: AlexaDirective, name: string) {
@@ -148,52 +141,46 @@ async function handleAlarmControl(directive: AlexaDirective, name: string) {
   return controlResponse(directive, createAlarmResponseProperties(alarmMode, now, 0));
 }
 
+type DirectiveHandler = (directive: AlexaDirective) => Promise<object>;
+
+const directiveHandlers: Record<string, DirectiveHandler> = {
+  'Alexa.Discovery': handleDiscover,
+  'Alexa.Authorization': handleAcceptGrant,
+  'Alexa': handleReportState,
+  'Alexa.PowerController': (directive) => handleLightControl(directive, { isOn: directive.header.name === 'TurnOn' }),
+  'Alexa.BrightnessController': async (directive) => {
+    const { name } = directive.header;
+
+    if (name === 'SetBrightness') {
+      return handleLightControl(directive, { brightness: (directive.payload as { brightness: number }).brightness });
+    }
+
+    const id = directive.endpoint!.endpointId;
+    const device = await Device.findByIdOrError(id);
+    const light = device.getLightCapability();
+    const delta = (directive.payload as { brightnessDelta: number }).brightnessDelta;
+    const newBrightness = Math.max(0, Math.min(100, await light.getBrightness() + delta));
+
+    return handleLightControl(directive, { brightness: newBrightness });
+  },
+  'Alexa.SecurityPanelController': (directive) => handleAlarmControl(directive, directive.header.name)
+};
+
 router.post('/endpoint', auth, async (req, res) => {
   const body = req.body as Record<string, unknown>;
 
   if ('directive' in body) {
     const directive = body.directive as AlexaDirective;
-    const { namespace, name, messageId } = directive.header;
+    const { namespace, messageId } = directive.header;
+    const handler = directiveHandlers[namespace];
+
+    if (!handler) {
+      res.status(404).json({ error: `No handler for namespace ${namespace}` });
+      return;
+    }
 
     try {
-      let response: object;
-
-      switch (namespace) {
-        case 'Alexa.Discovery':
-          response = await handleDiscover(directive);
-          break;
-        case 'Alexa.Authorization':
-          response = await handleAcceptGrant(directive);
-          break;
-        case 'Alexa':
-          response = await handleReportState(directive);
-          break;
-        case 'Alexa.PowerController':
-          response = await handleLightControl(directive, { isOn: name === 'TurnOn' });
-          break;
-        case 'Alexa.BrightnessController': {
-          if (name === 'SetBrightness') {
-            response = await handleLightControl(directive, { brightness: (directive.payload as { brightness: number }).brightness });
-          } else {
-            const id = directive.endpoint!.endpointId;
-            const device = await Device.findById(id);
-            if (!device) throw new Error(`Device ${id} not found`);
-            const light = device.getLightCapability();
-            if (!light) throw new Error(`Device ${id} does not have light capability`);
-            const delta = (directive.payload as { brightnessDelta: number }).brightnessDelta;
-            const newBrightness = Math.max(0, Math.min(100, await light.getBrightness() + delta));
-            response = await handleLightControl(directive, { brightness: newBrightness });
-          }
-          break;
-        }
-        case 'Alexa.SecurityPanelController':
-          response = await handleAlarmControl(directive, name);
-          break;
-        default:
-          res.status(404).json({ error: `No handler for namespace ${namespace}` });
-          return;
-      }
-
+      const response = await handler(directive);
       res.json(response);
     } catch (e) {
       res.json({

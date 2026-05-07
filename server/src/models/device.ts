@@ -170,6 +170,16 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     });
   }
 
+  static async findByIdOrError(id: string) {
+    const device = await this.findById(id);
+
+    if (device === null) {
+      throw new Error(`Device ${id} not found`);
+    }
+
+    return device;
+  }
+
   static async findByCapability(capability: Capability) {
     const allDevices = await this.findAll();
 
