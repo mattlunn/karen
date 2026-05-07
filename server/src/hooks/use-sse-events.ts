@@ -59,7 +59,8 @@ export function useSSEEvents() {
 
     const handleDeviceUpdate = (event: DeviceUpdateEvent) => {
       queryClient.setQueryData(['device', event.device.id], { device: event.device } satisfies DeviceApiResponse);
-      queryClient.setQueryData(['devices'], (old: DevicesApiResponse) => {
+      queryClient.setQueryData(['devices'], (old: DevicesApiResponse | undefined) => {
+        if (!old) return old;
         return {
           ...old,
           devices: old.devices.map((device: RestDeviceResponse) => {
