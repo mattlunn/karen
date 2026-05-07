@@ -277,6 +277,15 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
           }
         }, {
           type: 'AlexaInterface',
+          interface: 'Alexa.EndpointHealth',
+          version: '3',
+          properties: {
+            supported: [{ name: 'connectivity' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
           interface: 'Alexa',
           version: '3'
         }]
@@ -304,8 +313,8 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
               friendlyNames: [{ '@type': 'text', value: { text: isButton ? 'Single push' : 'Synthetic trigger', locale: 'en-US' } }]
             }]
           }
-        }, {
-          type: 'AlexaInterface',
+        }, ...(!isButton ? [{
+          type: 'AlexaInterface' as const,
           interface: 'Alexa.EndpointHealth',
           version: '3',
           properties: {
@@ -313,7 +322,7 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
             proactivelyReported: false,
             retrievable: false
           }
-        }, {
+        }] : []), {
           type: 'AlexaInterface',
           interface: 'Alexa',
           version: '3'
