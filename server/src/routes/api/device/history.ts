@@ -316,7 +316,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
 
 // Route handler
 
-export default async function (req: Request, res: Response, next: NextFunction) {
+export default async function (req: Request<{ id: string }>, res: Response, next: NextFunction) {
   const graphId = req.query.id as string | undefined;
 
   if (!graphId) {
