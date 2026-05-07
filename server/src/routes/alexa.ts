@@ -4,7 +4,6 @@ import { ArmingMode } from '../models/arming';
 import { exchangeAuthenticationToken } from '../services/alexa/client';
 import { buildDiscoveryEndpoints, ALARM_ENDPOINT_ID } from '../services/alexa';
 import auth from '../middleware/auth';
-import { mapDeviceToResponse } from './api/device-helpers';
 import {
   createLightResponseProperties,
   createThermostatResponseProperties,
@@ -92,16 +91,16 @@ async function handleReportState(directive: AlexaDirective) {
 
   const device = await Device.findById(endpointId);
   if (!device) throw new Error(`Device ${endpointId} not found`);
-  const deviceResponse = await mapDeviceToResponse(device);
-  const capType = deviceResponse.capabilities.find(c => c.type === 'LIGHT' || c.type === 'THERMOSTAT');
+  const capabilities = device.getCapabilities();
 
-  switch (capType?.type) {
-    case 'LIGHT':
-      return stateReport(directive, createLightResponseProperties(deviceResponse, then, Date.now() - then.valueOf()));
-    case 'THERMOSTAT':
-      return stateReport(directive, createThermostatResponseProperties(deviceResponse, then, Date.now() - then.valueOf()));
-    default:
-      throw new Error(`Unable to report state on ${endpointId}`);
+  if (capabilities.includes('LIGHT')) {
+    const light = device.getLightCapability();
+    return stateReport(directive, await createLightResponseProperties(light, then, Date.now() - then.valueOf()));
+  } else if (capabilities.includes('THERMOSTAT')) {
+    const thermostat = device.getThermostatCapability();
+    return stateReport(directive, await createThermostatResponseProperties(thermostat, then, Date.now() - then.valueOf()));
+  } else {
+    throw new Error(`Unable to report state on ${endpointId}`);
   }
 }
 
@@ -121,8 +120,7 @@ async function handleLightControl(directive: AlexaDirective, update: { isOn?: bo
     await light.setIsOn(update.isOn);
   }
 
-  const deviceResponse = await mapDeviceToResponse(device);
-  return controlResponse(directive, createLightResponseProperties(deviceResponse, then, Date.now() - then.valueOf()));
+  return controlResponse(directive, await createLightResponseProperties(light, then, Date.now() - then.valueOf()));
 }
 
 async function handleAlarmControl(directive: AlexaDirective, name: string) {
@@ -180,11 +178,10 @@ router.post('/endpoint', auth, async (req, res) => {
             const id = directive.endpoint!.endpointId;
             const device = await Device.findById(id);
             if (!device) throw new Error(`Device ${id} not found`);
-            const deviceResponse = await mapDeviceToResponse(device);
-            const lightCap = deviceResponse.capabilities.find(c => c.type === 'LIGHT');
-            if (!lightCap || lightCap.type !== 'LIGHT') throw new Error(`Device ${id} does not have light capability`);
+            const light = device.getLightCapability();
+            if (!light) throw new Error(`Device ${id} does not have light capability`);
             const delta = (directive.payload as { brightnessDelta: number }).brightnessDelta;
-            const newBrightness = Math.max(0, Math.min(100, lightCap.brightness.value + delta));
+            const newBrightness = Math.max(0, Math.min(100, await light.getBrightness() + delta));
             response = await handleLightControl(directive, { brightness: newBrightness });
           }
           break;

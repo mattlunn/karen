@@ -1,4 +1,5 @@
-import { RestDeviceResponse, AlarmMode } from '../api/types';
+import { AlarmMode } from '../api/types';
+import { LightCapability, ThermostatCapability } from '../models/capabilities';
 
 export interface AlexaEndpointProperty {
   namespace: string;
@@ -8,63 +9,59 @@ export interface AlexaEndpointProperty {
   uncertaintyInMilliseconds: number;
 }
 
-export function createLightResponseProperties(device: RestDeviceResponse, sampleTime: Date, uncertaintyInMilliseconds: number): AlexaEndpointProperty[] {
-  const lightCapability = device.capabilities.find(c => c.type === 'LIGHT');
-
-  if (!lightCapability || lightCapability.type !== 'LIGHT') {
-    throw new Error('Light capability not found');
-  }
+export async function createLightResponseProperties(light: LightCapability, sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
+  const [isOn, brightness] = await Promise.all([light.getIsOn(), light.getBrightness()]);
 
   return [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
-    value: lightCapability.isOn.value ? 'ON' : 'OFF',
+    value: isOn ? 'ON' : 'OFF',
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }, {
     namespace: 'Alexa.BrightnessController',
     name: 'brightness',
-    value: lightCapability.brightness.value,
+    value: brightness,
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }, {
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
-    value: { value: device.status === 'OK' ? 'OK' : 'UNREACHABLE' },
+    value: { value: 'OK' },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }];
 }
 
-export function createThermostatResponseProperties(device: RestDeviceResponse, sampleTime: Date, uncertaintyInMilliseconds: number): AlexaEndpointProperty[] {
-  const thermostatCapability = device.capabilities.find(c => c.type === 'THERMOSTAT');
-
-  if (!thermostatCapability || thermostatCapability.type !== 'THERMOSTAT') {
-    throw new Error('Thermostat capability not found');
-  }
+export async function createThermostatResponseProperties(thermostat: ThermostatCapability, sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
+  const [currentTemperature, targetTemperature, isHeating] = await Promise.all([
+    thermostat.getCurrentTemperature(),
+    thermostat.getTargetTemperature(),
+    thermostat.getIsOn()
+  ]);
 
   return [{
     namespace: 'Alexa.TemperatureSensor',
     name: 'temperature',
-    value: { value: thermostatCapability.currentTemperature.value, scale: 'CELSIUS' },
+    value: { value: currentTemperature, scale: 'CELSIUS' },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }, {
     namespace: 'Alexa.ThermostatController',
     name: 'thermostatMode',
-    value: thermostatCapability.isHeating.value ? 'HEAT' : 'OFF',
+    value: isHeating ? 'HEAT' : 'OFF',
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }, {
     namespace: 'Alexa.ThermostatController',
     name: 'targetSetpoint',
-    value: { value: thermostatCapability.targetTemperature.value, scale: 'CELSIUS' },
+    value: { value: targetTemperature, scale: 'CELSIUS' },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }, {
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
-    value: { value: device.status === 'OK' ? 'OK' : 'UNREACHABLE' },
+    value: { value: 'OK' },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }];

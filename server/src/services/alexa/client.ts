@@ -88,6 +88,38 @@ export async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void>
   }
 }
 
+export async function sendDeleteReport(endpointIds: string[]): Promise<void> {
+  const bearer = await getAccessToken();
+  const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${bearer}`
+    },
+    body: JSON.stringify({
+      event: {
+        header: {
+          namespace: 'Alexa.Discovery',
+          name: 'DeleteReport',
+          messageId: uuid(),
+          payloadVersion: '3'
+        },
+        payload: {
+          endpoints: endpointIds.map(endpointId => ({ endpointId })),
+          scope: {
+            type: 'BearerToken',
+            token: bearer
+          }
+        }
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Got a ${response.status} back while sending Alexa.Discovery DeleteReport`);
+  }
+}
+
 export async function sendSimpleEventSource(deviceId: number | string): Promise<void> {
   const endpointId = String(deviceId);
   const instanceId = `${endpointId}-1`;

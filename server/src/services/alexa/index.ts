@@ -1,7 +1,7 @@
 import config from '../../config';
 import { Device } from '../../models';
 import { DeviceCapabilityEvents } from '../../models/capabilities';
-import { sendAddOrUpdateReport, sendSimpleEventSource } from './client';
+import { sendAddOrUpdateReport, sendDeleteReport, sendSimpleEventSource } from './client';
 import logger from '../../logger';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
@@ -317,11 +317,19 @@ async function syncDiscovery() {
     return;
   }
 
-  const devices = await Device.findAll();
-  const endpoints = buildDiscoveryEndpoints(devices);
+  const allDevices = await Device.findAll({ paranoid: false });
+  const activeDevices = allDevices.filter(d => !d.isSoftDeleted());
+  const deletedDevices = allDevices.filter(d => d.isSoftDeleted());
 
+  const endpoints = buildDiscoveryEndpoints(activeDevices);
   await sendAddOrUpdateReport(endpoints);
-  logger.info(`Alexa discovery sync complete: reported ${endpoints.length} endpoints`);
+
+  const deletedEndpointIds = deletedDevices.map(d => String(d.id));
+  if (deletedEndpointIds.length > 0) {
+    await sendDeleteReport(deletedEndpointIds);
+  }
+
+  logger.info(`Alexa discovery sync complete: reported ${endpoints.length} endpoints, deleted ${deletedEndpointIds.length}`);
 }
 
 nowAndSetInterval(
