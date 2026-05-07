@@ -79,10 +79,16 @@ Device.registerProvider('vehicle', {
 
       getNextChargeSchedule(device: Device): NextChargeSchedule | null {
         const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
-        if (stored) return stored;
+
+        if (stored) {
+          return stored;
+        }
 
         const next = pickNextChargeSchedule(config.smartcar.charge_schedules ?? [], dayjs());
-        if (!next) return null;
+
+        if (!next) {
+          return null;
+        }
 
         return {
           targetPercentage: next.targetPercentage,
@@ -97,6 +103,7 @@ Device.registerProvider('vehicle', {
           targetTime: schedule.targetTime,
           calculatedStartTime: null,
         } satisfies NextChargeSchedule : undefined;
+
         await device.save();
       },
     };
@@ -107,19 +114,29 @@ Device.registerProvider('vehicle', {
 
 async function clearNextChargeIfExpired(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
   const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
-  if (!stored || !now.isAfter(dayjs(stored.targetTime))) return;
+
+  if (!stored || !now.isAfter(dayjs(stored.targetTime))) {
+    return;
+  }
 
   logger.info('Charge schedule target time passed, resetting charge limit');
-  await ev.setChargeLimit(config.smartcar.default_charge_limit);
+
   device.meta.chargeSchedule = undefined;
+
+  await ev.setChargeLimit(config.smartcar.default_charge_limit);
   await device.save();
 }
 
 function chooseNextCharge(device: Device, now: Dayjs) {
-  if (device.meta.chargeSchedule) return;
+  if (device.meta.chargeSchedule) {
+    return;
+  }
 
   const next = pickNextChargeSchedule(config.smartcar.charge_schedules ?? [], now);
-  if (!next) return;
+
+  if (!next) {
+    return;
+  }
 
   device.meta.chargeSchedule = {
     targetPercentage: next.targetPercentage,
@@ -130,7 +147,10 @@ function chooseNextCharge(device: Device, now: Dayjs) {
 
 async function recomputeStartTimeForNextCharge(device: Device, ev: ElectricVehicleCapability) {
   const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
-  if (!stored) return;
+
+  if (!stored) {
+    return;
+  }
 
   const chargeRate = config.smartcar.default_charge_rate_pct_per_hour;
   const percentageNeeded = stored.targetPercentage - await ev.getChargePercentage();
@@ -142,6 +162,7 @@ async function recomputeStartTimeForNextCharge(device: Device, ev: ElectricVehic
     ...stored,
     calculatedStartTime: startTime.toISOString(),
   } satisfies NextChargeSchedule;
+
   await device.save();
 }
 
@@ -150,11 +171,20 @@ async function recomputeStartTimeForNextCharge(device: Device, ev: ElectricVehic
 // is reset (e.g. the next occurrence rolls in).
 async function notifyUsersOfChargingState(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
   const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
-  if (!stored || !stored.calculatedStartTime) return;
+
+  if (!stored || !stored.calculatedStartTime) {
+    return;
+  }
 
   const startTime = dayjs(stored.calculatedStartTime);
-  if (!now.isSameOrAfter(startTime)) return;
-  if (await ev.getChargeLimit() === stored.targetPercentage) return;
+
+  if (!now.isSameOrAfter(startTime)) {
+    return;
+  }
+
+  if (await ev.getChargeLimit() === stored.targetPercentage) {
+    return;
+  }
 
   const targetTime = dayjs(stored.targetTime);
   logger.info(`Starting charge to reach ${stored.targetPercentage}% by ${targetTime.format('HH:mm')}`);
