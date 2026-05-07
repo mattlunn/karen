@@ -3,11 +3,11 @@ import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
-import { ensureHistoricalMetrics, storeTodayRunningMetrics } from './history';
+import { storeRunningMetrics } from './history';
 
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
-    return ['HEAT_PUMP'];
+    return ['HEAT_PUMP', 'CONNECTIVITY'];
   },
 
   async synchronize() {
@@ -42,7 +42,7 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const deviceCapability = device.getHeatPumpCapability();
-  
+
   async function updateState<T>(getter: () => Promise<T>, updater: (value: T) => Promise<unknown>) {
     await updater(await getter());
   }
@@ -51,7 +51,7 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     return Math.round(val * 10) / 10;
   }
 
-  await Promise.all([
+  const results = await Promise.allSettled([
     updateState(() => client.getOutsideTemperature(), (v) => deviceCapability.setOutsideTemperatureState(roundTo1DecimalPlace(v))),
 
     updateState(() => client.getActualFlowTemperature(), (v) => deviceCapability.setActualFlowTemperatureState(roundTo1DecimalPlace(v))),
@@ -67,19 +67,20 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     updateState(() => client.getCurrentPower(), (v) => deviceCapability.setCurrentPowerState(roundTo1DecimalPlace(v))),
     updateState(() => client.getCurrentYield(), (v) => deviceCapability.setCurrentYieldState(roundTo1DecimalPlace(v))),
     updateState(() => client.getMode(), (v) => deviceCapability.setModeState(v)),
-    updateState(() => client.getCopHwc(), (v) => deviceCapability.setDHWCoPState(v)),
-    updateState(() => client.getCopHc(), (v) => deviceCapability.setHeatingCoPState(v)),
     updateState(() => client.getDHWIsOn(), (v) => deviceCapability.setDHWIsOnState(v))
   ]);
+
+  const anySucceeded = results.some(r => r.status === 'fulfilled');
+  const failures = results.filter(r => r.status === 'rejected');
+
+  await device.getConnectivityCapability().setIsConnectedState(anySucceeded);
+
+  if (failures.length > 0) {
+    throw failures[0].reason;
+  }
 }), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);
 
-// Calculate daily metrics every 15 minutes:
-// - Today's running metrics (updated throughout the day)
-// - Historical metrics (fills any missing days since last run)
 nowAndSetInterval(createBackgroundTransaction('ebusd:daily-metrics', async () => {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
-  const capability = device.getHeatPumpCapability();
-  
-  await ensureHistoricalMetrics(device, capability);
-  await storeTodayRunningMetrics(capability);
+  await storeRunningMetrics(device, device.getHeatPumpCapability());
 }), 15 * 60 * 1000);

@@ -12,7 +12,12 @@ import bus, { NOTIFICATION_TO_ALL } from '../../bus';
 
 export { makeSynologyRequest };
 
+// Surveillance Station camera status: 1 = Normal/Connected. Anything else (Disconnected, Disabled,
+// Migrating, etc.) means the camera isn't actively reachable.
+const SYNOLOGY_CAMERA_STATUS_NORMAL = 1;
 const latestCameraEvents = new Map();
+
+type SynologyCamera = { id: number; status: number; enabled: boolean; vendor: string; model: string; newName: string };
 
 // Have a map of camera ids -> timeouts which make the last motion as ended.
 // when receiving new motion, clear that timeout, and set a new one.
@@ -65,7 +70,7 @@ async function captureRecording(event: Event, providerId: string, startOfRecordi
       toTime: endOfRecording.format('X')
     }, true, 5);
 
-    cameraRecording = synologyRecordings.data.events.find((recording: { cameraId: number, startTime: number, stopTime: number }) => {
+    cameraRecording = synologyRecordings.events.find((recording: { cameraId: number, startTime: number, stopTime: number }) => {
       return String(recording.cameraId) === providerId
         && dayjs.unix(recording.startTime).isBefore(startOfRecording)
         && dayjs.unix(recording.stopTime).isAfter(endOfRecording);
@@ -164,21 +169,59 @@ setInterval(createBackgroundTransaction('synology:clear-old-recordings', async (
   }
 }), dayjs.duration(1, 'day').asMilliseconds());
 
+
+async function updateCamerasConnectivity(cameras: SynologyCamera[]) {
+  const devices = await Device.findByProvider('synology');
+
+  await Promise.all(devices.map(async device => {
+    const camera = cameras.find(c => String(c.id) === device.providerId);
+    const isConnected = camera !== undefined && camera.enabled !== false && camera.status === SYNOLOGY_CAMERA_STATUS_NORMAL;
+    await device.getConnectivityCapability().setIsConnectedState(isConnected);
+  }));
+}
+
+async function markAllCamerasDisconnected() {
+  const devices = await Device.findByProvider('synology');
+  await Promise.all(devices.map(d => d.getConnectivityCapability().setIsConnectedState(false)));
+}
+
+export async function onConnectivityChanged() {
+  let cameras: SynologyCamera[];
+
+  try {
+    ({ cameras } = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List'));
+  } catch (e) {
+    logger.error(e, 'Synology: failed to list cameras after connectivity webhook');
+    await markAllCamerasDisconnected();
+    return;
+  }
+
+  await updateCamerasConnectivity(cameras);
+}
+
 Device.registerProvider('synology', {
   getCapabilities(device) {
-    return ['CAMERA'];
+    return ['CAMERA', 'CONNECTIVITY'];
   },
 
   async synchronize() {
-    const { data: { cameras }} = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List');
+    let cameras: SynologyCamera[];
+
+    try {
+      ({ cameras } = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'List'));
+    } catch (e) {
+      await markAllCamerasDisconnected();
+      throw e;
+    }
 
     for (const camera of cameras) {
-      let knownDevice = await Device.findByProviderId('synology', camera.id);
+      const providerId = String(camera.id);
+      let knownDevice = await Device.findByProviderId('synology', providerId);
 
       if (!knownDevice) {
         knownDevice = Device.build({
           provider: 'synology',
-          providerId: camera.id
+          providerId
         });
       }
 
@@ -188,5 +231,7 @@ Device.registerProvider('synology', {
 
       await knownDevice.save();
     }
+
+    await updateCamerasConnectivity(cameras);
   }
 });

@@ -94,6 +94,18 @@ export default async function (req: Request, res: Response, next: NextFunction) 
         break;
       }
 
+      case 'CONNECTIVITY': {
+        const conn = device.getConnectivityCapability();
+        historyPromises.push(
+          conn.getIsConnectedHistory(historySelector).then(history => {
+            for (const event of history) {
+              events.push({ type: event.value ? 'connectivity-online' : 'connectivity-offline', timestamp: event.start.toISOString() });
+            }
+          })
+        );
+        break;
+      }
+
       case 'HEAT_PUMP': {
         const heatPump = device.getHeatPumpCapability();
         historyPromises.push(

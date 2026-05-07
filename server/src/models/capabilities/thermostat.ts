@@ -3,10 +3,10 @@ import { Device } from '..';
 import { ScheduledChange } from './index';
 
 export class ThermostatCapability extends ThermostatBaseCapability {
-  setTargetTemperature(value: number | null): Promise<void> {
+  setTargetTemperatureUntilNextScheduledChange(value: number): Promise<void> {
     return Device.getProviderCapabilities(this.device.provider)
       .provideThermostatCapability!()
-      .setTargetTemperature(this.device, value as number);
+      .setTargetTemperatureUntilNextScheduledChange(this.device, value);
   }
 
   async getNextScheduledChange(): Promise<ScheduledChange | null> {

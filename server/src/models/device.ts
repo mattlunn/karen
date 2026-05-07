@@ -24,7 +24,8 @@ import {
   SpeakerCapability,
   ElectricVehicleCapability,
   BinCollectionCapability,
-  ButtonCapability
+  ButtonCapability,
+  ConnectivityCapability
 } from './capabilities';
 
 export class Device extends Model<InferAttributes<Device>, InferCreationAttributes<Device>> {
@@ -65,9 +66,8 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     return this.#capabilityCache.get(handler) as T;
   }
 
-  async getIsConnected(): Promise<boolean> {
-    // TODO
-    return true;
+  getConnectivityCapability(): ConnectivityCapability {
+    return this.#getCapabilityOrThrow(() => new ConnectivityCapability(this));
   }
 
   getBatteryLowIndicatorCapability(): BatteryLowIndicatorCapability {

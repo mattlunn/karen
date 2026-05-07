@@ -42,9 +42,9 @@
     "smartcar": "^10.4.0",
     "suncalc": "^1.8.0",
     "tplink-smarthome-api": "^5.0.0",
-    "twilio": "^5.13.1",
+    "twilio": "^6.0.0",
     "umzug": "^3.8.2",
-    "uuid": "^13.0.0",
+    "uuid": "^14.0.0",
     "ws": "^8.18.0",
     "yargs": "^18.0.0"
   },

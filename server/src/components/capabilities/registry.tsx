@@ -32,6 +32,9 @@ import {
   faTrash,
   faHandPointer,
   faSnowflake,
+  faCalendarDay,
+  faHashtag,
+  faSignal,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
@@ -298,20 +301,6 @@ export const registry: CapabilityUIRegistry = {
         lastReported: cap.dayYield.lastReported,
       },
       {
-        icon: faFaucet,
-        title: 'Hot Water CoP',
-        value: `${cap.dHWCoP.value.toFixed(1)} CoP`,
-        since: cap.dHWCoP.start,
-        lastReported: cap.dHWCoP.lastReported,
-      },
-      {
-        icon: faFire,
-        title: 'Heating CoP',
-        value: `${cap.heatingCoP.value.toFixed(1)} CoP`,
-        since: cap.heatingCoP.start,
-        lastReported: cap.heatingCoP.lastReported,
-      },
-      {
         icon: faTree,
         title: 'Outside Temperature',
         value: `${cap.outsideTemperature.value.toFixed(1)}°C`,
@@ -349,6 +338,9 @@ export const registry: CapabilityUIRegistry = {
     ],
     getGraphs: () => [
       { id: 'heatpump-power', title: 'Power' },
+      { id: 'heatpump-compressor-power', title: 'Compressor Power', yMin: 0 },
+      { id: 'heatpump-compressor-modulation', title: 'Compressor Modulation', yMin: 0, yMax: 100 },
+      { id: 'heatpump-cumulative-energy', title: 'Cumulative Energy (Wh)', yMin: 0 },
       { id: 'heatpump-outside-temp', title: 'Outside Temperature', yMin: -10 },
       { id: 'heatpump-dhw-temp', title: 'DHW Temperature' },
       { id: 'heatpump-flow-temp', title: 'Flow/ Return Temperatures' },
@@ -558,6 +550,19 @@ export const registry: CapabilityUIRegistry = {
             value: 'Never',
             iconColor: '#04A7F4',
           },
+      {
+        icon: faCalendarDay,
+        title: "Today's Presses",
+        value: cap.pressesToday.toString(),
+        iconColor: '#04A7F4',
+        iconHighlighted: cap.pressesToday > 0,
+      },
+      {
+        icon: faHashtag,
+        title: 'Total Presses',
+        value: cap.totalPresses.toString(),
+        iconColor: '#04A7F4',
+      },
     ],
   },
 
@@ -658,6 +663,22 @@ export const registry: CapabilityUIRegistry = {
         overridePreset: 'custom',
         overrideStart: dayjs().subtract(6, 'months').startOf('week').toISOString(),
         overrideEnd: dayjs().toISOString(),
+      },
+    ],
+  },
+
+  CONNECTIVITY: {
+    priority: 999,
+    getCapabilityMetrics: (cap) => [
+      {
+        icon: faSignal,
+        title: 'Connection',
+        value: cap.isConnected.value ? 'Online' : 'Offline',
+        since: cap.isConnected.start,
+        lastReported: cap.isConnected.lastReported,
+        iconColor: cap.isConnected.value ? '#2ecc71' : '#e74c3c',
+        iconHighlighted: !cap.isConnected.value,
+        isIssue: !cap.isConnected.value,
       },
     ],
   },

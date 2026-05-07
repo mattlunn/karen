@@ -1,5 +1,3 @@
-import fetch from 'cross-fetch';
-
 const BASE_URL = `https://${process.env.KAREN_HOST}/api`;
 const ROOT_URL = `https://${process.env.KAREN_HOST}`;
 const AUTH_HEADER = `Bearer ${process.env.KAREN_AUTH_TOKEN}`;
@@ -15,7 +13,7 @@ export async function apiGet<T>(endpoint: string): Promise<T> {
     throw new Error(`API GET ${endpoint} failed: ${res.status}`);
   }
 
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 export async function apiPut<T>(endpoint: string, body: object): Promise<T> {
@@ -32,7 +30,7 @@ export async function apiPut<T>(endpoint: string, body: object): Promise<T> {
     throw new Error(`API PUT ${endpoint} failed: ${res.status}`);
   }
 
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 export async function apiPost<T>(endpoint: string, body: unknown): Promise<T> {

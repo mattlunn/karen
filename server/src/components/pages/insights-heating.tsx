@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Anchor, Badge, Box, Table, Title } from '@mantine/core';
+import { Anchor, Badge, Box, Group, Table, Text, Title } from '@mantine/core';
 import useApiCall from '../../hooks/api';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
@@ -45,11 +45,36 @@ function ThermostatTable() {
   );
 }
 
+function HeatPumpLink() {
+  const { data, isLoading } = useDevices();
+
+  if (isLoading || !data) {
+    return null;
+  }
+
+  return (
+    <Group gap="xs" mt="md">
+      <Text size="sm" c="dimmed">Heat pump:</Text>
+      {forDeviceCapability(data.devices, 'HEAT_PUMP', (device) => (
+        <Anchor key={device.id} component={Link} to={`/device/${device.id}`}>
+          {device.name}
+        </Anchor>
+      ))}
+    </Group>
+  );
+}
+
 const yAxisPercentage = {
   yPercentage: {
     position: 'left' as const,
     min: 0,
     max: 100
+  }
+};
+
+const yAxisDelta = {
+  yDelta: {
+    position: 'left' as const
   }
 };
 
@@ -90,6 +115,17 @@ function HeatingDemandGraph() {
         lines={data.lines}
         yAxis={yAxisPercentage}
       />
+
+      <Title order={4} mt="lg">Temperature delta (current − target)</Title>
+      <CapabilityGraph
+        lines={data.temperatureDeltas}
+        yAxis={yAxisDelta}
+        zones={
+          data.temperatureDeltaSwitchOnThreshold !== null
+            ? [{ max: -data.temperatureDeltaSwitchOnThreshold, color: 'rgba(255, 0, 55, 0.15)' }]
+            : []
+        }
+      />
     </>
   );
 }
@@ -100,6 +136,7 @@ export default function HeatingInsights() {
       <Title order={2}>Heating</Title>
 
       <ThermostatTable />
+      <HeatPumpLink />
 
       <DateRangeProvider>
         <Box mt="md">

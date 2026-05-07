@@ -21,7 +21,7 @@ import { Chart } from 'react-chartjs-2';
 import 'chartjs-adapter-dayjs-4';
 import dayjs from '../../dayjs';
 import { BooleanEventApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
-import { clampAndSortHistory } from '../../helpers/history';
+import { filterClampAndSortHistory } from '../../helpers/history';
 import { Box, Text } from '@mantine/core';
 
 export function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'day' {
@@ -52,7 +52,7 @@ ChartJS.register(
 );
 
 function mapNumericDataToDataset(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse | BooleanEventApiResponse | EnumEventApiResponse>) {
-  const sortedEvents = clampAndSortHistory(numericEventHistory.history, numericEventHistory.since, numericEventHistory.until, false);
+  const sortedEvents = filterClampAndSortHistory(numericEventHistory.history, numericEventHistory.since, numericEventHistory.until, false);
 
   return sortedEvents.reduce((acc: ({ x: string, y: number })[], curr) => {
     acc.push({
@@ -82,8 +82,8 @@ export type CapabilityGraphProps = {
   }
 
   zones?: {
-    min: number;
-    max: number;
+    min?: number;
+    max?: number;
     color: string;
   }[]
 
@@ -204,7 +204,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }
 
   if (props.modes) {
-    const sortedEvents = clampAndSortHistory(props.modes.data.history, props.modes.data.since, props.modes.data.until, true);
+    const sortedEvents = filterClampAndSortHistory(props.modes.data.history, props.modes.data.since, props.modes.data.until, true);
 
     for (let i=0;i<props.modes.details.length;i++) {
       const mode = props.modes.details[i];
@@ -299,8 +299,8 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         type: 'box',
         xMin: min,
         xMax: max,
-        yMin: zone.min,
-        yMax: zone.max,
+        ...(zone.min !== undefined ? { yMin: zone.min } : {}),
+        ...(zone.max !== undefined ? { yMax: zone.max } : {}),
         backgroundColor: zone.color,
         borderWidth: 0
       };

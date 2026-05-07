@@ -90,6 +90,56 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     });
   }],
 
+  // Heat Pump - Compressor Power
+  ['heatpump-compressor-power', async (device, selector) => {
+    const heatPump = device.getHeatPumpCapability();
+
+    return {
+      lines: [
+        {
+          data: await mapNumericHistoryToResponse((hs) => heatPump.getCompressorPowerHistory(hs), selector),
+          label: 'Compressor Power (W)'
+        }
+      ]
+    };
+  }],
+
+  // Heat Pump - Compressor Modulation
+  ['heatpump-compressor-modulation', async (device, selector) => {
+    const heatPump = device.getHeatPumpCapability();
+
+    return {
+      lines: [
+        {
+          data: await mapNumericHistoryToResponse((hs) => heatPump.getCompressorModulationHistory(hs), selector),
+          label: 'Compressor Modulation (%)'
+        }
+      ]
+    };
+  }],
+
+  // Heat Pump - Cumulative Energy (per-day running totals stored every 15 min)
+  ['heatpump-cumulative-energy', async (device, selector) => {
+    const heatPump = device.getHeatPumpCapability();
+
+    return {
+      lines: await Promise.all([
+        mapNumericHistoryToResponse((hs) => heatPump.getDayCumulativePowerHistory(hs), selector)
+          .then(data => ({ data, label: 'Total Power (Wh)' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCumulativePowerHistory(hs), selector)
+          .then(data => ({ data, label: 'Heating Power (Wh)' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCumulativePowerHistory(hs), selector)
+          .then(data => ({ data, label: 'DHW Power (Wh)' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayCumulativeYieldHistory(hs), selector)
+          .then(data => ({ data, label: 'Total Yield (Wh)' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCumulativeYieldHistory(hs), selector)
+          .then(data => ({ data, label: 'Heating Yield (Wh)' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCumulativeYieldHistory(hs), selector)
+          .then(data => ({ data, label: 'DHW Yield (Wh)' })),
+      ])
+    };
+  }],
+
   // Heat Pump - Outside Temperature
   ['heatpump-outside-temp', async (device, selector) => {
     const heatPump = device.getHeatPumpCapability();

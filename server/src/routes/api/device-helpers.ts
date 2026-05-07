@@ -1,18 +1,7 @@
 import { Device, NumericEvent, BooleanEvent } from '../../models';
-import { DeviceStatus, NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
+import { NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 import dayjs from '../../dayjs';
-
-type AwaitedObject<T> = {
-  [K in keyof T]: T[K] extends Promise<infer U> ? U : T[K];
-};
-
-export async function awaitPromises<T extends Record<string, unknown>>(obj: T): Promise<AwaitedObject<T>> {
-  const entries = await Promise.all(
-    Object.entries(obj).map(async ([key, value]) => [key, await value])
-  );
-
-  return Object.fromEntries(entries) as AwaitedObject<T>;
-}
+import { awaitPromises } from '../../helpers/promises';
 
 export function mapNumericEvent(eventPromise: Promise<NumericEvent | null>): Promise<NumericEventApiResponse> {
   return eventPromise.then(event => {
@@ -128,10 +117,8 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       return awaitPromises({
         type: 'HEAT_PUMP' as const,
         mode: mapHeatPumpModeEvent(heatPump.getModeEvent()),
-        heatingCoP: mapNumericEvent(heatPump.getHeatingCoPEvent()),
         compressorModulation: mapNumericEvent(heatPump.getCompressorModulationEvent()),
         dhwTemperature: mapNumericEvent(heatPump.getDHWTemperatureEvent()),
-        dHWCoP: mapNumericEvent(heatPump.getDHWCoPEvent()),
         outsideTemperature: mapNumericEvent(heatPump.getOutsideTemperatureEvent()),
         actualFlowTemperature: mapNumericEvent(heatPump.getActualFlowTemperatureEvent()),
         returnTemperature: mapNumericEvent(heatPump.getReturnTemperatureEvent()),
@@ -180,7 +167,17 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
     case 'BUTTON': {
       const button = device.getButtonCapability();
-      const pressedEvent = await button.getPressedEvent();
+      const now = new Date();
+      const startOfToday = dayjs().startOf('day').toDate();
+
+      const [pressedEvent, pressedHistory] = await Promise.all([
+        button.getPressedEvent(),
+        button.getPressedHistory({ since: device.createdAt, until: now }),
+      ]);
+
+      const totalPresses = pressedHistory.length;
+      const pressesToday = pressedHistory.filter(event => event.start >= startOfToday).length;
+
       return {
         type: 'BUTTON',
         lastPressed: pressedEvent ? {
@@ -189,6 +186,8 @@ export async function getCapabilityData(device: Device, capability: string): Pro
           lastReported: pressedEvent.lastReported.toISOString(),
           value: Boolean(pressedEvent.value),
         } : null,
+        pressesToday,
+        totalPresses,
       };
     }
 
@@ -248,6 +247,14 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
+    case 'CONNECTIVITY': {
+      const conn = device.getConnectivityCapability();
+      return awaitPromises({
+        type: 'CONNECTIVITY' as const,
+        isConnected: mapBooleanEvent(conn.getIsConnectedEvent(), device)
+      });
+    }
+
     default:
       return { type: null };
   }
@@ -268,8 +275,6 @@ function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fall
 }
 
 export async function mapDeviceToResponse(device: Device): Promise<RestDeviceResponse> {
-  const isConnected = await device.getIsConnected();
-
   const capabilities = device.getCapabilities();
   const capabilityData = await Promise.all(
     capabilities.map(cap => getCapabilityData(device, cap))
@@ -285,7 +290,6 @@ export async function mapDeviceToResponse(device: Device): Promise<RestDeviceRes
     provider: device.provider,
     providerId: device.providerId,
     roomId: device.roomId,
-    status: (isConnected ? 'OK' : 'OFFLINE') as DeviceStatus,
     lastSeen,
     capabilities: capabilityData
   };

@@ -76,15 +76,23 @@ Device.registerProvider('tado', {
       'HUMIDITY_SENSOR',
       'TEMPERATURE_SENSOR',
       'THERMOSTAT',
-      'BATTERY_LOW_INDICATOR'
+      'BATTERY_LOW_INDICATOR',
+      'CONNECTIVITY'
     ];
   },
 
   provideThermostatCapability() {
     return {
-      async setTargetTemperature(device: Device, value: number | null) {
+      async setTargetTemperature(device: Device, value: number) {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
-        const response = await client.setHeatingPowerForZone(device.providerId, value === null ? false : value, false);
+        const response = await client.setHeatingPowerForZone(device.providerId, value, false);
+
+        await updateTargetTemperatureFromOverlay(device, response);
+      },
+
+      async setTargetTemperatureUntilNextScheduledChange(device: Device, value: number) {
+        const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+        const response = await client.setHeatingPowerForZone(device.providerId, value, true);
 
         await updateTargetTemperatureFromOverlay(device, response);
       },
@@ -195,7 +203,8 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
       thermostatCapability.setIsOnState(zoneState.activityDataPoints.heatingPower.percentage > 0, new Date(zoneState.activityDataPoints.heatingPower.timestamp)),
       thermostatCapability.setCurrentTemperatureState(zoneState.sensorDataPoints.insideTemperature.celsius, new Date(zoneState.sensorDataPoints.insideTemperature.timestamp)),
       thermostatCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date()),
-      thermostatCapability.setIsPassiveState(config.tado.passive_zone_names.includes(device.name))
+      thermostatCapability.setIsPassiveState(config.tado.passive_zone_names.includes(device.name)),
+      device.getConnectivityCapability().setIsConnectedState(zoneState.link.state === 'ONLINE')
     ]);
   }
 }), Math.max(config.tado.sync_interval_seconds, 10) * 1000);

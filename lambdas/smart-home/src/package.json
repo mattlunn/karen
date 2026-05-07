@@ -4,9 +4,7 @@
   "main": "app.js",
   "author": "mattlunn",
   "license": "MIT",
-  "dependencies": {
-    "cross-fetch": "^4.1.0"
-  },
+  "dependencies": {},
   "scripts": {
     "build": "rm -rf ../dist/ && tsc && cp -r node_modules ../dist"
   },

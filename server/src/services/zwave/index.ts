@@ -7,12 +7,17 @@ import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
 
 const deviceCapabilitiesMap = new Map<string, Capability[]>([
-  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'BATTERY_LEVEL_INDICATOR']],
-  ['Fibargroup FGD212', ['LIGHT']],
-  ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR']],
-  ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']],
-  ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR']]
+  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
+  ['Fibargroup FGD212', ['LIGHT', 'CONNECTIVITY']],
+  ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
+  ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
+  ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']]
 ]);
+
+// zwave-js NodeStatus: 0=Unknown, 1=Asleep, 2=Awake, 3=Dead, 4=Alive.
+// Battery-powered devices spend most of their time asleep but are still reachable;
+// only "Dead" means the controller has lost contact.
+const ZWAVE_NODE_STATUS_DEAD = 3;
 
 type DeviceHandler = {
   propertyKey: string,
@@ -115,6 +120,15 @@ deviceHandlers.set('Zooz ZSE44', [
   }
 ]);
 
+deviceHandlers.set('Fibargroup FGPB-101', [
+  {
+    propertyKey: 'Battery.level',
+    propertyMapper(device: Device, value: number) {
+      return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
+    }
+  }
+]);
+
 deviceHandlers.set('Yale SD-L1000-CH', [
   {
     propertyKey: 'Door Lock.boltStatus',
@@ -166,23 +180,60 @@ async function getClient() {
         });
 
         client.on('event', async (data: any) => {
+          if (data.source === 'node' && (data.event === 'alive' || data.event === 'dead')) {
+            const device = await Device.findByProviderId('zwave', data.nodeId);
+
+            if (device !== null) {
+              await device.getConnectivityCapability().setIsConnectedState(data.event === 'alive');
+            }
+          }
+
           if (data.source === 'node' && data.event === 'value updated') {
             const deviceId = data.nodeId;
             const device = await Device.findByProviderIdOrError('zwave', deviceId);
             const node = Array.from(client.getNodes()).find((x: any) => x.nodeId === deviceId) as any;
             const nodeType = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
-            const eventHandler = deviceHandlers.get(nodeType)!.find(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
+            const handlers = deviceHandlers.get(nodeType);
 
-            if (eventHandler) {
-              eventHandler.propertyMapper(device, data.args.newValue);
+            if (handlers === undefined) {
+              logger.warn(`No Z-Wave deviceHandlers registered for node type "${nodeType}" (Device Id ${deviceId})`);
+            } else {
+              const eventHandler = handlers.find(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
+
+              if (eventHandler) {
+                eventHandler.propertyMapper(device, data.args.newValue);
+              }
             }
           }
 
           if (data.source === 'node' && data.event === 'value notification') {
-            if (data.args.commandClassName === 'Central Scene' && data.args.value === 0) {
+            logger.info({
+              nodeId: data.nodeId,
+              commandClassName: data.args.commandClassName,
+              property: data.args.property,
+              propertyKey: data.args.propertyKey,
+              value: data.args.value
+            }, 'ZWave value notification received');
+
+            // Central Scene key attribute values: 0=single press, 1=released, 2=held, 3+=multi-press
+            if (data.args.commandClassName === 'Central Scene' && data.args.value !== 1) {
               const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
               const pressedAt = new Date();
-              await device.getButtonCapability().setPressedState(true, pressedAt);
+
+              logger.info({
+                nodeId: data.nodeId,
+                deviceId: device.id,
+                deviceName: device.name,
+                pressedAt: pressedAt.toISOString()
+              }, 'ZWave button press detected; setting pressed state');
+
+              try {
+                await device.getButtonCapability().setPressedState(true, pressedAt);
+                logger.info({ deviceId: device.id }, 'ZWave button pressed state set');
+              } catch (err) {
+                logger.error({ err, deviceId: device.id }, 'ZWave failed to set button pressed state');
+                throw err;
+              }
             }
           }
         });
@@ -352,6 +403,7 @@ Device.registerProvider('zwave', {
           knownDevice.model = model;
 
           await knownDevice.save();
+          await knownDevice.getConnectivityCapability().setIsConnectedState(node.status !== ZWAVE_NODE_STATUS_DEAD);
 
           // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)
           if (knownDevice.getCapabilities().includes('LIGHT')) {

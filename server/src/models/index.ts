@@ -19,6 +19,9 @@ const instance = new Sequelize(config.database.name, config.database.user, confi
       logger.debug(query);
     }
   },
+  pool: {
+    max: 20 // default 5 - increase to avoid "ConnectionAcquireTimeoutError"'s on startup due to multiple slow queries on startup (background jobs/ backfills/ uncached queries)
+  }
 });
 
 export const Token = tokenFactory(instance);
