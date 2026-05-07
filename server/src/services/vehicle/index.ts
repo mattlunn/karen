@@ -127,7 +127,7 @@ async function clearNextChargeIfExpired(device: Device, ev: ElectricVehicleCapab
   await device.save();
 }
 
-function chooseNextCharge(device: Device, now: Dayjs) {
+async function chooseNextCharge(device: Device, now: Dayjs) {
   if (device.meta.chargeSchedule) {
     return;
   }
@@ -169,7 +169,7 @@ async function recomputeStartTimeForNextCharge(device: Device, ev: ElectricVehic
 // Gated on the live charge limit so the SmartCar API and the notification
 // fire exactly once per occurrence — re-firing only happens if the limit
 // is reset (e.g. the next occurrence rolls in).
-async function notifyUsersOfChargingState(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
+async function startChargingAndNotifyUsers(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
   const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
 
   if (!stored || !stored.calculatedStartTime) {
@@ -187,6 +187,7 @@ async function notifyUsersOfChargingState(device: Device, ev: ElectricVehicleCap
   }
 
   const targetTime = dayjs(stored.targetTime);
+
   logger.info(`Starting charge to reach ${stored.targetPercentage}% by ${targetTime.format('HH:mm')}`);
 
   await ev.setChargeLimit(stored.targetPercentage);
@@ -195,13 +196,17 @@ async function notifyUsersOfChargingState(device: Device, ev: ElectricVehicleCap
 
   if (isCableConnected) {
     await ev.setIsCharging(true);
+
+    bus.emit(NOTIFICATION_TO_ADMINS, {
+      message: buildScheduleNotification(stored.targetPercentage, startTime, targetTime, true),
+    });
   } else {
     logger.warn('Charge schedule: cable not connected, cannot start charging');
-  }
 
-  bus.emit(NOTIFICATION_TO_ADMINS, {
-    message: buildScheduleNotification(stored.targetPercentage, startTime, targetTime, isCableConnected),
-  });
+    bus.emit(NOTIFICATION_TO_ADMINS, {
+      message: buildScheduleNotification(stored.targetPercentage, startTime, targetTime, false),
+    });
+  }
 }
 
 // Run charge schedule check every 15 minutes
@@ -211,9 +216,9 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async (
   const now = dayjs();
 
   await clearNextChargeIfExpired(device, ev, now);
-  chooseNextCharge(device, now);
+  await chooseNextCharge(device, now);
   await recomputeStartTimeForNextCharge(device, ev);
-  await notifyUsersOfChargingState(device, ev, now);
+  await startChargingAndNotifyUsers(device, ev, now);
 }), 15 * 60 * 1000);
 
 nowAndSetIntervalForTime(createBackgroundTransaction('vehicle:weekly-mileage', async () => {
