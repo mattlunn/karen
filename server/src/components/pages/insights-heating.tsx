@@ -1,10 +1,9 @@
 import React, { useMemo } from 'react';
 import { Anchor, Badge, Box, Group, Table, Text, Title } from '@mantine/core';
-import useApiCall from '../../hooks/api';
 import { useDevices } from '../../hooks/queries/use-devices';
+import { useHeatingInsights } from '../../hooks/queries/use-heating-insights';
 import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
-import { HeatingInsightsApiResponse } from '../../api/types';
 import PageLoader from '../page-loader';
 import { Link } from 'react-router-dom';
 import { forDeviceCapability } from '../../helpers/device';
@@ -86,16 +85,13 @@ function HeatingDemandGraph() {
     until: globalRange.until.toISOString()
   }), [globalRange.since, globalRange.until]);
 
-  const { data, loading, error } = useApiCall<HeatingInsightsApiResponse>(
-    '/insights/heating',
-    params
-  );
+  const { data, isPending, isError } = useHeatingInsights(params);
 
-  if (loading) {
+  if (isPending) {
     return <PageLoader />;
   }
 
-  if (error) {
+  if (isError) {
     return <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>;
   }
 

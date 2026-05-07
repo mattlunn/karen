@@ -29,7 +29,7 @@ function mapEnumHistory(
   );
 }
 
-export default async function (req: Request, res: Response, next: NextFunction) {
+export default async function (req: Request<{ id: string }>, res: Response, next: NextFunction) {
   const device = await Device.findById(req.params.id);
 
   if (!device) {
