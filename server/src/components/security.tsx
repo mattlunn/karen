@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Center, Loader, SimpleGrid, Title } from '@mantine/core';
+import nowAndSetInterval from '../helpers/now-and-set-interval';
 import styles from './security.module.css';
 
 interface Camera {
@@ -35,7 +36,9 @@ function useSnapshotData(cameras: Camera[]): SnapshotsMap {
       try {
         const snapshot = await loadSnapshot(camera);
         const old = urls.get(camera.id);
-        if (old) URL.revokeObjectURL(old);
+        if (old) {
+          URL.revokeObjectURL(old);
+        }
         urls.set(camera.id, snapshot);
         setSnapshots(prev => ({ ...prev, [camera.id]: { loading: false, snapshot } }));
       } catch {
@@ -43,10 +46,10 @@ function useSnapshotData(cameras: Camera[]): SnapshotsMap {
       }
     }
 
-    const interval = setInterval(() => cameras.forEach(refreshCamera), 5000);
-    cameras.forEach(refreshCamera);
+    const interval = nowAndSetInterval(() => cameras.forEach(refreshCamera), 5000);
     return () => {
       clearInterval(interval);
+
       urls.forEach(url => URL.revokeObjectURL(url));
       urls.clear();
     };

@@ -76,6 +76,10 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 
 - **Component files**: Use hyphenated lowercase names (e.g., `date-range-context.tsx`, not `DateRangeContext.tsx`)
 
+### Coding Style
+
+- **Always use curly braces for `if` statements**, even single-line bodies. Never write `if (x) doSomething();`.
+
 ### REST API Type System
 
 **All TypeScript definitions for REST API endpoints MUST be centralized in `/server/src/api/types.ts`**.
