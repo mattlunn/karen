@@ -320,6 +320,8 @@
   "properties": []
 }, {
   "name": "ElectricVehicle",
+  "capabilityModelClassName": "ElectricVehicleBase",
+  "capabilityProviderClassName": "ProviderElectricVehicleCapabilityBase",
   "properties": [
     {
       "name": "ChargePercentage",

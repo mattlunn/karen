@@ -1,5 +1,5 @@
 import type { SmartcarSignalAttributes, SmartcarSuccessSignalAttributes } from 'smartcar';
-import { ElectricVehicleCapability } from '../../models/capabilities/capabilities.gen';
+import { ElectricVehicleCapability } from '../../models/capabilities';
 import logger from '../../logger';
 
 const KM_TO_MILES = 0.621371;
