@@ -5,8 +5,9 @@ export class ApiError extends Error {
   }
 }
 
-export async function fetchApi<T>(endpoint: string): Promise<T> {
-  const res = await fetch(`/api${endpoint}`);
+export async function fetchApi<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
+  const qs = params && Object.keys(params).length > 0 ? '?' + new URLSearchParams(params).toString() : '';
+  const res = await fetch(`/api${endpoint}${qs}`);
 
   if (!res.ok) {
     if (res.status === 401) {

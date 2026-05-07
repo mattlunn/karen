@@ -1,7 +1,6 @@
 import React from 'react';
 import { Anchor, Title, Text, Box, Table, Group } from '@mantine/core';
-import useApiCall from '../../hooks/api';
-import type { DevicesApiResponse } from '../../api/types';
+import { useDevices } from '../../hooks/queries/use-devices';
 import PageLoader from '../page-loader';
 import BinScheduleCalendar from '../bin-schedule-calendar';
 import dayjs from '../../dayjs';
@@ -9,9 +8,9 @@ import { forDeviceCapability } from '../../helpers/device';
 import { Link } from 'react-router-dom';
 
 export default function InsightsBins() {
-  const { data, loading } = useApiCall<DevicesApiResponse>('/devices');
+  const { data, isPending } = useDevices();
 
-  if (loading || !data) {
+  if (isPending || !data) {
     return <PageLoader />;
   }
 

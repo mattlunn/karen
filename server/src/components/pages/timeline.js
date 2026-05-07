@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Center, Loader, Title } from '@mantine/core';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import dayjs from '../../dayjs';
 import Event from '../event';
 import styles from './timeline.module.css';
@@ -124,46 +125,38 @@ function createEvent(event) {
 }
 
 export default function Timeline() {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const {
+    data,
+    isFetching,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['timeline'],
+    queryFn: ({ pageParam }) =>
+      fetch(`/api/timeline?since=${pageParam ?? Date.now()}&limit=100`).then(r => r.json()),
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.hasMore || lastPage.events.length === 0) return undefined;
+      return lastPage.events[lastPage.events.length - 1].timestamp;
+    },
+  });
 
-  const fetchEvents = useCallback(async (since) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/timeline?since=${since}&limit=100`);
-      if (!res.ok) throw new Error(res.status.toString());
-      const data = await res.json();
-
-      setEvents(prev => since === Date.now() ? data.events : [...prev, ...data.events]);
-      setHasMore(data.hasMore);
-    } catch (err) {
-      console.error('Failed to load timeline:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchEvents(Date.now());
-  }, [fetchEvents]);
+  const events = useMemo(() => data?.pages.flatMap(page => page.events) ?? [], [data]);
 
   useEffect(() => {
     function handleScroll() {
-      if (!loading && hasMore && window.pageYOffset + window.innerHeight > Math.max(
+      if (!isFetching && hasNextPage && window.pageYOffset + window.innerHeight > Math.max(
         document.body.scrollHeight, document.documentElement.scrollHeight,
         document.body.offsetHeight, document.documentElement.offsetHeight,
         document.body.clientHeight, document.documentElement.clientHeight
       ) - 200) {
-        if (events.length > 0) {
-          fetchEvents(events[events.length - 1].timestamp);
-        }
+        fetchNextPage();
       }
     }
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [loading, hasMore, events, fetchEvents]);
+  }, [isFetching, hasNextPage, fetchNextPage]);
 
   const days = useMemo(() => groupEventsByDays(events), [events]);
 
@@ -189,7 +182,7 @@ export default function Timeline() {
         })}
       </ol>
 
-      {loading && (
+      {isFetching && (
         <Center py="xl">
           <Loader size="lg" />
         </Center>

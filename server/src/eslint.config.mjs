@@ -58,10 +58,6 @@ export default [
       'react/prop-types': 0,
       '@babel/semi': 1,
       'no-restricted-imports': dayjsRestriction,
-      // useApiCall and fetchEvents call setLoading(true) before their first await, so the rule
-      // fires on the call sites in useEffect. The extra render is intentional (loading indicator).
-      // Pending migration to useQuery which avoids this pattern entirely.
-      'react-hooks/set-state-in-effect': 'off',
     },
   },
 
@@ -101,10 +97,6 @@ export default [
       'no-unused-vars': 0,
       'react/prop-types': 0,
       'no-restricted-imports': dayjsRestriction,
-      // useApiCall and fetchEvents call setLoading(true) before their first await, so the rule
-      // fires on the call sites in useEffect. The extra render is intentional (loading indicator).
-      // Pending migration to useQuery which avoids this pattern entirely.
-      'react-hooks/set-state-in-effect': 'off',
     },
   },
 

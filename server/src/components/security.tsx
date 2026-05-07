@@ -28,20 +28,6 @@ function useSnapshotData(cameras: Camera[]): SnapshotsMap {
   const blobUrls = useRef(new Map<number, string>());
 
   useEffect(() => {
-    setSnapshots(prev => {
-      const next = { ...prev };
-      let changed = false;
-      for (const { id } of cameras) {
-        if (!(id in next)) {
-          next[id] = { loading: true, snapshot: null };
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [cameras]);
-
-  useEffect(() => {
     const urls = blobUrls.current;
 
     async function refreshCamera(camera: Camera) {
