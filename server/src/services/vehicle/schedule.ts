@@ -3,7 +3,6 @@ import { getNextOccurrence } from '../../helpers/recurrence';
 import { humanDate } from '../../helpers/date';
 
 export interface ChargeScheduleConfig {
-  id: string;
   target_percentage: number;
   target_time_of_day: string;
   anchor_date: string;
