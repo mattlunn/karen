@@ -144,7 +144,13 @@ export default function ({
           earliestWarmup = startTime;
         }
 
-        setTargetTemperatureActors.push(() => thermostat.setTargetTemperatureUntilNextScheduledChange(scheduledTemp));
+        setTargetTemperatureActors.push(async () => {
+          if (await thermostat.getNextScheduledChange() === null) {
+            await thermostat.setIsOn(true);
+          } else {
+            await thermostat.setTargetTemperatureUntilNextScheduledChange(scheduledTemp);
+          }
+        });
       }
     }
 
