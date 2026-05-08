@@ -3,7 +3,7 @@ import { Device } from '../../models';
 import { DeviceCapabilityEvents } from '../../models/capabilities';
 import { sendAddOrUpdateReport, sendDeleteReport, sendSimpleEventSource } from './client';
 import logger from '../../logger';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import nowAndSetIntervalForTime from '../../helpers/now-and-set-interval-for-time';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 
 export const messages = new Map();
@@ -290,31 +290,30 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
           version: '3'
         }]
       });
-    } else if (capabilities.includes('SPEAKER') || capabilities.includes('BUTTON')) {
+    } else if (capabilities.includes('SPEAKER')) {
       const instanceId = `${device.id}-1`;
-      const isButton = capabilities.includes('BUTTON');
       endpoints.push({
         friendlyName: device.name,
         endpointId: String(device.id),
         displayCategories: ['ACTIVITY_TRIGGER'],
         manufacturerName: device.manufacturer,
-        description: isButton ? `Button: ${device.name}` : `Event trigger for ${device.name}`,
+        description: `Event trigger for ${device.name}`,
         capabilities: [{
           type: 'AlexaInterface',
           interface: 'Alexa.SimpleEventSource',
           instance: instanceId,
           version: '1.0',
           capabilityResources: {
-            friendlyNames: [{ '@type': 'text', value: { text: isButton ? device.name : 'Synthetic trigger', locale: 'en-US' } }]
+            friendlyNames: [{ '@type': 'text', value: { text: 'Synthetic trigger', locale: 'en-US' } }]
           },
           configuration: {
             supportedEvents: [{
               id: 'Button.SinglePush.1',
-              friendlyNames: [{ '@type': 'text', value: { text: isButton ? 'Single push' : 'Synthetic trigger', locale: 'en-US' } }]
+              friendlyNames: [{ '@type': 'text', value: { text: 'Synthetic trigger', locale: 'en-US' } }]
             }]
           }
-        }, ...(!isButton ? [{
-          type: 'AlexaInterface' as const,
+        }, {
+          type: 'AlexaInterface',
           interface: 'Alexa.EndpointHealth',
           version: '3',
           properties: {
@@ -322,7 +321,35 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
             proactivelyReported: false,
             retrievable: false
           }
-        }] : []), {
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa',
+          version: '3'
+        }]
+      });
+    } else if (capabilities.includes('BUTTON')) {
+      const instanceId = `${device.id}-1`;
+      endpoints.push({
+        friendlyName: device.name,
+        endpointId: String(device.id),
+        displayCategories: ['ACTIVITY_TRIGGER'],
+        manufacturerName: device.manufacturer,
+        description: `Button: ${device.name}`,
+        capabilities: [{
+          type: 'AlexaInterface',
+          interface: 'Alexa.SimpleEventSource',
+          instance: instanceId,
+          version: '1.0',
+          capabilityResources: {
+            friendlyNames: [{ '@type': 'text', value: { text: device.name, locale: 'en-US' } }]
+          },
+          configuration: {
+            supportedEvents: [{
+              id: 'Button.SinglePush.1',
+              friendlyNames: [{ '@type': 'text', value: { text: 'Single push', locale: 'en-US' } }]
+            }]
+          }
+        }, {
           type: 'AlexaInterface',
           interface: 'Alexa',
           version: '3'
@@ -340,21 +367,19 @@ async function syncDiscovery() {
   }
 
   const allDevices = await Device.findAll({ paranoid: false });
-  const activeDevices = allDevices.filter(d => !d.isSoftDeleted());
-  const deletedDevices = allDevices.filter(d => d.isSoftDeleted());
+  const activeEndpoints = buildDiscoveryEndpoints(allDevices.filter(d => !d.isSoftDeleted()));
+  const deletedEndpointIds = allDevices.filter(d => d.isSoftDeleted()).map(d => String(d.id));
 
-  const endpoints = buildDiscoveryEndpoints(activeDevices);
-  await sendAddOrUpdateReport(endpoints);
+  await sendAddOrUpdateReport(activeEndpoints);
 
-  const deletedEndpointIds = deletedDevices.map(d => String(d.id));
   if (deletedEndpointIds.length > 0) {
     await sendDeleteReport(deletedEndpointIds);
   }
 
-  logger.info(`Alexa discovery sync complete: reported ${endpoints.length} endpoints, deleted ${deletedEndpointIds.length}`);
+  logger.info(`Alexa discovery sync complete: reported ${activeEndpoints.length} endpoints, deleted ${deletedEndpointIds.length}`);
 }
 
-nowAndSetInterval(
+nowAndSetIntervalForTime(
   createBackgroundTransaction('alexa:discovery-sync', syncDiscovery),
-  24 * 60 * 60 * 1000
+  '00:00'
 );

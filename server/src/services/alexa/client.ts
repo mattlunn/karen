@@ -56,7 +56,13 @@ export async function getAccessToken(): Promise<string> {
   return tokenDetails.accessToken;
 }
 
-export async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void> {
+async function makeEventsRequest(
+  namespace: string,
+  name: string,
+  payloadVersion: string,
+  instance: string | undefined,
+  buildBody: (bearer: string) => object
+): Promise<void> {
   const bearer = await getAccessToken();
   const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
     method: 'POST',
@@ -67,94 +73,52 @@ export async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void>
     body: JSON.stringify({
       event: {
         header: {
-          namespace: 'Alexa.Discovery',
-          name: 'AddOrUpdateReport',
+          namespace,
+          name,
+          ...(instance !== undefined && { instance }),
           messageId: uuid(),
-          payloadVersion: '3'
+          payloadVersion
         },
-        payload: {
-          endpoints,
-          scope: {
-            type: 'BearerToken',
-            token: bearer
-          }
-        }
+        ...buildBody(bearer)
       }
     })
   });
 
   if (!response.ok) {
-    throw new Error(`Got a ${response.status} back while sending Alexa.Discovery AddOrUpdateReport`);
+    throw new Error(`Got a ${response.status} back from Alexa Events API (${namespace}/${name})`);
   }
 }
 
-export async function sendDeleteReport(endpointIds: string[]): Promise<void> {
-  const bearer = await getAccessToken();
-  const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${bearer}`
-    },
-    body: JSON.stringify({
-      event: {
-        header: {
-          namespace: 'Alexa.Discovery',
-          name: 'DeleteReport',
-          messageId: uuid(),
-          payloadVersion: '3'
-        },
-        payload: {
-          endpoints: endpointIds.map(endpointId => ({ endpointId })),
-          scope: {
-            type: 'BearerToken',
-            token: bearer
-          }
-        }
-      }
-    })
-  });
+export async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void> {
+  await makeEventsRequest('Alexa.Discovery', 'AddOrUpdateReport', '3', undefined, (bearer) => ({
+    payload: {
+      endpoints,
+      scope: { type: 'BearerToken', token: bearer }
+    }
+  }));
+}
 
-  if (!response.ok) {
-    throw new Error(`Got a ${response.status} back while sending Alexa.Discovery DeleteReport`);
-  }
+export async function sendDeleteReport(endpointIds: string[]): Promise<void> {
+  await makeEventsRequest('Alexa.Discovery', 'DeleteReport', '3', undefined, (bearer) => ({
+    payload: {
+      endpoints: endpointIds.map(endpointId => ({ endpointId })),
+      scope: { type: 'BearerToken', token: bearer }
+    }
+  }));
 }
 
 export async function sendSimpleEventSource(deviceId: number | string): Promise<void> {
   const endpointId = String(deviceId);
   const instanceId = `${endpointId}-1`;
-  const bearer = await getAccessToken();
-  const response = await fetch('https://api.eu.amazonalexa.com/v3/events', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${bearer}`
-    },
-    body: JSON.stringify({
-      event: {
-        header: {
-          namespace: 'Alexa.SimpleEventSource',
-          name: 'Event',
-          instance: instanceId,
-          messageId: uuid(),
-          payloadVersion: '1.0'
-        },
-        endpoint: {
-          scope: {
-            type: 'BearerToken',
-            token: bearer
-          },
-          endpointId
-        },
-        payload: {
-          id: 'Button.SinglePush.1',
-          timestamp: new Date().toISOString()
-        }
-      }
-    })
-  });
 
-  if (!response.ok) {
-    throw new Error(`Got a ${response.status} back, while trying to send SimpleEvent for ${endpointId}`);
-  }
+  await makeEventsRequest('Alexa.SimpleEventSource', 'Event', '1.0', instanceId, (bearer) => ({
+    endpoint: {
+      scope: { type: 'BearerToken', token: bearer },
+      endpointId
+    },
+    payload: {
+      id: 'Button.SinglePush.1',
+      timestamp: new Date().toISOString()
+    }
+  }));
 }
