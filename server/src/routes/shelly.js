@@ -50,15 +50,11 @@ router.get('/install', async (req, res) => {
 
   let role = 'switch';
 
-  if (generation >= 2) {
-    try {
-      const switchConfig = await client.getSwitchConfig();
+  if (generation === 4) {
+    const switchConfig = await client.getSwitchConfig();
 
-      if (switchConfig && switchConfig.in_mode === 'detached') {
-        role = 'contact';
-      }
-    } catch (e) {
-      // Some Gen 2+ models may not expose Switch.GetConfig (e.g. dimmers); fall back to switch.
+    if (switchConfig.in_mode === 'detached') {
+      role = 'contact';
     }
   }
 
