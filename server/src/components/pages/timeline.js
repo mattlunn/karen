@@ -1,31 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
-import { Center, Loader, Title } from '@mantine/core';
+import { Center, Loader } from '@mantine/core';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import dayjs from '../../dayjs';
 import Event from '../event';
-import styles from './timeline.module.css';
+import Timeline from '../timeline/timeline';
 import { faWalking, faEye, faHome, faLightbulb, faShieldAlt, faBell } from '@fortawesome/free-solid-svg-icons';
-
-function groupEventsByDays(events) {
-  const days = [];
-  let i = 0;
-
-  while (i !== events.length) {
-    const day = {
-      date: dayjs(events[i].timestamp).startOf('d'),
-      events: []
-    };
-
-    do {
-      day.events.push(events[i]);
-      i = i + 1;
-    } while (i !== events.length && dayjs(events[i].timestamp).isSame(day.date, 'd'));
-
-    days.push(day);
-  }
-
-  return days;
-}
 
 function createEvent(event) {
   switch (event.type) {
@@ -124,7 +102,7 @@ function createEvent(event) {
   }
 }
 
-export default function Timeline() {
+export default function TimelinePage() {
   const {
     data,
     isFetching,
@@ -158,29 +136,16 @@ export default function Timeline() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isFetching, hasNextPage, fetchNextPage]);
 
-  const days = useMemo(() => groupEventsByDays(events), [events]);
+  const items = useMemo(() => {
+    return events.flatMap(event => {
+      const component = createEvent(event);
+      return component ? [{ timestamp: event.timestamp, component }] : [];
+    });
+  }, [events]);
 
   return (
     <>
-      <ol className={styles.root}>
-        {days.map(({ date, events }, idx) => {
-          return (
-            <li key={idx}>
-              <Title order={3} className={styles.dayHeader}>{date.format('dddd, MMMM Do YYYY')}</Title>
-
-               <ol>
-                {events.map((event, idx) => {
-                  return (
-                    <li className={styles.event} key={idx}>
-                      {createEvent(event)}
-                    </li>
-                  );
-                })}
-              </ol>
-            </li>
-          );
-        })}
-      </ol>
+      <Timeline items={items} dayHeaderOrder={3} />
 
       {isFetching && (
         <Center py="xl">

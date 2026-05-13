@@ -3,61 +3,14 @@ import { Checkbox, Group, Title } from '@mantine/core';
 import { faLightbulb, faPersonWalking, faFireBurner, faHandPointer, faSignal } from '@fortawesome/free-solid-svg-icons';
 import { useDeviceTimeline } from '../../hooks/queries/use-device-timeline';
 import { useDateRange, DateRangeSelector } from '../date-range';
-import dayjs, { Dayjs } from '../../dayjs';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import Event from '../event';
+import Timeline, { TimelineItem } from './timeline';
 import { DeviceTimelineEventApiResponse } from '../../api/types';
 
 type TimelineSectionProps = {
   deviceId: number;
 };
-
-type TimelineItem = {
-  timestamp: Date;
-  component: ReactNode;
-};
-
-function renderTimeline(events: TimelineItem[]): ReactNode {
-  const days: { date: Dayjs; events: ReactNode[] }[] = [];
-
-  events.toSorted((a, b) => {
-    return a.timestamp.getTime() - b.timestamp.getTime();
-  }).forEach((event) => {
-    const eventDayjs = dayjs(event.timestamp);
-    const isSameDay = days.length > 0 && days[0].date.isSame(eventDayjs, 'day');
-
-    if (isSameDay) {
-      days[0].events.unshift(event.component);
-    } else {
-      days.unshift({
-        date: eventDayjs.startOf('day'),
-        events: [event.component]
-      });
-    }
-  });
-
-  return (
-    <ol className='timeline'>
-      {days.map(({ date, events }, idx) => {
-        return (
-          <li key={idx} className='day'>
-            <Title order={4}>{date.format('dddd, MMMM Do YYYY')}</Title>
-
-            <ol className='events'>
-              {events.map((event, idx) => {
-                return (
-                  <li className='event' key={idx}>
-                    {event}
-                  </li>
-                );
-              })}
-            </ol>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
 
 function mapEventToComponent(event: DeviceTimelineEventApiResponse): ReactNode {
   switch (event.type) {
@@ -116,7 +69,7 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
 
   const timelineItems: TimelineItem[] = data.events.flatMap(event => {
     const component = mapEventToComponent(event);
-    return component ? [{ timestamp: new Date(event.timestamp), component }] : [];
+    return component ? [{ timestamp: event.timestamp, component }] : [];
   });
 
   return (
@@ -141,7 +94,9 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
         </Group>
       </Group>
 
-      {timelineItems.length > 0 ? renderTimeline(timelineItems) : <p>No events in this time range</p>}
+      {timelineItems.length > 0
+        ? <Timeline items={timelineItems} dayHeaderOrder={4} />
+        : <p>No events in this time range</p>}
     </div>
   );
 }
