@@ -376,6 +376,16 @@
     }
   ]
 }, {
+  "name": "ContactSensor",
+  "properties": [
+    {
+      "name": "IsClosed",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "closed"
+    }
+  ]
+}, {
   "name": "Connectivity",
   "properties": [
     {

@@ -1,5 +1,5 @@
-import { Device, Arming, Stay, User, AlarmActivation, Event } from '../models';
-import { call } from '../services/twilio';
+import { Device, Arming, User, AlarmActivation, Event } from '../models';
+import { callWithKarenMessage } from '../services/twilio';
 import dayjs from '../dayjs';
 import sleep from '../helpers/sleep';
 import { createBackgroundTransaction } from '../helpers/newrelic';
@@ -23,25 +23,13 @@ async function turnOnAllTheLights() {
   }
 }
 
-async function getAbsentUsersWithMobileNumbers() {
-  const [
-    currentStays,
-    allUsers
-  ] = await Promise.all([
-    Stay.findCurrentStays(),
-    User.findAll()
-  ]);
-
-  return allUsers.filter(user => !!user.mobileNumber && !currentStays.some(stay => stay.userId === user.id));
-}
-
 async function notifyAbsentUsersOfEvent(event: Event) {
-  const usersWithNumber = await getAbsentUsersWithMobileNumbers();
+  const usersWithNumber = await User.getAbsentUsersWithMobileNumber();
   const device = await event.getDevice();
   const message = `Motion was detected by the ${device.name} at ${dayjs(event.start).format('HH:mm:ss')}`;
 
   for (const user of usersWithNumber) {
-    call(user, `<Response><Say voice="woman">Hi ${user.handle}. This is Karen. ${message}. I repeat ${message}. Stay safe. Goodbye.</Say></Response>`);
+    callWithKarenMessage(user, message);
   }
 }
 
