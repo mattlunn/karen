@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { DevicesApiResponse, DeviceUpdateEvent, RestDeviceResponse, SSEEvent } from '../api/types';
+import { DeviceApiResponse, DevicesApiResponse, DeviceUpdateEvent, RestDeviceResponse, SSEEvent } from '../api/types';
 
 type SSEStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -58,8 +58,9 @@ export function useSSEEvents() {
     };
 
     const handleDeviceUpdate = (event: DeviceUpdateEvent) => {
-      queryClient.setQueryData(['device', event.device.id], event.device);
-      queryClient.setQueryData(['devices'], (old: DevicesApiResponse) => {
+      queryClient.setQueryData(['device', event.device.id], { device: event.device } satisfies DeviceApiResponse);
+      queryClient.setQueryData(['devices'], (old: DevicesApiResponse | undefined) => {
+        if (!old) return old;
         return {
           ...old,
           devices: old.devices.map((device: RestDeviceResponse) => {

@@ -4,7 +4,7 @@ import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
 import { Alert, Anchor, Table, Title } from '@mantine/core';
 import PageLoader from '../page-loader';
-import useApiCall from '../../hooks/api';
+import { useDevices } from '../../hooks/queries/use-devices';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 import IssuesIndicator from '../issues-indicator';
@@ -85,9 +85,9 @@ function BrokenDevicesTable({ devices }: { devices: BrokenDeviceResponse[] }) {
 }
 
 export default function Devices() {
-  const { data, loading } = useApiCall<DevicesApiResponse>('/devices');
+  const { data, isPending } = useDevices();
 
-  if (loading || !data) {
+  if (isPending || !data) {
     return <PageLoader />;
   }
 

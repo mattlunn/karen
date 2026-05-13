@@ -2,6 +2,7 @@ import express from 'express';
 import { Device } from '../../../models';
 import { VehicleUpdateRequest, DeviceApiResponse } from '../../../api/types';
 import { mapDeviceToResponse } from '../device-helpers';
+import dayjs from '../../../dayjs';
 
 const router = express.Router({ mergeParams: true });
 
@@ -25,9 +26,17 @@ router.put<Record<string, never>, DeviceApiResponse, VehicleUpdateRequest>('/', 
     await ev.setChargeLimit(body.chargeLimit);
   }
 
-  if ('chargeSchedule' in body) {
-    device.meta.chargeSchedule = body.chargeSchedule;
-    await device.save();
+  if ('manualChargeSchedule' in body) {
+    if (body.manualChargeSchedule !== null) {
+      const targetTime = dayjs(body.manualChargeSchedule!.targetTime);
+
+      if (!targetTime.isValid() || !targetTime.isAfter(dayjs())) {
+        res.status(400).json({ error: 'manualChargeSchedule.targetTime must be a valid future timestamp' } as any);
+        return;
+      }
+    }
+
+    await ev.setManualChargeSchedule(body.manualChargeSchedule ?? null);
   }
 
   const deviceResponse = await mapDeviceToResponse(device);

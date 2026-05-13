@@ -216,7 +216,7 @@ export interface ThermostatUpdateRequest {
 // /api/device/:id/vehicle endpoint
 export interface VehicleUpdateRequest {
   chargeLimit?: number;
-  chargeSchedule?: { targetPercentage: number; targetTime: string } | null;
+  manualChargeSchedule?: { targetPercentage: number; targetTime: string } | null;
 }
 
 // /api/security endpoint

@@ -121,20 +121,7 @@ Device.registerProvider('alexa', {
 
 DeviceCapabilityEvents.onButtonPressed(async (event) => {
   const device = await event.getDevice();
-
-  logger.info({
-    deviceId: device.id,
-    deviceName: device.name,
-    provider: device.provider
-  }, 'Alexa onButtonPressed handler fired; notifying Alexa');
-
-  try {
-    await sendSimpleEventSource(device.id);
-    logger.info({ deviceId: device.id }, 'Alexa SimpleEventSource sent for button press');
-  } catch (err) {
-    logger.error({ err, deviceId: device.id }, 'Alexa failed to send SimpleEventSource for button press');
-    throw err;
-  }
+  await sendSimpleEventSource(device.id);
 });
 
 export const ALARM_ENDPOINT_ID = '044feaa3-6236-48b1-805f-56cd190ae96d';

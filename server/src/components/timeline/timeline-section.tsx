@@ -1,12 +1,12 @@
 import React, { useState, useMemo, ReactNode } from 'react';
 import { Checkbox, Group, Title } from '@mantine/core';
 import { faLightbulb, faPersonWalking, faFireBurner, faHandPointer, faSignal } from '@fortawesome/free-solid-svg-icons';
-import useApiCall from '../../hooks/api';
+import { useDeviceTimeline } from '../../hooks/queries/use-device-timeline';
 import { useDateRange, DateRangeSelector } from '../date-range';
 import dayjs, { Dayjs } from '../../dayjs';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import Event from '../event';
-import { DeviceTimelineApiResponse, DeviceTimelineEventApiResponse } from '../../api/types';
+import { DeviceTimelineEventApiResponse } from '../../api/types';
 
 type TimelineSectionProps = {
   deviceId: number;
@@ -93,10 +93,7 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
     until: effectiveRange.until.toISOString()
   }), [effectiveRange.since, effectiveRange.until]);
 
-  const { data, loading, error } = useApiCall<DeviceTimelineApiResponse>(
-    `/device/${deviceId}/timeline`,
-    params
-  );
+  const { data, isPending, isError } = useDeviceTimeline(deviceId, params);
 
   const handleUsePageRangeChange = (checked: boolean) => {
     if (!checked && !localRange) {
@@ -105,11 +102,11 @@ export function TimelineSection({ deviceId }: TimelineSectionProps) {
     setUsePageRange(checked);
   };
 
-  if (loading) {
+  if (isPending) {
     return <div>Loading timeline...</div>;
   }
 
-  if (error) {
+  if (isError) {
     return <div>Error loading timeline</div>;
   }
 

@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Checkbox, Group, Title } from '@mantine/core';
-import useApiCall from '../../hooks/api';
+import { useDeviceHistory } from '../../hooks/queries/use-device-history';
 import { useDateRange, DateRangeSelector, getPresetRange } from '../date-range';
 import { CapabilityGraph, CapabilityGraphProps } from './capability-graph';
-import { HistoryApiResponse } from '../../api/types';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import dayjs from '../../dayjs';
 
@@ -63,10 +62,7 @@ export function DeviceGraph({
     until: effectiveRange.until.toISOString()
   }), [graphId, effectiveRange.since, effectiveRange.until]);
 
-  const { data, loading, error } = useApiCall<HistoryApiResponse>(
-    `/device/${deviceId}/history`,
-    params
-  );
+  const { data, isPending, isError } = useDeviceHistory(deviceId, params);
 
   const handleUsePageRangeChange = (checked: boolean) => {
     if (!checked && !localRange) {
@@ -75,11 +71,11 @@ export function DeviceGraph({
     setUsePageRange(checked);
   };
 
-  if (loading) {
+  if (isPending) {
     return <div style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
   }
 
-  if (error) {
+  if (isError) {
     return <div style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading graph</div>;
   }
 

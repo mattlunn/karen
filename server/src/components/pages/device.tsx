@@ -1,9 +1,9 @@
 import React from 'react';
-import useApiCall from '../../hooks/api';
+import { useDevice } from '../../hooks/queries/use-device';
 import { useParams } from 'react-router-dom';
 import styles from './device.module.css';
 
-import type { DeviceApiResponse, CapabilityApiResponse } from '../../api/types';
+import type { CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DeviceGraph } from '../capability-graphs/device-graph';
 import { TimelineSection } from '../timeline/timeline-section';
@@ -17,9 +17,9 @@ import BinScheduleCalendar from '../bin-schedule-calendar';
 
 export default function Device() {
   const { id } = useParams<{ id: string }>();
-  const { loading, data } = useApiCall<DeviceApiResponse>(`/device/${id}`);
+  const { isPending, data } = useDevice(Number(id));
 
-  if (loading || !data) {
+  if (isPending || !data) {
     return <PageLoader />;
   }
 
