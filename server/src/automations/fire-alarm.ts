@@ -31,7 +31,7 @@ export default function ({ deviceName }: FireAlarmAutomationParameters) {
 
     logger.warn({ event: 'fire-alarm-triggered' }, message);
 
-    bus.emit(NOTIFICATION_TO_ALL, { message, priority: 2 });
+    bus.emit(NOTIFICATION_TO_ALL, { message, priority: 2, retry: 60, expire: 3600 });
 
     for (const user of await User.getUsersWithMobileNumber()) {
       callWithKarenMessage(user, message);

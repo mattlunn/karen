@@ -21,6 +21,8 @@ type NotificationPayload = {
   message: string,
   sound?: string,
   priority?: number,
+  retry?: number,
+  expire?: number,
   image?: Buffer
 };
 
