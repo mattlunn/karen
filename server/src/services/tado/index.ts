@@ -140,15 +140,64 @@ Device.registerProvider('tado', {
       async getScheduledTemperatureAtTime(device: Device, timestamp: Date): Promise<number | null> {
         let timetableBlocks = deviceTimetableCache.get(device.providerId);
 
-        if (timetableBlocks === undefined) { 
+        if (timetableBlocks === undefined) {
           const client = new TadoClient(await getAccessToken(), config.tado.home_id);
           const activeTimetableId = await client.getActiveTimetableId(device.providerId);
-          
+
           timetableBlocks = await client.getTimetableBlocks(device.providerId, activeTimetableId);
           deviceTimetableCache.set(device.providerId, timetableBlocks);
         }
 
         return getTimetabledTemperature(timetableBlocks, dayjs(timestamp));
+      },
+
+      async getWarmupRate(device: Device): Promise<number> {
+        const thermostat = device.getThermostatCapability();
+        const until = new Date();
+        const since = dayjs(until).subtract(90, 'days').toDate();
+
+        const powerHistory = await thermostat.getPowerHistory({ since, until });
+        const fullPowerPeriods = powerHistory
+          .filter(e => e.value === 100 && e.end !== null)
+          .slice(0, 20);
+
+        if (fullPowerPeriods.length === 0) {
+          return 0;
+        }
+
+        const earliestStart = fullPowerPeriods.reduce(
+          (min, e) => (e.start < min ? e.start : min),
+          fullPowerPeriods[0].start
+        );
+
+        const tempHistory = await thermostat.getCurrentTemperatureHistory({ since: earliestStart, until });
+
+        function findTemperatureAtTime(time: Date): number | undefined {
+          return tempHistory.find(({ start, end }) => start <= time && end !== null && end >= time)?.value;
+        }
+
+        const warmupRates = fullPowerPeriods.reduce<number[]>((acc, { start, end }) => {
+          const tempAtStart = findTemperatureAtTime(start);
+          const tempAtEnd = end ? findTemperatureAtTime(end) : undefined;
+
+          if (tempAtStart === undefined || tempAtEnd === undefined || end === null) {
+            return acc;
+          }
+
+          const durationInHours = dayjs(end).diff(start, 'h', true);
+
+          if (durationInHours > 0.5 && tempAtEnd > tempAtStart) {
+            acc.push((tempAtEnd - tempAtStart) / durationInHours);
+          }
+
+          return acc;
+        }, []);
+
+        if (warmupRates.length === 0) {
+          return 0;
+        }
+
+        return warmupRates.reduce((acc, curr) => acc + curr, 0) / warmupRates.length;
       }
     };
   },

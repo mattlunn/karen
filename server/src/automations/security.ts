@@ -1,4 +1,4 @@
-import { Device, Arming, Stay, User, AlarmActivation, Event } from '../models';
+import { Device, Arming, Stay, User, AlarmActivation, BooleanEvent } from '../models';
 import { call } from '../services/twilio';
 import dayjs from '../dayjs';
 import sleep from '../helpers/sleep';
@@ -35,7 +35,7 @@ async function getAbsentUsersWithMobileNumbers() {
   return allUsers.filter(user => !!user.mobileNumber && !currentStays.some(stay => stay.userId === user.id));
 }
 
-async function notifyAbsentUsersOfEvent(event: Event) {
+async function notifyAbsentUsersOfEvent(event: BooleanEvent) {
   const usersWithNumber = await getAbsentUsersWithMobileNumbers();
   const device = await event.getDevice();
   const message = `Motion was detected by the ${device.name} at ${dayjs(event.start).format('HH:mm:ss')}`;
@@ -45,7 +45,7 @@ async function notifyAbsentUsersOfEvent(event: Event) {
   }
 }
 
-async function notifyNightModeAlexa(name: string, event: Event) {
+async function notifyNightModeAlexa(name: string, event: BooleanEvent) {
   const alexa = await Device.findByNameOrError(name);
   const device = await event.getDevice();
   const message = [
