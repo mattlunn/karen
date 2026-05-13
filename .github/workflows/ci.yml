@@ -25,6 +25,8 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+        env:
+          NODE_ENV: production
 
       - name: Log in to Docker Hub
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
