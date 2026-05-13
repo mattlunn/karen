@@ -8,7 +8,7 @@ import { DeviceCapabilityEvents } from '../models/capabilities';
 import { joinWithAnd } from '../helpers/array';
 
 type FireAlarmAutomationParameters = {
-  device_name: string;
+  deviceName: string;
 };
 
 async function describeWhoIsHome(): Promise<string> {
@@ -21,7 +21,7 @@ async function describeWhoIsHome(): Promise<string> {
   return `${joinWithAnd(handles)} ${handles.length === 1 ? 'is' : 'are'} home`;
 }
 
-export default function ({ device_name: deviceName }: FireAlarmAutomationParameters) {
+export default function ({ deviceName }: FireAlarmAutomationParameters) {
   const isThisDevice = (d: Device) => d.name === deviceName;
 
   DeviceCapabilityEvents.onContactSensorIsClosedStart(isThisDevice, createBackgroundTransaction('automations:fire-alarm:triggered', async (event: BooleanEvent) => {
