@@ -106,7 +106,7 @@
     "build": "npm run build:server && npm run build:browser",
     "build:server": "babel . -d ../dist --extensions '.ts,.tsx,.js' --copy-files --include-dotfiles",
     "dev": "babel . -d ../dist --extensions '.ts,.tsx,.js' --copy-files --no-copy-ignored --ignore config.json --include-dotfiles --watch | npx pino-pretty",
-    "build:browser": "node node_modules/webpack/bin/webpack",
+    "build:browser": "NODE_ENV=production node node_modules/webpack/bin/webpack",
     "test": "jest .",
     "lint": "npm run lint:eslint && npm run lint:tsc",
     "lint:eslint": "eslint --max-warnings 0 .",
