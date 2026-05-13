@@ -4,7 +4,7 @@ import dayjs, { Dayjs } from '../../dayjs';
 import styles from './timeline.module.css';
 
 export type TimelineItem = {
-  timestamp: string | Date;
+  timestamp: string;
   component: ReactNode;
 };
 
@@ -20,9 +20,7 @@ type Day = {
 
 function groupByDay(items: TimelineItem[]): Day[] {
   const sorted = items.toSorted((a, b) => {
-    const at = a.timestamp instanceof Date ? a.timestamp.getTime() : new Date(a.timestamp).getTime();
-    const bt = b.timestamp instanceof Date ? b.timestamp.getTime() : new Date(b.timestamp).getTime();
-    return bt - at;
+    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
   });
 
   const days: Day[] = [];
