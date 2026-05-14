@@ -1,12 +1,10 @@
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { Title, TitleOrder } from '@mantine/core';
 import dayjs, { Dayjs } from '../../dayjs';
+import Event, { EventProps } from './event';
 import styles from './timeline.module.css';
 
-export type TimelineItem = {
-  timestamp: string;
-  component: ReactNode;
-};
+export type TimelineItem = EventProps;
 
 type TimelineProps = {
   items: TimelineItem[];
@@ -15,7 +13,7 @@ type TimelineProps = {
 
 type Day = {
   date: Dayjs;
-  events: ReactNode[];
+  events: TimelineItem[];
 };
 
 function groupByDay(items: TimelineItem[]): Day[] {
@@ -30,9 +28,9 @@ function groupByDay(items: TimelineItem[]): Day[] {
     const last = days[days.length - 1];
 
     if (last && last.date.isSame(ts, 'day')) {
-      last.events.push(item.component);
+      last.events.push(item);
     } else {
-      days.push({ date: ts.startOf('day'), events: [item.component] });
+      days.push({ date: ts.startOf('day'), events: [item] });
     }
   }
 
@@ -52,7 +50,7 @@ export default function Timeline({ items, dayHeaderOrder = 3 }: TimelineProps) {
 
           <ol>
             {events.map((event, i) => (
-              <li key={i} className={styles.event}>{event}</li>
+              <li key={i} className={styles.event}><Event {...event} /></li>
             ))}
           </ol>
         </li>
