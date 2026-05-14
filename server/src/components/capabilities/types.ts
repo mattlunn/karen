@@ -1,7 +1,13 @@
 import { ReactNode } from 'react';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { QueryClient } from '@tanstack/react-query';
-import type { CapabilityApiResponse, RestDeviceResponse } from '../../api/types';
+import type {
+  CapabilityApiResponse,
+  RestDeviceResponse,
+  NumericEventApiResponse,
+  BooleanEventApiResponse,
+  EnumEventApiResponse,
+} from '../../api/types';
 import type { DateRangePreset } from '../date-range/types';
 
 // ============================================================================
@@ -43,6 +49,36 @@ export type CapabilityMetric = CapabilityMetricBase & (
   | { since: string; lastReported: string }
   | { footer?: string }
 );
+
+/**
+ * An event-shaped capability value (anything carrying `start` / `lastReported`).
+ */
+export type CapabilityEvent = NumericEventApiResponse | BooleanEventApiResponse | EnumEventApiResponse;
+
+/**
+ * A config value that is either static, or a function resolved against the
+ * metric's backing event (which may be `null` when there is no event).
+ */
+export type EventResolved<E extends CapabilityEvent | null, T> = T | ((event: E) => T);
+
+/**
+ * Config for `createCapability`. Any of the display props may be a plain value
+ * or a function of the backing event. `since` / `lastReported` are derived from
+ * the event automatically unless given explicitly (or `footer` is used instead,
+ * for metrics with no backing event).
+ */
+export type CreateCapabilityConfig<E extends CapabilityEvent | null> = {
+  icon: EventResolved<E, IconDefinition>;
+  title: string;
+  value: EventResolved<E, ReactNode>;
+  iconColor?: EventResolved<E, string | undefined>;
+  iconHighlighted?: EventResolved<E, boolean | undefined>;
+  isIssue?: EventResolved<E, boolean | undefined>;
+  onIconClick?: (ctx: IconClickContext) => void | Promise<void>;
+  since?: string;
+  lastReported?: string;
+  footer?: string;
+};
 
 /**
  * Configuration for a graph on the device details page.
