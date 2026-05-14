@@ -41,8 +41,8 @@ export async function getDHWMode(): Promise<boolean> {
 nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
-  const deviceCapability = device.getHeatPumpCapability();
-  const energyMonitor = device.getEnergyMonitorCapability();
+  const heatPumpCapability = device.getHeatPumpCapability();
+  const energyMonitorCapability = device.getEnergyMonitorCapability();
 
   async function updateState<T>(getter: () => Promise<T>, updater: (value: T) => Promise<unknown>) {
     await updater(await getter());
@@ -53,25 +53,25 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   }
 
   const results = await Promise.allSettled([
-    updateState(() => client.getOutsideTemperature(), (v) => deviceCapability.setOutsideTemperatureState(roundTo1DecimalPlace(v))),
+    updateState(() => client.getOutsideTemperature(), (v) => heatPumpCapability.setOutsideTemperatureState(roundTo1DecimalPlace(v))),
 
-    updateState(() => client.getActualFlowTemperature(), (v) => deviceCapability.setActualFlowTemperatureState(roundTo1DecimalPlace(v))),
-    updateState(() => client.getDesiredFlowTemperature(), (v) => deviceCapability.setDesiredFlowTemperatureState(roundTo1DecimalPlace(v))),
-    updateState(() => client.getReturnTemperature(), (v) => deviceCapability.setReturnTemperatureState(roundTo1DecimalPlace(v))),
+    updateState(() => client.getActualFlowTemperature(), (v) => heatPumpCapability.setActualFlowTemperatureState(roundTo1DecimalPlace(v))),
+    updateState(() => client.getDesiredFlowTemperature(), (v) => heatPumpCapability.setDesiredFlowTemperatureState(roundTo1DecimalPlace(v))),
+    updateState(() => client.getReturnTemperature(), (v) => heatPumpCapability.setReturnTemperatureState(roundTo1DecimalPlace(v))),
 
-    updateState(() => client.getCompressorPower(), (v) => deviceCapability.setCompressorPowerState(v)),
-    updateState(() => client.getCompressorModulation(), (v) => deviceCapability.setCompressorModulationState(v)),
+    updateState(() => client.getCompressorPower(), (v) => heatPumpCapability.setCompressorPowerState(v)),
+    updateState(() => client.getCompressorModulation(), (v) => heatPumpCapability.setCompressorModulationState(v)),
 
-    updateState(() => client.getHotWaterCylinderTemperature(), (v) => deviceCapability.setDHWTemperatureState(v)),
-    updateState(() => client.getSystemPressure(), (v) => deviceCapability.setSystemPressureState(v)),
+    updateState(() => client.getHotWaterCylinderTemperature(), (v) => heatPumpCapability.setDHWTemperatureState(v)),
+    updateState(() => client.getSystemPressure(), (v) => heatPumpCapability.setSystemPressureState(v)),
 
     updateState(() => client.getCurrentPower(), (v) => Promise.all([
-      deviceCapability.setCurrentPowerState(roundTo1DecimalPlace(v)),
-      energyMonitor.setCurrentPowerState(roundTo1DecimalPlace(v))
+      heatPumpCapability.setCurrentPowerState(roundTo1DecimalPlace(v)),
+      energyMonitorCapability.setCurrentPowerState(roundTo1DecimalPlace(v))
     ])),
-    updateState(() => client.getCurrentYield(), (v) => deviceCapability.setCurrentYieldState(roundTo1DecimalPlace(v))),
-    updateState(() => client.getMode(), (v) => deviceCapability.setModeState(v)),
-    updateState(() => client.getDHWIsOn(), (v) => deviceCapability.setDHWIsOnState(v))
+    updateState(() => client.getCurrentYield(), (v) => heatPumpCapability.setCurrentYieldState(roundTo1DecimalPlace(v))),
+    updateState(() => client.getMode(), (v) => heatPumpCapability.setModeState(v)),
+    updateState(() => client.getDHWIsOn(), (v) => heatPumpCapability.setDHWIsOnState(v))
   ]);
 
   const anySucceeded = results.some(r => r.status === 'fulfilled');

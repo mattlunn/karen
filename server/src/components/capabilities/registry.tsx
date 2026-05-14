@@ -36,6 +36,7 @@ import {
   faHashtag,
   faBell,
   faSignal,
+  faSterlingSign,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
@@ -757,14 +758,14 @@ export const registry: CapabilityUIRegistry = {
           },
       cap.dayCost
         ? {
-            icon: faHashtag,
+            icon: faSterlingSign,
             title: "Today's Cost",
             value: `£${(cap.dayCost.value / 100).toFixed(2)}`,
             since: cap.dayCost.start,
             lastReported: cap.dayCost.lastReported,
           }
         : {
-            icon: faHashtag,
+            icon: faSterlingSign,
             title: "Today's Cost",
             value: 'No data',
           },
@@ -790,27 +791,27 @@ export const registry: CapabilityUIRegistry = {
     getCapabilityMetrics: (cap) => [
       cap.unitRate
         ? {
-            icon: faHashtag,
+            icon: faSterlingSign,
             title: 'Unit Rate',
             value: `${cap.unitRate.value.toFixed(2)}p/kWh`,
             since: cap.unitRate.start,
             lastReported: cap.unitRate.lastReported,
           }
         : {
-            icon: faHashtag,
+            icon: faSterlingSign,
             title: 'Unit Rate',
             value: 'No data',
           },
       cap.standingCharge
         ? {
-            icon: faHashtag,
+            icon: faSterlingSign,
             title: 'Standing Charge',
             value: `${cap.standingCharge.value.toFixed(2)}p/day`,
             since: cap.standingCharge.start,
             lastReported: cap.standingCharge.lastReported,
           }
         : {
-            icon: faHashtag,
+            icon: faSterlingSign,
             title: 'Standing Charge',
             value: 'No data',
           },
