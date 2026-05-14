@@ -17,6 +17,7 @@ import Devices from './components/pages/devices';
 import Device from './components/pages/device';
 import Login from './components/pages/login';
 import HeatingInsights from './components/pages/insights-heating';
+import EnergyInsights from './components/pages/insights-energy';
 import InsightsBins from './components/pages/insights-bins';
 
 const queryClient = new QueryClient({
@@ -55,6 +56,7 @@ const router = createBrowserRouter([
       { path: '/', element: <Home /> },
       { path: '/timeline', element: <Timeline /> },
       { path: '/insights/heating', element: <HeatingInsights /> },
+      { path: '/insights/energy', element: <EnergyInsights /> },
       { path: '/device/:id', element: <Device /> },
       { path: '/device', element: <Devices /> },
       { path: '/insights/bins', element: <InsightsBins /> },

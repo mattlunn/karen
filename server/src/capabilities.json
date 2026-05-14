@@ -395,4 +395,43 @@
       "eventName": "is_connected"
     }
   ]
+}, {
+  "name": "EnergyMonitor",
+  "properties": [
+    {
+      "name": "CurrentPower",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "energy_current_power"
+    },
+    {
+      "name": "DayEnergy",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "energy_day_energy"
+    },
+    {
+      "name": "DayCost",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "energy_day_cost"
+    }
+  ]
+}, {
+  "name": "EnergyCost",
+  "capabilityModelClassName": "EnergyCostBase",
+  "properties": [
+    {
+      "name": "UnitRate",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "energy_unit_rate"
+    },
+    {
+      "name": "StandingCharge",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "energy_standing_charge"
+    }
+  ]
 }]

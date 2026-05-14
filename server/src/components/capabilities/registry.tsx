@@ -722,4 +722,101 @@ export const registry: CapabilityUIRegistry = {
       },
     ],
   },
+
+  ENERGY_MONITOR: {
+    priority: 28,
+    getCapabilityMetrics: (cap) => [
+      cap.currentPower
+        ? {
+            icon: faBolt,
+            title: 'Current Power',
+            value: `${Math.round(cap.currentPower.value).toLocaleString()} W`,
+            since: cap.currentPower.start,
+            lastReported: cap.currentPower.lastReported,
+            iconColor: '#f1c40f',
+            iconHighlighted: cap.currentPower.value > 0,
+          }
+        : {
+            icon: faBolt,
+            title: 'Current Power',
+            value: 'No data',
+            iconColor: '#f1c40f',
+          },
+      cap.dayEnergy
+        ? {
+            icon: faPlug,
+            title: "Today's Energy",
+            value: `${cap.dayEnergy.value.toFixed(2)} kWh`,
+            since: cap.dayEnergy.start,
+            lastReported: cap.dayEnergy.lastReported,
+          }
+        : {
+            icon: faPlug,
+            title: "Today's Energy",
+            value: 'No data',
+          },
+      cap.dayCost
+        ? {
+            icon: faHashtag,
+            title: "Today's Cost",
+            value: `£${(cap.dayCost.value / 100).toFixed(2)}`,
+            since: cap.dayCost.start,
+            lastReported: cap.dayCost.lastReported,
+          }
+        : {
+            icon: faHashtag,
+            title: "Today's Cost",
+            value: 'No data',
+          },
+    ],
+    getGraphs: () => [
+      { id: 'energy-power', title: 'Power', yMin: 0 },
+      {
+        id: 'energy-daily',
+        title: 'Daily Energy & Cost',
+        overridePreset: 'custom',
+        overrideStart: dayjs().subtract(1, 'month').startOf('day').toISOString(),
+        overrideEnd: dayjs().toISOString(),
+        yAxis: {
+          yEnergy: { position: 'left', min: 0 },
+          yCost: { position: 'right', min: 0 },
+        },
+      },
+    ],
+  },
+
+  ENERGY_COST: {
+    priority: 29,
+    getCapabilityMetrics: (cap) => [
+      cap.unitRate
+        ? {
+            icon: faHashtag,
+            title: 'Unit Rate',
+            value: `${cap.unitRate.value.toFixed(2)}p/kWh`,
+            since: cap.unitRate.start,
+            lastReported: cap.unitRate.lastReported,
+          }
+        : {
+            icon: faHashtag,
+            title: 'Unit Rate',
+            value: 'No data',
+          },
+      cap.standingCharge
+        ? {
+            icon: faHashtag,
+            title: 'Standing Charge',
+            value: `${cap.standingCharge.value.toFixed(2)}p/day`,
+            since: cap.standingCharge.start,
+            lastReported: cap.standingCharge.lastReported,
+          }
+        : {
+            icon: faHashtag,
+            title: 'Standing Charge',
+            value: 'No data',
+          },
+    ],
+    getGraphs: () => [
+      { id: 'energy-unit-rate', title: 'Unit Rate (p/kWh)', yMin: 0 },
+    ],
+  },
 };

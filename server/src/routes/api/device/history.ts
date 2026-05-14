@@ -327,6 +327,48 @@ const historyFetchers = new Map<string, HistoryFetcher>([
       },
       lines: []
     };
+  }],
+
+  // Energy Monitor - Power
+  ['energy-power', async (device, selector) => {
+    const energyMonitor = device.getEnergyMonitorCapability();
+
+    return {
+      lines: [
+        {
+          data: await mapNumericHistoryToResponse((hs) => energyMonitor.getCurrentPowerHistory(hs), selector),
+          label: 'Power (W)'
+        }
+      ]
+    };
+  }],
+
+  // Energy Monitor - Daily Energy & Cost
+  ['energy-daily', async (device, selector) => {
+    const energyMonitor = device.getEnergyMonitorCapability();
+
+    return awaitPromises({
+      bar: mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector)
+        .then(data => ({ data, label: 'Energy (kWh)', yAxisID: 'yEnergy' })),
+      lines: Promise.all([
+        mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector)
+          .then(data => ({ data, label: 'Cost (pence)', yAxisID: 'yCost' }))
+      ])
+    });
+  }],
+
+  // Energy Cost - Unit Rate
+  ['energy-unit-rate', async (device, selector) => {
+    const energyCost = device.getEnergyCostCapability();
+
+    return {
+      lines: [
+        {
+          data: await mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), selector),
+          label: 'Unit Rate (p/kWh)'
+        }
+      ]
+    };
   }]
 ]);
 

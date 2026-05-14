@@ -18,6 +18,21 @@ export function mapNumericEvent(eventPromise: Promise<NumericEvent | null>): Pro
   });
 }
 
+export function mapNullableNumericEvent(eventPromise: Promise<NumericEvent | null>): Promise<NumericEventApiResponse | null> {
+  return eventPromise.then(event => {
+    if (!event) {
+      return null;
+    }
+
+    return {
+      start: event.start.toISOString(),
+      end: event.end?.toISOString() ?? null,
+      lastReported: event.lastReported.toISOString(),
+      value: event.value
+    };
+  });
+}
+
 export function mapBooleanEvent(eventPromise: Promise<BooleanEvent | null>, device: Device): Promise<BooleanEventApiResponse> {
   return eventPromise.then(event => {
     // For boolean events which have never happened yet, assume they are off (since there is no "on"...)
@@ -267,6 +282,25 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       return awaitPromises({
         type: 'CONNECTIVITY' as const,
         isConnected: mapBooleanEvent(conn.getIsConnectedEvent(), device)
+      });
+    }
+
+    case 'ENERGY_MONITOR': {
+      const energyMonitor = device.getEnergyMonitorCapability();
+      return awaitPromises({
+        type: 'ENERGY_MONITOR' as const,
+        currentPower: mapNullableNumericEvent(energyMonitor.getCurrentPowerEvent()),
+        dayEnergy: mapNullableNumericEvent(energyMonitor.getDayEnergyEvent()),
+        dayCost: mapNullableNumericEvent(energyMonitor.getDayCostEvent())
+      });
+    }
+
+    case 'ENERGY_COST': {
+      const energyCost = device.getEnergyCostCapability();
+      return awaitPromises({
+        type: 'ENERGY_COST' as const,
+        unitRate: mapNullableNumericEvent(energyCost.getUnitRateEvent()),
+        standingCharge: mapNullableNumericEvent(energyCost.getStandingChargeEvent())
       });
     }
 

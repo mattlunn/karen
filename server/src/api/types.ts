@@ -83,6 +83,15 @@ export type CapabilityApiResponse = {
   type: 'CONNECTIVITY';
   isConnected: BooleanEventApiResponse;
 } | {
+  type: 'ENERGY_MONITOR';
+  currentPower: NumericEventApiResponse | null;
+  dayEnergy: NumericEventApiResponse | null;
+  dayCost: NumericEventApiResponse | null;
+} | {
+  type: 'ENERGY_COST';
+  unitRate: NumericEventApiResponse | null;
+  standingCharge: NumericEventApiResponse | null;
+} | {
   type: null;
 };
 
@@ -288,6 +297,12 @@ export interface HeatingInsightsApiResponse {
   temperatureDeltas: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltaSwitchOnThreshold: number | null;
   heatPump: { id: number; name: string };
+}
+
+// /api/insights/energy endpoint
+export interface EnergyInsightsApiResponse {
+  usage: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
+  cost: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
 }
 
 export interface DeviceUpdateEvent {

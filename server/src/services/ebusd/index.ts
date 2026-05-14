@@ -7,7 +7,7 @@ import { storeRunningMetrics } from './history';
 
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
-    return ['HEAT_PUMP', 'CONNECTIVITY'];
+    return ['HEAT_PUMP', 'ENERGY_MONITOR', 'CONNECTIVITY'];
   },
 
   async synchronize() {
@@ -42,6 +42,7 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const deviceCapability = device.getHeatPumpCapability();
+  const energyMonitor = device.getEnergyMonitorCapability();
 
   async function updateState<T>(getter: () => Promise<T>, updater: (value: T) => Promise<unknown>) {
     await updater(await getter());
@@ -64,7 +65,10 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     updateState(() => client.getHotWaterCylinderTemperature(), (v) => deviceCapability.setDHWTemperatureState(v)),
     updateState(() => client.getSystemPressure(), (v) => deviceCapability.setSystemPressureState(v)),
 
-    updateState(() => client.getCurrentPower(), (v) => deviceCapability.setCurrentPowerState(roundTo1DecimalPlace(v))),
+    updateState(() => client.getCurrentPower(), (v) => Promise.all([
+      deviceCapability.setCurrentPowerState(roundTo1DecimalPlace(v)),
+      energyMonitor.setCurrentPowerState(roundTo1DecimalPlace(v))
+    ])),
     updateState(() => client.getCurrentYield(), (v) => deviceCapability.setCurrentYieldState(roundTo1DecimalPlace(v))),
     updateState(() => client.getMode(), (v) => deviceCapability.setModeState(v)),
     updateState(() => client.getDHWIsOn(), (v) => deviceCapability.setDHWIsOnState(v))
