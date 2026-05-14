@@ -5,6 +5,7 @@ import { sendAddOrUpdateReport, sendDeleteReport, sendSimpleEventSource } from '
 import logger from '../../logger';
 import nowAndSetIntervalForTime from '../../helpers/now-and-set-interval-for-time';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
+import { AlexaDiscoveryCapability, AlexaDiscoveryEndpoint } from './types';
 
 export const messages = new Map();
 
@@ -126,32 +127,8 @@ DeviceCapabilityEvents.onButtonPressed(async (event) => {
 
 export const ALARM_ENDPOINT_ID = '044feaa3-6236-48b1-805f-56cd190ae96d';
 
-interface AlexaCapability {
-  type: 'AlexaInterface';
-  interface: string;
-  version: string;
-  instance?: string;
-  capabilityResources?: Record<string, unknown>;
-  configuration?: Record<string, unknown>;
-  properties?: {
-    supported: { name: string }[];
-    configuration?: Record<string, unknown>;
-    proactivelyReported: boolean;
-    retrievable: boolean;
-  };
-}
-
-interface AlexaEndpoint {
-  friendlyName: string;
-  endpointId: string;
-  displayCategories: string[];
-  manufacturerName: string;
-  description: string;
-  capabilities: AlexaCapability[];
-}
-
-export function buildDiscoveryEndpoints(devices: Device[]): AlexaEndpoint[] {
-  const endpoints: AlexaEndpoint[] = [{
+export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoint[] {
+  const endpoints: AlexaDiscoveryEndpoint[] = [{
     friendlyName: 'Alarm',
     endpointId: ALARM_ENDPOINT_ID,
     displayCategories: ['SECURITY_PANEL'],

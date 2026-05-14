@@ -13,43 +13,43 @@ import {
 import * as requestTypes from '../services/alexa/requestTypes';
 import { AlarmMode } from '../api/types';
 import {
-  AlexaSmartHomeDirective,
-  AlexaAcceptGrantDirective,
-  AlexaDiscoverDirective,
-  AlexaReportStateDirective,
-  AlexaTurnOnOffDirective,
-  AlexaBrightnessDirective,
-  AlexaSetBrightnessDirective,
-  AlexaAdjustBrightnessDirective,
-  AlexaSecurityPanelDirective,
-  AlexaDirectiveEndpoint
+  AlexaSmartHomeRequest,
+  AlexaAcceptGrantRequest,
+  AlexaDiscoverRequest,
+  AlexaReportStateRequest,
+  AlexaTurnOnOffRequest,
+  AlexaBrightnessRequest,
+  AlexaSetBrightnessRequest,
+  AlexaAdjustBrightnessRequest,
+  AlexaSecurityPanelRequest,
+  AlexaRequestEndpoint
 } from '../services/alexa/types';
 
 const router = express.Router();
 
-type AlexaDirectiveWithEndpoint = Extract<AlexaSmartHomeDirective, { endpoint: AlexaDirectiveEndpoint }>;
+type AlexaRequestWithEndpoint = Extract<AlexaSmartHomeRequest, { endpoint: AlexaRequestEndpoint }>;
 
-function stateReport(directive: AlexaDirectiveWithEndpoint, properties: AlexaEndpointProperty[]) {
+function stateReport(request: AlexaRequestWithEndpoint, properties: AlexaEndpointProperty[]) {
   return {
     event: {
-      header: { ...directive.header, name: 'StateReport' },
-      endpoint: directive.endpoint
+      header: { ...request.header, name: 'StateReport' },
+      endpoint: request.endpoint
     },
     context: { properties }
   };
 }
 
-function controlResponse(directive: AlexaDirectiveWithEndpoint, properties: AlexaEndpointProperty[]) {
+function controlResponse(request: AlexaRequestWithEndpoint, properties: AlexaEndpointProperty[]) {
   return {
     event: {
-      header: { ...directive.header, namespace: 'Alexa', name: 'Response' },
-      endpoint: directive.endpoint
+      header: { ...request.header, namespace: 'Alexa', name: 'Response' },
+      endpoint: request.endpoint
     },
     context: { properties }
   };
 }
 
-async function handleDiscover(directive: AlexaDiscoverDirective) {
+async function handleDiscover(request: AlexaDiscoverRequest) {
   const devices = await Device.findAll();
   const endpoints = buildDiscoveryEndpoints(devices);
 
@@ -58,49 +58,49 @@ async function handleDiscover(directive: AlexaDiscoverDirective) {
       header: {
         namespace: 'Alexa.Discovery',
         name: 'Discover.Response',
-        messageId: directive.header.messageId,
-        payloadVersion: directive.header.payloadVersion
+        messageId: request.header.messageId,
+        payloadVersion: request.header.payloadVersion
       },
       payload: { endpoints }
     }
   };
 }
 
-async function handleAcceptGrant(directive: AlexaAcceptGrantDirective) {
-  await exchangeAuthenticationToken('authorization_code', directive.payload.grant.code);
+async function handleAcceptGrant(request: AlexaAcceptGrantRequest) {
+  await exchangeAuthenticationToken('authorization_code', request.payload.grant.code);
 
   return {
     event: {
-      header: { ...directive.header, name: 'AcceptGrant.Response' }
+      header: { ...request.header, name: 'AcceptGrant.Response' }
     }
   };
 }
 
-async function handleReportState(directive: AlexaReportStateDirective) {
-  const endpointId = directive.endpoint.endpointId;
+async function handleReportState(request: AlexaReportStateRequest) {
+  const endpointId = request.endpoint.endpointId;
   const then = new Date();
 
   if (endpointId === ALARM_ENDPOINT_ID) {
     const activeArming = await Arming.getActiveArming();
     const alarmMode: AlarmMode = activeArming ? activeArming.mode as AlarmMode : 'OFF';
 
-    return stateReport(directive, createAlarmResponseProperties(alarmMode, then, Date.now() - then.valueOf()));
+    return stateReport(request, createAlarmResponseProperties(alarmMode, then, Date.now() - then.valueOf()));
   }
 
   const device = await Device.findByIdOrError(endpointId);
   const capabilities = device.getCapabilities();
 
   if (capabilities.includes('LIGHT')) {
-    return stateReport(directive, await createLightResponseProperties(device, then, Date.now() - then.valueOf()));
+    return stateReport(request, await createLightResponseProperties(device, then, Date.now() - then.valueOf()));
   } else if (capabilities.includes('THERMOSTAT')) {
-    return stateReport(directive, await createThermostatResponseProperties(device, then, Date.now() - then.valueOf()));
+    return stateReport(request, await createThermostatResponseProperties(device, then, Date.now() - then.valueOf()));
   } else {
     throw new Error(`Unable to report state on ${endpointId}`);
   }
 }
 
-async function handleLightControl(directive: AlexaDirectiveWithEndpoint, update: { isOn?: boolean; brightness?: number }) {
-  const id = directive.endpoint.endpointId;
+async function handleLightControl(request: AlexaRequestWithEndpoint, update: { isOn?: boolean; brightness?: number }) {
+  const id = request.endpoint.endpointId;
   const device = await Device.findByIdOrError(id);
   const light = device.getLightCapability();
   const then = new Date();
@@ -111,22 +111,22 @@ async function handleLightControl(directive: AlexaDirectiveWithEndpoint, update:
     await light.setIsOn(update.isOn);
   }
 
-  return controlResponse(directive, await createLightResponseProperties(device, then, Date.now() - then.valueOf()));
+  return controlResponse(request, await createLightResponseProperties(device, then, Date.now() - then.valueOf()));
 }
 
-async function handleAdjustBrightness(directive: AlexaAdjustBrightnessDirective) {
-  const id = directive.endpoint.endpointId;
+async function handleAdjustBrightness(request: AlexaAdjustBrightnessRequest) {
+  const id = request.endpoint.endpointId;
   const device = await Device.findByIdOrError(id);
   const light = device.getLightCapability();
-  const delta = directive.payload.brightnessDelta;
+  const delta = request.payload.brightnessDelta;
   const newBrightness = Math.max(0, Math.min(100, await light.getBrightness() + delta));
 
-  return handleLightControl(directive, { brightness: newBrightness });
+  return handleLightControl(request, { brightness: newBrightness });
 }
 
-async function handleAlarmControl(directive: AlexaSecurityPanelDirective) {
-  const alarmMode: AlarmMode = directive.header.name === 'Disarm' ? 'OFF' :
-    directive.payload.armState === 'ARMED_AWAY' ? 'AWAY' : 'NIGHT';
+async function handleAlarmControl(request: AlexaSecurityPanelRequest) {
+  const alarmMode: AlarmMode = request.header.name === 'Disarm' ? 'OFF' :
+    request.payload.armState === 'ARMED_AWAY' ? 'AWAY' : 'NIGHT';
 
   const currentArming = await Arming.getActiveArming();
   const now = new Date();
@@ -145,34 +145,34 @@ async function handleAlarmControl(directive: AlexaSecurityPanelDirective) {
     }
   }
 
-  return controlResponse(directive, createAlarmResponseProperties(alarmMode, now, 0));
+  return controlResponse(request, createAlarmResponseProperties(alarmMode, now, 0));
 }
 
-type DirectiveHandler = (d: AlexaSmartHomeDirective) => Promise<object>;
+type SmartHomeRequestHandler = (r: AlexaSmartHomeRequest) => Promise<object>;
 
-const directiveHandlers: Record<string, DirectiveHandler> = {
-  'Alexa.Discovery': (d) => handleDiscover(d as AlexaDiscoverDirective),
-  'Alexa.Authorization': (d) => handleAcceptGrant(d as AlexaAcceptGrantDirective),
-  'Alexa': (d) => handleReportState(d as AlexaReportStateDirective),
-  'Alexa.PowerController': (d) => handleLightControl(d as AlexaTurnOnOffDirective, { isOn: d.header.name === 'TurnOn' }),
-  'Alexa.BrightnessController': (d) => {
-    const brightnessDirective = d as AlexaBrightnessDirective;
+const smarthomeHandlers: Record<string, SmartHomeRequestHandler> = {
+  'Alexa.Discovery': (r) => handleDiscover(r as AlexaDiscoverRequest),
+  'Alexa.Authorization': (r) => handleAcceptGrant(r as AlexaAcceptGrantRequest),
+  'Alexa': (r) => handleReportState(r as AlexaReportStateRequest),
+  'Alexa.PowerController': (r) => handleLightControl(r as AlexaTurnOnOffRequest, { isOn: r.header.name === 'TurnOn' }),
+  'Alexa.BrightnessController': (r) => {
+    const brightnessRequest = r as AlexaBrightnessRequest;
 
-    if (brightnessDirective.header.name === 'SetBrightness') {
-      return handleLightControl(brightnessDirective as AlexaSetBrightnessDirective, { brightness: (brightnessDirective as AlexaSetBrightnessDirective).payload.brightness });
+    if (brightnessRequest.header.name === 'SetBrightness') {
+      return handleLightControl(brightnessRequest as AlexaSetBrightnessRequest, { brightness: (brightnessRequest as AlexaSetBrightnessRequest).payload.brightness });
     }
 
-    return handleAdjustBrightness(brightnessDirective as AlexaAdjustBrightnessDirective);
+    return handleAdjustBrightness(brightnessRequest as AlexaAdjustBrightnessRequest);
   },
-  'Alexa.SecurityPanelController': (d) => handleAlarmControl(d as AlexaSecurityPanelDirective)
+  'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest)
 };
 
 type SkillRequestHandler = (req: unknown) => Promise<unknown>;
 
 router.post('/smarthome', auth, async (req, res) => {
-  const directive = req.body.directive as AlexaSmartHomeDirective;
-  const { namespace, messageId } = directive.header;
-  const handler = directiveHandlers[namespace];
+  const request = req.body.directive as AlexaSmartHomeRequest;
+  const { namespace, messageId } = request.header;
+  const handler = smarthomeHandlers[namespace];
 
   if (!handler) {
     res.status(404).json({ error: `No handler for namespace ${namespace}` });
@@ -180,7 +180,7 @@ router.post('/smarthome', auth, async (req, res) => {
   }
 
   try {
-    const response = await handler(directive);
+    const response = await handler(request);
     res.json(response);
   } catch (e) {
     res.json({
@@ -191,7 +191,7 @@ router.post('/smarthome', auth, async (req, res) => {
           messageId,
           payloadVersion: 3
         },
-        endpoint: (directive as AlexaDirectiveWithEndpoint).endpoint,
+        endpoint: (request as AlexaRequestWithEndpoint).endpoint,
         payload: {
           type: 'INTERNAL_ERROR',
           message: (e as Error).message
