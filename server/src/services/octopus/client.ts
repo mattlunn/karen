@@ -1,5 +1,4 @@
 import config from '../../config';
-import logger from '../../logger';
 
 export interface ConsumptionInterval {
   start: Date;
@@ -9,7 +8,7 @@ export interface ConsumptionInterval {
 
 export interface RateInterval {
   start: Date;
-  end: Date;
+  end: Date | null; // null while the rate is the current open-ended one
   value: number; // pence (inc. VAT)
 }
 
@@ -20,7 +19,29 @@ export interface MeterPoint {
   tariffCode: string;
 }
 
-const BASE_URL = (): string => config.octopus.base_url ?? 'https://api.octopus.energy';
+interface AccountResponse {
+  properties: {
+    electricity_meter_points: {
+      mpan: string;
+      meters: { serial_number: string }[];
+      agreements: { tariff_code: string }[];
+    }[];
+  }[];
+}
+
+interface ConsumptionResult {
+  consumption: number;
+  interval_start: string;
+  interval_end: string;
+}
+
+interface RateResult {
+  value_inc_vat: number;
+  valid_from: string;
+  valid_to: string | null;
+}
+
+const BASE_URL = 'https://api.octopus.energy';
 
 function authHeader(): string {
   return `Basic ${Buffer.from(`${config.octopus.api_key}:`).toString('base64')}`;
@@ -68,18 +89,13 @@ function productCodeFromTariff(tariffCode: string): string {
 }
 
 export async function getMeterPoint(): Promise<MeterPoint> {
-  const account = await request<any>(
-    `${BASE_URL()}/v1/accounts/${config.octopus.account_number}/`
+  const account = await request<AccountResponse>(
+    `${BASE_URL}/v1/accounts/${config.octopus.account_number}/`
   );
 
-  const property = account.properties?.[0];
-  const meterPoint = property?.electricity_meter_points?.[0];
-  const meter = meterPoint?.meters?.[0];
-  const agreement = meterPoint?.agreements?.[meterPoint.agreements.length - 1];
-
-  if (!meterPoint || !meter || !agreement) {
-    throw new Error('Octopus account does not expose an electricity meter point with an agreement');
-  }
+  const meterPoint = account.properties[0].electricity_meter_points[0];
+  const meter = meterPoint.meters[0];
+  const agreement = meterPoint.agreements[meterPoint.agreements.length - 1];
 
   return {
     mpan: meterPoint.mpan,
@@ -90,10 +106,10 @@ export async function getMeterPoint(): Promise<MeterPoint> {
 }
 
 export async function getConsumption(meterPoint: MeterPoint, since: Date, until: Date): Promise<ConsumptionInterval[]> {
-  const url = `${BASE_URL()}/v1/electricity-meter-points/${meterPoint.mpan}/meters/${meterPoint.serialNumber}`
+  const url = `${BASE_URL}/v1/electricity-meter-points/${meterPoint.mpan}/meters/${meterPoint.serialNumber}`
     + `/consumption/?period_from=${since.toISOString()}&period_to=${until.toISOString()}&page_size=25000&order_by=period`;
 
-  const results = await requestAllPages<any>(url);
+  const results = await requestAllPages<ConsumptionResult>(url);
 
   return results.map(r => ({
     start: new Date(r.interval_start),
@@ -103,36 +119,25 @@ export async function getConsumption(meterPoint: MeterPoint, since: Date, until:
 }
 
 export async function getUnitRates(meterPoint: MeterPoint, since: Date, until: Date): Promise<RateInterval[]> {
-  const url = `${BASE_URL()}/v1/products/${meterPoint.productCode}/electricity-tariffs/${meterPoint.tariffCode}`
+  const url = `${BASE_URL}/v1/products/${meterPoint.productCode}/electricity-tariffs/${meterPoint.tariffCode}`
     + `/standard-unit-rates/?period_from=${since.toISOString()}&period_to=${until.toISOString()}&page_size=25000`;
 
-  return mapRates(await requestAllPages<any>(url));
+  return mapRates(await requestAllPages<RateResult>(url));
 }
 
 export async function getStandingCharges(meterPoint: MeterPoint, since: Date, until: Date): Promise<RateInterval[]> {
-  const url = `${BASE_URL()}/v1/products/${meterPoint.productCode}/electricity-tariffs/${meterPoint.tariffCode}`
+  const url = `${BASE_URL}/v1/products/${meterPoint.productCode}/electricity-tariffs/${meterPoint.tariffCode}`
     + `/standing-charges/?period_from=${since.toISOString()}&period_to=${until.toISOString()}&page_size=25000`;
 
-  return mapRates(await requestAllPages<any>(url));
+  return mapRates(await requestAllPages<RateResult>(url));
 }
 
-function mapRates(results: any[]): RateInterval[] {
+function mapRates(results: RateResult[]): RateInterval[] {
   return results
     .map(r => ({
-      // `valid_to` is null for the current open-ended rate.
       start: new Date(r.valid_from),
-      end: r.valid_to ? new Date(r.valid_to) : new Date(8640000000000000),
+      end: r.valid_to ? new Date(r.valid_to) : null,
       value: r.value_inc_vat
     }))
     .sort((a, b) => a.start.getTime() - b.start.getTime());
-}
-
-export function isConfigured(): boolean {
-  const configured = Boolean(config.octopus?.api_key && config.octopus?.account_number);
-
-  if (!configured) {
-    logger.warn('Octopus service is not configured; skipping');
-  }
-
-  return configured;
 }

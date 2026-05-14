@@ -1,10 +1,9 @@
 import { Device } from '../../models';
 import config from '../../config';
-import logger from '../../logger';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import type { Capability } from '../../models/capabilities';
-import { getMeterPoint, getConsumption, getUnitRates, getStandingCharges, isConfigured, MeterPoint } from './client';
+import { getMeterPoint, getConsumption, getUnitRates, getStandingCharges, MeterPoint } from './client';
 
 const PROVIDER_ID = 'electricity-meter';
 
@@ -14,10 +13,6 @@ Device.registerProvider('octopus', {
   },
 
   async synchronize() {
-    if (!isConfigured()) {
-      return;
-    }
-
     let device = await Device.findByProviderId('octopus', PROVIDER_ID);
 
     if (device === null) {
@@ -40,52 +35,53 @@ async function poll(meterPoint: MeterPoint, device: Device) {
   const energyMonitor = device.getEnergyMonitorCapability();
   const energyCost = device.getEnergyCostCapability();
 
+  // Fetches a time-series forward from the latest stored event (or the
+  // device's creation when there is none) and applies each item.
+  async function sync<T>(
+    getLatest: () => Promise<{ start: Date } | null>,
+    fetchItems: (since: Date, until: Date) => Promise<T[]>,
+    apply: (item: T) => Promise<unknown>
+  ) {
+    const latest = await getLatest();
+    const since = latest?.start ?? device.createdAt;
+
+    for (const item of await fetchItems(since, now)) {
+      await apply(item);
+    }
+  }
+
   // Consumption: half-hourly kWh, reported with ~24h delay. Convert each
   // slice to an average wattage so the shared energy aggregator can integrate
   // it like any other EnergyMonitor device.
-  const lastConsumption = await energyMonitor.getCurrentPowerEvent();
-  const consumptionSince = lastConsumption?.start ?? device.createdAt;
-  const consumption = await getConsumption(meterPoint, consumptionSince, now);
+  await sync(
+    () => energyMonitor.getCurrentPowerEvent(),
+    (since, until) => getConsumption(meterPoint, since, until),
+    (interval) => {
+      const durationHours = (interval.end.getTime() - interval.start.getTime()) / (60 * 60 * 1000);
+      const averageWatts = durationHours > 0 ? Math.round((interval.consumption / durationHours) * 1000) : 0;
 
-  for (const interval of consumption) {
-    const durationHours = (interval.end.getTime() - interval.start.getTime()) / (60 * 60 * 1000);
-    const averageWatts = durationHours > 0 ? Math.round((interval.consumption / durationHours) * 1000) : 0;
-
-    await energyMonitor.setCurrentPowerState(averageWatts, interval.start);
-  }
+      return energyMonitor.setCurrentPowerState(averageWatts, interval.start);
+    }
+  );
 
   // Unit rates / standing charges: Octopus publishes these slightly ahead of
   // time, so this naturally records near-future rates too.
-  const lastRate = await energyCost.getUnitRateEvent();
-  const ratesSince = lastRate?.start ?? device.createdAt;
-  const unitRates = await getUnitRates(meterPoint, ratesSince, now);
+  await sync(
+    () => energyCost.getUnitRateEvent(),
+    (since, until) => getUnitRates(meterPoint, since, until),
+    (rate) => energyCost.setUnitRateState(rate.value, rate.start)
+  );
 
-  for (const rate of unitRates) {
-    await energyCost.setUnitRateState(rate.value, rate.start);
-  }
-
-  const lastStandingCharge = await energyCost.getStandingChargeEvent();
-  const standingChargesSince = lastStandingCharge?.start ?? device.createdAt;
-  const standingCharges = await getStandingCharges(meterPoint, standingChargesSince, now);
-
-  for (const standingCharge of standingCharges) {
-    await energyCost.setStandingChargeState(standingCharge.value, standingCharge.start);
-  }
+  await sync(
+    () => energyCost.getStandingChargeEvent(),
+    (since, until) => getStandingCharges(meterPoint, since, until),
+    (standingCharge) => energyCost.setStandingChargeState(standingCharge.value, standingCharge.start)
+  );
 }
 
 nowAndSetInterval(createBackgroundTransaction('octopus:poll', async () => {
-  if (!isConfigured()) {
-    return;
-  }
-
-  const device = await Device.findByProviderId('octopus', PROVIDER_ID);
-
-  if (device === null) {
-    logger.warn('Octopus device has not been synchronized yet; skipping poll');
-    return;
-  }
-
+  const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
   const meterPoint = await getMeterPoint();
 
   await poll(meterPoint, device);
-}), Math.max(config.octopus?.poll_interval_minutes ?? 60, 1) * 60 * 1000);
+}), Math.max(config.octopus.poll_interval_minutes, 1) * 60 * 1000);

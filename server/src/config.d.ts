@@ -93,7 +93,6 @@ declare namespace _default {
   export namespace octopus {
     const api_key: string;
     const account_number: string;
-    const base_url: string;
     const poll_interval_minutes: number;
   }
   export namespace smartcar {
