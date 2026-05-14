@@ -36,6 +36,8 @@
 }
 
 .eventTimestamp {
+  display: inline-block;
+  width: 8ch;
   margin-right: 20px;
   font-variant-numeric: tabular-nums;
 }
