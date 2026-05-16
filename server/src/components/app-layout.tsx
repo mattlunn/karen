@@ -17,7 +17,6 @@ export default function AppLayout() {
   return (
     <AppShell
       header={{ height: 60 }}
-      footer={{ height: 28 }}
       navbar={{
         width: 300,
         breakpoint: 'md',
@@ -39,11 +38,8 @@ export default function AppLayout() {
         <ErrorBoundary>
           <Outlet />
         </ErrorBoundary>
-      </AppShell.Main>
-
-      <AppShell.Footer>
         <Footer />
-      </AppShell.Footer>
+      </AppShell.Main>
     </AppShell>
   );
 }
