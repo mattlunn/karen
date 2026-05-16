@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Install MySQL client (includes mysqldump)
+apt-get update -qq && apt-get install -y -q default-mysql-client
+
 # Install Claude Code CLI
 npm install -g @anthropic-ai/claude-code
 
