@@ -1,5 +1,6 @@
 node_modules
 config.json
+.env.prod
 .idea
 .DS_Store
 *.pem
