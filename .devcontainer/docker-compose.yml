@@ -4,3 +4,5 @@ services:
     volumes:
       - ..:/workspace:cached
     command: sleep infinity
+    environment:
+      - IS_SANDBOX=1
