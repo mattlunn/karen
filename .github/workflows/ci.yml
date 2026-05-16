@@ -14,6 +14,9 @@ jobs:
       run:
         working-directory: server/src
 
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
@@ -27,6 +30,12 @@ jobs:
       - run: npm run build
         env:
           NODE_ENV: production
+
+      - name: Compute build version
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        id: version
+        working-directory: .
+        run: echo "value=$(date -u +%Y.%m.%d).$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Log in to Docker Hub
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -57,6 +66,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILD_VERSION=${{ steps.version.outputs.value }}
 
   deploy-application:
     name: Deploy Application
@@ -68,6 +79,30 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           curl -X POST -H "Authorization: Bearer ${{ secrets.DEPLOYMENT_TOKEN }}" ${{ secrets.DEPLOYMENT_WEBHOOK }}
+
+      - name: Verify Deployment
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          EXPECTED_VERSION: ${{ needs.ci.outputs.version }}
+          DEPLOYMENT_HOST: ${{ secrets.DEPLOYMENT_HOST }}
+        run: |
+          set -eu
+
+          DEADLINE=$(( $(date +%s) + 300 ))
+          ATTEMPT=0
+          while [ "$(date +%s)" -lt "$DEADLINE" ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            ACTUAL=$(curl -fsS --max-time 10 "$DEPLOYMENT_HOST/version" | jq -r '.version' 2>/dev/null || echo "")
+            if [ "$ACTUAL" = "$EXPECTED_VERSION" ]; then
+              echo "Deployment verified after $ATTEMPT attempt(s): /version reports $ACTUAL"
+              exit 0
+            fi
+            echo "Attempt $ATTEMPT: /version reported '${ACTUAL:-<none>}', waiting for '$EXPECTED_VERSION'..."
+            sleep 5
+          done
+
+          echo "Timed out after 5 minutes waiting for $EXPECTED_VERSION at $DEPLOYMENT_HOST/version"
+          exit 1
 
   deploy-lambda-production:
     name: Deploy Lambda (Production)

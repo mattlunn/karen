@@ -6,4 +6,6 @@ COPY --chown=node . .
 EXPOSE 8081
 USER node
 ENV NODE_ENV=production
+ARG BUILD_VERSION=dev
+ENV BUILD_VERSION=$BUILD_VERSION
 CMD ["npm", "start"]
