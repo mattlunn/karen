@@ -1,3 +1,5 @@
+import { recordBuildVersion } from '../components/build-version-context';
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -8,6 +10,11 @@ export class ApiError extends Error {
 export async function fetchApi<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
   const qs = typeof params === 'undefined' ? '' : new URLSearchParams(params).toString();
   const res = await fetch(`/api${endpoint}?${qs}`);
+
+  const version = res.headers.get('X-Build-Version');
+  if (version) {
+    recordBuildVersion(version);
+  }
 
   if (!res.ok) {
     if (res.status === 401) {

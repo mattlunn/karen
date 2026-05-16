@@ -5,6 +5,7 @@ import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import Header from './header';
 import HouseStatus from './house-status';
 import NavLinks from './nav-links';
+import Footer from './footer';
 import ErrorBoundary from './error-boundary';
 
 export default function AppLayout() {
@@ -16,6 +17,7 @@ export default function AppLayout() {
   return (
     <AppShell
       header={{ height: 60 }}
+      footer={{ height: 28 }}
       navbar={{
         width: 300,
         breakpoint: 'md',
@@ -38,6 +40,10 @@ export default function AppLayout() {
           <Outlet />
         </ErrorBoundary>
       </AppShell.Main>
+
+      <AppShell.Footer>
+        <Footer />
+      </AppShell.Footer>
     </AppShell>
   );
 }
