@@ -4,20 +4,28 @@ import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 
-const ENV_FILE = path.resolve(__dirname, '../.env.prod');
 const skipConfirm = process.argv.includes('--yes');
 
-function loadEnvFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    console.error(`Error: ${filePath} not found.`);
-    console.error('Create it with the following contents:');
-    console.error('');
-    console.error('  PROD_DB_HOST=<host>');
-    console.error('  PROD_DB_NAME=<database>');
-    console.error('  PROD_DB_USER=<user>');
-    console.error('  PROD_DB_PASSWORD=<password>');
-    process.exit(1);
+function findEnvFile() {
+  let dir = __dirname;
+  while (true) {
+    const candidate = path.join(dir, '.env.prod');
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
+  console.error('Error: .env.prod not found in any ancestor directory.');
+  console.error('Create one with the following contents:');
+  console.error('');
+  console.error('  PROD_DB_HOST=<host>');
+  console.error('  PROD_DB_NAME=<database>');
+  console.error('  PROD_DB_USER=<user>');
+  console.error('  PROD_DB_PASSWORD=<password>');
+  process.exit(1);
+}
+
+function loadEnvFile(filePath) {
 
   const env = {};
   for (const line of fs.readFileSync(filePath, 'utf8').split('\n')) {
@@ -81,7 +89,9 @@ function run(prod, dev) {
 }
 
 async function main() {
-  const env = loadEnvFile(ENV_FILE);
+  const envFile = findEnvFile();
+  const env = loadEnvFile(envFile);
+  console.log(`Using ${envFile}`);
 
   const prod = {
     host: env.PROD_DB_HOST,
