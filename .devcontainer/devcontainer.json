@@ -6,9 +6,10 @@
   "forwardPorts": [8081],
   "postCreateCommand": "bash /workspace/.devcontainer/post-create.sh",
   "mounts": [
-    "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind",
+    "source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind",
     "source=${localWorkspaceFolder}/../.env.prod,target=/workspace/.env.prod,type=bind,readonly"
   ],
+  "remoteUser": "node",
   "customizations": {
     "vscode": {
       "extensions": [
