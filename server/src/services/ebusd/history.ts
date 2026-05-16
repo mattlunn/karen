@@ -134,18 +134,15 @@ async function storeIntervalMetrics(
   intervalStart: Date,
   intervalEnd: Date
 ): Promise<void> {
-  // DayCumulative*: one event per 15-min window (stateTimestamp = window start, reportedAt = window end)
   await Promise.all([
+    // DayCumulative*: one event per 15-min window (stateTimestamp = window start, reportedAt = window end)
     capability.setDayCumulativePowerState(total.power, intervalStart, intervalEnd),
     capability.setDayCumulativeYieldState(total.yield, intervalStart, intervalEnd),
     capability.setDayHeatingCumulativePowerState(heating.power, intervalStart, intervalEnd),
     capability.setDayHeatingCumulativeYieldState(heating.yield, intervalStart, intervalEnd),
     capability.setDayDHWCumulativePowerState(dhw.power, intervalStart, intervalEnd),
     capability.setDayDHWCumulativeYieldState(dhw.yield, intervalStart, intervalEnd),
-  ]);
-
-  // Day* summary: one event per day, updated in place every interval (stateTimestamp = dayStart, reportedAt = intervalEnd)
-  await Promise.all([
+    // Day* summary: one event per day, updated in place every interval (stateTimestamp = dayStart, reportedAt = intervalEnd)
     capability.setDayCoPState(total.coP, dayStart, intervalEnd),
     capability.setDayPowerState(total.power, dayStart, intervalEnd),
     capability.setDayYieldState(total.yield, dayStart, intervalEnd),
