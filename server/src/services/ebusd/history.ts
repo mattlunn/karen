@@ -218,7 +218,7 @@ export async function storeRunningMetrics(device: Device, capability: HeatPumpCa
 
   for (let day = dayMetricsStart; day.isSameOrBefore(today); day = day.add(1, 'day').startOf('day')) {
     const dayStart = day.toDate();
-    const dayEnd = day.isSame(today, 'day') ? now : day.add(1, 'day').toDate();
+    const dayEnd = day.isSame(today, 'day') ? now : day.add(1, 'day').startOf('day').toDate();
     const resumeFrom = (latestTimestamp !== null && latestTimestamp > dayStart && latestTimestamp < dayEnd)
       ? latestTimestamp
       : dayStart;
