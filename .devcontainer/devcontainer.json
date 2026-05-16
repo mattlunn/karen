@@ -1,0 +1,19 @@
+{
+  "name": "karen",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [8081],
+  "postCreateCommand": "bash /workspace/.devcontainer/post-create.sh",
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "ms-vscode.vscode-typescript-next"
+      ]
+    }
+  }
+}
