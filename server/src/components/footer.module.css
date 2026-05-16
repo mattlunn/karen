@@ -1,5 +1,6 @@
 .footer {
-  padding: var(--mantine-spacing-md);
+  padding: var(--mantine-spacing-sm);
+  padding-bottom: 0;
   font-size: var(--mantine-font-size-xs);
   color: var(--mantine-color-dimmed);
   text-align: right;
