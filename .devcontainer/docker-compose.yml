@@ -4,16 +4,3 @@ services:
     volumes:
       - ..:/workspace:cached
     command: sleep infinity
-
-  db:
-    image: mysql:8.4
-    environment:
-      MYSQL_DATABASE: karen
-      MYSQL_USER: karen_dev
-      MYSQL_PASSWORD: cx-gzhJ4BVm6VQ9KT3VGDMbH
-      MYSQL_ROOT_PASSWORD: root
-    volumes:
-      - karen-db-data:/var/lib/mysql
-
-volumes:
-  karen-db-data:

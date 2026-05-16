@@ -24,7 +24,7 @@ node -e "
   }
   const config = JSON.parse(fs.readFileSync(path, 'utf8'));
   if (config.database) {
-    config.database.host = 'db';
+    config.database.host = 'host.docker.internal';
     fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\n');
     console.log('Updated database.host to db');
   }
