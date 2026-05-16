@@ -1,18 +1,42 @@
 import mysql from 'mysql2/promise';
 import config from '../config';
-import yargs from 'yargs';
-import { hideBin } from 'yargs/helpers';
 import readline from 'readline';
+import fs from 'fs';
+import path from 'path';
 
-const argv = yargs(hideBin(process.argv))
-  .option('prod-host', { type: 'string', demandOption: true, description: 'PROD database host' })
-  .option('prod-name', { type: 'string', demandOption: true, description: 'PROD database name' })
-  .option('prod-user', { type: 'string', demandOption: true, description: 'PROD database user' })
-  .option('prod-password', { type: 'string', demandOption: true, description: 'PROD database password' })
-  .option('yes', { type: 'boolean', default: false, description: 'Skip confirmation prompt' })
-  .argv;
+const ENV_FILE = path.resolve(__dirname, '../.env.prod');
+const skipConfirm = process.argv.includes('--yes');
 
-const INSERT_BATCH_SIZE = 500;
+function loadEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    console.error(`Error: ${filePath} not found.`);
+    console.error('Create it with the following contents:');
+    console.error('');
+    console.error('  PROD_DB_HOST=<host>');
+    console.error('  PROD_DB_NAME=<database>');
+    console.error('  PROD_DB_USER=<user>');
+    console.error('  PROD_DB_PASSWORD=<password>');
+    process.exit(1);
+  }
+
+  const env = {};
+  for (const line of fs.readFileSync(filePath, 'utf8').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    env[trimmed.slice(0, eq).trim()] = trimmed.slice(eq + 1).trim();
+  }
+
+  const required = ['PROD_DB_HOST', 'PROD_DB_NAME', 'PROD_DB_USER', 'PROD_DB_PASSWORD'];
+  const missing = required.filter(k => !env[k]);
+  if (missing.length) {
+    console.error(`Error: Missing required keys in ${filePath}: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+
+  return env;
+}
 
 function confirm(question) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -29,13 +53,17 @@ async function getCreateTable(conn, table) {
   return rows[0]['Create Table'];
 }
 
+const INSERT_BATCH_SIZE = 500;
+
 async function main() {
-  console.log(`PROD: ${argv['prod-user']}@${argv['prod-host']}/${argv['prod-name']}`);
+  const env = loadEnvFile(ENV_FILE);
+
+  console.log(`PROD: ${env.PROD_DB_USER}@${env.PROD_DB_HOST}/${env.PROD_DB_NAME}`);
   console.log(`DEV:  ${config.database.user}@${config.database.host}/${config.database.name}`);
   console.log('');
   console.log('WARNING: This will DROP and recreate all tables in the DEV database.');
 
-  if (!argv.yes) {
+  if (!skipConfirm) {
     const answer = await confirm('Continue? (yes/no): ');
     if (answer.trim().toLowerCase() !== 'yes') {
       console.log('Aborted.');
@@ -44,10 +72,10 @@ async function main() {
   }
 
   const prod = await mysql.createConnection({
-    host: argv['prod-host'],
-    database: argv['prod-name'],
-    user: argv['prod-user'],
-    password: argv['prod-password'],
+    host: env.PROD_DB_HOST,
+    database: env.PROD_DB_NAME,
+    user: env.PROD_DB_USER,
+    password: env.PROD_DB_PASSWORD,
   });
 
   const dev = await mysql.createConnection({
