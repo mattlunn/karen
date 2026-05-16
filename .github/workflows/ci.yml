@@ -84,19 +84,15 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         env:
           EXPECTED_VERSION: ${{ needs.ci.outputs.version }}
-          HEALTH_URL: ${{ secrets.DEPLOYMENT_HEALTH_URL }}
+          DEPLOYMENT_HOST: ${{ secrets.DEPLOYMENT_HOST }}
         run: |
-          set -u
-          if [ -z "${HEALTH_URL:-}" ]; then
-            echo "DEPLOYMENT_HEALTH_URL secret is not set; skipping verification."
-            exit 0
-          fi
+          set -eu
 
           DEADLINE=$(( $(date +%s) + 300 ))
           ATTEMPT=0
           while [ "$(date +%s)" -lt "$DEADLINE" ]; do
             ATTEMPT=$((ATTEMPT + 1))
-            ACTUAL=$(curl -fsS --max-time 10 "$HEALTH_URL/version" | jq -r '.version' 2>/dev/null || echo "")
+            ACTUAL=$(curl -fsS --max-time 10 "$DEPLOYMENT_HOST/version" | jq -r '.version' 2>/dev/null || echo "")
             if [ "$ACTUAL" = "$EXPECTED_VERSION" ]; then
               echo "Deployment verified after $ATTEMPT attempt(s): /version reports $ACTUAL"
               exit 0
@@ -105,7 +101,7 @@ jobs:
             sleep 5
           done
 
-          echo "Timed out after 5 minutes waiting for $EXPECTED_VERSION at $HEALTH_URL/version"
+          echo "Timed out after 5 minutes waiting for $EXPECTED_VERSION at $DEPLOYMENT_HOST/version"
           exit 1
 
   deploy-lambda-production:

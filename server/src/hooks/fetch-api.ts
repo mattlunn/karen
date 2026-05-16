@@ -12,6 +12,7 @@ export async function fetchApi<T>(endpoint: string, params?: Record<string, stri
   const res = await fetch(`/api${endpoint}?${qs}`);
 
   const version = res.headers.get('X-Build-Version');
+
   if (version) {
     recordBuildVersion(version);
   }
