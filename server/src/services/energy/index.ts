@@ -2,7 +2,7 @@ import { Device } from '../../models';
 import { EnergyMonitorCapability, EnergyCostCapability } from '../../models/capabilities';
 import { NumericEvent } from '../../models/event';
 import { filterClampAndSortHistory } from '../../helpers/history';
-import { calculateWattHours } from '../ebusd/history';
+import { calculateWattHours } from '../../helpers/energy';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import dayjs from '../../dayjs';
