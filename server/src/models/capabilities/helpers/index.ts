@@ -103,8 +103,7 @@ export async function setNumericProperty(device: Device, propertyName: string, p
 
   // Same timestamp as latest event
   if (lastEvent && lastEvent.start.getTime() === stateTimestamp.getTime()) {
-    if (lastEvent.value !== propertyValue) {
-      // Allow updating the latest event's value (e.g., 15-min running metrics)
+    if (lastEvent.value !== propertyValue || lastEvent.lastReported.getTime() !== reportedAt.getTime()) {
       lastEvent.value = propertyValue;
       lastEvent.lastReported = reportedAt;
       return await lastEvent.save();

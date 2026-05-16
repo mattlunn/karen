@@ -80,7 +80,19 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   }
 }), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);
 
+let dailyMetricsRunning = false;
+
 nowAndSetInterval(createBackgroundTransaction('ebusd:daily-metrics', async () => {
-  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
-  await storeRunningMetrics(device, device.getHeatPumpCapability());
+  if (dailyMetricsRunning) {
+    return;
+  }
+
+  dailyMetricsRunning = true;
+
+  try {
+    const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
+    await storeRunningMetrics(device, device.getHeatPumpCapability());
+  } finally {
+    dailyMetricsRunning = false;
+  }
 }), 15 * 60 * 1000);
