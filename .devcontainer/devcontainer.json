@@ -7,8 +7,8 @@
   "initializeCommand": "touch ${localWorkspaceFolder}/../CLAUDE.local.md",
   "postCreateCommand": "bash /workspace/.devcontainer/post-create.sh",
   "mounts": [
-    "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind",
-    "source=${localEnv:HOME}/.claude.json,target=/root/.claude.json,type=bind",
+    "source=claude-code-config,target=/root/.claude,type=volume",
+    "source=karen-devcontainer-ssh-${devcontainerId},target=/root/.ssh,type=volume",
     "source=${localWorkspaceFolder}/../CLAUDE.local.md,target=/workspace/CLAUDE.local.md,type=bind,readonly",
     "source=${localWorkspaceFolder}/../.env.prod,target=/workspace/.env.prod,type=bind,readonly"
   ],
