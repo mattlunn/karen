@@ -4,6 +4,7 @@
   "service": "app",
   "workspaceFolder": "/workspace",
   "forwardPorts": [8081],
+  "initializeCommand": "touch ${localWorkspaceFolder}/../CLAUDE.local.md",
   "postCreateCommand": "bash /workspace/.devcontainer/post-create.sh",
   "mounts": [
     "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind",
