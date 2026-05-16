@@ -1,8 +1,8 @@
-import mysql from 'mysql2/promise';
 import config from '../config';
 import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
+import { spawn } from 'child_process';
 
 const ENV_FILE = path.resolve(__dirname, '../.env.prod');
 const skipConfirm = process.argv.includes('--yes');
@@ -43,25 +43,64 @@ function confirm(question) {
   return new Promise(resolve => rl.question(question, answer => { rl.close(); resolve(answer); }));
 }
 
-async function getTables(conn) {
-  const [rows] = await conn.query('SHOW TABLES');
-  return rows.map(row => Object.values(row)[0]);
-}
+function run(prod, dev) {
+  return new Promise((resolve, reject) => {
+    const dump = spawn('mysqldump', [
+      '-h', prod.host,
+      '-u', prod.user,
+      `--password=${prod.password}`,
+      '--single-transaction',
+      '--no-tablespaces',
+      prod.name,
+    ]);
 
-async function getCreateTable(conn, table) {
-  const [rows] = await conn.query(`SHOW CREATE TABLE \`${table}\``);
-  return rows[0]['Create Table'];
-}
+    const restore = spawn('mysql', [
+      '-h', dev.host,
+      '-u', dev.user,
+      `--password=${dev.password}`,
+      dev.name,
+    ]);
 
-const INSERT_BATCH_SIZE = 500;
+    dump.stdout.pipe(restore.stdin);
+
+    dump.stderr.on('data', data => process.stderr.write(data));
+    restore.stderr.on('data', data => process.stderr.write(data));
+
+    dump.on('error', err => reject(new Error(`mysqldump: ${err.message}`)));
+    restore.on('error', err => reject(new Error(`mysql: ${err.message}`)));
+
+    dump.on('close', code => {
+      if (code !== 0) reject(new Error(`mysqldump exited with code ${code}`));
+    });
+
+    restore.on('close', code => {
+      if (code !== 0) reject(new Error(`mysql exited with code ${code}`));
+      else resolve();
+    });
+  });
+}
 
 async function main() {
   const env = loadEnvFile(ENV_FILE);
 
-  console.log(`PROD: ${env.PROD_DB_USER}@${env.PROD_DB_HOST}/${env.PROD_DB_NAME}`);
-  console.log(`DEV:  ${config.database.user}@${config.database.host}/${config.database.name}`);
+  const prod = {
+    host: env.PROD_DB_HOST,
+    name: env.PROD_DB_NAME,
+    user: env.PROD_DB_USER,
+    password: env.PROD_DB_PASSWORD,
+  };
+
+  const dev = {
+    host: config.database.host,
+    name: config.database.name,
+    user: config.database.user,
+    password: config.database.password,
+  };
+
+  console.log(`PROD: ${prod.user}@${prod.host}/${prod.name}`);
+  console.log(`DEV:  ${dev.user}@${dev.host}/${dev.name}`);
   console.log('');
-  console.log('WARNING: This will DROP and recreate all tables in the DEV database.');
+  console.log('WARNING: This will overwrite all data in the DEV database.');
 
   if (!skipConfirm) {
     const answer = await confirm('Continue? (yes/no): ');
@@ -71,57 +110,9 @@ async function main() {
     }
   }
 
-  const prod = await mysql.createConnection({
-    host: env.PROD_DB_HOST,
-    database: env.PROD_DB_NAME,
-    user: env.PROD_DB_USER,
-    password: env.PROD_DB_PASSWORD,
-  });
-
-  const dev = await mysql.createConnection({
-    host: config.database.host,
-    database: config.database.name,
-    user: config.database.user,
-    password: config.database.password,
-  });
-
-  try {
-    const tables = await getTables(prod);
-    console.log(`\nFound ${tables.length} tables in PROD.\n`);
-
-    await dev.query('SET FOREIGN_KEY_CHECKS = 0');
-
-    for (const table of tables) {
-      process.stdout.write(`  ${table}...`);
-
-      const createSql = await getCreateTable(prod, table);
-      await dev.query(`DROP TABLE IF EXISTS \`${table}\``);
-      await dev.query(createSql);
-
-      const [rows] = await prod.query(`SELECT * FROM \`${table}\``);
-
-      if (rows.length === 0) {
-        console.log(' empty');
-        continue;
-      }
-
-      const columns = Object.keys(rows[0]).map(c => `\`${c}\``).join(', ');
-      for (let i = 0; i < rows.length; i += INSERT_BATCH_SIZE) {
-        const batch = rows.slice(i, i + INSERT_BATCH_SIZE);
-        const placeholders = batch.map(row => `(${Object.keys(row).map(() => '?').join(', ')})`).join(', ');
-        const values = batch.flatMap(row => Object.values(row));
-        await dev.query(`INSERT INTO \`${table}\` (${columns}) VALUES ${placeholders}`, values);
-      }
-
-      console.log(` ${rows.length} rows`);
-    }
-
-    await dev.query('SET FOREIGN_KEY_CHECKS = 1');
-    console.log('\nDone.');
-  } finally {
-    await prod.end();
-    await dev.end();
-  }
+  console.log('\nRunning mysqldump | mysql...');
+  await run(prod, dev);
+  console.log('Done.');
 }
 
 main().catch(err => {
