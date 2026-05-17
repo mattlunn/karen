@@ -1,7 +1,7 @@
-import config from '../../config';
-import logger from '../../logger';
+import config from '../../../config';
+import logger from '../../../logger';
 import { stringify } from 'querystring';
-import { saveConfig } from '../../helpers/config';
+import { saveConfig } from '../../../helpers/config';
 import { v4 as uuid } from 'uuid';
 
 interface TokenDetails {
