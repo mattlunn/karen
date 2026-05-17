@@ -140,15 +140,54 @@ Device.registerProvider('tado', {
       async getScheduledTemperatureAtTime(device: Device, timestamp: Date): Promise<number | null> {
         let timetableBlocks = deviceTimetableCache.get(device.providerId);
 
-        if (timetableBlocks === undefined) { 
+        if (timetableBlocks === undefined) {
           const client = new TadoClient(await getAccessToken(), config.tado.home_id);
           const activeTimetableId = await client.getActiveTimetableId(device.providerId);
-          
+
           timetableBlocks = await client.getTimetableBlocks(device.providerId, activeTimetableId);
           deviceTimetableCache.set(device.providerId, timetableBlocks);
         }
 
         return getTimetabledTemperature(timetableBlocks, dayjs(timestamp));
+      },
+
+      async getWarmupRate(device: Device): Promise<number> {
+        const thermostat = device.getThermostatCapability();
+        const until = new Date();
+        const since = dayjs(until).subtract(90, 'days').toDate();
+
+        const powerHistory = await thermostat.getPowerHistory({ since, until, value: { eq: 100 }, limit: 20 });
+        const fullPowerPeriods = powerHistory.filter(e => e.end !== null);
+
+        if (fullPowerPeriods.length === 0) {
+          return 0;
+        }
+
+        const warmupRates = (
+          await Promise.all(fullPowerPeriods.map(async ({ start, end }) => {
+            const tempHistory = await thermostat.getCurrentTemperatureHistory({ since: start, until: end! });
+            const tempAtStart = tempHistory.at(-1)?.value;
+            const tempAtEnd = tempHistory[0]?.value;
+
+            if (tempAtStart === undefined || tempAtEnd === undefined) {
+              return null;
+            }
+
+            const durationInHours = dayjs(end).diff(start, 'h', true);
+
+            if (durationInHours > 0.5 && tempAtEnd > tempAtStart) {
+              return (tempAtEnd - tempAtStart) / durationInHours;
+            }
+
+            return null;
+          }))
+        ).filter((r): r is number => r !== null);
+
+        if (warmupRates.length === 0) {
+          return 0;
+        }
+
+        return warmupRates.reduce((acc, curr) => acc + curr, 0) / warmupRates.length;
       }
     };
   },

@@ -1,5 +1,5 @@
 import bus, { NOTIFICATION_TO_ADMINS, FIRST_USER_HOME, LAST_USER_LEAVES, STAY_START, STAY_END } from '../bus';
-import { Device, Stay, Event, Op } from '../models';
+import { Device, Stay } from '../models';
 import { setDHWMode, getDHWMode } from '../services/ebusd';
 import dayjs, { Dayjs } from '../dayjs';
 import { createBackgroundTransaction } from '../helpers/newrelic';
@@ -20,70 +20,6 @@ export function getPreWarmStartTime(): WarmupState {
   return currentWarmupState;
 }
 
-async function getWarmupRatePerHour(device: Device): Promise<number> {
-  const history = await Event.findAll({
-    where: {
-      deviceId: device.id,
-      type: 'power',
-      end: {
-        [Op.ne]: null
-      },
-      value: 100
-    },
-    order: [
-      ['end', 'DESC']
-    ],
-    limit: 20
-  });
-
-  if (history.length === 0) {
-    return 0;
-  }
-
-  const temperatures = await Event.findAll({
-    where: {
-      deviceId: device.id,
-      type: 'temperature',
-      [Op.or]: history.map(x => [
-        {
-          start: { [Op.lte]: x.start },
-          end: { [Op.gte]: x.start }
-        }, {
-          start: { [Op.lte]: x.end },
-          end: { [Op.gte]: x.end }
-        }
-      ]).flat()
-    }
-  });
-
-  function findTemperatureAtTime(time: Date): number | undefined {
-    return temperatures.find(({ start, end }) => start <= time && end !== null && end >= time)?.value;
-  }
-
-  const warmupRates = history.reduce<number[]>((acc, { start, end }) => {
-    const temperatureAtStart = findTemperatureAtTime(start);
-    const temperatureAtEnd = end ? findTemperatureAtTime(end) : undefined;
-
-    if (temperatureAtStart === undefined || temperatureAtEnd === undefined || end === null) {
-      return acc;
-    }
-
-    const durationInHours = dayjs(end).diff(start, 'h', true);
-
-    if (durationInHours > 0.5 && temperatureAtEnd > temperatureAtStart) {
-      acc.push((temperatureAtEnd - temperatureAtStart) / durationInHours);
-    }
-
-    return acc;
-  }, []);
-
-  if (warmupRates.length === 0) {
-    return 0;
-  }
-
-  return warmupRates.reduce((acc, curr) => acc + curr, 0) / warmupRates.length;
-}
-
 export default function ({
   checkIntervalMinutes,
   minWarmUpRatePerHour,
@@ -97,7 +33,7 @@ export default function ({
 
     if (nextTarget <= currentTarget) return null;
 
-    const warmupRate = Math.max(await getWarmupRatePerHour(device), minWarmUpRatePerHour);
+    const warmupRate = Math.max(await device.getThermostatCapability().getWarmupRate(), minWarmUpRatePerHour);
 
     if (warmupRate === 0) return null;
 

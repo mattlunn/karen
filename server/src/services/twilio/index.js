@@ -10,3 +10,10 @@ export function call(user, message) {
     from: config.twilio.number
   });
 }
+
+export function callWithKarenMessage(user, message) {
+  return call(
+    user,
+    `<Response><Say voice="woman">Hi ${user.handle}. This is Karen. ${message}. I repeat. ${message}. Stay safe. Goodbye.</Say></Response>`
+  );
+}

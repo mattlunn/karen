@@ -300,6 +300,22 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     });
   }],
 
+  // Contact Sensor (input/dry-contact, e.g. fire alarm relay)
+  ['contact-sensor', async (device, selector) => {
+    const sensor = device.getContactSensorCapability();
+
+    return {
+      lines: [],
+      modes: await mapBooleanHistoryToResponse((hs) => sensor.getIsClosedHistory(hs), selector)
+        .then(data => ({
+          data,
+          details: [
+            { value: true as const, label: 'Triggered', fillColor: 'rgba(231, 76, 60, 0.35)' }
+          ]
+        }))
+    };
+  }],
+
   // Electric Vehicle - Weekly Mileage
   ['vehicle-weekly-mileage', async (device, selector) => {
     const ev = device.getElectricVehicleCapability();

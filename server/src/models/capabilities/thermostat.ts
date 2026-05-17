@@ -20,4 +20,10 @@ export class ThermostatCapability extends ThermostatBaseCapability {
       .provideThermostatCapability!()
       .getScheduledTemperatureAtTime(this.device, timestamp);
   }
+
+  async getWarmupRate(): Promise<number> {
+    return Device.getProviderCapabilities(this.device.provider)
+      .provideThermostatCapability!()
+      .getWarmupRate(this.device);
+  }
 }

@@ -17,12 +17,15 @@ emitter.setMaxListeners(100);
 type NotificationEvents = 'NOTIFICATION_TO_ALL' | 'NOTIFICATION_TO_ADMINS';
 type StayEvents = 'FIRST_USER_HOME' | 'LAST_USER_LEAVES' | 'STAY_START' | 'STAY_END';
 
-type NotificationPayload = {
+type BaseNotificationPayload = {
   message: string,
   sound?: string,
-  priority?: number,
   image?: Buffer
 };
+
+type NotificationPayload =
+  | (BaseNotificationPayload & { priority: 2, retry: number, expire: number })
+  | (BaseNotificationPayload & { priority?: -2 | -1 | 0 | 1 });
 
 interface KarenEventBus extends EventEmitter {
   emit(event: NotificationEvents, payload: NotificationPayload): boolean;

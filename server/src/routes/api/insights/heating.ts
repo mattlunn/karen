@@ -8,7 +8,9 @@ import { asyncMap } from '../../../helpers/array';
 import config from '../../../config';
 
 function findEventAt(events: NumericEvent[], t: number): NumericEvent | null {
-  for (let i = events.length - 1; i >= 0; i--) {
+  // Events are ordered newest-first (DESC). Iterate that way so that if a stale
+  // event with end=null exists alongside a newer active event, the newer one wins.
+  for (let i = 0; i < events.length; i++) {
     const e = events[i];
     if (e.start.getTime() <= t && (e.end === null || e.end.getTime() > t)) {
       return e;

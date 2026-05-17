@@ -218,6 +218,23 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
+    case 'CONTACT_SENSOR': {
+      const sensor = device.getContactSensorCapability();
+      const event = await sensor.getIsClosedEvent();
+
+      return {
+        type: 'CONTACT_SENSOR' as const,
+        isClosed: await mapBooleanEvent(Promise.resolve(event), device),
+        lastTriggered: event ? {
+          start: event.start.toISOString(),
+          end: event.end?.toISOString() ?? null,
+          durationSeconds: event.end
+            ? Math.round((event.end.getTime() - event.start.getTime()) / 1000)
+            : null
+        } : null
+      };
+    }
+
     case 'BIN_COLLECTION': {
       const cap = device.getBinCollectionCapability();
       const schedule = cap.getScheduleData();
