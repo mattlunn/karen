@@ -156,42 +156,37 @@ Device.registerProvider('tado', {
         const until = new Date();
         const since = dayjs(until).subtract(90, 'days').toDate();
 
-        const powerHistory = await thermostat.getPowerHistory({ since, until });
-        const fullPowerPeriods = powerHistory
-          .filter(e => e.value === 100 && e.end !== null)
-          .slice(0, 20);
+        const powerHistory = await thermostat.getPowerHistory({ since, until, value: { eq: 100 }, limit: 20 });
+        const fullPowerPeriods = powerHistory.filter(e => e.end !== null);
 
         if (fullPowerPeriods.length === 0) {
           return 0;
         }
 
-        const earliestStart = fullPowerPeriods.reduce(
-          (min, e) => (e.start < min ? e.start : min),
-          fullPowerPeriods[0].start
-        );
+        const warmupRates = (
+          await Promise.all(fullPowerPeriods.map(async ({ start, end }) => {
+            const tempHistory = await thermostat.getCurrentTemperatureHistory({ since: start, until: end! });
 
-        const tempHistory = await thermostat.getCurrentTemperatureHistory({ since: earliestStart, until });
+            function findTemperatureAtTime(time: Date): number | undefined {
+              return tempHistory.find(({ start: s, end: e }) => s <= time && e !== null && e >= time)?.value;
+            }
 
-        function findTemperatureAtTime(time: Date): number | undefined {
-          return tempHistory.find(({ start, end }) => start <= time && end !== null && end >= time)?.value;
-        }
+            const tempAtStart = findTemperatureAtTime(start);
+            const tempAtEnd = findTemperatureAtTime(end!);
 
-        const warmupRates = fullPowerPeriods.reduce<number[]>((acc, { start, end }) => {
-          const tempAtStart = findTemperatureAtTime(start);
-          const tempAtEnd = end ? findTemperatureAtTime(end) : undefined;
+            if (tempAtStart === undefined || tempAtEnd === undefined) {
+              return null;
+            }
 
-          if (tempAtStart === undefined || tempAtEnd === undefined || end === null) {
-            return acc;
-          }
+            const durationInHours = dayjs(end).diff(start, 'h', true);
 
-          const durationInHours = dayjs(end).diff(start, 'h', true);
+            if (durationInHours > 0.5 && tempAtEnd > tempAtStart) {
+              return (tempAtEnd - tempAtStart) / durationInHours;
+            }
 
-          if (durationInHours > 0.5 && tempAtEnd > tempAtStart) {
-            acc.push((tempAtEnd - tempAtStart) / durationInHours);
-          }
-
-          return acc;
-        }, []);
+            return null;
+          }))
+        ).filter((r): r is number => r !== null);
 
         if (warmupRates.length === 0) {
           return 0;
