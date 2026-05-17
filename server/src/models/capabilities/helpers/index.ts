@@ -1,7 +1,17 @@
 import { BooleanEvent, Device, Event, NumericEvent, Op } from "../..";
 
 export type TimeRangeSelector = { since: Date; until: Date };
-export type HistorySelector = TimeRangeSelector;
+export type ValueFilter =
+  | { eq: number }
+  | { ne: number }
+  | { gt: number }
+  | { gte: number }
+  | { lt: number }
+  | { lte: number };
+export type HistorySelector = TimeRangeSelector & {
+  value?: ValueFilter;
+  limit?: number;
+};
 
 export async function getBooleanProperty(device: Device, propertyName: string): Promise<boolean> {
   const latestEvent = await device.getLatestEvent(propertyName);
@@ -147,26 +157,37 @@ export async function setNumericProperty(device: Device, propertyName: string, p
   }
 }
 
-async function getEventsInRange(device: Device, propertyName: string, timeRangeSelector: TimeRangeSelector): Promise<Event[]> {
+async function getEventsInRange(device: Device, propertyName: string, selector: HistorySelector): Promise<Event[]> {
+  let valueWhere: Record<string, unknown> = {};
+
+  if (selector.value) {
+    const f = selector.value;
+    if ('eq'  in f) valueWhere = { value: f.eq };
+    else if ('ne'  in f) valueWhere = { value: { [Op.ne]:  f.ne  } };
+    else if ('gt'  in f) valueWhere = { value: { [Op.gt]:  f.gt  } };
+    else if ('gte' in f) valueWhere = { value: { [Op.gte]: f.gte } };
+    else if ('lt'  in f) valueWhere = { value: { [Op.lt]:  f.lt  } };
+    else if ('lte' in f) valueWhere = { value: { [Op.lte]: f.lte } };
+  }
+
   return Event.findAll({
     where: {
       deviceId: device.id,
       type: propertyName,
+      ...valueWhere,
       [Op.or]: [
-        // events that start inside the range [since, until)
         {
           start: {
-            [Op.gte]: timeRangeSelector.since,
-            [Op.lt]: timeRangeSelector.until
+            [Op.gte]: selector.since,
+            [Op.lt]: selector.until
           }
         },
-        // events that started before or at `since` and either end after since OR have no end (ongoing)
         {
           [Op.and]: [
-            { start: { [Op.lte]: timeRangeSelector.since } },
+            { start: { [Op.lte]: selector.since } },
             {
               [Op.or]: [
-                { end: { [Op.gt]: timeRangeSelector.since } },
+                { end: { [Op.gt]: selector.since } },
                 { end: null }
               ]
             }
@@ -174,7 +195,8 @@ async function getEventsInRange(device: Device, propertyName: string, timeRangeS
         }
       ]
     },
-    order: [['start', 'DESC']]
+    order: [['start', 'DESC']],
+    ...(selector.limit !== undefined && { limit: selector.limit })
   });
 }
 
