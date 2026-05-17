@@ -166,13 +166,8 @@ Device.registerProvider('tado', {
         const warmupRates = (
           await Promise.all(fullPowerPeriods.map(async ({ start, end }) => {
             const tempHistory = await thermostat.getCurrentTemperatureHistory({ since: start, until: end! });
-
-            function findTemperatureAtTime(time: Date): number | undefined {
-              return tempHistory.find(({ start: s, end: e }) => s <= time && e !== null && e >= time)?.value;
-            }
-
-            const tempAtStart = findTemperatureAtTime(start);
-            const tempAtEnd = findTemperatureAtTime(end!);
+            const tempAtStart = tempHistory.at(-1)?.value;
+            const tempAtEnd = tempHistory[0]?.value;
 
             if (tempAtStart === undefined || tempAtEnd === undefined) {
               return null;
