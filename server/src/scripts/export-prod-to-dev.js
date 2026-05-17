@@ -19,6 +19,7 @@ function findEnvFile() {
   console.error('Create one with the following contents:');
   console.error('');
   console.error('  PROD_DB_HOST=<host>');
+  console.error('  PROD_DB_PORT=<port>');
   console.error('  PROD_DB_NAME=<database>');
   console.error('  PROD_DB_USER=<user>');
   console.error('  PROD_DB_PASSWORD=<password>');
@@ -36,7 +37,7 @@ function loadEnvFile(filePath) {
     env[trimmed.slice(0, eq).trim()] = trimmed.slice(eq + 1).trim();
   }
 
-  const required = ['PROD_DB_HOST', 'PROD_DB_NAME', 'PROD_DB_USER', 'PROD_DB_PASSWORD'];
+  const required = ['PROD_DB_HOST', 'PROD_DB_PORT', 'PROD_DB_NAME', 'PROD_DB_USER', 'PROD_DB_PASSWORD'];
   const missing = required.filter(k => !env[k]);
   if (missing.length) {
     console.error(`Error: Missing required keys in ${filePath}: ${missing.join(', ')}`);
@@ -56,6 +57,7 @@ function run(prod, dev) {
     const dump = spawn('mysqldump', [
       '-h', prod.host,
       '-u', prod.user,
+      '-P', prod.port,
       `--password=${prod.password}`,
       '--single-transaction',
       '--no-tablespaces',
@@ -65,6 +67,7 @@ function run(prod, dev) {
     const restore = spawn('mysql', [
       '-h', dev.host,
       '-u', dev.user,
+      '-P', dev.port,
       `--password=${dev.password}`,
       dev.name,
     ]);
@@ -95,6 +98,7 @@ async function main() {
 
   const prod = {
     host: env.PROD_DB_HOST,
+    port: env.PROD_DB_PORT,
     name: env.PROD_DB_NAME,
     user: env.PROD_DB_USER,
     password: env.PROD_DB_PASSWORD,
@@ -102,13 +106,14 @@ async function main() {
 
   const dev = {
     host: config.database.host,
+    port: 3306,
     name: config.database.name,
     user: config.database.user,
     password: config.database.password,
   };
 
-  console.log(`PROD: ${prod.user}@${prod.host}/${prod.name}`);
-  console.log(`DEV:  ${dev.user}@${dev.host}/${dev.name}`);
+  console.log(`PROD: ${prod.user}@${prod.host}:${prod.port}/${prod.name}`);
+  console.log(`DEV:  ${dev.user}@${dev.host}:${dev.port}/${dev.name}`);
   console.log('');
   console.log('WARNING: This will overwrite all data in the DEV database.');
 
