@@ -1,7 +1,7 @@
 import config from '../../config';
 import { Device } from '../../models';
 import { DeviceCapabilityEvents } from '../../models/capabilities';
-import { sendSimpleEventSource } from './smarthome/client';
+import { sendSimpleEventSource } from './smarthome';
 import { syncDiscovery } from './smarthome';
 import logger from '../../logger';
 import nowAndSetIntervalForTime from '../../helpers/now-and-set-interval-for-time';

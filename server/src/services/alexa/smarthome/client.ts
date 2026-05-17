@@ -56,7 +56,7 @@ export async function getAccessToken(): Promise<string> {
   return tokenDetails.accessToken;
 }
 
-async function makeEventsRequest(
+export async function makeEventsRequest(
   namespace: string,
   name: string,
   payloadVersion: string,
@@ -87,38 +87,4 @@ async function makeEventsRequest(
   if (!response.ok) {
     throw new Error(`Got a ${response.status} back from Alexa Events API (${namespace}/${name})`);
   }
-}
-
-export async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void> {
-  await makeEventsRequest('Alexa.Discovery', 'AddOrUpdateReport', '3', undefined, (bearer) => ({
-    payload: {
-      endpoints,
-      scope: { type: 'BearerToken', token: bearer }
-    }
-  }));
-}
-
-export async function sendDeleteReport(endpointIds: string[]): Promise<void> {
-  await makeEventsRequest('Alexa.Discovery', 'DeleteReport', '3', undefined, (bearer) => ({
-    payload: {
-      endpoints: endpointIds.map(endpointId => ({ endpointId })),
-      scope: { type: 'BearerToken', token: bearer }
-    }
-  }));
-}
-
-export async function sendSimpleEventSource(deviceId: number | string): Promise<void> {
-  const endpointId = String(deviceId);
-  const instanceId = `${endpointId}-1`;
-
-  await makeEventsRequest('Alexa.SimpleEventSource', 'Event', '1.0', instanceId, (bearer) => ({
-    endpoint: {
-      scope: { type: 'BearerToken', token: bearer },
-      endpointId
-    },
-    payload: {
-      id: 'Button.SinglePush.1',
-      timestamp: new Date().toISOString()
-    }
-  }));
 }

@@ -5,7 +5,7 @@ import { ArmingMode } from '../../../models/arming';
 import { AlarmMode } from '../../../api/types';
 import { createBackgroundTransaction } from '../../../helpers/newrelic';
 import nowAndSetIntervalForTime from '../../../helpers/now-and-set-interval-for-time';
-import { exchangeAuthenticationToken, sendAddOrUpdateReport, sendDeleteReport } from './client';
+import { exchangeAuthenticationToken, makeEventsRequest } from './client';
 import {
   AlexaSmartHomeRequest,
   AlexaAcceptGrantRequest,
@@ -19,6 +19,42 @@ import {
   AlexaRequestEndpoint,
   AlexaDiscoveryEndpoint
 } from './types';
+
+// Alexa Events API senders
+
+export async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void> {
+  await makeEventsRequest('Alexa.Discovery', 'AddOrUpdateReport', '3', undefined, (bearer) => ({
+    payload: {
+      endpoints,
+      scope: { type: 'BearerToken', token: bearer }
+    }
+  }));
+}
+
+export async function sendDeleteReport(endpointIds: string[]): Promise<void> {
+  await makeEventsRequest('Alexa.Discovery', 'DeleteReport', '3', undefined, (bearer) => ({
+    payload: {
+      endpoints: endpointIds.map(endpointId => ({ endpointId })),
+      scope: { type: 'BearerToken', token: bearer }
+    }
+  }));
+}
+
+export async function sendSimpleEventSource(deviceId: number | string): Promise<void> {
+  const endpointId = String(deviceId);
+  const instanceId = `${endpointId}-1`;
+
+  await makeEventsRequest('Alexa.SimpleEventSource', 'Event', '1.0', instanceId, (bearer) => ({
+    endpoint: {
+      scope: { type: 'BearerToken', token: bearer },
+      endpointId
+    },
+    payload: {
+      id: 'Button.SinglePush.1',
+      timestamp: new Date().toISOString()
+    }
+  }));
+}
 
 // Response property helpers
 
