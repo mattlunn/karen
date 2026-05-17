@@ -15,8 +15,6 @@ import {
   AlexaSmartHomeRequest,
   AlexaTurnOnOffRequest,
   AlexaBrightnessRequest,
-  AlexaSetBrightnessRequest,
-  AlexaAdjustBrightnessRequest,
   AlexaDiscoverRequest,
   AlexaAcceptGrantRequest,
   AlexaReportStateRequest,
@@ -83,15 +81,7 @@ export const smarthomeHandlers: Record<string, SmartHomeRequestHandler> = {
   'Alexa.Discovery': (r) => handleDiscover(r as AlexaDiscoverRequest),
   'Alexa.Authorization': (r) => handleAcceptGrant(r as AlexaAcceptGrantRequest),
   'Alexa': (r) => handleReportState(r as AlexaReportStateRequest),
-  'Alexa.PowerController': (r) => handleLightControl(r as AlexaTurnOnOffRequest, { isOn: r.header.name === 'TurnOn' }),
-  'Alexa.BrightnessController': (r) => {
-    const brightnessRequest = r as AlexaBrightnessRequest;
-
-    if (brightnessRequest.header.name === 'SetBrightness') {
-      return handleLightControl(brightnessRequest as AlexaSetBrightnessRequest, { brightness: (brightnessRequest as AlexaSetBrightnessRequest).payload.brightness });
-    }
-
-    return handleLightControl(brightnessRequest as AlexaAdjustBrightnessRequest, { brightnessDelta: (brightnessRequest as AlexaAdjustBrightnessRequest).payload.brightnessDelta });
-  },
+  'Alexa.PowerController': (r) => handleLightControl(r as AlexaTurnOnOffRequest),
+  'Alexa.BrightnessController': (r) => handleLightControl(r as AlexaBrightnessRequest),
   'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest)
 };
