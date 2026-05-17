@@ -44,7 +44,11 @@ function figureOutEta(slots: GoingOutSlots): Date | null {
   return null;
 }
 
-async function GoingOut(intent: { slots: GoingOutSlots }) {
+interface GoingOutIntent {
+  slots: GoingOutSlots;
+}
+
+async function GoingOut(intent: GoingOutIntent) {
   const eta = figureOutEta(intent.slots);
   const stay = new Stay();
 
@@ -76,7 +80,11 @@ interface DeviceSlot {
   };
 }
 
-async function WhatsTheMessage({ slots: { device } }: { slots: { device: DeviceSlot } }) {
+interface WhatsTheMessageIntent {
+  slots: { device: DeviceSlot };
+}
+
+async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
   const deviceName = device.resolutions.resolutionsPerAuthority[0]?.values?.[0]?.value.name;
   const message = messages.get(deviceName)?.getMessageToSend();
 

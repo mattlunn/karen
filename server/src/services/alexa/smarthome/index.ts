@@ -58,10 +58,6 @@ export async function sendSimpleEventSource(deviceId: number | string): Promise<
 }
 
 export async function syncDiscovery(): Promise<void> {
-  if (!config.alexa.refresh_token) {
-    return;
-  }
-
   const allDevices = await Device.findAll({ paranoid: false });
   const activeEndpoints = buildDiscoveryEndpoints(allDevices.filter(d => !d.isSoftDeleted()));
   const deletedEndpointIds = allDevices.filter(d => d.isSoftDeleted()).map(d => String(d.id));

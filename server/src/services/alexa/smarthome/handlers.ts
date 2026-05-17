@@ -27,13 +27,7 @@ interface AlexaEndpointProperty {
 }
 
 async function getConnectivityValue(device: Device): Promise<'OK' | 'UNREACHABLE'> {
-  if (!device.getCapabilities().includes('CONNECTIVITY')) {
-    return 'OK';
-  }
-
-  const isConnected = await device.getConnectivityCapability().getIsConnected();
-
-  return isConnected ? 'OK' : 'UNREACHABLE';
+  return await device.getConnectivityCapability().getIsConnected() ? 'OK' : 'UNREACHABLE';
 }
 
 async function createLightResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
