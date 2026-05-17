@@ -35,8 +35,8 @@ export class {{className}} {
     return getBooleanPropertyHistory(this.device, '{{fieldName}}', selection);
   }
 
-  async set{{propertyName}}State(value: boolean, timestamp?: Date): Promise<void> {
-    const event = await setBooleanProperty(this.device, '{{fieldName}}', value, {{#if isMomentary}}true{{else}}false{{/if}}, timestamp);
+  async set{{propertyName}}State(value: boolean, stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
+    const event = await setBooleanProperty(this.device, '{{fieldName}}', value, {{#if isMomentary}}true{{else}}false{{/if}}, stateTimestamp, reportedAt);
 
     if (event !== null) {
       {{#if isMomentary}}
@@ -71,8 +71,8 @@ export class {{className}} {
     return getNumericPropertyHistory(this.device, '{{fieldName}}', selection);
   }
 
-  async set{{propertyName}}State(value: number, timestamp?: Date): Promise<void> {
-    const event = await setNumericProperty(this.device, '{{fieldName}}', value, false, timestamp);
+  async set{{propertyName}}State(value: number, stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
+    const event = await setNumericProperty(this.device, '{{fieldName}}', value, false, stateTimestamp, reportedAt);
 
     if (event !== null) {
       DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(new NumericEvent(event));

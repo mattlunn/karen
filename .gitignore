@@ -1,5 +1,6 @@
 node_modules
 config.json
+.env.prod
 .idea
 .DS_Store
 *.pem
@@ -11,3 +12,4 @@ dist
 newrelic_agent.log
 .npmrc
 *.gen.ts
+CLAUDE.local.md

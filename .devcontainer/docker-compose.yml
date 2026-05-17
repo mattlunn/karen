@@ -1,0 +1,8 @@
+services:
+  app:
+    image: node:24
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    environment:
+      - IS_SANDBOX=1

@@ -1,10 +1,10 @@
 import React, { ReactNode, useState } from 'react';
-import dayjs from '../dayjs';
+import dayjs from '../../dayjs';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconProp } from '@fortawesome/fontawesome-svg-core';
-import styles from './pages/timeline.module.css';
+import styles from './timeline.module.css';
 
-type EventProps = {
+export type EventProps = {
   timestamp: string;
   icon: IconProp;
   iconColor?: string;

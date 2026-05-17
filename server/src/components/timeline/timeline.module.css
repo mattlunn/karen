@@ -1,3 +1,10 @@
+.root,
+.root ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 .root {
   padding-bottom: 0;
 }
@@ -29,7 +36,10 @@
 }
 
 .eventTimestamp {
+  display: inline-block;
+  width: 8ch;
   margin-right: 20px;
+  font-variant-numeric: tabular-nums;
 }
 
 .eventButtons {
