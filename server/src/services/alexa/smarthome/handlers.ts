@@ -8,7 +8,6 @@ import {
   AlexaDiscoverRequest,
   AlexaReportStateRequest,
   AlexaTurnOnOffRequest,
-  AlexaAdjustBrightnessRequest,
   AlexaSecurityPanelRequest,
   AlexaRequestEndpoint
 } from './types';
@@ -187,29 +186,21 @@ export async function handleReportState(request: AlexaReportStateRequest) {
   }
 }
 
-export async function handleLightControl(request: AlexaRequestWithEndpoint, update: { isOn?: boolean; brightness?: number }) {
+export async function handleLightControl(request: AlexaRequestWithEndpoint, update: { isOn?: boolean; brightness?: number; brightnessDelta?: number }) {
   const id = request.endpoint.endpointId;
   const device = await Device.findByIdOrError(id);
   const light = device.getLightCapability();
   const then = new Date();
 
-  if ('brightness' in update && update.brightness !== undefined) {
+  if (update.brightnessDelta !== undefined) {
+    await light.setBrightness(Math.max(0, Math.min(100, await light.getBrightness() + update.brightnessDelta)));
+  } else if (update.brightness !== undefined) {
     await light.setBrightness(update.brightness);
-  } else if ('isOn' in update && update.isOn !== undefined) {
+  } else if (update.isOn !== undefined) {
     await light.setIsOn(update.isOn);
   }
 
   return controlResponse(request, await createLightResponseProperties(device, then, Date.now() - then.valueOf()));
-}
-
-export async function handleAdjustBrightness(request: AlexaAdjustBrightnessRequest) {
-  const id = request.endpoint.endpointId;
-  const device = await Device.findByIdOrError(id);
-  const light = device.getLightCapability();
-  const delta = request.payload.brightnessDelta;
-  const newBrightness = Math.max(0, Math.min(100, await light.getBrightness() + delta));
-
-  return handleLightControl(request, { brightness: newBrightness });
 }
 
 export async function handleAlarmControl(request: AlexaSecurityPanelRequest) {

@@ -1,8 +1,6 @@
 import config from '../../../config';
 import logger from '../../../logger';
 import { Device } from '../../../models';
-import { createBackgroundTransaction } from '../../../helpers/newrelic';
-import nowAndSetIntervalForTime from '../../../helpers/now-and-set-interval-for-time';
 import { makeEventsRequest } from './client';
 import { buildDiscoveryEndpoints } from './discovery';
 import {
@@ -10,7 +8,6 @@ import {
   handleAcceptGrant,
   handleReportState,
   handleLightControl,
-  handleAdjustBrightness,
   handleAlarmControl,
   AlexaRequestWithEndpoint
 } from './handlers';
@@ -80,11 +77,6 @@ export async function syncDiscovery(): Promise<void> {
   logger.info(`Alexa discovery sync complete: reported ${activeEndpoints.length} endpoints, deleted ${deletedEndpointIds.length}`);
 }
 
-nowAndSetIntervalForTime(
-  createBackgroundTransaction('alexa:discovery-sync', syncDiscovery),
-  '00:00'
-);
-
 export type SmartHomeRequestHandler = (r: AlexaSmartHomeRequest) => Promise<object>;
 
 export const smarthomeHandlers: Record<string, SmartHomeRequestHandler> = {
@@ -99,7 +91,7 @@ export const smarthomeHandlers: Record<string, SmartHomeRequestHandler> = {
       return handleLightControl(brightnessRequest as AlexaSetBrightnessRequest, { brightness: (brightnessRequest as AlexaSetBrightnessRequest).payload.brightness });
     }
 
-    return handleAdjustBrightness(brightnessRequest as AlexaAdjustBrightnessRequest);
+    return handleLightControl(brightnessRequest as AlexaAdjustBrightnessRequest, { brightnessDelta: (brightnessRequest as AlexaAdjustBrightnessRequest).payload.brightnessDelta });
   },
   'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest)
 };
