@@ -77,9 +77,11 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
     updateState(() => client.getCurrentYield(), (v) => deviceCapability.setCurrentYieldState(roundTo1DecimalPlace(v))),
     updateState(() => client.getMode(), (raw) => {
       const mode = STATUSCODE_TO_MODE[raw];
+
       if (!mode) {
         throw new Error(`Unknown ebusd statuscode "${raw}"`);
       }
+      
       return deviceCapability.setModeState(mode);
     }),
     updateState(() => client.getDHWIsOn(), (v) => deviceCapability.setDHWIsOnState(v))

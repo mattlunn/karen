@@ -44,6 +44,7 @@ function describeProperty(capabilityName: string, p: PropertyDescriptor) {
       break;
     case 'string':
       eventType = 'StringEvent';
+
       if (p.enum) {
         typeAlias = `${capabilityName}${p.name}`;
         enumValues = p.enum;
@@ -51,6 +52,7 @@ function describeProperty(capabilityName: string, p: PropertyDescriptor) {
       } else {
         valueType = 'string';
       }
+      
       break;
   }
 
