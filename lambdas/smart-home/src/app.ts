@@ -1,32 +1,19 @@
+import { Context } from 'aws-lambda';
 import newrelic from 'newrelic';
-import { SmartHomeHandler } from './custom-typings/lambda';
-import handlers from './handlers';
+import { apiPost } from './client';
 
-export const handler: SmartHomeHandler = async function (request, context) {
-  const interfaceName = request.directive.header.namespace;
-  const interfaceHandler = request.directive.header.name;
+export const handler = async function (event: unknown, _context: Context): Promise<unknown> {
+  const directive = (event as { directive?: { header?: { namespace?: string; name?: string }; endpoint?: { endpointId?: string } } }).directive;
+  const namespace = directive?.header?.namespace ?? 'Unknown';
+  const actionName = directive?.header?.name ?? 'Unknown';
+  const endpointId = directive?.endpoint?.endpointId;
 
-  console.log(JSON.stringify(request));
-
-  newrelic.setTransactionName(`${interfaceName}/${interfaceHandler}`);
+  newrelic.setTransactionName(`${namespace}/${actionName}`);
   newrelic.addCustomAttributes({
-    'alexa.namespace': interfaceName,
-    'alexa.action': interfaceHandler,
+    'alexa.namespace': namespace,
+    'alexa.action': actionName,
+    ...(endpointId !== undefined && { 'alexa.endpointId': endpointId }),
   });
 
-  if (!handlers.hasOwnProperty(interfaceName)) {
-    throw new Error(`There is no handler for "${interfaceName}"`);
-  }
-
-  const handler = handlers[interfaceName];
-
-  if (typeof handler[interfaceHandler] !== 'function') {
-    throw new Error(`The "${interfaceName}" handler does not know how to handle "${interfaceHandler}"`);
-  }
-
-  const response = await handler[interfaceHandler](request, context);
-
-  console.log(JSON.stringify(response));
-
-  return response;
+  return apiPost('/alexa/smarthome', event);
 };

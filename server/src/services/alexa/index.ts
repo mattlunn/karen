@@ -1,8 +1,10 @@
 import config from '../../config';
 import { Device } from '../../models';
 import { DeviceCapabilityEvents } from '../../models/capabilities';
-import { sendSimpleEventSource } from './client';
+import { sendSimpleEventSource, syncDiscovery } from './smarthome';
 import logger from '../../logger';
+import nowAndSetIntervalForTime from '../../helpers/now-and-set-interval-for-time';
+import { createBackgroundTransaction } from '../../helpers/newrelic';
 
 export const messages = new Map();
 
@@ -37,59 +39,59 @@ Device.registerProvider('alexa', {
         if (Array.isArray(message) && message.length > 5) {
           throw new Error('Amazon only allow a maximum of 5 speech segments');
         }
-      
+
         logger.info('Say called with...');
         logger.info(message);
-      
+
         let fulfilled = false;
         let resolve: () => void;
         let reject: (error: Error) => void;
-      
+
         const promise = new Promise<void>((res, rej) => {
           resolve = () => {
             fulfilled = true;
             res();
           };
-      
+
           reject = (reason) => {
             fulfilled = true;
             rej(reason);
           };
         });
-      
+
         if (messages.has(device.name)) {
           messages.get(device.name).markMessageAsReplaced();
         }
-      
+
         messages.set(device.name, {
           getMessageToSend() {
             if (fulfilled) {
               return null;
             }
-      
+
             resolve();
             return Array.isArray(message) ? message.join('') : message;
           },
-      
+
           markMessageAsReplaced() {
             if (!fulfilled) {
               const error = 'Message was not picked up by Alexa within the TTL';
-      
+
               logger.error(error);
               reject(new Error(error));
             }
           }
         });
-      
+
         setTimeout(() => {
           if (!fulfilled) {
             const error = 'Message was not picked up by Alexa within the TTL';
-      
+
             logger.error(error);
             reject(new Error(error));
           }
         }, ttlInSeconds * 1000);
-      
+
         sendSimpleEventSource(device.id);
 
         return promise;
@@ -121,3 +123,8 @@ DeviceCapabilityEvents.onButtonPressed(async (event) => {
   const device = await event.getDevice();
   await sendSimpleEventSource(device.id);
 });
+
+nowAndSetIntervalForTime(
+  createBackgroundTransaction('alexa:discovery-sync', syncDiscovery),
+  '00:00'
+);

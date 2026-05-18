@@ -6,8 +6,7 @@
     "moduleResolution": "node16",
     "types": ["node", "aws-lambda"],
     "typeRoots": [
-      "node_modules/@types",
-      "./custom-typings"
+      "node_modules/@types"
     ],
     "noImplicitAny": true
   },
