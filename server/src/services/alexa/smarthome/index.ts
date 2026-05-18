@@ -9,6 +9,8 @@ import {
   handleReportState,
   handleLightControl,
   handleAlarmControl,
+  handlePowerControl,
+  handleTelevisionControl,
   AlexaRequestWithEndpoint
 } from './handlers';
 import {
@@ -18,7 +20,10 @@ import {
   AlexaDiscoverRequest,
   AlexaAcceptGrantRequest,
   AlexaReportStateRequest,
-  AlexaSecurityPanelRequest
+  AlexaSecurityPanelRequest,
+  AlexaSpeakerRequest,
+  AlexaSelectInputRequest,
+  AlexaChangeChannelRequest
 } from './types';
 
 export type { AlexaRequestWithEndpoint };
@@ -77,7 +82,10 @@ export const smarthomeHandlers: Record<string, SmartHomeRequestHandler> = {
   'Alexa.Discovery': (r) => handleDiscover(r as AlexaDiscoverRequest),
   'Alexa.Authorization': (r) => handleAcceptGrant(r as AlexaAcceptGrantRequest),
   'Alexa': (r) => handleReportState(r as AlexaReportStateRequest),
-  'Alexa.PowerController': (r) => handleLightControl(r as AlexaTurnOnOffRequest),
+  'Alexa.PowerController': (r) => handlePowerControl(r as AlexaTurnOnOffRequest),
   'Alexa.BrightnessController': (r) => handleLightControl(r as AlexaBrightnessRequest),
-  'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest)
+  'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest),
+  'Alexa.Speaker': (r) => handleTelevisionControl(r as AlexaSpeakerRequest),
+  'Alexa.InputController': (r) => handleTelevisionControl(r as AlexaSelectInputRequest),
+  'Alexa.ChannelController': (r) => handleTelevisionControl(r as AlexaChangeChannelRequest)
 };
