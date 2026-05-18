@@ -1,4 +1,5 @@
 import express from 'express';
+import newrelic from 'newrelic';
 import auth from '../middleware/auth';
 import { smarthomeHandlers, AlexaRequestWithEndpoint } from '../services/alexa/smarthome';
 import { intentHandlers } from '../services/alexa/skill';
@@ -9,8 +10,15 @@ const router = express.Router();
 
 router.post('/smarthome', auth, async (req, res) => {
   const request = req.body.directive as AlexaSmartHomeRequest;
-  const { namespace, messageId } = request.header;
+  const { namespace, name: actionName, messageId } = request.header;
+  const endpointId = (request as AlexaRequestWithEndpoint).endpoint?.endpointId;
   const handler = smarthomeHandlers[namespace];
+
+  newrelic.addCustomAttributes({
+    'alexa.namespace': namespace,
+    'alexa.action': actionName,
+    ...(endpointId !== undefined && { 'alexa.endpointId': endpointId }),
+  });
 
   if (!handler) {
     res.status(404).json({ error: `No handler for namespace ${namespace}` });
@@ -42,6 +50,10 @@ router.post('/smarthome', auth, async (req, res) => {
 router.post('/skill', auth, async (req, res) => {
   const body = req.body as AlexaSkillRequestBody;
   const handler = intentHandlers[body.request.intent.name];
+
+  newrelic.addCustomAttributes({
+    'alexa.intent': body.request.intent.name,
+  });
 
   if (!handler) {
     res.status(404).send('No handler setup to handle ' + body.request.intent.name);
