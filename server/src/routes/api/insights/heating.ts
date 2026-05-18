@@ -2,7 +2,7 @@ import { Device, NumericEvent } from '../../../models';
 import { Request, Response } from 'express';
 import { HeatingInsightsApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../../api/types';
 import { TimeRangeSelector } from '../../../models/capabilities/helpers';
-import { mapNumericHistoryToResponse, mapEnumHistoryToResponse } from '../history-helpers';
+import { mapNumericHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
 import { awaitPromises } from '../../../helpers/promises';
 import { asyncMap } from '../../../helpers/array';
 import config from '../../../config';
@@ -92,7 +92,7 @@ export default async function (req: Request, res: Response) {
       };
     }),
     modes: awaitPromises({
-      data: mapEnumHistoryToResponse(
+      data: mapStringHistoryToResponse(
         (hs) => heatpump.getModeHistory(hs),
         selector
       ),

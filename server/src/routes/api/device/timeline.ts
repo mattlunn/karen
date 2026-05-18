@@ -16,7 +16,7 @@ function mapBooleanHistory(
   );
 }
 
-function mapEnumHistory(
+function mapStringHistory(
   fetchHistory: (hs: HistorySelector) => Promise<StringEvent[]>,
   historySelector: TimeRangeSelector
 ): Promise<{ start: string; value: string }[]> {
@@ -108,7 +108,7 @@ export default async function (req: Request<{ id: string }>, res: Response, next
       case 'HEAT_PUMP': {
         const heatPump = device.getHeatPumpCapability();
         historyPromises.push(
-          mapEnumHistory(
+          mapStringHistory(
             (hs) => heatPump.getModeHistory(hs),
             historySelector
           ).then(history => {

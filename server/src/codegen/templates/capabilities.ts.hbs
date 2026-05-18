@@ -17,6 +17,10 @@ import {
 
 import bus from '../../bus';
 
+{{#each enumAliases}}
+export type {{name}} = {{{values}}};
+{{/each}}
+
 {{#each capabilities}}
 export class {{className}} {
   protected device: Device;

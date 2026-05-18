@@ -40,5 +40,3 @@ export interface ProviderElectricVehicleCapability extends ProviderElectricVehic
 export type ProviderSpeakerCapability = {
   emitSound(device: Device, sound: string | string[], ttlInSeconds?: number): Promise<void>;
 }
-
-export type HeatPumpMode = 'UNKNOWN' | 'STANDBY' | 'HEATING' | 'DHW' | 'DEICING' | 'FROST_PROTECTION';

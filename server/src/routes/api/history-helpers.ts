@@ -39,7 +39,7 @@ export function mapNumericHistoryToResponse(
   }));
 }
 
-export function mapEnumHistoryToResponse(
+export function mapStringHistoryToResponse(
   fetchHistory: (hs: HistorySelector) => Promise<StringEvent[]>,
   historySelector: TimeRangeSelector
 ): Promise<HistoryDetailsApiResponse<EnumEventApiResponse>> {

@@ -8,7 +8,7 @@ import {
   HistoryDetailsApiResponse,
   NumericEventApiResponse
 } from '../../../api/types';
-import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapEnumHistoryToResponse } from '../history-helpers';
+import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
 
 // Types
 
@@ -71,7 +71,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), selector)
           .then(data => ({ data, label: 'Power' }))
       ]),
-      modes: mapEnumHistoryToResponse((hs) => heatPump.getModeHistory(hs), selector).then(data => ({
+      modes: mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), selector).then(data => ({
         data,
         details: [
           { value: 'HEATING', label: 'Heating' },
