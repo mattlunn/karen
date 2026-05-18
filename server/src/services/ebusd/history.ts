@@ -1,5 +1,5 @@
 import dayjs from '../../dayjs';
-import { NumericEvent } from '../../models/event';
+import { NumericEvent, StringEvent } from '../../models/event';
 import { HeatPumpMode, HeatPumpCapability } from '../../models/capabilities';
 import { filterClampAndSortHistory } from '../../helpers/history';
 import config from '../../config';
@@ -28,7 +28,7 @@ interface IntervalMetrics {
  * Filters out periods shorter than min_mode_duration_minutes (default 10).
  */
 export function getModeWindows(
-  modeHistory: NumericEvent[],
+  modeHistory: StringEvent[],
   modes: HeatPumpMode[]
 ): TimeWindow[] {
   const minDurationMinutes = config.ebusd.min_mode_duration_minutes ?? 10;
@@ -105,7 +105,7 @@ const INTERVAL_MS = 15 * 60 * 1000;
 function computeIntervalMetrics(
   powerHistory: NumericEvent[],
   yieldHistory: NumericEvent[],
-  modeHistory: NumericEvent[],
+  modeHistory: StringEvent[],
   dayStart: Date,
   intervalEnd: Date
 ): IntervalMetrics {
@@ -121,9 +121,9 @@ function computeIntervalMetrics(
   }
 
   return {
-    total:   computeSegment([HeatPumpMode.HEATING, HeatPumpMode.DHW]),
-    heating: computeSegment([HeatPumpMode.HEATING]),
-    dhw:     computeSegment([HeatPumpMode.DHW]),
+    total:   computeSegment(['HEATING', 'DHW']),
+    heating: computeSegment(['HEATING']),
+    dhw:     computeSegment(['DHW']),
   };
 }
 

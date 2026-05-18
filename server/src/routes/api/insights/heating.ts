@@ -94,8 +94,7 @@ export default async function (req: Request, res: Response) {
     modes: awaitPromises({
       data: mapEnumHistoryToResponse(
         (hs) => heatpump.getModeHistory(hs),
-        selector,
-        { 0: 'UNKNOWN', 1: 'STANDBY', 2: 'HEATING', 3: 'DHW', 4: 'DEICING', 5: 'FROST_PROTECTION' }
+        selector
       ),
       details: [
         { value: 'HEATING', label: 'Heating' },

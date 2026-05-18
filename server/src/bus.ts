@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { Stay } from './models';
-import { NumericEvent, BooleanEvent } from './models';
+import { NumericEvent, BooleanEvent, StringEvent } from './models';
 import { DeviceCapabilityEvent } from './models/capabilities';
 
 export const FIRST_USER_HOME = 'FIRST_USER_HOME';
@@ -30,12 +30,13 @@ type NotificationPayload =
 interface KarenEventBus extends EventEmitter {
   emit(event: NotificationEvents, payload: NotificationPayload): boolean;
   emit(event: StayEvents, payload: Stay): boolean;
-  emit(event: DeviceCapabilityEvent, payload: NumericEvent | BooleanEvent): void;
+  emit(event: DeviceCapabilityEvent, payload: NumericEvent | BooleanEvent | StringEvent): void;
 
   on(event: NotificationEvents, cb: (payload: NotificationPayload) => void): this;
   on(event: StayEvents, cb: (payload: Stay) => void): this;
   on(event: DeviceCapabilityEvent, cb: (payload: NumericEvent) => unknown): this;
   on(event: DeviceCapabilityEvent, cb: (payload: BooleanEvent) => unknown): this;
+  on(event: DeviceCapabilityEvent, cb: (payload: StringEvent) => unknown): this;
 }
 
 export default emitter;

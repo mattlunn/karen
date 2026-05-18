@@ -2,13 +2,13 @@ import { createConnection } from 'net';
 import sleep from '../../helpers/sleep';
 
 export const MODES = {
-  UNKNOWN: 0,
-  STANDBY: 1,
-  HEATING: 2,
-  DHW: 3,
-  DEICING: 4,
-  FROST_PROTECTION: 5
-};
+  UNKNOWN: 'UNKNOWN',
+  STANDBY: 'STANDBY',
+  HEATING: 'HEATING',
+  DHW: 'DHW',
+  DEICING: 'DEICING',
+  FROST_PROTECTION: 'FROST_PROTECTION'
+} as const;
 
 function toNumber(value: string): number {
   const num = Number(value);

@@ -14,10 +14,11 @@ type CapabilityDescriptor = {
 
 type PropertyDescriptor = {
   name: string;
-  type: 'boolean' | 'number';
+  type: 'boolean' | 'number' | 'string';
   isWriteable: boolean;
   eventName: string;
   isMomentary?: boolean;
+  enum?: string[];
 }
 
 const toSnakeCase = (x: string) => x.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '');
@@ -34,13 +35,18 @@ const capabilities = (JSON.parse(readFileSync(__dirname + '/../capabilities.json
     capabilityName: name,
     capabilityEnumName,
     properties: properties.map(x => {
+      const eventType = x.type === 'boolean' ? 'BooleanEvent' : x.type === 'string' ? 'StringEvent' : 'NumericEvent';
+      const valueType = x.type === 'boolean' ? 'boolean' : x.type === 'string' ? (x.enum ? x.enum.map(e => `'${e}'`).join(' | ') : 'string') : 'number';
+
       return {
         propertyName: x.name,
         propertyEnumName: toPascalUpperCase(x.name),
         isBoolean: x.type === 'boolean',
+        isString: x.type === 'string',
         isMomentary: x.isMomentary ?? false,
         isWriteable: x.isWriteable,
-        eventType: x.type === 'boolean' ? 'BooleanEvent' : 'NumericEvent',
+        eventType,
+        valueType,
         fieldName: x.eventName,
       };
     })

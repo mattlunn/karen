@@ -1,4 +1,4 @@
-import { Device, BooleanEvent, NumericEvent } from '../../../models';
+import { Device, BooleanEvent, StringEvent } from '../../../models';
 import { Request, Response, NextFunction } from 'express';
 import dayjs from '../../../dayjs';
 import { TimeRangeSelector, HistorySelector } from '../../../models/capabilities/helpers';
@@ -17,14 +17,13 @@ function mapBooleanHistory(
 }
 
 function mapEnumHistory(
-  fetchHistory: (hs: HistorySelector) => Promise<NumericEvent[]>,
-  historySelector: TimeRangeSelector,
-  map: Record<number, string>
+  fetchHistory: (hs: HistorySelector) => Promise<StringEvent[]>,
+  historySelector: TimeRangeSelector
 ): Promise<{ start: string; value: string }[]> {
   return fetchHistory(historySelector).then(events =>
-    events.map((event: NumericEvent) => ({
+    events.map((event: StringEvent) => ({
       start: event.start.toISOString(),
-      value: map[event.value]
+      value: event.value
     }))
   );
 }
@@ -111,15 +110,7 @@ export default async function (req: Request<{ id: string }>, res: Response, next
         historyPromises.push(
           mapEnumHistory(
             (hs) => heatPump.getModeHistory(hs),
-            historySelector,
-            {
-              0: 'UNKNOWN',
-              1: 'STANDBY',
-              2: 'HEATING',
-              3: 'DHW',
-              4: 'DEICING',
-              5: 'FROST_PROTECTION',
-            }
+            historySelector
           ).then(history => {
             for (const event of history) {
               events.push({ type: 'heatpump-mode', timestamp: event.start, value: event.value });

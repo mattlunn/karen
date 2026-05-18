@@ -1,5 +1,5 @@
 import express from 'express';
-import type { NumericEvent, BooleanEvent } from '../../models';
+import type { NumericEvent, BooleanEvent, StringEvent } from '../../models';
 import { DeviceCapabilityEvents } from '../../models/capabilities';
 import { mapDeviceToResponse } from './device-helpers';
 import logger from '../../logger';
@@ -34,7 +34,7 @@ router.get('/', (req, res) => {
 
   sendMessage(client, { type: 'connected' });
 
-  const handleDeviceCapabilityPropertyChanged = async (e: NumericEvent | BooleanEvent) => {
+  const handleDeviceCapabilityPropertyChanged = async (e: NumericEvent | BooleanEvent | StringEvent) => {
     const message = {
       type: 'device_update' as const,
       device: await mapDeviceToResponse(await e.getDevice())
