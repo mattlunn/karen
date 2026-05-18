@@ -8,20 +8,6 @@ import { createBackgroundTransaction } from '../../helpers/newrelic';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
 
-interface RateSlice {
-  start: Date;
-  end: Date;
-  value: number; // pence per kWh
-}
-
-function toRateSlices(rateHistory: NumericEvent[], dayEnd: Date): RateSlice[] {
-  return rateHistory.map(rate => ({
-    start: rate.start,
-    end: rate.end ?? dayEnd,
-    value: rate.value
-  }));
-}
-
 /**
  * Integrates a power history (Watts) against the unit-rate slices that cover
  * the day, returning the cost in pence. Returns null when no rates cover the
@@ -29,27 +15,20 @@ function toRateSlices(rateHistory: NumericEvent[], dayEnd: Date): RateSlice[] {
  */
 function calculateDayCost(
   powerHistory: NumericEvent[],
-  rateSlices: RateSlice[],
+  rateHistory: NumericEvent[],
   dayStart: Date,
   dayEnd: Date
 ): number | null {
-  const relevant = rateSlices.filter(slice => slice.end > dayStart && slice.start < dayEnd);
+  const slices = filterClampAndSortHistory(rateHistory, dayStart, dayEnd, false);
 
-  if (relevant.length === 0) {
+  if (slices.length === 0) {
     return null;
   }
 
   let pence = 0;
 
-  for (const slice of relevant) {
-    const sliceStart = slice.start > dayStart ? slice.start : dayStart;
-    const sliceEnd = slice.end < dayEnd ? slice.end : dayEnd;
-
-    if (sliceEnd <= sliceStart) {
-      continue;
-    }
-
-    const clamped = filterClampAndSortHistory(powerHistory, sliceStart, sliceEnd, false);
+  for (const slice of slices) {
+    const clamped = filterClampAndSortHistory(powerHistory, slice.start, slice.end!, false);
     const kWh = calculateWattHours(clamped) / 1000;
 
     pence += kWh * slice.value;
@@ -85,7 +64,7 @@ async function storeDailyEnergyForDevice(
     await energyMonitor.setDayEnergyState(kWh, dayStart);
 
     const rateHistory = await energyCost.getUnitRateHistory({ since: dayStart, until: dayEnd });
-    const cost = calculateDayCost(powerHistory, toRateSlices(rateHistory, dayEnd), dayStart, dayEnd);
+    const cost = calculateDayCost(powerHistory, rateHistory, dayStart, dayEnd);
 
     if (cost !== null) {
       await energyMonitor.setDayCostState(cost, dayStart);
