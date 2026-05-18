@@ -97,7 +97,10 @@ async function createThermostatResponseProperties(device: Device, sampleTime: Da
   }];
 }
 
-function createAlarmResponseProperties(mode: AlarmMode, sampleTime: Date, uncertaintyInMilliseconds: number): AlexaEndpointProperty[] {
+async function createAlarmResponseProperties(sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
+  const activeArming = await Arming.getActiveArming();
+  const mode: AlarmMode = activeArming ? activeArming.mode as AlarmMode : 'OFF';
+
   return [{
     namespace: 'Alexa.SecurityPanelController',
     name: 'armState',
@@ -165,10 +168,7 @@ export async function handleReportState(request: AlexaReportStateRequest) {
   const then = new Date();
 
   if (endpointId === ALARM_ENDPOINT_ID) {
-    const activeArming = await Arming.getActiveArming();
-    const alarmMode: AlarmMode = activeArming ? activeArming.mode as AlarmMode : 'OFF';
-
-    return stateReport(request, createAlarmResponseProperties(alarmMode, then, Date.now() - then.valueOf()));
+    return stateReport(request, await createAlarmResponseProperties(then, Date.now() - then.valueOf()));
   }
 
   const device = await Device.findByIdOrError(endpointId);
@@ -201,8 +201,14 @@ export async function handleLightControl(request: AlexaTurnOnOffRequest | AlexaB
 }
 
 export async function handleAlarmControl(request: AlexaSecurityPanelRequest) {
-  const alarmMode: AlarmMode = request.header.name === 'Disarm' ? 'OFF' :
-    request.payload.armState === 'ARMED_AWAY' ? 'AWAY' : 'NIGHT';
+  let alarmMode: AlarmMode;
+  if (request.header.name === 'Disarm') {
+    alarmMode = 'OFF';
+  } else if (request.payload.armState === 'ARMED_AWAY') {
+    alarmMode = 'AWAY';
+  } else {
+    alarmMode = 'NIGHT';
+  }
 
   const currentArming = await Arming.getActiveArming();
   const now = new Date();
@@ -221,5 +227,5 @@ export async function handleAlarmControl(request: AlexaSecurityPanelRequest) {
     }
   }
 
-  return controlResponse(request, createAlarmResponseProperties(alarmMode, now, 0));
+  return controlResponse(request, await createAlarmResponseProperties(now, 0));
 }

@@ -3,9 +3,7 @@ import { parse, end } from 'iso8601-duration';
 import logger from '../../../logger';
 import { Stay } from '../../../models';
 import { messages } from '../index';
-import { AlexaIntent, AlexaSkillRequest } from './types';
-
-export type { AlexaSkillRequest };
+import { AlexaIntent } from './types';
 
 // GoingOut intent — records an outgoing stay with an ETA
 
@@ -105,23 +103,7 @@ async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
 
 // Dispatch
 
-export type SkillRequestHandler = (request: AlexaSkillRequest) => Promise<unknown>;
-
-const intentHandlers: Record<string, (intent: AlexaIntent) => Promise<unknown>> = {
+export const intentHandlers: Record<string, (intent: AlexaIntent) => Promise<unknown>> = {
   GoingOut: GoingOut as unknown as (intent: AlexaIntent) => Promise<unknown>,
   WhatsTheMessage: WhatsTheMessage as unknown as (intent: AlexaIntent) => Promise<unknown>
-};
-
-async function IntentRequest(request: AlexaSkillRequest): Promise<unknown> {
-  const handler = intentHandlers[request.intent.name];
-
-  if (!handler) {
-    throw new Error('Unable to handle intent ' + request.intent.name);
-  }
-
-  return handler(request.intent);
-}
-
-export const skillHandlers: Record<string, SkillRequestHandler> = {
-  IntentRequest
 };

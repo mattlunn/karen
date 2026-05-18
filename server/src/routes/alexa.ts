@@ -1,7 +1,7 @@
 import express from 'express';
 import auth from '../middleware/auth';
 import { smarthomeHandlers, AlexaRequestWithEndpoint } from '../services/alexa/smarthome';
-import { skillHandlers } from '../services/alexa/skill';
+import { intentHandlers } from '../services/alexa/skill';
 import { AlexaSmartHomeRequest } from '../services/alexa/smarthome/types';
 import { AlexaSkillRequestBody } from '../services/alexa/skill/types';
 
@@ -41,14 +41,14 @@ router.post('/smarthome', auth, async (req, res) => {
 
 router.post('/skill', auth, async (req, res) => {
   const body = req.body as AlexaSkillRequestBody;
-  const handler = skillHandlers[body.request.type];
+  const handler = intentHandlers[body.request.intent.name];
 
   if (!handler) {
-    res.status(404).send('No handler setup to handle ' + body.request.type);
+    res.status(404).send('No handler setup to handle ' + body.request.intent.name);
     return;
   }
 
-  const response = await handler(body.request);
+  const response = await handler(body.request.intent);
   res.status(200).json({ version: '1.0', response });
 });
 
