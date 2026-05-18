@@ -84,13 +84,13 @@ export type CapabilityApiResponse = {
   isConnected: BooleanEventApiResponse;
 } | {
   type: 'ENERGY_MONITOR';
-  currentPower: NumericEventApiResponse | null;
-  dayEnergy: NumericEventApiResponse | null;
-  dayCost: NumericEventApiResponse | null;
+  currentPower: NumericEventApiResponse;
+  dayEnergy: NumericEventApiResponse;
+  dayCost: NumericEventApiResponse;
 } | {
   type: 'ENERGY_COST';
-  unitRate: NumericEventApiResponse | null;
-  standingCharge: NumericEventApiResponse | null;
+  unitRate: NumericEventApiResponse;
+  standingCharge: NumericEventApiResponse;
 } | {
   type: null;
 };

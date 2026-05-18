@@ -690,19 +690,19 @@ export const registry: CapabilityUIRegistry = {
       createCapability(cap.currentPower, {
         icon: faBolt,
         title: 'Current Power',
-        value: (e) => e ? `${Math.round(e.value).toLocaleString()} W` : 'No data',
+        value: (e) => `${Math.round(e.value).toLocaleString()} W`,
         iconColor: '#f1c40f',
-        iconHighlighted: (e) => e !== null && e.value > 0,
+        iconHighlighted: (e) => e.value > 0,
       }),
       createCapability(cap.dayEnergy, {
         icon: faPlug,
         title: "Today's Energy",
-        value: (e) => e ? `${e.value.toFixed(2)} kWh` : 'No data',
+        value: (e) => `${e.value.toFixed(2)} kWh`,
       }),
       createCapability(cap.dayCost, {
         icon: faSterlingSign,
         title: "Today's Cost",
-        value: (e) => e ? `£${(e.value / 100).toFixed(2)}` : 'No data',
+        value: (e) => `£${(e.value / 100).toFixed(2)}`,
       }),
     ],
     getGraphs: () => [
@@ -727,12 +727,12 @@ export const registry: CapabilityUIRegistry = {
       createCapability(cap.unitRate, {
         icon: faSterlingSign,
         title: 'Unit Rate',
-        value: (e) => e ? `${e.value.toFixed(2)}p/kWh` : 'No data',
+        value: (e) => `${e.value.toFixed(2)}p/kWh`,
       }),
       createCapability(cap.standingCharge, {
         icon: faSterlingSign,
         title: 'Standing Charge',
-        value: (e) => e ? `${e.value.toFixed(2)}p/day` : 'No data',
+        value: (e) => `${e.value.toFixed(2)}p/day`,
       }),
     ],
     getGraphs: () => [
