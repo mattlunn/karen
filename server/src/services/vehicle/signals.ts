@@ -27,13 +27,14 @@ export async function processSignal(
     case 'tractionbattery-stateofcharge':
       await ev.setChargePercentageState(signal.body.value);
       break;
-    case 'charge-ischarging':
-      await ev.setIsChargingState(signal.body.value);
-      // The car draws a known fixed wattage while charging, so report that
-      // through the EnergyMonitor capability for the energy aggregator.
+    case 'charge-ischarging': {
+      const isCharging = signal.body.value;
+
+      await ev.setIsChargingState(isCharging);
       await device.getEnergyMonitorCapability().setCurrentPowerState(
-        signal.body.value ? config.smartcar.charge_power_watts : 0
+        isCharging ? config.smartcar.charge_power_watts : 0
       );
+    }
       break;
     case 'charge-ischargingcableconnected':
       await ev.setIsCableConnectedState(signal.body.value);

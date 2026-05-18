@@ -7,7 +7,6 @@ export { SpeakerCapability } from './speaker';
 export { ThermostatCapability } from './thermostat';
 export { ElectricVehicleCapability } from './electric-vehicle';
 export { BinCollectionCapability } from './bin-collection';
-export { EnergyCostCapability } from './energy-cost';
 export * from './capabilities.gen';
 
 export type ScheduledChange = {
