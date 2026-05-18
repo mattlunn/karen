@@ -25,8 +25,9 @@
     {
       "name": "Mode",
       "isWriteable": false,
-      "type": "number",
-      "eventName": "mode"
+      "type": "string",
+      "eventName": "mode",
+      "enum": ["UNKNOWN", "STANDBY", "HEATING", "DHW", "DEICING", "FROST_PROTECTION"]
     },
     {
       "name": "DHWIsOn",

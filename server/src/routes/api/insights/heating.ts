@@ -2,13 +2,15 @@ import { Device, NumericEvent } from '../../../models';
 import { Request, Response } from 'express';
 import { HeatingInsightsApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../../api/types';
 import { TimeRangeSelector } from '../../../models/capabilities/helpers';
-import { mapNumericHistoryToResponse, mapEnumHistoryToResponse } from '../history-helpers';
+import { mapNumericHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
 import { awaitPromises } from '../../../helpers/promises';
 import { asyncMap } from '../../../helpers/array';
 import config from '../../../config';
 
 function findEventAt(events: NumericEvent[], t: number): NumericEvent | null {
-  for (let i = events.length - 1; i >= 0; i--) {
+  // Events are ordered newest-first (DESC). Iterate that way so that if a stale
+  // event with end=null exists alongside a newer active event, the newer one wins.
+  for (let i = 0; i < events.length; i++) {
     const e = events[i];
     if (e.start.getTime() <= t && (e.end === null || e.end.getTime() > t)) {
       return e;
@@ -90,10 +92,9 @@ export default async function (req: Request, res: Response) {
       };
     }),
     modes: awaitPromises({
-      data: mapEnumHistoryToResponse(
+      data: mapStringHistoryToResponse(
         (hs) => heatpump.getModeHistory(hs),
-        selector,
-        { 0: 'UNKNOWN', 1: 'STANDBY', 2: 'HEATING', 3: 'DHW', 4: 'DEICING', 5: 'FROST_PROTECTION' }
+        selector
       ),
       details: [
         { value: 'HEATING', label: 'Heating' },

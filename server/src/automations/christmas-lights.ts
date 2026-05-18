@@ -1,5 +1,5 @@
 import bus, { FIRST_USER_HOME } from '../bus';
-import { Device, Stay, Event } from '../models';
+import { Device, Stay, BooleanEvent } from '../models';
 import { isWithinTime } from '../helpers/time';
 import setIntervalForTime from '../helpers/set-interval-for-time';
 import { DeviceCapabilityEvents } from '../models/capabilities';
@@ -40,7 +40,7 @@ export default function ({ switchNames, morningStart, morningEnd, eveningStart, 
   }
 
   // Turn on in the morning when motion first detected.
-  DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:christmas:motion-started', async (event: Event) => {
+  DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:christmas:motion-started', async (event: BooleanEvent) => {
     if (isWithinTime(morningStart, morningEnd, event.start)) {
       await setDevicesOnStatus(true);
     }

@@ -1,0 +1,23 @@
+{
+  "name": "karen",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [8081],
+  "initializeCommand": "touch ${localWorkspaceFolder}/../CLAUDE.local.md",
+  "postCreateCommand": "bash /workspace/.devcontainer/post-create.sh",
+  "mounts": [
+    "source=claude-code-config,target=/root/.claude,type=volume",
+    "source=karen-devcontainer-ssh-${devcontainerId},target=/root/.ssh,type=volume",
+    "source=${localWorkspaceFolder}/../CLAUDE.local.md,target=/workspace/CLAUDE.local.md,type=bind",
+    "source=${localWorkspaceFolder}/../.env.prod,target=/workspace/.env.prod,type=bind,readonly"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "ms-vscode.vscode-typescript-next"
+      ]
+    }
+  }
+}

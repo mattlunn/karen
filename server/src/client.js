@@ -9,6 +9,7 @@ import { createTheme, MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RealtimeProvider } from './components/realtime-provider';
+import { BuildVersionProvider } from './components/build-version-context';
 import AppLayout from './components/app-layout';
 import ErrorBoundary from './components/error-boundary';
 import Home from './components/pages/home';
@@ -70,11 +71,13 @@ window.onload = () => {
   root.render(
     <QueryClientProvider client={queryClient}>
       <MantineProvider theme={theme}>
-        <RealtimeProvider>
-          <ErrorBoundary>
-            <RouterProvider router={router} />
-          </ErrorBoundary>
-        </RealtimeProvider>
+        <BuildVersionProvider>
+          <RealtimeProvider>
+            <ErrorBoundary>
+              <RouterProvider router={router} />
+            </ErrorBoundary>
+          </RealtimeProvider>
+        </BuildVersionProvider>
       </MantineProvider>
       {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
     </QueryClientProvider>,

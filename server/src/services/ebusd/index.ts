@@ -1,9 +1,18 @@
 import { Device } from '../../models';
+import { HeatPumpMode } from '../../models/capabilities';
 import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 import { storeRunningMetrics } from './history';
+
+const STATUSCODE_TO_MODE: Record<string, HeatPumpMode> = {
+  'Heating': 'HEATING',
+  'Warm Water': 'DHW',
+  'Standby': 'STANDBY',
+  'Deicing active': 'DEICING',
+  'Frost protection': 'FROST_PROTECTION',
+};
 
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
@@ -70,7 +79,15 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
       energyMonitorCapability.setCurrentPowerState(roundTo1DecimalPlace(v))
     ])),
     updateState(() => client.getCurrentYield(), (v) => heatPumpCapability.setCurrentYieldState(roundTo1DecimalPlace(v))),
-    updateState(() => client.getMode(), (v) => heatPumpCapability.setModeState(v)),
+    updateState(() => client.getMode(), (raw) => {
+      const mode = STATUSCODE_TO_MODE[raw];
+
+      if (!mode) {
+        throw new Error(`Unknown ebusd statuscode "${raw}"`);
+      }
+
+      return heatPumpCapability.setModeState(mode);
+    }),
     updateState(() => client.getDHWIsOn(), (v) => heatPumpCapability.setDHWIsOnState(v))
   ]);
 
@@ -84,7 +101,19 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   }
 }), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);
 
+let dailyMetricsRunning = false;
+
 nowAndSetInterval(createBackgroundTransaction('ebusd:daily-metrics', async () => {
-  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
-  await storeRunningMetrics(device, device.getHeatPumpCapability());
+  if (dailyMetricsRunning) {
+    return;
+  }
+
+  dailyMetricsRunning = true;
+
+  try {
+    const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
+    await storeRunningMetrics(device, device.getHeatPumpCapability());
+  } finally {
+    dailyMetricsRunning = false;
+  }
 }), 15 * 60 * 1000);

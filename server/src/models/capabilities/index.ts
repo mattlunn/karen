@@ -19,6 +19,7 @@ export interface ProviderThermostatCapability extends ProviderThermostatCapabili
   getNextScheduledChange(device: Device): Promise<ScheduledChange | null>;
   getScheduledTemperatureAtTime(device: Device, timestamp: Date): Promise<number | null>;
   setTargetTemperatureUntilNextScheduledChange(device: Device, value: number): Promise<void>;
+  getWarmupRate(device: Device): Promise<number>;
 }
 
 export interface NextChargeSchedule {
@@ -39,13 +40,4 @@ export interface ProviderElectricVehicleCapability extends ProviderElectricVehic
 
 export type ProviderSpeakerCapability = {
   emitSound(device: Device, sound: string | string[], ttlInSeconds?: number): Promise<void>;
-}
-
-export enum HeatPumpMode {
-  UNKNOWN = 0,
-  STANDBY = 1,
-  HEATING = 2,
-  DHW = 3,
-  DEICING = 4,
-  FROST_PROTECTION = 5
 }

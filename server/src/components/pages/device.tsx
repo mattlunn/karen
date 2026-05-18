@@ -6,7 +6,7 @@ import styles from './device.module.css';
 import type { CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DeviceGraph } from '../capability-graphs/device-graph';
-import { TimelineSection } from '../timeline/timeline-section';
+import { DeviceTimeline } from '../device-timeline';
 import { Box, Grid, Paper, SimpleGrid, Title } from '@mantine/core';
 import PageLoader from '../page-loader';
 import { StatusItem } from '../status-item';
@@ -98,7 +98,7 @@ export default function Device() {
         )}
 
         <div>
-          <TimelineSection deviceId={device.id} />
+          <DeviceTimeline deviceId={device.id} />
         </div>
       </DateRangeProvider>
     </>

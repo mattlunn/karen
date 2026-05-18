@@ -19,12 +19,12 @@ const deviceCapabilitiesMap = new Map<string, Capability[]>([
 // only "Dead" means the controller has lost contact.
 const ZWAVE_NODE_STATUS_DEAD = 3;
 
-type DeviceHandler = {
+type DeviceHandler<T extends boolean | number | string = boolean | number | string> = {
   propertyKey: string,
-  propertyMapper(device: Device, value: boolean | number | string): Promise<unknown>,
+  propertyMapper(device: Device, value: T, prevValue?: T): Promise<unknown>,
 };
 
-const deviceHandlers = new Map<string, DeviceHandler[]>();
+const deviceHandlers = new Map<string, DeviceHandler<any>[]>();
 
 deviceHandlers.set('Fibargroup FGMS001', [
   // Some of the sensors trigger the first event for motion, others trigger the 2nd.
@@ -36,8 +36,10 @@ deviceHandlers.set('Fibargroup FGMS001', [
   },
   {
     propertyKey: 'Basic.currentValue',
-    propertyMapper(device: Device, value: number) {
-      return device.getMotionSensorCapability().setHasMotionState(value !== 0);
+    async propertyMapper(device: Device, value: number, prevValue?: number) {
+      if (value !== prevValue) {
+        await device.getMotionSensorCapability().setHasMotionState(value !== 0);
+      }
     }
   },
   {
@@ -209,7 +211,7 @@ async function getClient() {
               const eventHandler = handlers.find(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
 
               if (eventHandler) {
-                eventHandler.propertyMapper(device, data.args.newValue);
+                eventHandler.propertyMapper(device, data.args.newValue, data.args.prevValue);
               }
             }
           }

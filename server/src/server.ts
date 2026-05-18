@@ -12,7 +12,9 @@ import homeConnectRoutes from './routes/homeconnect';
 import shellyRoutes from './routes/shelly';
 import tadoRoutes from './routes/tado';
 import vehicleRoutes from './routes/vehicle';
+import versionRoutes from './routes/version';
 import auth from './middleware/auth';
+import buildVersion from './middleware/build-version';
 import { Device } from './models';
 import config from './config';
 import cookieParser from 'cookie-parser';
@@ -47,6 +49,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.text());
 app.use(cookieParser());
+app.use(buildVersion);
 
 app.use('/alexa', alexaRoutes);
 app.use('/api', auth, apiRoutes);
@@ -57,6 +60,7 @@ app.use('/shelly', shellyRoutes);
 app.use('/homeconnect', homeConnectRoutes);
 app.use('/tado', tadoRoutes);
 app.use('/vehicle', vehicleRoutes);
+app.use('/version', versionRoutes);
 app.use('/', express.static(__dirname + '/static'));
 
 app.use((req, res) => res.sendFile(__dirname + '/static/index.html', {

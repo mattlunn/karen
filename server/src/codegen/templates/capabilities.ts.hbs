@@ -1,17 +1,25 @@
-import { Device, NumericEvent, BooleanEvent } from '..';
+import { Device, NumericEvent, BooleanEvent, StringEvent } from '..';
 import {
   getNumericProperty,
   setNumericProperty,
   getBooleanProperty,
   setBooleanProperty,
+  getStringProperty,
+  setStringProperty,
   getBooleanPropertyHistory,
   getNumericPropertyHistory,
+  getStringPropertyHistory,
   getLatestBooleanEvent,
   getLatestNumericEvent,
+  getLatestStringEvent,
   HistorySelector
 } from './helpers';
 
 import bus from '../../bus';
+
+{{#each enumAliases}}
+export type {{name}} = {{{values}}};
+{{/each}}
 
 {{#each capabilities}}
 export class {{className}} {
@@ -35,8 +43,8 @@ export class {{className}} {
     return getBooleanPropertyHistory(this.device, '{{fieldName}}', selection);
   }
 
-  async set{{propertyName}}State(value: boolean, timestamp?: Date): Promise<void> {
-    const event = await setBooleanProperty(this.device, '{{fieldName}}', value, {{#if isMomentary}}true{{else}}false{{/if}}, timestamp);
+  async set{{propertyName}}State(value: boolean, stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
+    const event = await setBooleanProperty(this.device, '{{fieldName}}', value, {{#if isMomentary}}true{{else}}false{{/if}}, stateTimestamp, reportedAt);
 
     if (event !== null) {
       {{#if isMomentary}}
@@ -59,6 +67,33 @@ export class {{className}} {
   }
   {{/if}}
   {{else}}
+  {{#if isString}}
+  get{{propertyName}}(): Promise<{{{valueType}}}> {
+    return getStringProperty(this.device, '{{fieldName}}') as Promise<{{{valueType}}}>;
+  }
+
+  get{{propertyName}}Event(): Promise<StringEvent | null> {
+    return getLatestStringEvent(this.device, '{{fieldName}}');
+  }
+
+  get{{propertyName}}History(selection: HistorySelector): Promise<StringEvent[]> {
+    return getStringPropertyHistory(this.device, '{{fieldName}}', selection);
+  }
+
+  async set{{propertyName}}State(value: {{{valueType}}}, stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
+    const event = await setStringProperty(this.device, '{{fieldName}}', value, false, stateTimestamp, reportedAt);
+
+    if (event !== null) {
+      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(new StringEvent(event));
+    }
+  }
+
+  {{#if isWriteable}}
+  set{{propertyName}}(value: {{{valueType}}}): Promise<void> {
+    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}Capability!().set{{propertyName}}(this.device, value);
+  }
+  {{/if}}
+  {{else}}
   get{{propertyName}}(): Promise<number> {
     return getNumericProperty(this.device, '{{fieldName}}');
   }
@@ -71,8 +106,8 @@ export class {{className}} {
     return getNumericPropertyHistory(this.device, '{{fieldName}}', selection);
   }
 
-  async set{{propertyName}}State(value: number, timestamp?: Date): Promise<void> {
-    const event = await setNumericProperty(this.device, '{{fieldName}}', value, false, timestamp);
+  async set{{propertyName}}State(value: number, stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
+    const event = await setNumericProperty(this.device, '{{fieldName}}', value, false, stateTimestamp, reportedAt);
 
     if (event !== null) {
       DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(new NumericEvent(event));
@@ -85,6 +120,7 @@ export class {{className}} {
   }
   {{/if}}
   {{/if}}
+  {{/if}}
 {{/each}}
 }
 
@@ -94,7 +130,7 @@ export class {{className}} {
 export type {{#if providerClassName}}{{providerClassName}}{{else}}Provider{{capabilityName}}Capability{{/if}} = {
   {{#each properties}}
   {{#if isWriteable}}
-  set{{propertyName}}(device: Device, value: {{#if isBoolean}}boolean{{else}}number{{/if}}): Promise<void>
+  set{{propertyName}}(device: Device, value: {{{valueType}}}): Promise<void>
   {{/if}}
   {{/each}}
 }
@@ -124,17 +160,17 @@ export type DeviceCapabilityEvent =
 
 export class DeviceCapabilityEvents {
   private static onPropertyChangedHelper<T>(event: DeviceCapabilityEvent, arg1: ((d: Device) => boolean) | ((e: T) => unknown), arg2?: (e: T) => unknown) {
-    let handler: (e: BooleanEvent | NumericEvent) => unknown;
+    let handler: (e: BooleanEvent | NumericEvent | StringEvent) => unknown;
     let deviceFilter: (d: Device) => boolean;
 
     if (typeof arg2 === 'undefined') {
-      handler = arg1 as (e: BooleanEvent | NumericEvent) => unknown;
+      handler = arg1 as (e: BooleanEvent | NumericEvent | StringEvent) => unknown;
     } else {
       deviceFilter = arg1 as (d: Device) => boolean;
-      handler = arg2 as (e: BooleanEvent | NumericEvent) => unknown;
+      handler = arg2 as (e: BooleanEvent | NumericEvent | StringEvent) => unknown;
     }
 
-    const listener = async (e: BooleanEvent | NumericEvent) => {
+    const listener = async (e: BooleanEvent | NumericEvent | StringEvent) => {
       if (typeof deviceFilter === 'undefined' || deviceFilter(await e.getDevice())) {
         handler(e);
       }
@@ -221,11 +257,11 @@ export class DeviceCapabilityEvents {
   {{/each}}
   {{/each}}
 
-  static onDeviceCapabilityPropertyChanged(handler: (e: BooleanEvent | NumericEvent) => unknown) {
+  static onDeviceCapabilityPropertyChanged(handler: (e: BooleanEvent | NumericEvent | StringEvent) => unknown) {
     bus.on('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', handler);
   }
 
-  static offDeviceCapabilityPropertyChanged(handler: (e: BooleanEvent | NumericEvent) => unknown) {
+  static offDeviceCapabilityPropertyChanged(handler: (e: BooleanEvent | NumericEvent | StringEvent) => unknown) {
     bus.off('ON_DEVICE_CAPABILITY_PROPERTY_CHANGED', handler);
   }
 }
