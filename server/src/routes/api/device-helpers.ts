@@ -193,6 +193,47 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
+    case 'TELEVISION': {
+      const tv = device.getTelevisionCapability();
+      const sources = (device.meta.sources as { label: string; kind: 'input' | 'channel' }[] | undefined) ?? [];
+      const [volumeEvent, isMutedEvent, sourceEvent] = await Promise.all([
+        tv.getVolumeEvent(),
+        tv.getIsMutedEvent(),
+        tv.getCurrentSourceEvent(),
+      ]);
+
+      const sourceFallback: EnumEventApiResponse = {
+        start: device.createdAt.toISOString(),
+        end: null,
+        lastReported: device.createdAt.toISOString(),
+        value: '',
+      };
+      const volumeFallback: NumericEventApiResponse = {
+        start: device.createdAt.toISOString(),
+        end: null,
+        lastReported: device.createdAt.toISOString(),
+        value: 0,
+      };
+
+      return {
+        type: 'TELEVISION' as const,
+        volume: volumeEvent ? {
+          start: volumeEvent.start.toISOString(),
+          end: volumeEvent.end?.toISOString() ?? null,
+          lastReported: volumeEvent.lastReported.toISOString(),
+          value: volumeEvent.value,
+        } : volumeFallback,
+        isMuted: await mapBooleanEvent(Promise.resolve(isMutedEvent), device),
+        currentSource: sourceEvent ? {
+          start: sourceEvent.start.toISOString(),
+          end: sourceEvent.end?.toISOString() ?? null,
+          lastReported: sourceEvent.lastReported.toISOString(),
+          value: sourceEvent.value,
+        } : sourceFallback,
+        availableSources: sources.map(s => ({ label: s.label, kind: s.kind })),
+      };
+    }
+
     case 'BATTERY_LEVEL_INDICATOR': {
       const battery = device.getBatteryLevelIndicatorCapability();
       return awaitPromises({

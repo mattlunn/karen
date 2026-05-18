@@ -14,6 +14,7 @@ import {
   faDoorClosed,
   faDoorOpen,
   faVolumeHigh,
+  faVolumeXmark,
   faBatteryFull,
   faBatteryHalf,
   faBatteryQuarter,
@@ -36,9 +37,11 @@ import {
   faHashtag,
   faBell,
   faSignal,
+  faTv,
+  faPlay,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
-import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
+import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, SwitchUpdateRequest, TelevisionUpdateRequest } from '../../api/types';
 import ThermostatModal from '../modals/thermostat-modal';
 import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import ChargeLimitModal from '../modals/charge-limit-modal';
@@ -67,6 +70,26 @@ async function updateLock(deviceId: number, data: LockUpdateRequest): Promise<De
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error('Failed to update lock');
+  return res.json();
+}
+
+async function updateSwitch(deviceId: number, data: SwitchUpdateRequest): Promise<DeviceApiResponse> {
+  const res = await fetch(`/api/device/${deviceId}/switch`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update switch');
+  return res.json();
+}
+
+async function updateTelevision(deviceId: number, data: TelevisionUpdateRequest): Promise<DeviceApiResponse> {
+  const res = await fetch(`/api/device/${deviceId}/television`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update television');
   return res.json();
 }
 
@@ -123,6 +146,66 @@ function BrightnessControl({ device, capability }: { device: RestDeviceResponse;
       defaultValue={selectedValue}
       onChange={async (e) => {
         const result = await updateLight(device.id, { brightness: Number(e.target.value) });
+        updateDeviceCache(queryClient, device.id, result);
+      }}
+      size={variant === 'compact' ? 'xs' : 'xl'}
+      w="fit-content"
+      display={variant === 'compact' ? 'inline-block' : 'block'}
+    />
+  );
+}
+
+type TelevisionCapability = Extract<CapabilityApiResponse, { type: 'TELEVISION' }>;
+
+function VolumeControl({ device, capability }: { device: RestDeviceResponse; capability: TelevisionCapability }) {
+  const queryClient = useQueryClient();
+  const variant = React.useContext(MetricDisplayContext);
+  const volume = capability.volume.value;
+
+  const data: { value: string; label: string }[] = [];
+  let selectedValue: string | undefined;
+
+  for (let i = 0; i <= 100; i += 5) {
+    const shouldSelect = i === volume || (volume < i && selectedValue === undefined);
+    if (shouldSelect) {
+      selectedValue = String(i);
+    }
+    data.push({ value: String(i), label: String(i) });
+  }
+
+  return (
+    <NativeSelect
+      data={data}
+      defaultValue={selectedValue}
+      onChange={async (e) => {
+        const result = await updateTelevision(device.id, { volume: Number(e.target.value) });
+        updateDeviceCache(queryClient, device.id, result);
+      }}
+      size={variant === 'compact' ? 'xs' : 'xl'}
+      w="fit-content"
+      display={variant === 'compact' ? 'inline-block' : 'block'}
+    />
+  );
+}
+
+function SourceControl({ device, capability }: { device: RestDeviceResponse; capability: TelevisionCapability }) {
+  const queryClient = useQueryClient();
+  const variant = React.useContext(MetricDisplayContext);
+  const current = capability.currentSource.value;
+
+  const inputs = capability.availableSources.filter(s => s.kind === 'input').map(s => s.label);
+  const channels = capability.availableSources.filter(s => s.kind === 'channel').map(s => s.label);
+
+  const groups: { group: string; items: string[] }[] = [];
+  if (inputs.length > 0) groups.push({ group: 'Inputs', items: inputs });
+  if (channels.length > 0) groups.push({ group: 'Channels', items: channels });
+
+  return (
+    <NativeSelect
+      data={groups.length > 0 ? groups : [{ group: '', items: [current || ''] }]}
+      defaultValue={current}
+      onChange={async (e) => {
+        const result = await updateTelevision(device.id, { source: e.target.value });
         updateDeviceCache(queryClient, device.id, result);
       }}
       size={variant === 'compact' ? 'xs' : 'xl'}
@@ -255,7 +338,7 @@ export const registry: CapabilityUIRegistry = {
 
   SWITCH: {
     priority: 40,
-    getCapabilityMetrics: (cap) => [
+    getCapabilityMetrics: (cap, device) => [
       {
         icon: cap.isOn.value ? faToggleOn : faToggleOff,
         title: 'Switch',
@@ -264,6 +347,39 @@ export const registry: CapabilityUIRegistry = {
         lastReported: cap.isOn.lastReported,
         iconColor: '#04A7F4',
         iconHighlighted: cap.isOn.value,
+        onIconClick: async ({ queryClient }) => {
+          const data = await updateSwitch(device.id, { isOn: !cap.isOn.value });
+          updateDeviceCache(queryClient, device.id, data);
+        },
+      },
+    ],
+  },
+
+  TELEVISION: {
+    priority: 32,
+    getCapabilityMetrics: (cap, device) => [
+      {
+        icon: cap.isMuted.value ? faVolumeXmark : faVolumeHigh,
+        title: 'Volume',
+        value: <VolumeControl device={device} capability={cap} />,
+        since: cap.volume.start,
+        lastReported: cap.volume.lastReported,
+        iconColor: '#04A7F4',
+        iconHighlighted: !cap.isMuted.value,
+        onIconClick: async ({ queryClient }) => {
+          const data = await updateTelevision(device.id, { isMuted: !cap.isMuted.value });
+          updateDeviceCache(queryClient, device.id, data);
+        },
+      },
+      {
+        icon: faTv,
+        title: 'Source',
+        value: cap.availableSources.length > 0
+          ? <SourceControl device={device} capability={cap} />
+          : (cap.currentSource.value || 'Unknown'),
+        since: cap.currentSource.start,
+        lastReported: cap.currentSource.lastReported,
+        iconColor: '#04A7F4',
       },
     ],
   },

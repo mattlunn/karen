@@ -56,6 +56,17 @@ declare namespace _default {
     const connectivity_poll_seconds: number;
     const connect_timeout_milliseconds: number;
   }
+  export namespace sony_bravia {
+    const devices: {
+      name: string;
+      host: string;
+      psk: string;
+      inputs: { label: string; uri: string }[];
+      channels: { name: string; uri: string }[];
+    }[];
+    const poll_interval_seconds: number;
+    const connect_timeout_milliseconds: number;
+  }
   export namespace tplink {
     const sync_interval_seconds: number;
     const discovery_duration_seconds: number;

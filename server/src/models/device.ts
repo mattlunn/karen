@@ -8,6 +8,7 @@ import {
   ProviderSpeakerCapability,
   ProviderThermostatCapability,
   ProviderSwitchCapability,
+  ProviderTelevisionCapability,
   ProviderElectricVehicleCapability,
 
   LightSensorCapability,
@@ -20,6 +21,7 @@ import {
   TemperatureSensorCapability,
   ThermostatCapability,
   SwitchCapability,
+  TelevisionCapability,
   HeatPumpCapability,
   SpeakerCapability,
   ElectricVehicleCapability,
@@ -117,6 +119,10 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   getSwitchCapability(): SwitchCapability {
     return this.#getCapabilityOrThrow(() => new SwitchCapability(this));
+  }
+
+  getTelevisionCapability(): TelevisionCapability {
+    return this.#getCapabilityOrThrow(() => new TelevisionCapability(this));
   }
 
   getElectricVehicleCapability(): ElectricVehicleCapability {
@@ -259,6 +265,7 @@ type ProviderHandler = {
   provideLockCapability?(): ProviderLockCapability;
   provideThermostatCapability?(): ProviderThermostatCapability;
   provideSwitchCapability?(): ProviderSwitchCapability;
+  provideTelevisionCapability?(): ProviderTelevisionCapability;
   provideSpeakerCapability?(): ProviderSpeakerCapability;
   provideElectricVehicleCapability?(): ProviderElectricVehicleCapability;
 

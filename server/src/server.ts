@@ -30,6 +30,7 @@ require('./services/alexa');
 require('./services/zwave');
 require('./services/pushover');
 require('./services/shelly');
+require('./services/sony-bravia');
 require('./services/ebusd');
 require('./services/homeconnect');
 require('./services/vehicle');

@@ -317,6 +317,28 @@
   "capabilityModelClassName": "SpeakerBase",
   "properties": []
 }, {
+  "name": "Television",
+  "properties": [
+    {
+      "name": "Volume",
+      "isWriteable": true,
+      "type": "number",
+      "eventName": "tv_volume"
+    },
+    {
+      "name": "IsMuted",
+      "isWriteable": true,
+      "type": "boolean",
+      "eventName": "tv_muted"
+    },
+    {
+      "name": "CurrentSource",
+      "isWriteable": true,
+      "type": "string",
+      "eventName": "tv_source"
+    }
+  ]
+}, {
   "name": "Camera",
   "properties": []
 }, {

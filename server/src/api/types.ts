@@ -55,6 +55,12 @@ export type CapabilityApiResponse = {
   type: 'SWITCH';
   isOn: BooleanEventApiResponse;
 } | {
+  type: 'TELEVISION';
+  volume: NumericEventApiResponse;
+  isMuted: BooleanEventApiResponse;
+  currentSource: EnumEventApiResponse;
+  availableSources: { label: string; kind: 'input' | 'channel' }[];
+} | {
   type: 'BATTERY_LEVEL_INDICATOR';
   batteryPercentage: NumericEventApiResponse;
 } | {
@@ -221,6 +227,18 @@ export interface ThermostatUpdateRequest {
 export interface VehicleUpdateRequest {
   chargeLimit?: number;
   manualChargeSchedule?: { targetPercentage: number; targetTime: string } | null;
+}
+
+// /api/device/:id/switch endpoint
+export interface SwitchUpdateRequest {
+  isOn: boolean;
+}
+
+// /api/device/:id/television endpoint
+export interface TelevisionUpdateRequest {
+  volume?: number;
+  isMuted?: boolean;
+  source?: string;
 }
 
 // /api/security endpoint

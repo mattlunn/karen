@@ -15,6 +15,8 @@ import deviceLightRouter from './device/light';
 import deviceLockRouter from './device/lock';
 import deviceThermostatRouter from './device/thermostat';
 import deviceVehicleRouter from './device/vehicle';
+import deviceSwitchRouter from './device/switch';
+import deviceTelevisionRouter from './device/television';
 import eventsRouter from './events';
 import insightsHeatingHandler from './insights/heating';
 
@@ -33,6 +35,8 @@ router.use('/device/:id/light', deviceLightRouter);
 router.use('/device/:id/lock', deviceLockRouter);
 router.use('/device/:id/thermostat', deviceThermostatRouter);
 router.use('/device/:id/vehicle', deviceVehicleRouter);
+router.use('/device/:id/switch', deviceSwitchRouter);
+router.use('/device/:id/television', deviceTelevisionRouter);
 router.get('/insights/heating', insightsHeatingHandler);
 
 router.get('/snapshot/:id', async (req, res) => {
