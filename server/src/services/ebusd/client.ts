@@ -1,15 +1,6 @@
 import { createConnection } from 'net';
 import sleep from '../../helpers/sleep';
 
-export const MODES = {
-  UNKNOWN: 0,
-  STANDBY: 1,
-  HEATING: 2,
-  DHW: 3,
-  DEICING: 4,
-  FROST_PROTECTION: 5
-};
-
 function toNumber(value: string): number {
   const num = Number(value);
 
@@ -125,17 +116,8 @@ export default class EbusClient {
     return this.#read({ value: 'CurrentConsumedPower', circuit: 'hmu' }, toNumber);
   }
 
-  async getMode(): Promise<typeof MODES[keyof typeof MODES]> {
-    return this.#read({ value: 'Statuscode', circuit: 'hmu' }, (v) => {
-      switch (v.split(':')[0]) {
-        case 'Heating': return MODES.HEATING;
-        case 'Warm Water': return MODES.DHW;
-        case 'Standby': return MODES.STANDBY;
-        case 'Deicing active': return MODES.DEICING;
-        case 'Frost protection': return MODES.FROST_PROTECTION;
-        default: throw new Error(`Unknown status "${v}"`);
-      }
-    });
+  async getMode(): Promise<string> {
+    return this.#read({ value: 'Statuscode', circuit: 'hmu' }, (v) => v.split(':')[0]);
   }
 
   async getDHWIsOn(): Promise<boolean> {

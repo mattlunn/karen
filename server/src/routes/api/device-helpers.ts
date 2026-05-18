@@ -1,4 +1,4 @@
-import { Device, NumericEvent, BooleanEvent } from '../../models';
+import { Device, NumericEvent, BooleanEvent, StringEvent } from '../../models';
 import { NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
@@ -48,16 +48,7 @@ export function mapBooleanEvent(eventPromise: Promise<BooleanEvent | null>, devi
   });
 }
 
-export const HEAT_PUMP_MODES: Record<number, string> = {
-  0: 'UNKNOWN',
-  1: 'STANDBY',
-  2: 'HEATING',
-  3: 'DHW',
-  4: 'DEICING',
-  5: 'FROST_PROTECTION'
-};
-
-export function mapHeatPumpModeEvent(eventPromise: Promise<NumericEvent | null>): Promise<EnumEventApiResponse> {
+export function mapStringEvent(eventPromise: Promise<StringEvent | null>): Promise<EnumEventApiResponse> {
   return eventPromise.then(event => {
     if (!event) {
       throw new Error('Missing an initial event');
@@ -67,7 +58,7 @@ export function mapHeatPumpModeEvent(eventPromise: Promise<NumericEvent | null>)
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
       lastReported: event.lastReported.toISOString(),
-      value: HEAT_PUMP_MODES[event.value] ?? 'UNKNOWN'
+      value: event.value
     };
   });
 }
@@ -116,7 +107,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const heatPump = device.getHeatPumpCapability();
       return awaitPromises({
         type: 'HEAT_PUMP' as const,
-        mode: mapHeatPumpModeEvent(heatPump.getModeEvent()),
+        mode: mapStringEvent(heatPump.getModeEvent()),
         compressorModulation: mapNumericEvent(heatPump.getCompressorModulationEvent()),
         dhwTemperature: mapNumericEvent(heatPump.getDHWTemperatureEvent()),
         outsideTemperature: mapNumericEvent(heatPump.getOutsideTemperatureEvent()),

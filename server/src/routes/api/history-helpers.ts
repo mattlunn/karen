@@ -1,4 +1,4 @@
-import { BooleanEvent, NumericEvent } from '../../models';
+import { BooleanEvent, NumericEvent, StringEvent } from '../../models';
 import { TimeRangeSelector, HistorySelector } from '../../models/capabilities/helpers';
 import {
   BooleanEventApiResponse,
@@ -39,17 +39,16 @@ export function mapNumericHistoryToResponse(
   }));
 }
 
-export function mapEnumHistoryToResponse(
-  fetchHistory: (hs: HistorySelector) => Promise<NumericEvent[]>,
-  historySelector: TimeRangeSelector,
-  map: Record<number, string>
+export function mapStringHistoryToResponse(
+  fetchHistory: (hs: HistorySelector) => Promise<StringEvent[]>,
+  historySelector: TimeRangeSelector
 ): Promise<HistoryDetailsApiResponse<EnumEventApiResponse>> {
   return fetchHistory(historySelector).then(events => ({
-    history: events.map((event: NumericEvent) => ({
+    history: events.map((event: StringEvent) => ({
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
       lastReported: event.lastReported.toISOString(),
-      value: map[event.value]
+      value: event.value
     })),
     since: historySelector.since.toISOString(),
     until: historySelector.until.toISOString()

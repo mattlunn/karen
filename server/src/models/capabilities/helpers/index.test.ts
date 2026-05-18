@@ -1,6 +1,6 @@
 jest.mock('../../../config', () => ({}), { virtual: true });
 
-import { setBooleanProperty, setNumericProperty } from './index';
+import { setBooleanProperty, setNumericProperty, setStringProperty } from './index';
 import { Device, Event } from '../..';
 
 // Mock the models
@@ -11,6 +11,7 @@ jest.mock('../..', () => ({
   },
   BooleanEvent: jest.fn(),
   NumericEvent: jest.fn(),
+  StringEvent: jest.fn(),
   Op: {},
 }));
 
@@ -393,6 +394,138 @@ describe('setBooleanProperty', () => {
       await expect(
         setBooleanProperty(mockDevice as unknown as Device, 'pressed', true, true, historicTimestamp)
       ).rejects.toThrow('Cannot insert historic event');
+    });
+  });
+});
+
+describe('setStringProperty', () => {
+  let mockDevice: { id: number; getLatestEvent: jest.Mock };
+  let mockEvent: { start: Date; stringValue: string; end: Date | null; lastReported: Date; save: jest.Mock };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockDevice = {
+      id: 1,
+      getLatestEvent: jest.fn(),
+    };
+    mockEvent = {
+      start: new Date('2024-01-15T00:00:00Z'),
+      stringValue: 'HEATING',
+      end: null,
+      lastReported: new Date('2024-01-15T00:00:00Z'),
+      save: jest.fn().mockResolvedValue(undefined),
+    };
+  });
+
+  describe('historic insert rejection', () => {
+    it('throws error when timestamp is before latest event start', async () => {
+      mockDevice.getLatestEvent.mockResolvedValue(mockEvent);
+      const historicTimestamp = new Date('2024-01-14T00:00:00Z');
+
+      await expect(
+        setStringProperty(mockDevice as unknown as Device, 'mode', 'DHW', false, historicTimestamp)
+      ).rejects.toThrow('Cannot insert historic event');
+    });
+  });
+
+  describe('fresh inserts', () => {
+    it('creates new event when no existing event', async () => {
+      mockDevice.getLatestEvent.mockResolvedValue(null);
+      const newEvent = { id: 1 };
+      (Event.create as jest.Mock).mockResolvedValue(newEvent);
+
+      const result = await setStringProperty(
+        mockDevice as unknown as Device,
+        'mode',
+        'HEATING',
+        false,
+        new Date('2024-01-15T00:00:00Z')
+      );
+
+      expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+        deviceId: 1,
+        type: 'mode',
+        stringValue: 'HEATING',
+      }));
+      expect(result).toBe(newEvent);
+    });
+
+    it('closes old event and creates new one when value changes', async () => {
+      mockDevice.getLatestEvent.mockResolvedValue(mockEvent);
+      const newTimestamp = new Date('2024-01-16T00:00:00Z');
+      const newEvent = { id: 2 };
+      (Event.create as jest.Mock).mockResolvedValue(newEvent);
+
+      const result = await setStringProperty(
+        mockDevice as unknown as Device,
+        'mode',
+        'DHW',
+        false,
+        newTimestamp
+      );
+
+      expect(mockEvent.end).toEqual(newTimestamp);
+      expect(mockEvent.save).toHaveBeenCalled();
+      expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+        deviceId: 1,
+        type: 'mode',
+        stringValue: 'DHW',
+      }));
+      expect(result).toBe(newEvent);
+    });
+
+    it('updates lastReported when value unchanged', async () => {
+      mockDevice.getLatestEvent.mockResolvedValue(mockEvent);
+      const newTimestamp = new Date('2024-01-16T00:00:00Z');
+
+      const result = await setStringProperty(
+        mockDevice as unknown as Device,
+        'mode',
+        'HEATING',
+        false,
+        newTimestamp
+      );
+
+      expect(mockEvent.lastReported).toEqual(newTimestamp);
+      expect(mockEvent.save).toHaveBeenCalled();
+      expect(Event.create).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('same timestamp updates', () => {
+    it('updates stringValue in place when timestamp matches latest event', async () => {
+      mockDevice.getLatestEvent.mockResolvedValue(mockEvent);
+      const sameTimestamp = new Date('2024-01-15T00:00:00Z');
+
+      await setStringProperty(
+        mockDevice as unknown as Device,
+        'mode',
+        'DHW',
+        false,
+        sameTimestamp
+      );
+
+      expect(mockEvent.stringValue).toBe('DHW');
+      expect(mockEvent.lastReported).toEqual(sameTimestamp);
+      expect(mockEvent.save).toHaveBeenCalled();
+      expect(Event.create).not.toHaveBeenCalled();
+    });
+
+    it('returns null when value unchanged at same timestamp', async () => {
+      mockDevice.getLatestEvent.mockResolvedValue(mockEvent);
+      const sameTimestamp = new Date('2024-01-15T00:00:00Z');
+
+      const result = await setStringProperty(
+        mockDevice as unknown as Device,
+        'mode',
+        'HEATING',
+        false,
+        sameTimestamp
+      );
+
+      expect(mockEvent.save).not.toHaveBeenCalled();
+      expect(result).toBeNull();
     });
   });
 });
