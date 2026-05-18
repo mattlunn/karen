@@ -25,6 +25,7 @@ Device.registerProvider('octopus', {
 
     device.manufacturer = 'Octopus Energy';
     device.model = 'Smart Meter';
+    device.meta.meterPoint = await getMeterPoint();
 
     await device.save();
   },
@@ -81,7 +82,6 @@ async function poll(meterPoint: MeterPoint, device: Device) {
 
 nowAndSetInterval(createBackgroundTransaction('octopus:poll', async () => {
   const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
-  const meterPoint = await getMeterPoint();
 
-  await poll(meterPoint, device);
+  await poll(device.meta.meterPoint as MeterPoint, device);
 }), Math.max(config.octopus.poll_interval_minutes, 1) * 60 * 1000);
