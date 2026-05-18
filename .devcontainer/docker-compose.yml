@@ -6,3 +6,18 @@ services:
     command: sleep infinity
     environment:
       - IS_SANDBOX=1
+    network_mode: service:wireguard
+    depends_on:
+      - wireguard
+
+  wireguard:
+    image: linuxserver/wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    ports:
+      - "8081:8081"  # ports go here instead
+    volumes:
+      - ../../wg0.conf:/config/wg0.conf
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: "1"
