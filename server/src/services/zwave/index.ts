@@ -87,12 +87,6 @@ deviceHandlers.set('AEON Labs ZW100', [
   }
 ]);
 
-// zwave-js Meter CC value IDs use a numeric propertyKey encoding the
-// meter type, scale and rate type. For the Fibaro Dimmer 2 the electric
-// power (Watts) reading is propertyKey 66049 and the energy (kWh) reading
-// is 65537.
-const ZWAVE_METER_ELECTRIC_WATTS = 66049;
-
 deviceHandlers.set('Fibargroup FGD212', [
   {
     propertyKey: 'Multilevel Switch.currentValue',
@@ -104,7 +98,9 @@ deviceHandlers.set('Fibargroup FGD212', [
     }
   },
   {
-    propertyKey: `Meter.value.${ZWAVE_METER_ELECTRIC_WATTS}`,
+    // The Fibaro Dimmer 2 reports live power (W) via Multilevel Sensor CC,
+    // not via the Meter CC (which carries the cumulative kWh reading).
+    propertyKey: 'Multilevel Sensor.Power',
     propertyMapper(device: Device, value: number) {
       return device.getEnergyMonitorCapability().setCurrentPowerState(value);
     }
@@ -210,12 +206,7 @@ async function getClient() {
             if (handlers === undefined) {
               logger.warn(`No Z-Wave deviceHandlers registered for node type "${nodeType}" (Device Id ${deviceId})`);
             } else {
-              // Some command classes (e.g. Meter) expose multiple distinct values
-              // under the same property, disambiguated by propertyKey. Prefer a
-              // propertyKey-specific handler, falling back to the property-level one.
-              const eventHandler = (data.args.propertyKey !== undefined
-                && handlers.find(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}.${data.args.propertyKey}`))
-                || handlers.find(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
+              const eventHandler = handlers.find(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
 
               if (eventHandler) {
                 eventHandler.propertyMapper(device, data.args.newValue);
