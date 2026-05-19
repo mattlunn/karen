@@ -28,13 +28,10 @@ router.get('/install', async (req, res) => {
   }
 
   if (!device) {
-    device = Device.build({
-      provider: 'shelly',
-      providerId: mqttId,
-    });
-  } else {
-    device.providerId = mqttId;
+    device = Device.build({ provider: 'shelly' });
   }
+
+  device.providerId = mqttId;
 
   let role = 'switch';
 
@@ -51,6 +48,7 @@ router.get('/install', async (req, res) => {
   device.model = model;
   device.meta.generation = generation;
   device.meta.role = role;
+
   delete device.meta.endpoint;
 
   await client.setCloudStatus(false);

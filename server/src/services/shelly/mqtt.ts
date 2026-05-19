@@ -21,7 +21,6 @@ function getClient(): MqttClient {
       client!.subscribe([
         `${TOPIC_PREFIX}/+/online`,
         `${TOPIC_PREFIX}/+/light/0/status`,
-        `${TOPIC_PREFIX}/+/relay/0/status`,
         `${TOPIC_PREFIX}/+/status/switch:0`,
         `${TOPIC_PREFIX}/+/status/input:0`,
       ], (err) => {
@@ -47,11 +46,6 @@ function getClient(): MqttClient {
 
 async function handleMessage(topic: string, payload: string): Promise<void> {
   const segments = topic.split('/');
-
-  if (segments.length < 3 || segments[0] !== TOPIC_PREFIX) {
-    return;
-  }
-
   const mqttId = segments[1];
   const device = await Device.findByProviderId('shelly', mqttId);
 
@@ -67,20 +61,15 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
     return;
   }
 
-  if (subtopic === 'light/0/status' || subtopic === 'relay/0/status') {
+  if (subtopic === 'light/0/status') {
     const data = JSON.parse(payload);
 
     if (capabilities.includes('LIGHT')) {
-      if (typeof data.ison === 'boolean') {
-        await device.getLightCapability().setIsOnState(data.ison);
-      }
-
-      if (typeof data.brightness === 'number') {
-        await device.getLightCapability().setBrightnessState(data.brightness);
-      }
+      await device.getLightCapability().setIsOnState(data.ison);
+      await device.getLightCapability().setBrightnessState(data.brightness);
     }
 
-    if (capabilities.includes('ENERGY_MONITOR') && typeof data.power === 'number') {
+    if (capabilities.includes('ENERGY_MONITOR')) {
       await device.getEnergyMonitorCapability().setCurrentPowerState(data.power);
     }
 
@@ -90,11 +79,11 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
   if (subtopic === 'status/switch:0') {
     const data = JSON.parse(payload);
 
-    if (capabilities.includes('SWITCH') && typeof data.output === 'boolean') {
+    if (capabilities.includes('SWITCH')) {
       await device.getSwitchCapability().setIsOnState(data.output);
     }
 
-    if (capabilities.includes('ENERGY_MONITOR') && typeof data.apower === 'number') {
+    if (capabilities.includes('ENERGY_MONITOR')) {
       await device.getEnergyMonitorCapability().setCurrentPowerState(data.apower);
     }
 
@@ -104,9 +93,7 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
   if (subtopic === 'status/input:0' && capabilities.includes('CONTACT_SENSOR')) {
     const data = JSON.parse(payload);
 
-    if (typeof data.state === 'boolean') {
-      await device.getContactSensorCapability().setIsClosedState(data.state);
-    }
+    await device.getContactSensorCapability().setIsClosedState(data.state);
 
     return;
   }

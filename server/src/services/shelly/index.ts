@@ -56,4 +56,6 @@ Device.registerProvider('shelly', {
       },
     };
   },
+
+  async synchronize() {},
 });
