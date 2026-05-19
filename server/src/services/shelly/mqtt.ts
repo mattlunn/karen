@@ -21,6 +21,7 @@ function getClient(): MqttClient {
       client!.subscribe([
         `${TOPIC_PREFIX}/+/online`,
         `${TOPIC_PREFIX}/+/light/0/status`,
+        `${TOPIC_PREFIX}/+/light/0/power`,
         `${TOPIC_PREFIX}/+/status/switch:0`,
         `${TOPIC_PREFIX}/+/status/input:0`,
       ], (err) => {
@@ -69,8 +70,12 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
       await device.getLightCapability().setBrightnessState(data.brightness);
     }
 
+    return;
+  }
+
+  if (subtopic === 'light/0/power') {
     if (capabilities.includes('ENERGY_MONITOR')) {
-      await device.getEnergyMonitorCapability().setCurrentPowerState(data.power);
+      await device.getEnergyMonitorCapability().setCurrentPowerState(parseFloat(payload));
     }
 
     return;
@@ -81,10 +86,6 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
 
     if (capabilities.includes('SWITCH')) {
       await device.getSwitchCapability().setIsOnState(data.output);
-    }
-
-    if (capabilities.includes('ENERGY_MONITOR')) {
-      await device.getEnergyMonitorCapability().setCurrentPowerState(data.apower);
     }
 
     return;
