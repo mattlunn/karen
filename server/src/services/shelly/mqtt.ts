@@ -9,7 +9,7 @@ let client: MqttClient | null = null;
 
 function getClient(): MqttClient {
   if (client === null) {
-    client = connect(config.shelly.mqtt.url, {
+    client = connect(`mqtt://${config.shelly.mqtt.url}`, {
       username: config.shelly.mqtt.user,
       password: config.shelly.mqtt.password,
       reconnectPeriod: 5000,

@@ -5,10 +5,6 @@ import DeviceClient from '../services/shelly/client/device';
 
 const router = express.Router();
 
-function hostPortFromUrl(url) {
-  return url.replace(/^[a-z]+:\/\//, '');
-}
-
 router.get('/install', async (req, res) => {
   const ip = req.query.ip;
 
@@ -24,14 +20,8 @@ router.get('/install', async (req, res) => {
   let device = await Device.findByProviderId('shelly', mqttId);
 
   if (!device) {
-    device = await Device.findByProviderId('shelly', ip);
+    device = Device.build({ provider: 'shelly', providerId: mqttId });
   }
-
-  if (!device) {
-    device = Device.build({ provider: 'shelly' });
-  }
-
-  device.providerId = mqttId;
 
   let role = 'switch';
 
@@ -55,7 +45,7 @@ router.get('/install', async (req, res) => {
   await client.setupAuthentication();
 
   await client.enableMqtt({
-    url: hostPortFromUrl(config.shelly.mqtt.url),
+    url: config.shelly.mqtt.url,
     user: config.shelly.mqtt.user,
     password: config.shelly.mqtt.password,
   });
