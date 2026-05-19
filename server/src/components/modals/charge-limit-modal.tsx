@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Button, Group, Slider, Text, Title } from '@mantine/core';
 import { useVehicleMutation } from '../../hooks/mutations/use-device-mutations';
+import { formatValueOrUnknown as v } from '../../helpers/format';
 import type { RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 
 type ElectricVehicleCapability = Extract<CapabilityApiResponse, { type: 'ELECTRIC_VEHICLE' }>;
@@ -12,7 +13,7 @@ interface ChargeLimitModalProps {
 }
 
 export default function ChargeLimitModal({ device, capability, closeModal }: ChargeLimitModalProps) {
-  const [limit, setLimit] = useState<number>(Math.round(capability.chargeLimit.value ?? 80));
+  const [limit, setLimit] = useState<number>(Math.round(capability.chargeLimit.value!));
   const { mutate: updateVehicle, isPending } = useVehicleMutation(device.id);
 
   const handleSubmit = () => {
@@ -22,7 +23,7 @@ export default function ChargeLimitModal({ device, capability, closeModal }: Cha
   return (
     <>
       <Title order={3} mb="md">Set Charge Limit for {device.name}</Title>
-      <Text mb="sm">Current Charge: <strong>{capability.chargePercentage.value === null ? 'Unknown' : `${capability.chargePercentage.value.toFixed(0)}%`}</strong></Text>
+      <Text mb="sm">Current Charge: <strong>{v(capability.chargePercentage.value, (charge) => `${charge.toFixed(0)}%`)}</strong></Text>
       <Box my="xl">
         <Text size="sm" fw={500} mb="xs">Charge Limit</Text>
         <Slider

@@ -88,7 +88,7 @@ export type EventResolved<E extends CapabilityEvent | null, T> = T | ((event: E)
  *
  * Most callbacks receive the event with its `value` narrowed to non-null —
  * `createCapability` short-circuits state envelopes whose `value` is `null` to
- * a uniform "Unknown" rendering, so per-capability callbacks never have to
+ * a uniform "no reading" rendering, so per-capability callbacks never have to
  * branch on absence. The `icon` callback is the exception: each capability
  * picks its own neutral fallback icon for the unobserved state.
  */

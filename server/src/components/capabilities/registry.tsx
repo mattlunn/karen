@@ -158,10 +158,10 @@ function hasNullValue(event: CapabilityEvent | null): boolean {
  * explicit `since` / `lastReported` or `footer`) for metrics with no event.
  *
  * When the backing event exists but its `value` is `null` (no observation yet),
- * we short-circuit to a uniform "Unknown" rendering: only the `icon` callback
- * is invoked (each capability picks a sensible neutral icon for the unobserved
- * state); `value`, `iconColor`, `iconHighlighted` and `isIssue` fall back to
- * generic defaults so per-capability callbacks don't need to handle absence.
+ * we short-circuit to a uniform "no reading" rendering (a `-` value): only the
+ * `icon` callback is invoked (each capability picks a sensible neutral icon for
+ * the unobserved state); `value`, `iconColor`, `iconHighlighted` and `isIssue`
+ * fall back to generic defaults so per-capability callbacks don't handle absence.
  */
 function createCapability<E extends CapabilityEvent | null>(
   event: E,
@@ -171,7 +171,7 @@ function createCapability<E extends CapabilityEvent | null>(
     return {
       icon: resolve(config.icon, event),
       title: config.title,
-      value: 'Unknown',
+      value: '-',
       iconColor: '#aaaaaa',
       iconHighlighted: false,
       onIconClick: config.onIconClick,
@@ -243,7 +243,7 @@ export const registry: CapabilityUIRegistry = {
         title: 'Current Temperature',
         value: (e) => `${e.value.toFixed(1)}°C`,
         iconColor: '#ff6f22',
-        iconHighlighted: cap.isHeating.value ?? false,
+        iconHighlighted: !!cap.isHeating.value,
         onIconClick: ({ openModal, closeModal }) => {
           openModal(
             <ThermostatModal device={device} capability={cap} closeModal={closeModal} />
@@ -285,7 +285,7 @@ export const registry: CapabilityUIRegistry = {
     priority: 35,
     getCapabilityMetrics: (cap, device) => [
       createCapability(cap.isLocked, {
-        icon: (e) => e.value === null ? faDoorClosed : (e.value ? faDoorClosed : faDoorOpen),
+        icon: (e) => e.value === false ? faDoorOpen : faDoorClosed,
         title: 'Lock',
         value: (e) => e.value ? 'Locked' : 'Unlocked',
         iconColor: '#04A7F4',
@@ -314,7 +314,7 @@ export const registry: CapabilityUIRegistry = {
     priority: 40,
     getCapabilityMetrics: (cap) => [
       createCapability(cap.isOn, {
-        icon: (e) => e.value === null ? faToggleOff : (e.value ? faToggleOn : faToggleOff),
+        icon: (e) => e.value === true ? faToggleOn : faToggleOff,
         title: 'Switch',
         value: (e) => e.value ? 'On' : 'Off',
         iconColor: '#04A7F4',
@@ -494,11 +494,10 @@ export const registry: CapabilityUIRegistry = {
     getCapabilityMetrics: (cap) => [
       createCapability(cap.batteryPercentage, {
         icon: (e) => {
-          if (e.value === null) return faBatteryHalf;
+          if (e.value === null || e.value <= 25) return faBatteryEmpty;
           if (e.value > 75) return faBatteryFull;
           if (e.value > 50) return faBatteryHalf;
-          if (e.value > 25) return faBatteryQuarter;
-          return faBatteryEmpty;
+          return faBatteryQuarter;
         },
         title: 'Battery',
         value: (e) => `${e.value}%`,
@@ -516,7 +515,7 @@ export const registry: CapabilityUIRegistry = {
     priority: 91,
     getCapabilityMetrics: (cap) => [
       createCapability(cap.isLow, {
-        icon: (e) => e.value === null ? faBatteryFull : (e.value ? faBatteryEmpty : faBatteryFull),
+        icon: (e) => e.value === false ? faBatteryFull : faBatteryEmpty,
         title: 'Battery',
         value: (e) => e.value ? 'LOW' : 'OK',
         iconColor: (e) => e.value ? '#e74c3c' : '#2ecc71',
@@ -623,11 +622,10 @@ export const registry: CapabilityUIRegistry = {
       }),
       createCapability(cap.chargePercentage, {
         icon: (e) => {
-          if (e.value === null) return faBatteryHalf;
+          if (e.value === null || e.value <= 25) return faBatteryEmpty;
           if (e.value > 75) return faBatteryFull;
           if (e.value > 50) return faBatteryHalf;
-          if (e.value > 25) return faBatteryQuarter;
-          return faBatteryEmpty;
+          return faBatteryQuarter;
         },
         title: 'Battery',
         value: (e) => `${e.value.toFixed(0)}%`,
@@ -636,7 +634,7 @@ export const registry: CapabilityUIRegistry = {
           if (e.value > 25) return '#f39c12';
           return '#e74c3c';
         },
-        iconHighlighted: cap.isCharging.value ?? false,
+        iconHighlighted: !!cap.isCharging.value,
       }),
       createCapability(cap.isCableConnected, {
         icon: faPlug,

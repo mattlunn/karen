@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Button, Group, Slider, Text, Title } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { useVehicleMutation } from '../../hooks/mutations/use-device-mutations';
+import { formatValueOrUnknown as v } from '../../helpers/format';
 import type { RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 import dayjs from '../../dayjs';
 
@@ -33,8 +34,8 @@ export default function ChargeScheduleModal({ device, capability, closeModal }: 
     <>
       <Title order={3} mb="md">Schedule Charge for {device.name}</Title>
 
-      <Text>Current Charge: <strong>{capability.chargePercentage.value === null ? 'Unknown' : `${capability.chargePercentage.value.toFixed(0)}%`}</strong></Text>
-      <Text mb="sm">Current Limit: <strong>{capability.chargeLimit.value === null ? 'Unknown' : `${capability.chargeLimit.value.toFixed(0)}%`}</strong></Text>
+      <Text>Current Charge: <strong>{v(capability.chargePercentage.value, (charge) => `${charge.toFixed(0)}%`)}</strong></Text>
+      <Text mb="sm">Current Limit: <strong>{v(capability.chargeLimit.value, (limit) => `${limit.toFixed(0)}%`)}</strong></Text>
 
       <Box my="xl">
         <Text size="sm" fw={500} mb="xs">Target Charge Percentage</Text>

@@ -10,7 +10,7 @@ import { forDeviceCapability } from '../../helpers/device';
 interface Camera {
   id: number;
   name: string;
-  snapshotUrl: string;
+  snapshotUrl: string | null;
 }
 
 export default function Home() {
@@ -24,7 +24,7 @@ export default function Home() {
   const cameras: Camera[] = forDeviceCapability(data.devices, 'CAMERA', (device, capability) => ({
     id: device.id,
     name: device.name,
-    snapshotUrl: capability.snapshotUrl.value ?? '',
+    snapshotUrl: capability.snapshotUrl.value,
   }));
 
   return (
