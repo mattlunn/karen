@@ -235,6 +235,10 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   static async synchronize() {
     for (const [name, { synchronize }] of Device._providers) {
+      if (!synchronize) {
+        continue;
+      }
+
       logger.info(`Synchronizing ${name}`);
 
       try {
@@ -250,7 +254,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   static registerProvider(name: string, handlers: ProviderHandler) {
     this._providers.set(name, handlers);
 
-    handlers.synchronize().catch(e => logger.error(e));
+    handlers.synchronize?.().catch(e => logger.error(e));
   }
 
   static getProviderCapabilities(provider: string): ProviderHandler {
@@ -273,7 +277,7 @@ type ProviderHandler = {
   provideElectricVehicleCapability?(): ProviderElectricVehicleCapability;
 
   getCapabilities(device: Device): Capability[];
-  synchronize(): Promise<void>;
+  synchronize?(): Promise<void>;
 };
 
 export default function (sequelize: Sequelize) {

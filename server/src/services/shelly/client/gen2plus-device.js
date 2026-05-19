@@ -16,7 +16,7 @@ export default class Gen2PlusDeviceClient {
 
     if (body === '') {
       return Promise.resolve();
-    } else { 
+    } else {
       return JSON.parse(body);
     }
   }
@@ -30,42 +30,27 @@ export default class Gen2PlusDeviceClient {
   }
 
   async setupAuthentication() {
-    /*
-    const deviceId = (await this._request('/rpc/Shelly.GetDeviceInfo')).id;
-    const hash = createHash('sha256').update(`${this._username}:${this.deviceId}:${this._password}`).digest('hex');
-
-    return await this._request(`/rpc/Shelly.SetAuth?user="${this._username}"&realm="${deviceId}"&ha1="${hash}"`);
-    */
-
     return Promise.resolve();
   }
 
-  async setIsOn(isOn) {
-    return await this._request(`/rpc/Switch.Set?id=0&on=${isOn ? 'true' : 'false'}`);
+  async enableMqtt({ url, user, password }) {
+    const config = {
+      enable: true,
+      server: url,
+      user,
+      pass: password,
+      topic_prefix: 'shellies'
+    };
+
+    return await this._request(`/rpc/Mqtt.SetConfig?config=${encodeURIComponent(JSON.stringify(config))}`);
   }
 
-  async setOutputOnWebhook(endpoint) {
-    return await this._request(`/rpc/Webhook.Create?cid=0&enable=true&event="switch.on"&urls=["${encodeURIComponent(endpoint)}"]`);
-  }
-
-  async setOutputOffWebhook(endpoint) {
-    return await this._request(`/rpc/Webhook.Create?cid=0&enable=true&event="switch.off"&urls=["${encodeURIComponent(endpoint)}"]`);
-  }
-
-  async setInputOnWebhook(endpoint) {
-    return await this._request(`/rpc/Webhook.Create?cid=0&enable=true&event="input.toggle_on"&urls=["${encodeURIComponent(endpoint)}"]`);
-  }
-
-  async setInputOffWebhook(endpoint) {
-    return await this._request(`/rpc/Webhook.Create?cid=0&enable=true&event="input.toggle_off"&urls=["${encodeURIComponent(endpoint)}"]`);
+  async getMqttId() {
+    return (await this._request('/rpc/Shelly.GetDeviceInfo')).id;
   }
 
   async getSwitchConfig() {
     return await this._request('/rpc/Switch.GetConfig?id=0');
-  }
-
-  async setBrightness() {
-    throw new Error();
   }
 
   async getDeviceName() {

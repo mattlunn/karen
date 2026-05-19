@@ -28,6 +28,7 @@
     "express": "^5.0.0",
     "handlebars": "^4.7.8",
     "iso8601-duration": "^2.0.0",
+    "mqtt": "^5.15.1",
     "mysql2": "^3.22.0",
     "newrelic": "^13.20.0",
     "pino": "^10.3.1",
