@@ -109,7 +109,7 @@ type LightCapability = Extract<CapabilityApiResponse, { type: 'LIGHT' }>;
 function BrightnessControl({ device, capability }: { device: RestDeviceResponse; capability: LightCapability }) {
   const queryClient = useQueryClient();
   const variant = React.useContext(MetricDisplayContext);
-  const brightness = capability.brightness.value;
+  const brightness = capability.brightness.value ?? 100;
 
   const data: { value: string; label: string }[] = [];
   let selectedValue: string | undefined;
@@ -147,23 +147,50 @@ function resolve<E, T>(value: T | ((event: E) => T), event: E): T {
   return typeof value === 'function' ? (value as (event: E) => T)(event) : value;
 }
 
+function hasNullValue(event: CapabilityEvent | null): boolean {
+  return event !== null && 'value' in event && event.value === null;
+}
+
 /**
  * Builds a `CapabilityMetric` from a backing event and a config whose display
  * props may be plain values or functions of that event. `since` / `lastReported`
  * are taken from the event automatically; pass `null` as the event (with an
  * explicit `since` / `lastReported` or `footer`) for metrics with no event.
+ *
+ * When the backing event exists but its `value` is `null` (no observation yet),
+ * we short-circuit to a uniform "Unknown" rendering: only the `icon` callback
+ * is invoked (each capability picks a sensible neutral icon for the unobserved
+ * state); `value`, `iconColor`, `iconHighlighted` and `isIssue` fall back to
+ * generic defaults so per-capability callbacks don't need to handle absence.
  */
 function createCapability<E extends CapabilityEvent | null>(
   event: E,
   config: CreateCapabilityConfig<E>
 ): CapabilityMetric {
+  if (hasNullValue(event)) {
+    return {
+      icon: resolve(config.icon, event),
+      title: config.title,
+      value: 'Unknown',
+      iconColor: '#aaaaaa',
+      iconHighlighted: false,
+      onIconClick: config.onIconClick,
+      since: event!.start,
+      lastReported: event!.lastReported,
+    };
+  }
+
+  // Callbacks past this point can assume `value` is non-null; the type system
+  // is told via `WithObservedValue<E>` but the runtime hasn't narrowed `event`,
+  // so we cast through `as never` to satisfy `resolve`'s signature.
+  const observedEvent = event as never;
   const base = {
     icon: resolve(config.icon, event),
     title: config.title,
-    value: resolve(config.value, event),
-    iconColor: config.iconColor === undefined ? undefined : resolve(config.iconColor, event),
-    iconHighlighted: config.iconHighlighted === undefined ? undefined : resolve(config.iconHighlighted, event),
-    isIssue: config.isIssue === undefined ? undefined : resolve(config.isIssue, event),
+    value: resolve(config.value, observedEvent),
+    iconColor: config.iconColor === undefined ? undefined : resolve(config.iconColor, observedEvent),
+    iconHighlighted: config.iconHighlighted === undefined ? undefined : resolve(config.iconHighlighted, observedEvent),
+    isIssue: config.isIssue === undefined ? undefined : resolve(config.isIssue, observedEvent),
     onIconClick: config.onIconClick,
   };
 
@@ -216,7 +243,7 @@ export const registry: CapabilityUIRegistry = {
         title: 'Current Temperature',
         value: (e) => `${e.value.toFixed(1)}°C`,
         iconColor: '#ff6f22',
-        iconHighlighted: cap.isHeating.value,
+        iconHighlighted: cap.isHeating.value ?? false,
         onIconClick: ({ openModal, closeModal }) => {
           openModal(
             <ThermostatModal device={device} capability={cap} closeModal={closeModal} />
@@ -258,7 +285,7 @@ export const registry: CapabilityUIRegistry = {
     priority: 35,
     getCapabilityMetrics: (cap, device) => [
       createCapability(cap.isLocked, {
-        icon: (e) => e.value ? faDoorClosed : faDoorOpen,
+        icon: (e) => e.value === null ? faDoorClosed : (e.value ? faDoorClosed : faDoorOpen),
         title: 'Lock',
         value: (e) => e.value ? 'Locked' : 'Unlocked',
         iconColor: '#04A7F4',
@@ -287,7 +314,7 @@ export const registry: CapabilityUIRegistry = {
     priority: 40,
     getCapabilityMetrics: (cap) => [
       createCapability(cap.isOn, {
-        icon: (e) => e.value ? faToggleOn : faToggleOff,
+        icon: (e) => e.value === null ? faToggleOff : (e.value ? faToggleOn : faToggleOff),
         title: 'Switch',
         value: (e) => e.value ? 'On' : 'Off',
         iconColor: '#04A7F4',
@@ -467,6 +494,7 @@ export const registry: CapabilityUIRegistry = {
     getCapabilityMetrics: (cap) => [
       createCapability(cap.batteryPercentage, {
         icon: (e) => {
+          if (e.value === null) return faBatteryHalf;
           if (e.value > 75) return faBatteryFull;
           if (e.value > 50) return faBatteryHalf;
           if (e.value > 25) return faBatteryQuarter;
@@ -488,7 +516,7 @@ export const registry: CapabilityUIRegistry = {
     priority: 91,
     getCapabilityMetrics: (cap) => [
       createCapability(cap.isLow, {
-        icon: (e) => e.value ? faBatteryEmpty : faBatteryFull,
+        icon: (e) => e.value === null ? faBatteryFull : (e.value ? faBatteryEmpty : faBatteryFull),
         title: 'Battery',
         value: (e) => e.value ? 'LOW' : 'OK',
         iconColor: (e) => e.value ? '#e74c3c' : '#2ecc71',
@@ -595,6 +623,7 @@ export const registry: CapabilityUIRegistry = {
       }),
       createCapability(cap.chargePercentage, {
         icon: (e) => {
+          if (e.value === null) return faBatteryHalf;
           if (e.value > 75) return faBatteryFull;
           if (e.value > 50) return faBatteryHalf;
           if (e.value > 25) return faBatteryQuarter;
@@ -607,7 +636,7 @@ export const registry: CapabilityUIRegistry = {
           if (e.value > 25) return '#f39c12';
           return '#e74c3c';
         },
-        iconHighlighted: cap.isCharging.value,
+        iconHighlighted: cap.isCharging.value ?? false,
       }),
       createCapability(cap.isCableConnected, {
         icon: faPlug,

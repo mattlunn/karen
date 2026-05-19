@@ -4,9 +4,10 @@ import { QueryClient } from '@tanstack/react-query';
 import type {
   CapabilityApiResponse,
   RestDeviceResponse,
-  NumericEventApiResponse,
+  NumericStateApiResponse,
+  BooleanStateApiResponse,
+  EnumStateApiResponse,
   BooleanEventApiResponse,
-  EnumEventApiResponse,
 } from '../../api/types';
 import type { DateRangePreset } from '../date-range/types';
 
@@ -51,9 +52,27 @@ export type CapabilityMetric = CapabilityMetricBase & (
 );
 
 /**
- * An event-shaped capability value (anything carrying `start` / `lastReported`).
+ * Anything carrying `start` / `lastReported` that can back a metric.
+ *
+ * - `*StateApiResponse` types are live-state envelopes whose `value` may be
+ *   `null` when no observation has happened yet.
+ * - `BooleanEventApiResponse` is a real momentary event (used by BUTTON), passed
+ *   as an `E | null` field where `null` means "never happened".
  */
-export type CapabilityEvent = NumericEventApiResponse | BooleanEventApiResponse | EnumEventApiResponse;
+export type CapabilityEvent =
+  | NumericStateApiResponse
+  | BooleanStateApiResponse
+  | EnumStateApiResponse
+  | BooleanEventApiResponse;
+
+/**
+ * Narrows a capability event's `value` to its non-null form. Used to type the
+ * `value` / `iconColor` / `iconHighlighted` / `isIssue` callbacks, which
+ * `createCapability` only invokes when an observed value is present.
+ */
+export type WithObservedValue<E> = E extends { value: infer V }
+  ? Omit<E, 'value'> & { value: NonNullable<V> }
+  : E;
 
 /**
  * A config value that is either static, or a function resolved against the
@@ -66,14 +85,20 @@ export type EventResolved<E extends CapabilityEvent | null, T> = T | ((event: E)
  * or a function of the backing event. `since` / `lastReported` are derived from
  * the event automatically unless given explicitly (or `footer` is used instead,
  * for metrics with no backing event).
+ *
+ * Most callbacks receive the event with its `value` narrowed to non-null —
+ * `createCapability` short-circuits state envelopes whose `value` is `null` to
+ * a uniform "Unknown" rendering, so per-capability callbacks never have to
+ * branch on absence. The `icon` callback is the exception: each capability
+ * picks its own neutral fallback icon for the unobserved state.
  */
 export type CreateCapabilityConfig<E extends CapabilityEvent | null> = {
   icon: EventResolved<E, IconDefinition>;
   title: string;
-  value: EventResolved<E, ReactNode>;
-  iconColor?: EventResolved<E, string | undefined>;
-  iconHighlighted?: EventResolved<E, boolean | undefined>;
-  isIssue?: EventResolved<E, boolean | undefined>;
+  value: EventResolved<WithObservedValue<E>, ReactNode>;
+  iconColor?: EventResolved<WithObservedValue<E>, string | undefined>;
+  iconHighlighted?: EventResolved<WithObservedValue<E>, boolean | undefined>;
+  isIssue?: EventResolved<WithObservedValue<E>, boolean | undefined>;
   onIconClick?: (ctx: IconClickContext) => void | Promise<void>;
   since?: string;
   lastReported?: string;

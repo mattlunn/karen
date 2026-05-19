@@ -12,7 +12,7 @@ interface ThermostatModalProps {
 }
 
 export default function ThermostatModal({ device, capability, closeModal }: ThermostatModalProps) {
-  const [targetTemperature, setTargetTemperature] = useState<number>(capability.targetTemperature.value);
+  const [targetTemperature, setTargetTemperature] = useState<number>(capability.targetTemperature.value ?? 18);
   const { mutate: updateThermostat, isPending } = useThermostatMutation(device.id);
 
   const handleSubmit = () => {
@@ -25,8 +25,8 @@ export default function ThermostatModal({ device, capability, closeModal }: Ther
     <>
       <Title order={3} mb="md">Set Temperature for {device.name}</Title>
 
-      <Text>Current Temperature: <strong>{capability.currentTemperature.value.toFixed(1)}°</strong></Text>
-      <Text mb="sm">Current Target: <strong>{capability.targetTemperature.value.toFixed(1)}°</strong></Text>
+      <Text>Current Temperature: <strong>{capability.currentTemperature.value === null ? 'Unknown' : `${capability.currentTemperature.value.toFixed(1)}°`}</strong></Text>
+      <Text mb="sm">Current Target: <strong>{capability.targetTemperature.value === null ? 'Unknown' : `${capability.targetTemperature.value.toFixed(1)}°`}</strong></Text>
 
       <Box my="xl">
         <Slider

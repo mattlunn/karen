@@ -34,9 +34,9 @@ function ThermostatTable() {
               </Anchor>
               {cap.isPassive.value && <Badge ml="xs" size="xs" variant="outline" color="gray">Passive</Badge>}
             </Table.Td>
-            <Table.Td>{cap.targetTemperature.value}°</Table.Td>
-            <Table.Td>{cap.currentTemperature.value}°</Table.Td>
-            <Table.Td>{cap.power.value}%</Table.Td>
+            <Table.Td>{cap.targetTemperature.value === null ? '—' : `${cap.targetTemperature.value}°`}</Table.Td>
+            <Table.Td>{cap.currentTemperature.value === null ? '—' : `${cap.currentTemperature.value}°`}</Table.Td>
+            <Table.Td>{cap.power.value === null ? '—' : `${cap.power.value}%`}</Table.Td>
           </Table.Tr>
         ))}
       </Table.Tbody>

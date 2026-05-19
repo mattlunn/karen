@@ -24,7 +24,7 @@ export default function Home() {
   const cameras: Camera[] = forDeviceCapability(data.devices, 'CAMERA', (device, capability) => ({
     id: device.id,
     name: device.name,
-    snapshotUrl: capability.snapshotUrl.value,
+    snapshotUrl: capability.snapshotUrl.value ?? '',
   }));
 
   return (

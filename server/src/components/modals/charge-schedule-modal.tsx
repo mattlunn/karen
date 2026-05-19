@@ -33,8 +33,8 @@ export default function ChargeScheduleModal({ device, capability, closeModal }: 
     <>
       <Title order={3} mb="md">Schedule Charge for {device.name}</Title>
 
-      <Text>Current Charge: <strong>{capability.chargePercentage.value.toFixed(0)}%</strong></Text>
-      <Text mb="sm">Current Limit: <strong>{capability.chargeLimit.value.toFixed(0)}%</strong></Text>
+      <Text>Current Charge: <strong>{capability.chargePercentage.value === null ? 'Unknown' : `${capability.chargePercentage.value.toFixed(0)}%`}</strong></Text>
+      <Text mb="sm">Current Limit: <strong>{capability.chargeLimit.value === null ? 'Unknown' : `${capability.chargeLimit.value.toFixed(0)}%`}</strong></Text>
 
       <Box my="xl">
         <Text size="sm" fw={500} mb="xs">Target Charge Percentage</Text>
