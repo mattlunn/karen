@@ -11,14 +11,11 @@ export interface SonySource {
   kind: 'input' | 'channel';
 }
 
-const TIMEOUT_MS_DEFAULT = 3000;
-const POLL_INTERVAL_S_DEFAULT = 15;
-
 function clientFor(device: Device): BraviaClient {
   return new BraviaClient(
     device.meta.host as string,
     device.meta.psk as string,
-    config.sony_bravia.connect_timeout_milliseconds ?? TIMEOUT_MS_DEFAULT
+    config.sony_bravia.connect_timeout_milliseconds
   );
 }
 
@@ -66,9 +63,7 @@ Device.registerProvider('sony-bravia', {
   },
 
   async synchronize() {
-    const configured = config.sony_bravia?.devices ?? [];
-
-    for (const entry of configured) {
+    for (const entry of config.sony_bravia.devices) {
       let device = await Device.findByProviderId('sony-bravia', entry.host);
 
       if (device === null) {
@@ -76,6 +71,7 @@ Device.registerProvider('sony-bravia', {
           provider: 'sony-bravia',
           providerId: entry.host,
           name: entry.name,
+          model: 'Bravia',
         });
       }
 
@@ -90,16 +86,13 @@ Device.registerProvider('sony-bravia', {
 
       device.manufacturer = 'Sony';
 
+      // Model is cosmetic enrichment; a TV that's unreachable at startup
+      // must not block the config -> DB upsert.
       try {
-        const info = await new BraviaClient(
-          entry.host,
-          entry.psk,
-          config.sony_bravia.connect_timeout_milliseconds ?? TIMEOUT_MS_DEFAULT
-        ).getSystemInformation();
+        const info = await clientFor(device).getSystemInformation();
         device.model = info.model || 'Bravia';
       } catch (err) {
-        logger.warn({ err }, `Could not read system info from Bravia ${entry.host}; using fallback model`);
-        device.model = device.model || 'Bravia';
+        logger.warn({ err }, `Could not read system info from Bravia ${entry.host}`);
       }
 
       await device.save();
@@ -155,4 +148,4 @@ nowAndSetInterval(createBackgroundTransaction('sony-bravia:poll', async () => {
     const isConnected = await pollDevice(device);
     await device.getConnectivityCapability().setIsConnectedState(isConnected);
   }));
-}), Math.max(config.sony_bravia?.poll_interval_seconds ?? POLL_INTERVAL_S_DEFAULT, 5) * 1000);
+}), Math.max(config.sony_bravia.poll_interval_seconds, 5) * 1000);

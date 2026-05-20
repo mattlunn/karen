@@ -5,6 +5,12 @@ export interface VolumeInformation {
   mute: boolean;
 }
 
+interface SonyVolumeTarget {
+  target: string;
+  volume: number;
+  mute: boolean;
+}
+
 export interface PlayingContentInfo {
   uri: string;
   title?: string;
@@ -81,16 +87,8 @@ export default class BraviaClient {
   }
 
   async getVolumeInformation(): Promise<VolumeInformation> {
-    const result = await this.#call<Array<{ target: string; volume: number; mute: boolean }>>(
-      '/sony/audio',
-      'getVolumeInformation'
-    );
-
+    const result = await this.#call<SonyVolumeTarget[]>('/sony/audio', 'getVolumeInformation');
     const speaker = result.find(t => t.target === 'speaker') ?? result[0];
-
-    if (!speaker) {
-      throw new Error('Bravia getVolumeInformation: no targets returned');
-    }
 
     return { volume: speaker.volume, mute: speaker.mute };
   }

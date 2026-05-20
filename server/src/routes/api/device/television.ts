@@ -30,13 +30,7 @@ router.put<Record<string, never>, DeviceApiResponse | ApiErrorResponse, Televisi
   }
 
   if (body.source !== undefined) {
-    try {
-      await tv.setCurrentSource(body.source);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      res.status(400).json({ error: message });
-      return;
-    }
+    await tv.setCurrentSource(body.source);
   }
 
   res.json({ device: await mapDeviceToResponse(device) });
