@@ -8,7 +8,7 @@ import sleep from '../../helpers/sleep';
 
 const deviceCapabilitiesMap = new Map<string, Capability[]>([
   ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
-  ['Fibargroup FGD212', ['LIGHT', 'CONNECTIVITY']],
+  ['Fibargroup FGD212', ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY']],
   ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
   ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
   ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']]
@@ -97,6 +97,14 @@ deviceHandlers.set('Fibargroup FGD212', [
         device.getLightCapability().setBrightnessState(value),
         device.getLightCapability().setIsOnState(value !== 0)
       ]);
+    }
+  },
+  {
+    // The Fibaro Dimmer 2 reports live power (W) via Multilevel Sensor CC,
+    // not via the Meter CC (which carries the cumulative kWh reading).
+    propertyKey: 'Multilevel Sensor.Power',
+    propertyMapper(device: Device, value: number) {
+      return device.getEnergyMonitorCapability().setCurrentPowerState(value);
     }
   }
 ]);

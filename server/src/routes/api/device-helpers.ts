@@ -261,6 +261,25 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
+    case 'ENERGY_MONITOR': {
+      const energyMonitor = device.getEnergyMonitorCapability();
+      return awaitPromises({
+        type: 'ENERGY_MONITOR' as const,
+        currentPower: mapNumericEvent(energyMonitor.getCurrentPowerEvent()),
+        dayEnergy: mapNumericEvent(energyMonitor.getDayEnergyEvent()),
+        dayCost: mapNumericEvent(energyMonitor.getDayCostEvent())
+      });
+    }
+
+    case 'ENERGY_COST': {
+      const energyCost = device.getEnergyCostCapability();
+      return awaitPromises({
+        type: 'ENERGY_COST' as const,
+        unitRate: mapNumericEvent(energyCost.getUnitRateEvent()),
+        standingCharge: mapNumericEvent(energyCost.getStandingChargeEvent())
+      });
+    }
+
     default:
       return { type: null };
   }

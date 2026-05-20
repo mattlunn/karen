@@ -36,6 +36,7 @@ import {
   faHashtag,
   faBell,
   faSignal,
+  faSterlingSign,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
@@ -44,7 +45,13 @@ import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import ChargeLimitModal from '../modals/charge-limit-modal';
 import dayjs from '../../dayjs';
 import { humanDate, formatDuration } from '../../helpers/date';
-import type { MetricDisplayVariant, CapabilityUIRegistry, CapabilityMetric } from './types';
+import type {
+  MetricDisplayVariant,
+  CapabilityUIRegistry,
+  CapabilityMetric,
+  CapabilityEvent,
+  CreateCapabilityConfig,
+} from './types';
 
 // ============================================================================
 // Mutation Functions
@@ -133,6 +140,45 @@ function BrightnessControl({ device, capability }: { device: RestDeviceResponse;
 }
 
 // ============================================================================
+// createCapability helper
+// ============================================================================
+
+function resolve<E, T>(value: T | ((event: E) => T), event: E): T {
+  return typeof value === 'function' ? (value as (event: E) => T)(event) : value;
+}
+
+/**
+ * Builds a `CapabilityMetric` from a backing event and a config whose display
+ * props may be plain values or functions of that event. `since` / `lastReported`
+ * are taken from the event automatically; pass `null` as the event (with an
+ * explicit `since` / `lastReported` or `footer`) for metrics with no event.
+ */
+function createCapability<E extends CapabilityEvent | null>(
+  event: E,
+  config: CreateCapabilityConfig<E>
+): CapabilityMetric {
+  const base = {
+    icon: resolve(config.icon, event),
+    title: config.title,
+    value: resolve(config.value, event),
+    iconColor: config.iconColor === undefined ? undefined : resolve(config.iconColor, event),
+    iconHighlighted: config.iconHighlighted === undefined ? undefined : resolve(config.iconHighlighted, event),
+    isIssue: config.isIssue === undefined ? undefined : resolve(config.isIssue, event),
+    onIconClick: config.onIconClick,
+  };
+
+  if (config.since !== undefined && config.lastReported !== undefined) {
+    return { ...base, since: config.since, lastReported: config.lastReported };
+  }
+
+  if (event !== null) {
+    return { ...base, since: event.start, lastReported: event.lastReported };
+  }
+
+  return { ...base, footer: config.footer };
+}
+
+// ============================================================================
 // Registry
 // ============================================================================
 
@@ -140,26 +186,22 @@ export const registry: CapabilityUIRegistry = {
   LIGHT: {
     priority: 30,
     getCapabilityMetrics: (cap, device) => [
-      {
+      createCapability(cap.isOn, {
         icon: faLightbulb,
         title: 'Status',
-        value: cap.isOn.value ? 'On' : 'Off',
-        since: cap.isOn.start,
-        lastReported: cap.isOn.lastReported,
+        value: (e) => e.value ? 'On' : 'Off',
         iconColor: '#ffa24d',
-        iconHighlighted: cap.isOn.value,
+        iconHighlighted: (e) => e.value,
         onIconClick: async ({ queryClient }) => {
           const data = await updateLight(device.id, { isOn: !cap.isOn.value });
           updateDeviceCache(queryClient, device.id, data);
         },
-      },
-      {
+      }),
+      createCapability(cap.brightness, {
         icon: faCircleHalfStroke,
         title: 'Brightness',
         value: <BrightnessControl device={device} capability={cap} />,
-        since: cap.brightness.start,
-        lastReported: cap.brightness.lastReported,
-      },
+      }),
     ],
     getGraphs: () => [
       { id: 'light', title: 'Activity' },
@@ -169,12 +211,10 @@ export const registry: CapabilityUIRegistry = {
   THERMOSTAT: {
     priority: 20,
     getCapabilityMetrics: (cap, device) => [
-      {
+      createCapability(cap.currentTemperature, {
         icon: faThermometerFull,
         title: 'Current Temperature',
-        value: `${cap.currentTemperature.value.toFixed(1)}°C`,
-        since: cap.currentTemperature.start,
-        lastReported: cap.currentTemperature.lastReported,
+        value: (e) => `${e.value.toFixed(1)}°C`,
         iconColor: '#ff6f22',
         iconHighlighted: cap.isHeating.value,
         onIconClick: ({ openModal, closeModal }) => {
@@ -182,31 +222,25 @@ export const registry: CapabilityUIRegistry = {
             <ThermostatModal device={device} capability={cap} closeModal={closeModal} />
           );
         },
-      },
-      {
+      }),
+      createCapability(cap.targetTemperature, {
         icon: faThermometerQuarter,
         title: 'Target Temperature',
-        value: `${cap.targetTemperature.value.toFixed(1)}°C`,
-        since: cap.targetTemperature.start,
-        lastReported: cap.targetTemperature.lastReported,
+        value: (e) => `${e.value.toFixed(1)}°C`,
         iconColor: '#ff6f22',
-      },
-      {
+      }),
+      createCapability(cap.power, {
         icon: faFire,
         title: 'Power',
-        value: `${cap.power.value}%`,
-        since: cap.power.start,
-        lastReported: cap.power.lastReported,
+        value: (e) => `${e.value}%`,
         iconColor: '#ff6f22',
-      },
-      {
+      }),
+      createCapability(cap.isPassive, {
         icon: faSnowflake,
         title: 'Passive',
-        value: cap.isPassive.value ? 'Yes' : 'No',
-        since: cap.isPassive.start,
-        lastReported: cap.isPassive.lastReported,
+        value: (e) => e.value ? 'Yes' : 'No',
         iconColor: '#aaaaaa',
-      },
+      }),
     ],
     getGraphs: () => [
       {
@@ -223,119 +257,95 @@ export const registry: CapabilityUIRegistry = {
   LOCK: {
     priority: 35,
     getCapabilityMetrics: (cap, device) => [
-      {
-        icon: cap.isLocked.value ? faDoorClosed : faDoorOpen,
+      createCapability(cap.isLocked, {
+        icon: (e) => e.value ? faDoorClosed : faDoorOpen,
         title: 'Lock',
-        value: cap.isLocked.value ? 'Locked' : 'Unlocked',
-        since: cap.isLocked.start,
-        lastReported: cap.isLocked.lastReported,
+        value: (e) => e.value ? 'Locked' : 'Unlocked',
         iconColor: '#04A7F4',
-        iconHighlighted: !cap.isLocked.value,
+        iconHighlighted: (e) => !e.value,
         onIconClick: async ({ queryClient }) => {
           const data = await updateLock(device.id, { isLocked: !cap.isLocked.value });
           updateDeviceCache(queryClient, device.id, data);
         },
-      },
+      }),
     ],
   },
 
   CAMERA: {
     priority: 10,
     getCapabilityMetrics: (cap) => [
-      {
+      createCapability(cap.snapshotUrl, {
         icon: faVideo,
         title: 'Camera',
         value: 'Active',
-        since: cap.snapshotUrl.start,
-        lastReported: cap.snapshotUrl.lastReported,
         iconColor: '#04A7F4',
-      },
+      }),
     ],
   },
 
   SWITCH: {
     priority: 40,
     getCapabilityMetrics: (cap) => [
-      {
-        icon: cap.isOn.value ? faToggleOn : faToggleOff,
+      createCapability(cap.isOn, {
+        icon: (e) => e.value ? faToggleOn : faToggleOff,
         title: 'Switch',
-        value: cap.isOn.value ? 'On' : 'Off',
-        since: cap.isOn.start,
-        lastReported: cap.isOn.lastReported,
+        value: (e) => e.value ? 'On' : 'Off',
         iconColor: '#04A7F4',
-        iconHighlighted: cap.isOn.value,
-      },
+        iconHighlighted: (e) => e.value,
+      }),
     ],
   },
 
   HEAT_PUMP: {
     priority: 25,
     getCapabilityMetrics: (cap) => [
-      {
+      createCapability(cap.mode, {
         icon: faFire,
         title: 'Mode',
-        value: `${cap.mode.value[0]}${cap.mode.value.slice(1).toLowerCase()}`,
-        since: cap.mode.start,
-        lastReported: cap.mode.lastReported,
+        value: (e) => `${e.value[0]}${e.value.slice(1).toLowerCase()}`,
         iconColor: '#04A7F4',
-        iconHighlighted: cap.mode.value !== 'STANDBY',
-      },
-      {
+        iconHighlighted: (e) => e.value !== 'STANDBY',
+      }),
+      createCapability(cap.dayCoP, {
         icon: faLeaf,
         title: "Today's CoP",
-        value: cap.dayCoP.value.toFixed(1),
-        since: cap.dayCoP.start,
-        lastReported: cap.dayCoP.lastReported,
-      },
-      {
+        value: (e) => e.value.toFixed(1),
+      }),
+      createCapability(cap.dayPower, {
         icon: faBolt,
         title: "Today's Power",
-        value: `${cap.dayPower.value.toFixed(1)} kWh`,
-        since: cap.dayPower.start,
-        lastReported: cap.dayPower.lastReported,
-      },
-      {
+        value: (e) => `${e.value.toFixed(1)} kWh`,
+      }),
+      createCapability(cap.dayYield, {
         icon: faFire,
         title: "Today's Yield",
-        value: `${cap.dayYield.value.toFixed(1)} kWh`,
-        since: cap.dayYield.start,
-        lastReported: cap.dayYield.lastReported,
-      },
-      {
+        value: (e) => `${e.value.toFixed(1)} kWh`,
+      }),
+      createCapability(cap.outsideTemperature, {
         icon: faTree,
         title: 'Outside Temperature',
-        value: `${cap.outsideTemperature.value.toFixed(1)}°C`,
-        since: cap.outsideTemperature.start,
-        lastReported: cap.outsideTemperature.lastReported,
-      },
-      {
+        value: (e) => `${e.value.toFixed(1)}°C`,
+      }),
+      createCapability(cap.dhwTemperature, {
         icon: faFaucetDrip,
         title: 'Hot Water Temperature',
-        value: `${cap.dhwTemperature.value.toFixed(1)}°C`,
-        since: cap.dhwTemperature.start,
-        lastReported: cap.dhwTemperature.lastReported,
-      },
-      {
+        value: (e) => `${e.value.toFixed(1)}°C`,
+      }),
+      createCapability(cap.actualFlowTemperature, {
         icon: faThermometer4,
         title: 'Flow Temperature',
-        value: `${cap.actualFlowTemperature.value.toFixed(1)}°C`,
-        since: cap.actualFlowTemperature.start,
-        lastReported: cap.actualFlowTemperature.lastReported,
-      },
-      {
+        value: (e) => `${e.value.toFixed(1)}°C`,
+      }),
+      createCapability(cap.returnTemperature, {
         icon: faThermometer2,
         title: 'Return Temperature',
-        value: `${cap.returnTemperature.value.toFixed(1)}°C`,
-        since: cap.returnTemperature.start,
-        lastReported: cap.returnTemperature.lastReported,
-      },
-      {
+        value: (e) => `${e.value.toFixed(1)}°C`,
+      }),
+      createCapability(cap.systemPressure, {
         icon: faGauge,
         title: 'System Pressure',
-        value: `${cap.systemPressure.value.toFixed(1)} bar`,
-        since: cap.systemPressure.start,
-        lastReported: cap.systemPressure.lastReported,
-      },
+        value: (e) => `${e.value.toFixed(1)} bar`,
+      }),
     ],
     getGraphs: () => [
       { id: 'heatpump-power', title: 'Power' },
@@ -394,120 +404,97 @@ export const registry: CapabilityUIRegistry = {
   HUMIDITY_SENSOR: {
     priority: 60,
     getCapabilityMetrics: (cap) => [
-      {
+      createCapability(cap.humidity, {
         icon: faDroplet,
         title: 'Humidity',
-        value: `${cap.humidity.value}%`,
-        since: cap.humidity.start,
-        lastReported: cap.humidity.lastReported,
+        value: (e) => `${e.value}%`,
         iconColor: '#04A7F4',
-      },
+      }),
     ],
   },
 
   TEMPERATURE_SENSOR: {
     priority: 65,
-    getCapabilityMetrics: (cap) => {
-      if (!cap.currentTemperature) return [];
-      return [
-        {
-          icon: faThermometerQuarter,
-          title: 'Current Temperature',
-          value: `${cap.currentTemperature.value.toFixed(1)}°C`,
-          since: cap.currentTemperature.start,
-          lastReported: cap.currentTemperature.lastReported,
-          iconColor: '#ff6f22',
-        },
-      ];
-    },
+    getCapabilityMetrics: (cap) => [
+      createCapability(cap.currentTemperature, {
+        icon: faThermometerQuarter,
+        title: 'Current Temperature',
+        value: (e) => `${e.value.toFixed(1)}°C`,
+        iconColor: '#ff6f22',
+      }),
+    ],
   },
 
   MOTION_SENSOR: {
     priority: 50,
     getCapabilityMetrics: (cap) => [
-      {
+      createCapability(cap.hasMotion, {
         icon: faPersonWalking,
         title: 'Motion',
-        value: cap.hasMotion.value ? 'Motion detected' : 'No motion',
-        since: cap.hasMotion.start,
-        lastReported: cap.hasMotion.lastReported,
-        iconHighlighted: cap.hasMotion.value,
+        value: (e) => e.value ? 'Motion detected' : 'No motion',
+        iconHighlighted: (e) => e.value,
         iconColor: '#04A7F4',
-      },
+      }),
     ],
   },
 
   LIGHT_SENSOR: {
     priority: 70,
     getCapabilityMetrics: (cap) => [
-      {
+      createCapability(cap.illuminance, {
         icon: faLightbulb,
         title: 'Illuminance',
-        value: `${cap.illuminance.value} lx`,
-        since: cap.illuminance.start,
-        lastReported: cap.illuminance.lastReported,
-      },
+        value: (e) => `${e.value} lx`,
+      }),
     ],
   },
 
   SPEAKER: {
     priority: 80,
     getCapabilityMetrics: () => [
-      {
+      createCapability(null, {
         icon: faVolumeHigh,
         title: 'Speaker',
         value: 'Connected',
         since: new Date().toISOString(),
         lastReported: new Date().toISOString(),
-      },
+      }),
     ],
   },
 
   BATTERY_LEVEL_INDICATOR: {
     priority: 90,
-    getCapabilityMetrics: (cap) => {
-      const percentage = cap.batteryPercentage.value;
-      const getBatteryIcon = () => {
-        if (percentage > 75) return faBatteryFull;
-        if (percentage > 50) return faBatteryHalf;
-        if (percentage > 25) return faBatteryQuarter;
-        return faBatteryEmpty;
-      };
-      const getBatteryColor = () => {
-        if (percentage > 50) return '#2ecc71';
-        if (percentage > 25) return '#f39c12';
-        return '#e74c3c';
-      };
-      return [
-        {
-          icon: getBatteryIcon(),
-          title: 'Battery',
-          value: `${percentage}%`,
-          since: cap.batteryPercentage.start,
-          lastReported: cap.batteryPercentage.lastReported,
-          iconColor: getBatteryColor(),
-          isIssue: percentage <= 25,
+    getCapabilityMetrics: (cap) => [
+      createCapability(cap.batteryPercentage, {
+        icon: (e) => {
+          if (e.value > 75) return faBatteryFull;
+          if (e.value > 50) return faBatteryHalf;
+          if (e.value > 25) return faBatteryQuarter;
+          return faBatteryEmpty;
         },
-      ];
-    },
+        title: 'Battery',
+        value: (e) => `${e.value}%`,
+        iconColor: (e) => {
+          if (e.value > 50) return '#2ecc71';
+          if (e.value > 25) return '#f39c12';
+          return '#e74c3c';
+        },
+        isIssue: (e) => e.value <= 25,
+      }),
+    ],
   },
 
   BATTERY_LOW_INDICATOR: {
     priority: 91,
-    getCapabilityMetrics: (cap) => {
-      const isLow = cap.isLow.value;
-      return [
-        {
-          icon: isLow ? faBatteryEmpty : faBatteryFull,
-          title: 'Battery',
-          value: isLow ? 'LOW' : 'OK',
-          since: cap.isLow.start,
-          lastReported: cap.isLow.lastReported,
-          iconColor: isLow ? '#e74c3c' : '#2ecc71',
-          isIssue: isLow,
-        },
-      ];
-    },
+    getCapabilityMetrics: (cap) => [
+      createCapability(cap.isLow, {
+        icon: (e) => e.value ? faBatteryEmpty : faBatteryFull,
+        title: 'Battery',
+        value: (e) => e.value ? 'LOW' : 'OK',
+        iconColor: (e) => e.value ? '#e74c3c' : '#2ecc71',
+        isIssue: (e) => e.value,
+      }),
+    ],
   },
 
   BIN_COLLECTION: {
@@ -523,65 +510,57 @@ export const registry: CapabilityUIRegistry = {
         footer = `Rescheduled from ${dayjs(originalDate).format('ddd D MMM')}`;
       }
 
-      return [{
-        icon: faTrash,
-        title: 'Next Collection',
-        value: next.format('ddd D MMM'),
-        footer,
-        iconColor: cap.color,
-      }];
+      return [
+        createCapability(null, {
+          icon: faTrash,
+          title: 'Next Collection',
+          value: next.format('ddd D MMM'),
+          footer,
+          iconColor: cap.color,
+        }),
+      ];
     },
   },
 
   BUTTON: {
     priority: 85,
     getCapabilityMetrics: (cap) => [
-      cap.lastPressed
-        ? {
-            icon: faHandPointer,
-            title: 'Last Pressed',
-            value: `${humanDate(dayjs(cap.lastPressed.start))} at ${dayjs(cap.lastPressed.start).format('HH:mm')}`,
-            since: cap.lastPressed.start,
-            lastReported: cap.lastPressed.lastReported,
-            iconColor: '#04A7F4',
-          }
-        : {
-            icon: faHandPointer,
-            title: 'Last Pressed',
-            value: 'Never',
-            iconColor: '#04A7F4',
-          },
-      {
+      createCapability(cap.lastPressed, {
+        icon: faHandPointer,
+        title: 'Last Pressed',
+        value: (e) => e
+          ? `${humanDate(dayjs(e.start))} at ${dayjs(e.start).format('HH:mm')}`
+          : 'Never',
+        iconColor: '#04A7F4',
+      }),
+      createCapability(null, {
         icon: faCalendarDay,
         title: "Today's Presses",
         value: cap.pressesToday.toString(),
         iconColor: '#04A7F4',
         iconHighlighted: cap.pressesToday > 0,
-      },
-      {
+      }),
+      createCapability(null, {
         icon: faHashtag,
         title: 'Total Presses',
         value: cap.totalPresses.toString(),
         iconColor: '#04A7F4',
-      },
+      }),
     ],
   },
 
   CONTACT_SENSOR: {
     priority: 55,
     getCapabilityMetrics: (cap) => {
-      const isClosed = cap.isClosed.value;
       const metrics: CapabilityMetric[] = [
-        {
+        createCapability(cap.isClosed, {
           icon: faBell,
           title: 'Status',
-          value: isClosed ? 'TRIGGERED' : 'OK',
-          since: cap.isClosed.start,
-          lastReported: cap.isClosed.lastReported,
-          iconColor: isClosed ? '#e74c3c' : '#2ecc71',
-          iconHighlighted: isClosed,
-          isIssue: isClosed,
-        },
+          value: (e) => e.value ? 'TRIGGERED' : 'OK',
+          iconColor: (e) => e.value ? '#e74c3c' : '#2ecc71',
+          iconHighlighted: (e) => e.value,
+          isIssue: (e) => e.value,
+        }),
       ];
 
       if (cap.lastTriggered) {
@@ -590,13 +569,13 @@ export const registry: CapabilityUIRegistry = {
           ? 'Still active'
           : `Triggered for ${formatDuration(cap.lastTriggered.durationSeconds)}`;
 
-        metrics.push({
+        metrics.push(createCapability(null, {
           icon: faBell,
           title: 'Last Triggered',
           value: `${humanDate(start)} at ${start.format('HH:mm')}`,
           iconColor: '#04A7F4',
           footer,
-        });
+        }));
       }
 
       return metrics;
@@ -608,85 +587,69 @@ export const registry: CapabilityUIRegistry = {
 
   ELECTRIC_VEHICLE: {
     priority: 15,
-    getCapabilityMetrics: (cap, device) => {
-      const percentage = cap.chargePercentage.value;
-      const getBatteryIcon = () => {
-        if (percentage > 75) return faBatteryFull;
-        if (percentage > 50) return faBatteryHalf;
-        if (percentage > 25) return faBatteryQuarter;
-        return faBatteryEmpty;
-      };
-      const getBatteryColor = () => {
-        if (percentage > 50) return '#2ecc71';
-        if (percentage > 25) return '#f39c12';
-        return '#e74c3c';
-      };
-
-      return [
-        {
-          icon: faRoad,
-          title: 'Mileage',
-          value: `${Math.round(cap.odometer.value).toLocaleString()} mi`,
-          since: cap.odometer.start,
-          lastReported: cap.odometer.lastReported,
+    getCapabilityMetrics: (cap, device) => [
+      createCapability(cap.odometer, {
+        icon: faRoad,
+        title: 'Mileage',
+        value: (e) => `${Math.round(e.value).toLocaleString()} mi`,
+      }),
+      createCapability(cap.chargePercentage, {
+        icon: (e) => {
+          if (e.value > 75) return faBatteryFull;
+          if (e.value > 50) return faBatteryHalf;
+          if (e.value > 25) return faBatteryQuarter;
+          return faBatteryEmpty;
         },
-        {
-          icon: getBatteryIcon(),
-          title: 'Battery',
-          value: `${percentage.toFixed(0)}%`,
-          since: cap.chargePercentage.start,
-          lastReported: cap.chargePercentage.lastReported,
-          iconColor: getBatteryColor(),
-          iconHighlighted: cap.isCharging.value,
+        title: 'Battery',
+        value: (e) => `${e.value.toFixed(0)}%`,
+        iconColor: (e) => {
+          if (e.value > 50) return '#2ecc71';
+          if (e.value > 25) return '#f39c12';
+          return '#e74c3c';
         },
-        {
-          icon: faPlug,
-          title: 'Cable',
-          value: cap.isCableConnected.value ? 'Connected' : 'Disconnected',
-          since: cap.isCableConnected.start,
-          lastReported: cap.isCableConnected.lastReported,
-          iconColor: '#04A7F4',
-          iconHighlighted: cap.isCableConnected.value,
+        iconHighlighted: cap.isCharging.value,
+      }),
+      createCapability(cap.isCableConnected, {
+        icon: faPlug,
+        title: 'Cable',
+        value: (e) => e.value ? 'Connected' : 'Disconnected',
+        iconColor: '#04A7F4',
+        iconHighlighted: (e) => e.value,
+      }),
+      createCapability(cap.isCharging, {
+        icon: faBolt,
+        title: 'Charging',
+        value: (e) => e.value ? 'Yes' : 'No',
+        iconColor: '#2ecc71',
+        iconHighlighted: (e) => e.value,
+      }),
+      createCapability(cap.chargeLimit, {
+        icon: faGauge,
+        title: 'Charge Limit',
+        value: (e) => `${e.value.toFixed(0)}%`,
+        onIconClick: ({ openModal, closeModal }) => {
+          openModal(<ChargeLimitModal device={device} capability={cap} closeModal={closeModal} />);
         },
-        {
-          icon: faBolt,
-          title: 'Charging',
-          value: cap.isCharging.value ? 'Yes' : 'No',
-          since: cap.isCharging.start,
-          lastReported: cap.isCharging.lastReported,
-          iconColor: '#2ecc71',
-          iconHighlighted: cap.isCharging.value,
+      }),
+      createCapability(null, {
+        icon: faCalendarCheck,
+        title: 'Schedule',
+        value: cap.chargeSchedule
+          ? `${cap.chargeSchedule.targetPercentage}% by ${dayjs(cap.chargeSchedule.targetTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.targetTime))}`
+          : 'No schedule',
+        footer: cap.chargeSchedule
+          ? cap.chargeSchedule.calculatedStartTime
+            ? `starts ${dayjs(cap.chargeSchedule.calculatedStartTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.calculatedStartTime))}`
+            : 'start TBC'
+          : undefined,
+        iconColor: cap.chargeSchedule ? '#3498db' : undefined,
+        onIconClick: ({ openModal, closeModal }) => {
+          openModal(
+            <ChargeScheduleModal device={device} capability={cap} closeModal={closeModal} />
+          );
         },
-        {
-          icon: faGauge,
-          title: 'Charge Limit',
-          value: `${cap.chargeLimit.value.toFixed(0)}%`,
-          since: cap.chargeLimit.start,
-          lastReported: cap.chargeLimit.lastReported,
-          onIconClick: ({ openModal, closeModal }) => {
-            openModal(<ChargeLimitModal device={device} capability={cap} closeModal={closeModal} />);
-          },
-        },
-        {
-          icon: faCalendarCheck,
-          title: 'Schedule',
-          value: cap.chargeSchedule
-            ? `${cap.chargeSchedule.targetPercentage}% by ${dayjs(cap.chargeSchedule.targetTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.targetTime))}`
-            : 'No schedule',
-          footer: cap.chargeSchedule
-            ? cap.chargeSchedule.calculatedStartTime
-              ? `starts ${dayjs(cap.chargeSchedule.calculatedStartTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.calculatedStartTime))}`
-              : 'start TBC'
-            : undefined,
-          iconColor: cap.chargeSchedule ? '#3498db' : undefined,
-          onIconClick: ({ openModal, closeModal }) => {
-            openModal(
-              <ChargeScheduleModal device={device} capability={cap} closeModal={closeModal} />
-            );
-          },
-        },
-      ];
-    },
+      }),
+    ],
     getGraphs: () => [
       {
         id: 'vehicle-charge',
@@ -710,16 +673,70 @@ export const registry: CapabilityUIRegistry = {
   CONNECTIVITY: {
     priority: 999,
     getCapabilityMetrics: (cap) => [
-      {
+      createCapability(cap.isConnected, {
         icon: faSignal,
         title: 'Connection',
-        value: cap.isConnected.value ? 'Online' : 'Offline',
-        since: cap.isConnected.start,
-        lastReported: cap.isConnected.lastReported,
-        iconColor: cap.isConnected.value ? '#2ecc71' : '#e74c3c',
-        iconHighlighted: !cap.isConnected.value,
-        isIssue: !cap.isConnected.value,
+        value: (e) => e.value ? 'Online' : 'Offline',
+        iconColor: (e) => e.value ? '#2ecc71' : '#e74c3c',
+        iconHighlighted: (e) => !e.value,
+        isIssue: (e) => !e.value,
+      }),
+    ],
+  },
+
+  ENERGY_MONITOR: {
+    priority: 28,
+    getCapabilityMetrics: (cap) => [
+      createCapability(cap.currentPower, {
+        icon: faBolt,
+        title: 'Current Power',
+        value: (e) => `${Math.round(e.value).toLocaleString()} W`,
+        iconColor: '#f1c40f',
+        iconHighlighted: (e) => e.value > 0,
+      }),
+      createCapability(cap.dayEnergy, {
+        icon: faPlug,
+        title: "Today's Energy",
+        value: (e) => `${e.value.toFixed(2)} kWh`,
+      }),
+      createCapability(cap.dayCost, {
+        icon: faSterlingSign,
+        title: "Today's Cost",
+        value: (e) => `£${(e.value / 100).toFixed(2)}`,
+      }),
+    ],
+    getGraphs: () => [
+      { id: 'energy-power', title: 'Power', yMin: 0 },
+      {
+        id: 'energy-daily',
+        title: 'Daily Energy & Cost',
+        overridePreset: 'custom',
+        overrideStart: dayjs().subtract(1, 'month').startOf('day').toISOString(),
+        overrideEnd: dayjs().toISOString(),
+        yAxis: {
+          yEnergy: { position: 'left', min: 0 },
+          yCost: { position: 'right', min: 0 },
+        },
       },
+    ],
+  },
+
+  ENERGY_COST: {
+    priority: 29,
+    getCapabilityMetrics: (cap) => [
+      createCapability(cap.unitRate, {
+        icon: faSterlingSign,
+        title: 'Unit Rate',
+        value: (e) => `${e.value.toFixed(2)}p/kWh`,
+      }),
+      createCapability(cap.standingCharge, {
+        icon: faSterlingSign,
+        title: 'Standing Charge',
+        value: (e) => `${e.value.toFixed(2)}p/day`,
+      }),
+    ],
+    getGraphs: () => [
+      { id: 'energy-unit-rate', title: 'Unit Rate (p/kWh)', yMin: 0 },
     ],
   },
 };

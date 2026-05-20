@@ -12,6 +12,7 @@ const navLinks = [
 
 const insightsLinks = [
   { label: 'Heating', to: '/insights/heating' },
+  { label: 'Energy', to: '/insights/energy' },
   { label: 'Bins', to: '/insights/bins' },
 ];
 
