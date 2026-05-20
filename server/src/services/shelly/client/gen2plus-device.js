@@ -33,13 +33,14 @@ export default class Gen2PlusDeviceClient {
     return Promise.resolve();
   }
 
-  async enableMqtt({ url, user, password }) {
+  async enableMqtt({ url, user, password, id }) {
     const config = {
       enable: true,
       server: url,
       user,
       pass: password,
-      topic_prefix: 'shellies'
+      topic_prefix: `shellies/${id}`,
+      status_ntf: true
     };
 
     return await this._request(`/rpc/Mqtt.SetConfig?config=${encodeURIComponent(JSON.stringify(config))}`);
