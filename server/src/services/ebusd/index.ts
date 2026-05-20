@@ -76,7 +76,8 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
 
     updateState(() => client.getCurrentPower(), (v) => Promise.all([
       heatPumpCapability.setCurrentPowerState(roundTo1DecimalPlace(v)),
-      energyMonitorCapability.setCurrentPowerState(roundTo1DecimalPlace(v))
+      // ebusd reports power in kW; the energy monitor works in W, like every other device.
+      energyMonitorCapability.setCurrentPowerState(v * 1000)
     ])),
     updateState(() => client.getCurrentYield(), (v) => heatPumpCapability.setCurrentYieldState(roundTo1DecimalPlace(v))),
     updateState(() => client.getMode(), (raw) => {
