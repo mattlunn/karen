@@ -45,6 +45,7 @@ router.get('/install', async (req, res) => {
   await client.setupAuthentication();
 
   await client.enableMqtt({
+    id: mqttId,
     url: config.shelly.mqtt.url,
     user: config.shelly.mqtt.user,
     password: config.shelly.mqtt.password,
