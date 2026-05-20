@@ -11,12 +11,6 @@ interface SonyVolumeTarget {
   mute: boolean;
 }
 
-export interface PlayingContentInfo {
-  uri: string;
-  title?: string;
-  source?: string;
-}
-
 export interface SystemInformation {
   model: string;
   name?: string;
@@ -29,6 +23,25 @@ interface SonyEnvelope<T> {
   error?: [number, string];
   id: number;
 }
+
+const IRCC_CODES: Record<string, string> = {
+  Num0: 'AAAAAQAAAAEAAAAJAw==',
+  Num1: 'AAAAAQAAAAEAAAAAAw==',
+  Num2: 'AAAAAQAAAAEAAAABAw==',
+  Num3: 'AAAAAQAAAAEAAAACAw==',
+  Num4: 'AAAAAQAAAAEAAAADAw==',
+  Num5: 'AAAAAQAAAAEAAAAEAw==',
+  Num6: 'AAAAAQAAAAEAAAAFAw==',
+  Num7: 'AAAAAQAAAAEAAAAGAw==',
+  Num8: 'AAAAAQAAAAEAAAAHAw==',
+  Num9: 'AAAAAQAAAAEAAAAIAw==',
+  Return: 'AAAAAgAAAJcAAAAjAw==',
+  ChannelUp: 'AAAAAQAAAAEAAAAQAw==',
+  ChannelDown: 'AAAAAQAAAAEAAAARAw==',
+  GGuide: 'AAAAAQAAAAEAAAAOAw==',
+};
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default class BraviaClient {
   #host: string;
@@ -63,10 +76,6 @@ export default class BraviaClient {
 
     if (envelope.error) {
       const [code, message] = envelope.error;
-
-      // 7 = "Illegal State" — returned when the TV is in standby and the
-      // requested method is not available. Surface as a typed error so
-      // callers can decide whether it's a hard failure.
       throw new BraviaError(code, message, path, method);
     }
 
@@ -75,6 +84,31 @@ export default class BraviaClient {
     }
 
     return envelope.result[0];
+  }
+
+  // For methods that return {"result":[]} on success (no payload).
+  async #callVoid(path: string, method: string, params: object[] = []): Promise<void> {
+    const url = `http://${this.#host}${path}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Auth-PSK': this.#psk,
+      },
+      body: JSON.stringify({ method, params, id: 1, version: '1.0' }),
+      signal: AbortSignal.timeout(this.#timeoutMs),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Bravia ${path}.${method} HTTP ${res.status}`);
+    }
+
+    const envelope = await res.json() as SonyEnvelope<never>;
+
+    if (envelope.error) {
+      const [code, message] = envelope.error;
+      throw new BraviaError(code, message, path, method);
+    }
   }
 
   async getPowerStatus(): Promise<PowerStatus> {
@@ -103,23 +137,37 @@ export default class BraviaClient {
     await this.#call('/sony/audio', 'setAudioMute', [{ status: mute }]);
   }
 
-  async getPlayingContentInfo(): Promise<PlayingContentInfo | null> {
-    try {
-      return await this.#call<PlayingContentInfo>('/sony/avContent', 'getPlayingContentInfo');
-    } catch (err) {
-      // Illegal State is returned for example when the TV is on the Google
-      // TV home screen with no app foregrounded — that's not an error, it's
-      // "nothing is playing".
-      if (err instanceof BraviaError && err.code === 7) {
-        return null;
-      }
+  async setActiveApp(uri: string): Promise<void> {
+    await this.#callVoid('/sony/appControl', 'setActiveApp', [{ uri }]);
+  }
 
-      throw err;
+  async sendIrcc(name: keyof typeof IRCC_CODES): Promise<void> {
+    const code = IRCC_CODES[name];
+    const body = `<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:X_SendIRCC xmlns:u="urn:schemas-sony-com:service:IRCC:1"><IRCCCode>${code}</IRCCCode></u:X_SendIRCC></s:Body></s:Envelope>`;
+
+    const res = await fetch(`http://${this.#host}/sony/ircc`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/xml; charset=UTF-8',
+        'SOAPACTION': '"urn:schemas-sony-com:service:IRCC:1#X_SendIRCC"',
+        'X-Auth-PSK': this.#psk,
+      },
+      body,
+      signal: AbortSignal.timeout(this.#timeoutMs),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Bravia IRCC ${name} HTTP ${res.status}`);
     }
   }
 
-  async setPlayContent(uri: string): Promise<void> {
-    await this.#call('/sony/avContent', 'setPlayContent', [{ uri }]);
+  async switchToChannel(number: number): Promise<void> {
+    const digits = String(number).split('');
+    await this.sendIrcc('Return');
+    for (const digit of digits) {
+      await delay(600);
+      await this.sendIrcc(`Num${digit}` as keyof typeof IRCC_CODES);
+    }
   }
 
   async getSystemInformation(): Promise<SystemInformation> {
@@ -139,4 +187,3 @@ export class BraviaError extends Error {
     this.method = method;
   }
 }
-

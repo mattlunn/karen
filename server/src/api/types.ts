@@ -61,7 +61,7 @@ export type CapabilityApiResponse = {
   volume: NumericStateApiResponse;
   isMuted: BooleanStateApiResponse;
   currentSource: EnumStateApiResponse;
-  availableSources: { label: string; kind: 'input' | 'channel' }[];
+  availableSources: { label: string; kind: 'channel' | 'guide' }[];
 } | {
   type: 'BATTERY_LEVEL_INDICATOR';
   batteryPercentage: NumericStateApiResponse;

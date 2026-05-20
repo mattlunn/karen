@@ -199,11 +199,11 @@ function SourceControl({ device, capability }: { device: RestDeviceResponse; cap
   const variant = React.useContext(MetricDisplayContext);
   const current = capability.currentSource.value ?? '';
 
-  const inputs = capability.availableSources.filter(s => s.kind === 'input').map(s => s.label);
+  const guide = capability.availableSources.filter(s => s.kind === 'guide').map(s => s.label);
   const channels = capability.availableSources.filter(s => s.kind === 'channel').map(s => s.label);
 
   const groups: { group: string; items: string[] }[] = [];
-  if (inputs.length > 0) groups.push({ group: 'Inputs', items: inputs });
+  if (guide.length > 0) groups.push({ group: 'Guide', items: guide });
   if (channels.length > 0) groups.push({ group: 'Channels', items: channels });
 
   return (

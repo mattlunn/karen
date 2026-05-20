@@ -315,8 +315,6 @@ export async function handleTelevisionControl(request: AlexaSpeakerRequest | Ale
     } else {
       await tv.setIsMuted((request as AlexaSetMuteRequest).payload.mute);
     }
-  } else if (request.header.namespace === 'Alexa.InputController') {
-    await tv.setCurrentSource((request as AlexaSelectInputRequest).payload.input);
   } else {
     const payload = (request as AlexaChangeChannelRequest).payload;
     const name = payload.channelMetadata?.name

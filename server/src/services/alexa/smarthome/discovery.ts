@@ -1,6 +1,5 @@
 import { Device } from '../../../models';
 import { AlexaDiscoveryEndpoint } from './types';
-import type { SonySource } from '../../sony-bravia';
 
 export const ALARM_ENDPOINT_ID = '044feaa3-6236-48b1-805f-56cd190ae96d';
 
@@ -48,10 +47,6 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
     const capabilities = device.getCapabilities();
 
     if (capabilities.includes('TELEVISION')) {
-      const sources = (device.meta.sources as SonySource[] | undefined) ?? [];
-      const inputs = sources
-        .filter(s => s.kind === 'input')
-        .map(s => ({ name: s.label }));
 
       endpoints.push({
         friendlyName: device.name,
@@ -77,11 +72,6 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
             proactivelyReported: false,
             retrievable: true
           }
-        }, {
-          type: 'AlexaInterface',
-          interface: 'Alexa.InputController',
-          version: '3',
-          inputs
         }, {
           type: 'AlexaInterface',
           interface: 'Alexa.ChannelController',

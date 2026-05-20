@@ -5,28 +5,36 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import BraviaClient, { BraviaError } from './client';
 
-export interface SonySource {
-  label: string;
-  uri: string;
-  kind: 'input' | 'channel';
+const YOUVIEW_URI = 'com.sony.dtv.com.youview.poa.com.youview.poa.ui.MainActivity';
+
+export type SonySource =
+  | { label: string; kind: 'channel'; number: number }
+  | { label: string; kind: 'guide' };
+
+function configFor(device: Device) {
+  return config.sony_bravia.devices.find(e => e.host === device.providerId);
+}
+
+export function sourcesFor(device: Device): SonySource[] {
+  const entry = configFor(device);
+  const channels: SonySource[] = entry
+    ? entry.channels.map(c => ({ label: c.name, kind: 'channel' as const, number: c.number }))
+    : [];
+  return [{ label: 'TV Guide', kind: 'guide' }, ...channels];
 }
 
 function clientFor(device: Device): BraviaClient {
-  return new BraviaClient(
-    device.meta.host as string,
-    device.meta.psk as string,
-    config.sony_bravia.connect_timeout_milliseconds
-  );
+  const entry = configFor(device);
+
+  if (!entry) {
+    throw new Error(`No sony-bravia config entry for device ${device.providerId}`);
+  }
+
+  return new BraviaClient(entry.host, entry.psk, config.sony_bravia.connect_timeout_milliseconds);
 }
 
 function findSource(device: Device, label: string): SonySource | undefined {
-  const sources = (device.meta.sources as SonySource[] | undefined) ?? [];
-  return sources.find(s => s.label === label);
-}
-
-function findSourceByUri(device: Device, uri: string): SonySource | undefined {
-  const sources = (device.meta.sources as SonySource[] | undefined) ?? [];
-  return sources.find(s => s.uri === uri);
+  return sourcesFor(device).find(s => s.label === label);
 }
 
 Device.registerProvider('sony-bravia', {
@@ -57,7 +65,13 @@ Device.registerProvider('sony-bravia', {
           throw new Error(`Unknown TV source "${label}" for device ${device.id}`);
         }
 
-        await clientFor(device).setPlayContent(source.uri);
+        if (source.kind === 'guide') {
+          await clientFor(device).setActiveApp(YOUVIEW_URI);
+        } else {
+          await clientFor(device).switchToChannel(source.number);
+        }
+
+        await device.getTelevisionCapability().setCurrentSourceState(label);
       },
     };
   },
@@ -75,19 +89,8 @@ Device.registerProvider('sony-bravia', {
         });
       }
 
-      const sources: SonySource[] = [
-        ...entry.inputs.map(i => ({ label: i.label, uri: i.uri, kind: 'input' as const })),
-        ...entry.channels.map(c => ({ label: c.name, uri: c.uri, kind: 'channel' as const })),
-      ];
-
-      device.meta.host = entry.host;
-      device.meta.psk = entry.psk;
-      device.meta.sources = sources;
-
       device.manufacturer = 'Sony';
 
-      // Model is cosmetic enrichment; a TV that's unreachable at startup
-      // must not block the config -> DB upsert.
       try {
         const info = await clientFor(device).getSystemInformation();
         device.model = info.model || 'Bravia';
@@ -110,31 +113,25 @@ async function pollDevice(device: Device): Promise<boolean> {
   try {
     powerStatus = await client.getPowerStatus();
   } catch (err) {
-    logger.debug({ err }, `Bravia ${device.id} unreachable`);
-    return false;
+    if (err instanceof BraviaError && err.code === 7) {
+      powerStatus = 'standby';
+    } else {
+      logger.debug({ err }, `Bravia ${device.id} unreachable`);
+      await sw.setIsOnState(false);
+      return false;
+    }
   }
 
   await sw.setIsOnState(powerStatus === 'active');
 
   if (powerStatus === 'active') {
-    // Volume/source only meaningful while the TV is on.
-    const [volumeResult, contentResult] = await Promise.allSettled([
-      client.getVolumeInformation(),
-      client.getPlayingContentInfo(),
-    ]);
+    const volumeResult = await Promise.allSettled([client.getVolumeInformation()]);
 
-    if (volumeResult.status === 'fulfilled') {
-      await tv.setVolumeState(volumeResult.value.volume);
-      await tv.setIsMutedState(volumeResult.value.mute);
-    } else if (!(volumeResult.reason instanceof BraviaError && volumeResult.reason.code === 7)) {
-      logger.warn({ err: volumeResult.reason }, `Bravia ${device.id} volume read failed`);
-    }
-
-    if (contentResult.status === 'fulfilled' && contentResult.value !== null) {
-      const matched = findSourceByUri(device, contentResult.value.uri);
-      await tv.setCurrentSourceState(matched?.label ?? contentResult.value.uri);
-    } else if (contentResult.status === 'rejected') {
-      logger.warn({ err: contentResult.reason }, `Bravia ${device.id} content read failed`);
+    if (volumeResult[0].status === 'fulfilled') {
+      await tv.setVolumeState(volumeResult[0].value.volume);
+      await tv.setIsMutedState(volumeResult[0].value.mute);
+    } else if (!(volumeResult[0].reason instanceof BraviaError && volumeResult[0].reason.code === 7)) {
+      logger.warn({ err: volumeResult[0].reason }, `Bravia ${device.id} volume read failed`);
     }
   }
 
