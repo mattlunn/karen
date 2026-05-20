@@ -9,7 +9,7 @@ export function getIsBatteryLow(device: RestDeviceResponse): boolean {
   const batteryLowCapability = device.capabilities.find(x => x.type === 'BATTERY_LOW_INDICATOR');
 
   if (batteryLowCapability) {
-    return batteryLowCapability.isLow.value;
+    return batteryLowCapability.isLow.value === true;
   }
 
   return false;
