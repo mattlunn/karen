@@ -1,16 +1,22 @@
 import { Device } from '../../models';
-import DeviceClient from './client/device';
-import config from '../../config';
-import logger from '../../logger';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
-import sleep from '../../helpers/sleep';
+import { Capability } from '../../models/capabilities/capabilities.gen';
+import { publishCommand } from './mqtt';
+
+const TOPIC_PREFIX = 'shellies';
 
 Device.registerProvider('shelly', {
   getCapabilities(device) {
     switch (device.meta.generation) {
       case 1:
-      case 2:
-        return ['LIGHT', 'CONNECTIVITY'];
+      case 2: {
+        const caps: Capability[] = ['LIGHT', 'CONNECTIVITY'];
+
+        if (device.model === 'SHDM-2') {
+          caps.push('ENERGY_MONITOR');
+        }
+
+        return caps;
+      }
       case 3:
         return ['SWITCH', 'CONNECTIVITY'];
       case 4:
@@ -25,68 +31,31 @@ Device.registerProvider('shelly', {
   provideLightCapability() {
     return {
       setBrightness(device: Device, brightness: number) {
-        const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
-
-        return shellyDevice.setBrightness(brightness);
+        return publishCommand(
+          `${TOPIC_PREFIX}/${device.providerId}/light/0/set`,
+          JSON.stringify({ turn: brightness > 0 ? 'on' : 'off', brightness })
+        );
       },
 
       setIsOn(device: Device, isOn: boolean) {
-        const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
-
-        return shellyDevice.setIsOn(isOn);
+        return publishCommand(
+          `${TOPIC_PREFIX}/${device.providerId}/light/0/command`,
+          isOn ? 'on' : 'off'
+        );
       },
     };
   },
 
   provideSwitchCapability() {
     return {
-      async setIsOn(device: Device, isOn: boolean) {
-        const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
-
-        return await shellyDevice.setIsOn(isOn);
+      setIsOn(device: Device, isOn: boolean) {
+        return publishCommand(
+          `${TOPIC_PREFIX}/${device.providerId}/command/switch:0`,
+          isOn ? 'on' : 'off'
+        );
       },
     };
   },
 
-  async synchronize() {
-    const devices = await Device.findByProvider('shelly');
-
-    for (const device of devices) {
-      try {
-        const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
-        const newName = await shellyDevice.getDeviceName();
-
-        if (newName !== null) {
-          device.name = newName;
-        }
-
-        device.manufacturer = 'Shelly';
-        device.model = await shellyDevice.getModel() || 'Unknown';
-
-        await device.save();
-      } catch (e) {
-        logger.error(e, `Failed to synchronize Shelly device ${device.id} (${device.name})`);
-      }
-    }
-  }
+  async synchronize() {},
 });
-
-async function probeShellyDevice(device: Device): Promise<boolean> {
-  const shellyDevice = DeviceClient.forGeneration(device.meta.generation as number, device.meta.endpoint as string, config.shelly.user, config.shelly.password);
-
-  const result = await Promise.race([
-    shellyDevice.getDeviceName().then(() => true).catch(() => false),
-    sleep(Math.max(config.shelly.connect_timeout_milliseconds, 5000)).then(() => false)
-  ]);
-
-  return result;
-}
-
-nowAndSetInterval(async () => {
-  const devices = await Device.findByProvider('shelly');
-
-  await Promise.all(devices.map(async device => {
-    const isConnected = await probeShellyDevice(device);
-    await device.getConnectivityCapability().setIsConnectedState(isConnected);
-  }));
-}, Math.max(config.shelly.connectivity_poll_seconds, 30) * 1000);
