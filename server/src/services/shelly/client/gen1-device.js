@@ -1,5 +1,4 @@
 import { stringify } from 'querystring';
-import logger from '../../../logger';
 
 export default class Gen1DeviceClient {
   constructor(ip, username, password) {
@@ -9,11 +8,7 @@ export default class Gen1DeviceClient {
   }
 
   async _request(path, args = {}) {
-    // Endpoint to define actions (webhooks) requires the "urls[]" query string parameter
-    // to literally be "urls[]", not "urls%5B%5D". By default, stringify encodes the [].
-    const res = await fetch(`http://${this._ip}${path}?${stringify(args, '&', '=', {
-      encodeURIComponent: String
-    })}`, {
+    const res = await fetch(`http://${this._ip}${path}?${stringify(args)}`, {
       headers: {
         Authorization: 'Basic ' + Buffer.from(`${this._username}:${this._password}`).toString('base64')
       }
@@ -29,7 +24,7 @@ export default class Gen1DeviceClient {
   }
 
   async setCloudStatus(enabled) {
-    return await this._request('/settings/cloud', { 
+    return await this._request('/settings/cloud', {
       enabled: enabled ? '1' : '0'
     });
   }
@@ -42,43 +37,25 @@ export default class Gen1DeviceClient {
     }
   }
 
-  async setIsOn(isOn) {
-    return await this._request('/light/0', {
-      turn: isOn ? 'on' : 'off'
-    });
-  }
-
-  async setBrightness(brightness) {
-    return await this._request('/light/0', {
-      brightness,
-      turn: brightness > 0 ? 'on' : 'off'
-    });
-  }
-
   async setupAuthentication() {
-    return await this._request('/settings/login', { 
+    return await this._request('/settings/login', {
       username: this._username,
       password: this._password,
       enabled: '1'
     });
   }
 
-  async setOutputOnWebhook(endpoint) {
-    return await this._request('/settings/actions/', {
-      index: 0,
-      enabled: true,
-      name: 'out_on_url',
-      'urls[]': encodeURIComponent(endpoint)
+  async enableMqtt({ url, user, password }) {
+    return await this._request('/settings', {
+      mqtt_enable: 'true',
+      mqtt_server: url,
+      mqtt_user: user,
+      mqtt_pass: password,
     });
   }
 
-  async setOutputOffWebhook(endpoint) {
-    return await this._request('/settings/actions/', {
-      index: 0,
-      enabled: true,
-      name: 'out_off_url',
-      'urls[]': encodeURIComponent(endpoint)
-    });
+  async getMqttId() {
+    return (await this._request('/settings')).device.hostname;
   }
 
   async getDeviceName() {

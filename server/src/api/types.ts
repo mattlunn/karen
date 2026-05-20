@@ -2,48 +2,50 @@ export interface ApiErrorResponse {
   error: string;
 }
 
-// Device API response - current status values with timestamps
+// Device API response - current status values with timestamps.
+// State responses always carry an envelope (anchored to device.createdAt when
+// no observation has happened yet) but `value` is null until first observation.
 export type CapabilityApiResponse = {
   type: 'LIGHT';
-  brightness: NumericEventApiResponse;
-  isOn: BooleanEventApiResponse;
+  brightness: NumericStateApiResponse;
+  isOn: BooleanStateApiResponse;
 } | {
   type: 'THERMOSTAT';
-  currentTemperature: NumericEventApiResponse;
-  targetTemperature: NumericEventApiResponse;
-  power: NumericEventApiResponse;
-  isHeating: BooleanEventApiResponse;
-  isPassive: BooleanEventApiResponse;
+  currentTemperature: NumericStateApiResponse;
+  targetTemperature: NumericStateApiResponse;
+  power: NumericStateApiResponse;
+  isHeating: BooleanStateApiResponse;
+  isPassive: BooleanStateApiResponse;
 } | {
   type: 'HUMIDITY_SENSOR';
-  humidity: NumericEventApiResponse;
+  humidity: NumericStateApiResponse;
 } | {
   type: 'TEMPERATURE_SENSOR';
-  currentTemperature: NumericEventApiResponse;
+  currentTemperature: NumericStateApiResponse;
 } | {
   type: 'LIGHT_SENSOR';
-  illuminance: NumericEventApiResponse;
+  illuminance: NumericStateApiResponse;
 } | {
   type: 'MOTION_SENSOR';
-  hasMotion: BooleanEventApiResponse;
+  hasMotion: BooleanStateApiResponse;
 } | {
   type: 'HEAT_PUMP';
-  mode: EnumEventApiResponse;
-  compressorModulation: NumericEventApiResponse;
-  dhwTemperature: NumericEventApiResponse;
-  outsideTemperature: NumericEventApiResponse;
-  actualFlowTemperature: NumericEventApiResponse;
-  returnTemperature: NumericEventApiResponse;
-  systemPressure: NumericEventApiResponse;
-  dayPower: NumericEventApiResponse;
-  dayYield: NumericEventApiResponse;
-  dayCoP: NumericEventApiResponse;
+  mode: EnumStateApiResponse;
+  compressorModulation: NumericStateApiResponse;
+  dhwTemperature: NumericStateApiResponse;
+  outsideTemperature: NumericStateApiResponse;
+  actualFlowTemperature: NumericStateApiResponse;
+  returnTemperature: NumericStateApiResponse;
+  systemPressure: NumericStateApiResponse;
+  dayPower: NumericStateApiResponse;
+  dayYield: NumericStateApiResponse;
+  dayCoP: NumericStateApiResponse;
 } | {
   type: 'CAMERA';
   snapshotUrl: EnumEventApiResponse;
 } | {
   type: 'LOCK';
-  isLocked: BooleanEventApiResponse;
+  isLocked: BooleanStateApiResponse;
 } | {
   type: 'SPEAKER';
 } | {
@@ -53,30 +55,30 @@ export type CapabilityApiResponse = {
   totalPresses: number;
 } | {
   type: 'SWITCH';
-  isOn: BooleanEventApiResponse;
+  isOn: BooleanStateApiResponse;
 } | {
   type: 'TELEVISION';
-  volume: NumericEventApiResponse;
-  isMuted: BooleanEventApiResponse;
-  currentSource: EnumEventApiResponse;
+  volume: NumericStateApiResponse;
+  isMuted: BooleanStateApiResponse;
+  currentSource: EnumStateApiResponse;
   availableSources: { label: string; kind: 'input' | 'channel' }[];
 } | {
   type: 'BATTERY_LEVEL_INDICATOR';
-  batteryPercentage: NumericEventApiResponse;
+  batteryPercentage: NumericStateApiResponse;
 } | {
   type: 'BATTERY_LOW_INDICATOR';
-  isLow: BooleanEventApiResponse;
+  isLow: BooleanStateApiResponse;
 } | {
   type: 'ELECTRIC_VEHICLE';
-  chargePercentage: NumericEventApiResponse;
-  isCharging: BooleanEventApiResponse;
-  isCableConnected: BooleanEventApiResponse;
-  chargeLimit: NumericEventApiResponse;
-  odometer: NumericEventApiResponse;
+  chargePercentage: NumericStateApiResponse;
+  isCharging: BooleanStateApiResponse;
+  isCableConnected: BooleanStateApiResponse;
+  chargeLimit: NumericStateApiResponse;
+  odometer: NumericStateApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string; calculatedStartTime: string | null } | null;
 } | {
   type: 'CONTACT_SENSOR';
-  isClosed: BooleanEventApiResponse;
+  isClosed: BooleanStateApiResponse;
   lastTriggered: { start: string; end: string | null; durationSeconds: number | null } | null;
 } | {
   type: 'BIN_COLLECTION';
@@ -87,12 +89,45 @@ export type CapabilityApiResponse = {
   nextCollection: { date: string; isOverride: boolean };
 } | {
   type: 'CONNECTIVITY';
-  isConnected: BooleanEventApiResponse;
+  isConnected: BooleanStateApiResponse;
+} | {
+  type: 'ENERGY_MONITOR';
+  currentPower: NumericStateApiResponse;
+  dayEnergy: NumericStateApiResponse;
+  dayCost: NumericStateApiResponse;
+} | {
+  type: 'ENERGY_COST';
+  unitRate: NumericStateApiResponse;
+  standingCharge: NumericStateApiResponse;
 } | {
   type: null;
 };
 
-// History API response types
+// Current-state envelopes (live device data). `value` is null until the
+// integration reports an observation; envelope timestamps are still present
+// (anchored to device.createdAt when no observation exists).
+export type BooleanStateApiResponse = {
+  start: string;
+  end: string | null;
+  lastReported: string;
+  value: boolean | null;
+};
+
+export type NumericStateApiResponse = {
+  start: string;
+  end: string | null;
+  lastReported: string;
+  value: number | null;
+};
+
+export type EnumStateApiResponse = {
+  start: string;
+  end: string | null;
+  lastReported: string;
+  value: string | null;
+};
+
+// History API response types (real DB rows; `value` is never null).
 export type BooleanEventApiResponse = {
   start: string;
   end: string | null;
@@ -306,6 +341,12 @@ export interface HeatingInsightsApiResponse {
   temperatureDeltas: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltaSwitchOnThreshold: number | null;
   heatPump: { id: number; name: string };
+}
+
+// /api/insights/energy endpoint
+export interface EnergyInsightsApiResponse {
+  usage: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
+  cost: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
 }
 
 export interface DeviceUpdateEvent {

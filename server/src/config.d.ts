@@ -51,10 +51,11 @@ declare namespace _default {
   export namespace shelly {
     const user: string;
     const password: string;
-    const secret: string;
-    const webhook_host: string;
-    const connectivity_poll_seconds: number;
-    const connect_timeout_milliseconds: number;
+    export namespace mqtt {
+      const url: string;
+      const user: string;
+      const password: string;
+    }
   }
   export namespace sony_bravia {
     const devices: {
@@ -101,6 +102,11 @@ declare namespace _default {
     const secret: string;
     const access_token: string;
   }
+  export namespace octopus {
+    const api_key: string;
+    const account_number: string;
+    const poll_interval_minutes: number;
+  }
   export namespace smartcar {
     const application_id: string;
     const client_id: string;
@@ -110,7 +116,8 @@ declare namespace _default {
     const application_management_token: string;
     const secret: string;
     const default_charge_limit: number;
-    const default_charge_rate_pct_per_hour: number;
+    const charge_power_watts: number;
+    const battery_capacity_kwh: number;
     const charge_start_buffer_hours: number;
     const charge_schedules: {
       target_percentage: number;

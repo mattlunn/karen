@@ -5,30 +5,6 @@ import DeviceClient from '../services/shelly/client/device';
 
 const router = express.Router();
 
-router.use((req, res, next) => {
-  if (req.query.secret !== config.shelly.secret) {
-    return res.sendStatus(401).end();
-  } else {
-    next();
-  }
-});
-
-router.get('/event', async (req, res) => {
-  const device = await Device.findByProviderIdOrError('shelly', req.query.id);
-  const isOn = req.query.action === 'on';
-  const capabilities = device.getCapabilities();
-
-  if (capabilities.includes('CONTACT_SENSOR')) {
-    await device.getContactSensorCapability().setIsClosedState(isOn);
-  } else if (capabilities.includes('LIGHT')) {
-    await device.getLightCapability().setIsOnState(isOn);
-  } else if (capabilities.includes('SWITCH')) {
-    await device.getSwitchCapability().setIsOnState(isOn);
-  }
-
-  res.sendStatus(200).end();
-});
-
 router.get('/install', async (req, res) => {
   const ip = req.query.ip;
 
@@ -39,13 +15,12 @@ router.get('/install', async (req, res) => {
   const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
   const model = await client.getModel();
   const generation = client.getGeneration();
-  let device = await Device.findByProviderId('shelly', ip);
+  const mqttId = await client.getMqttId();
+
+  let device = await Device.findByProviderId('shelly', mqttId);
 
   if (!device) {
-    device = Device.build({
-      provider: 'shelly',
-      providerId: ip,
-    });
+    device = Device.build({ provider: 'shelly', providerId: mqttId });
   }
 
   let role = 'switch';
@@ -61,22 +36,20 @@ router.get('/install', async (req, res) => {
   device.name = ip;
   device.manufacturer = 'Shelly';
   device.model = model;
-  device.meta.endpoint = ip;
   device.meta.generation = generation;
   device.meta.role = role;
+
+  delete device.meta.endpoint;
 
   await client.setCloudStatus(false);
   await client.setupAuthentication();
 
-  const eventUrl = (action) => `http://${config.shelly.webhook_host}/shelly/event?secret=${config.shelly.secret}&id=${ip}&action=${action}`;
-
-  if (role === 'contact') {
-    await client.setInputOnWebhook(eventUrl('on'));
-    await client.setInputOffWebhook(eventUrl('off'));
-  } else {
-    await client.setOutputOffWebhook(eventUrl('off'));
-    await client.setOutputOnWebhook(eventUrl('on'));
-  }
+  await client.enableMqtt({
+    id: mqttId,
+    url: config.shelly.mqtt.url,
+    user: config.shelly.mqtt.user,
+    password: config.shelly.mqtt.password,
+  });
 
   switch (model) {
     case 'SNPL-00112UK': {  // plug

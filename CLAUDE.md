@@ -228,6 +228,16 @@ Two patterns for "today's X" / "this week's X" aggregates:
 
 Pick on-demand unless the calculation is too heavy to do per-request. Adding a brand-new capability property (not just exposing an existing one) instead requires a `capabilities.json` edit and `npm run codegen` — see "Capability Codegen" above.
 
+**Nullable capability values**: live capability state (`*StateApiResponse`) carries a `value` that is `null` until the device first reports an observation. When rendering such a value in the UI, never hand-roll a `value === null ? ... : ...` ternary. Use the `formatValueOrUnknown` helper from `helpers/format.ts`, conventionally imported aliased as `v`, which returns `-` for an unobserved value and otherwise runs the format callback:
+
+```typescript
+import { formatValueOrUnknown as v } from '../../helpers/format';
+
+<strong>{v(capability.currentTemperature.value, (temp) => `${temp.toFixed(1)}°`)}</strong>
+```
+
+Inside `registry.tsx` this is handled centrally — `createCapability` already short-circuits a `null` value to a `-` metric, so per-capability `value` / `iconColor` / `iconHighlighted` / `isIssue` callbacks can assume a non-null value. Only the `icon` callback receives the nullable value, since each capability picks its own neutral fallback icon.
+
 ### Data Flow
 
 1. Integration service detects device change

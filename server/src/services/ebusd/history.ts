@@ -2,6 +2,7 @@ import dayjs from '../../dayjs';
 import { NumericEvent, StringEvent } from '../../models/event';
 import { HeatPumpMode, HeatPumpCapability } from '../../models/capabilities';
 import { filterClampAndSortHistory } from '../../helpers/history';
+import { calculateWattHours } from '../../helpers/energy';
 import config from '../../config';
 import { Device } from '../../models';
 import logger from '../../logger';
@@ -81,16 +82,6 @@ export function filterEventsToModeWindows(
   }
 
   return result;
-}
-
-/**
- * Calculates watt-hours from a series of events by integrating power over time
- */
-export function calculateWattHours(events: NumericEvent[]): number {
-  return Math.round(100 * events.reduce((acc, curr) => {
-    const minutes = dayjs(curr.end).diff(curr.start, 'minute');
-    return acc + (curr.value * minutes);
-  }, 0) / 60) / 100;
 }
 
 /**

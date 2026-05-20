@@ -1,13 +1,14 @@
 import { Device, NumericEvent, BooleanEvent, StringEvent } from '../../models';
-import { NumericEventApiResponse, BooleanEventApiResponse, EnumEventApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
+import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
 import type { SonySource } from '../../services/sony-bravia';
 
-export function mapNumericEvent(eventPromise: Promise<NumericEvent | null>): Promise<NumericEventApiResponse> {
+export function mapNumericState(eventPromise: Promise<NumericEvent | null>, device: Device): Promise<NumericStateApiResponse> {
   return eventPromise.then(event => {
     if (!event) {
-      throw new Error('Missing an initial event');
+      const createdAt = device.createdAt.toISOString();
+      return { start: createdAt, end: null, lastReported: createdAt, value: null };
     }
 
     return {
@@ -19,16 +20,11 @@ export function mapNumericEvent(eventPromise: Promise<NumericEvent | null>): Pro
   });
 }
 
-export function mapBooleanEvent(eventPromise: Promise<BooleanEvent | null>, device: Device): Promise<BooleanEventApiResponse> {
+export function mapBooleanState(eventPromise: Promise<BooleanEvent | null>, device: Device): Promise<BooleanStateApiResponse> {
   return eventPromise.then(event => {
-    // For boolean events which have never happened yet, assume they are off (since there is no "on"...)
     if (!event) {
-      return {
-        start: device.createdAt.toISOString(),
-        end: null,
-        lastReported: device.createdAt.toISOString(),
-        value: false
-      };
+      const createdAt = device.createdAt.toISOString();
+      return { start: createdAt, end: null, lastReported: createdAt, value: null };
     }
 
     if (event.end) {
@@ -49,10 +45,11 @@ export function mapBooleanEvent(eventPromise: Promise<BooleanEvent | null>, devi
   });
 }
 
-export function mapStringEvent(eventPromise: Promise<StringEvent | null>): Promise<EnumEventApiResponse> {
+export function mapStringState(eventPromise: Promise<StringEvent | null>, device: Device): Promise<EnumStateApiResponse> {
   return eventPromise.then(event => {
     if (!event) {
-      throw new Error('Missing an initial event');
+      const createdAt = device.createdAt.toISOString();
+      return { start: createdAt, end: null, lastReported: createdAt, value: null };
     }
 
     return {
@@ -83,7 +80,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const sensor = device.getLightSensorCapability();
       return awaitPromises({
         type: 'LIGHT_SENSOR' as const,
-        illuminance: mapNumericEvent(sensor.getIlluminanceEvent())
+        illuminance: mapNumericState(sensor.getIlluminanceEvent(), device)
       });
     }
 
@@ -91,7 +88,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const sensor = device.getHumiditySensorCapability();
       return awaitPromises({
         type: 'HUMIDITY_SENSOR' as const,
-        humidity: mapNumericEvent(sensor.getHumidityEvent())
+        humidity: mapNumericState(sensor.getHumidityEvent(), device)
       });
     }
 
@@ -99,8 +96,8 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const light = device.getLightCapability();
       return awaitPromises({
         type: 'LIGHT' as const,
-        isOn: mapBooleanEvent(light.getIsOnEvent(), device),
-        brightness: mapNumericEvent(light.getBrightnessEvent())
+        isOn: mapBooleanState(light.getIsOnEvent(), device),
+        brightness: mapNumericState(light.getBrightnessEvent(), device)
       });
     }
 
@@ -108,16 +105,16 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const heatPump = device.getHeatPumpCapability();
       return awaitPromises({
         type: 'HEAT_PUMP' as const,
-        mode: mapStringEvent(heatPump.getModeEvent()),
-        compressorModulation: mapNumericEvent(heatPump.getCompressorModulationEvent()),
-        dhwTemperature: mapNumericEvent(heatPump.getDHWTemperatureEvent()),
-        outsideTemperature: mapNumericEvent(heatPump.getOutsideTemperatureEvent()),
-        actualFlowTemperature: mapNumericEvent(heatPump.getActualFlowTemperatureEvent()),
-        returnTemperature: mapNumericEvent(heatPump.getReturnTemperatureEvent()),
-        systemPressure: mapNumericEvent(heatPump.getSystemPressureEvent()),
-        dayPower: mapNumericEvent(heatPump.getDayPowerEvent()),
-        dayYield: mapNumericEvent(heatPump.getDayYieldEvent()),
-        dayCoP: mapNumericEvent(heatPump.getDayCoPEvent())
+        mode: mapStringState(heatPump.getModeEvent(), device),
+        compressorModulation: mapNumericState(heatPump.getCompressorModulationEvent(), device),
+        dhwTemperature: mapNumericState(heatPump.getDHWTemperatureEvent(), device),
+        outsideTemperature: mapNumericState(heatPump.getOutsideTemperatureEvent(), device),
+        actualFlowTemperature: mapNumericState(heatPump.getActualFlowTemperatureEvent(), device),
+        returnTemperature: mapNumericState(heatPump.getReturnTemperatureEvent(), device),
+        systemPressure: mapNumericState(heatPump.getSystemPressureEvent(), device),
+        dayPower: mapNumericState(heatPump.getDayPowerEvent(), device),
+        dayYield: mapNumericState(heatPump.getDayYieldEvent(), device),
+        dayCoP: mapNumericState(heatPump.getDayCoPEvent(), device)
       });
     }
 
@@ -125,7 +122,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const lock = device.getLockCapability();
       return awaitPromises({
         type: 'LOCK' as const,
-        isLocked: mapBooleanEvent(lock.getIsLockedEvent(), device)
+        isLocked: mapBooleanState(lock.getIsLockedEvent(), device)
       });
     }
 
@@ -133,7 +130,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const sensor = device.getMotionSensorCapability();
       return awaitPromises({
         type: 'MOTION_SENSOR' as const,
-        hasMotion: mapBooleanEvent(sensor.getHasMotionEvent(), device)
+        hasMotion: mapBooleanState(sensor.getHasMotionEvent(), device)
       });
     }
 
@@ -141,7 +138,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const sensor = device.getTemperatureSensorCapability();
       return awaitPromises({
         type: 'TEMPERATURE_SENSOR' as const,
-        currentTemperature: mapNumericEvent(sensor.getCurrentTemperatureEvent())
+        currentTemperature: mapNumericState(sensor.getCurrentTemperatureEvent(), device)
       });
     }
 
@@ -149,11 +146,11 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const thermostat = device.getThermostatCapability();
       return awaitPromises({
         type: 'THERMOSTAT' as const,
-        targetTemperature: mapNumericEvent(thermostat.getTargetTemperatureEvent()),
-        currentTemperature: mapNumericEvent(thermostat.getCurrentTemperatureEvent()),
-        isHeating: mapBooleanEvent(thermostat.getIsOnEvent(), device),
-        power: mapNumericEvent(thermostat.getPowerEvent()),
-        isPassive: mapBooleanEvent(thermostat.getIsPassiveEvent(), device)
+        targetTemperature: mapNumericState(thermostat.getTargetTemperatureEvent(), device),
+        currentTemperature: mapNumericState(thermostat.getCurrentTemperatureEvent(), device),
+        isHeating: mapBooleanState(thermostat.getIsOnEvent(), device),
+        power: mapNumericState(thermostat.getPowerEvent(), device),
+        isPassive: mapBooleanState(thermostat.getIsPassiveEvent(), device)
       });
     }
 
@@ -190,56 +187,27 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const switchCapability = device.getSwitchCapability();
       return awaitPromises({
         type: 'SWITCH' as const,
-        isOn: mapBooleanEvent(switchCapability.getIsOnEvent(), device)
+        isOn: mapBooleanState(switchCapability.getIsOnEvent(), device)
       });
     }
 
     case 'TELEVISION': {
       const tv = device.getTelevisionCapability();
       const sources = (device.meta.sources as SonySource[] | undefined) ?? [];
-      const [volumeEvent, isMutedEvent, sourceEvent] = await Promise.all([
-        tv.getVolumeEvent(),
-        tv.getIsMutedEvent(),
-        tv.getCurrentSourceEvent(),
-      ]);
-
-      const sourceFallback: EnumEventApiResponse = {
-        start: device.createdAt.toISOString(),
-        end: null,
-        lastReported: device.createdAt.toISOString(),
-        value: '',
-      };
-      const volumeFallback: NumericEventApiResponse = {
-        start: device.createdAt.toISOString(),
-        end: null,
-        lastReported: device.createdAt.toISOString(),
-        value: 0,
-      };
-
-      return {
+      return awaitPromises({
         type: 'TELEVISION' as const,
-        volume: volumeEvent ? {
-          start: volumeEvent.start.toISOString(),
-          end: volumeEvent.end?.toISOString() ?? null,
-          lastReported: volumeEvent.lastReported.toISOString(),
-          value: volumeEvent.value,
-        } : volumeFallback,
-        isMuted: await mapBooleanEvent(Promise.resolve(isMutedEvent), device),
-        currentSource: sourceEvent ? {
-          start: sourceEvent.start.toISOString(),
-          end: sourceEvent.end?.toISOString() ?? null,
-          lastReported: sourceEvent.lastReported.toISOString(),
-          value: sourceEvent.value,
-        } : sourceFallback,
+        volume: mapNumericState(tv.getVolumeEvent(), device),
+        isMuted: mapBooleanState(tv.getIsMutedEvent(), device),
+        currentSource: mapStringState(tv.getCurrentSourceEvent(), device),
         availableSources: sources.map(s => ({ label: s.label, kind: s.kind })),
-      };
+      });
     }
 
     case 'BATTERY_LEVEL_INDICATOR': {
       const battery = device.getBatteryLevelIndicatorCapability();
       return awaitPromises({
         type: 'BATTERY_LEVEL_INDICATOR' as const,
-        batteryPercentage: mapNumericEvent(battery.getBatteryPercentageEvent())
+        batteryPercentage: mapNumericState(battery.getBatteryPercentageEvent(), device)
       });
     }
 
@@ -247,7 +215,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const battery = device.getBatteryLowIndicatorCapability();
       return awaitPromises({
         type: 'BATTERY_LOW_INDICATOR' as const,
-        isLow: mapBooleanEvent(battery.getIsBatteryLowEvent(), device)
+        isLow: mapBooleanState(battery.getIsBatteryLowEvent(), device)
       });
     }
 
@@ -257,7 +225,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
       return {
         type: 'CONTACT_SENSOR' as const,
-        isClosed: await mapBooleanEvent(Promise.resolve(event), device),
+        isClosed: await mapBooleanState(Promise.resolve(event), device),
         lastTriggered: event ? {
           start: event.start.toISOString(),
           end: event.end?.toISOString() ?? null,
@@ -286,11 +254,11 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
       return awaitPromises({
         type: 'ELECTRIC_VEHICLE' as const,
-        chargePercentage: mapNumericEvent(ev.getChargePercentageEvent()),
-        isCharging: mapBooleanEvent(ev.getIsChargingEvent(), device),
-        isCableConnected: mapBooleanEvent(ev.getIsCableConnectedEvent(), device),
-        chargeLimit: mapNumericEvent(ev.getChargeLimitEvent()),
-        odometer: mapNumericEvent(ev.getOdometerEvent()),
+        chargePercentage: mapNumericState(ev.getChargePercentageEvent(), device),
+        isCharging: mapBooleanState(ev.getIsChargingEvent(), device),
+        isCableConnected: mapBooleanState(ev.getIsCableConnectedEvent(), device),
+        chargeLimit: mapNumericState(ev.getChargeLimitEvent(), device),
+        odometer: mapNumericState(ev.getOdometerEvent(), device),
         chargeSchedule: ev.getNextChargeSchedule(),
       });
     }
@@ -299,7 +267,26 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       const conn = device.getConnectivityCapability();
       return awaitPromises({
         type: 'CONNECTIVITY' as const,
-        isConnected: mapBooleanEvent(conn.getIsConnectedEvent(), device)
+        isConnected: mapBooleanState(conn.getIsConnectedEvent(), device)
+      });
+    }
+
+    case 'ENERGY_MONITOR': {
+      const energyMonitor = device.getEnergyMonitorCapability();
+      return awaitPromises({
+        type: 'ENERGY_MONITOR' as const,
+        currentPower: mapNumericState(energyMonitor.getCurrentPowerEvent(), device),
+        dayEnergy: mapNumericState(energyMonitor.getDayEnergyEvent(), device),
+        dayCost: mapNumericState(energyMonitor.getDayCostEvent(), device)
+      });
+    }
+
+    case 'ENERGY_COST': {
+      const energyCost = device.getEnergyCostCapability();
+      return awaitPromises({
+        type: 'ENERGY_COST' as const,
+        unitRate: mapNumericState(energyCost.getUnitRateEvent(), device),
+        standingCharge: mapNumericState(energyCost.getStandingChargeEvent(), device)
       });
     }
 

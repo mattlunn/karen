@@ -28,7 +28,9 @@ import {
   BinCollectionCapability,
   ButtonCapability,
   ContactSensorCapability,
-  ConnectivityCapability
+  ConnectivityCapability,
+  EnergyMonitorCapability,
+  EnergyCostCapability
 } from './capabilities';
 
 export class Device extends Model<InferAttributes<Device>, InferCreationAttributes<Device>> {
@@ -139,6 +141,14 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   getContactSensorCapability(): ContactSensorCapability {
     return this.#getCapabilityOrThrow(() => new ContactSensorCapability(this));
+  }
+
+  getEnergyMonitorCapability(): EnergyMonitorCapability {
+    return this.#getCapabilityOrThrow(() => new EnergyMonitorCapability(this));
+  }
+
+  getEnergyCostCapability(): EnergyCostCapability {
+    return this.#getCapabilityOrThrow(() => new EnergyCostCapability(this));
   }
 
   getCapabilities(): Capability[] {
