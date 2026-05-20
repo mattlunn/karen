@@ -36,7 +36,7 @@ export async function synchronize() {
 
     for (const signal of signals.data) {
       try {
-        await processSignal(ev, signal.attributes);
+        await processSignal(device, signal.attributes);
       } catch (error) {
         logger.error(error, `Error processing signal ${signal.attributes.code}`);
       }
@@ -59,7 +59,7 @@ export async function synchronize() {
 
 Device.registerProvider('vehicle', {
   getCapabilities() {
-    return ['ELECTRIC_VEHICLE', 'CONNECTIVITY'];
+    return ['ELECTRIC_VEHICLE', 'ENERGY_MONITOR', 'CONNECTIVITY'];
   },
 
   provideElectricVehicleCapability() {
@@ -152,7 +152,7 @@ async function recomputeStartTimeForNextCharge(device: Device, ev: ElectricVehic
     return;
   }
 
-  const chargeRate = config.smartcar.default_charge_rate_pct_per_hour;
+  const chargeRate = (config.smartcar.charge_power_watts / 1000) / config.smartcar.battery_capacity_kwh * 100;
   const percentageNeeded = stored.targetPercentage - await ev.getChargePercentage();
   const hoursNeeded = percentageNeeded / chargeRate;
   const bufferHours = config.smartcar.charge_start_buffer_hours ?? 0;

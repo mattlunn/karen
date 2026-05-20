@@ -1,5 +1,6 @@
 import type { SmartcarSignalAttributes, SmartcarSuccessSignalAttributes } from './types';
-import { ElectricVehicleCapability } from '../../models/capabilities';
+import { Device } from '../../models';
+import config from '../../config';
 import logger from '../../logger';
 
 const KM_TO_MILES = 0.621371;
@@ -9,7 +10,7 @@ function isSuccessSignal(signal: SmartcarSignalAttributes): signal is SmartcarSu
 }
 
 export async function processSignal(
-  ev: ElectricVehicleCapability,
+  device: Device,
   signal: SmartcarSignalAttributes
 ): Promise<void> {
   logger.info(`Processing an update for signal ${signal.code}. ${JSON.stringify(signal.status)}`);
@@ -20,12 +21,20 @@ export async function processSignal(
 
   logger.info(`Processing an update for signal ${signal.code}. ${JSON.stringify(signal.body)}`);
 
+  const ev = device.getElectricVehicleCapability();
+
   switch (signal.code) {
     case 'tractionbattery-stateofcharge':
       await ev.setChargePercentageState(signal.body.value);
       break;
-    case 'charge-ischarging':
-      await ev.setIsChargingState(signal.body.value);
+    case 'charge-ischarging': {
+      const isCharging = signal.body.value;
+
+      await ev.setIsChargingState(isCharging);
+      await device.getEnergyMonitorCapability().setCurrentPowerState(
+        isCharging ? config.smartcar.charge_power_watts : 0
+      );
+    }
       break;
     case 'charge-ischargingcableconnected':
       await ev.setIsCableConnectedState(signal.body.value);

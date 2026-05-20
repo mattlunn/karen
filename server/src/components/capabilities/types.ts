@@ -1,7 +1,15 @@
 import { ReactNode } from 'react';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { QueryClient } from '@tanstack/react-query';
-import type { CapabilityApiResponse, RestDeviceResponse } from '../../api/types';
+import type {
+  CapabilityApiResponse,
+  RestDeviceResponse,
+  NumericStateApiResponse,
+  BooleanStateApiResponse,
+  EnumStateApiResponse,
+  BooleanEventApiResponse,
+  EnumEventApiResponse,
+} from '../../api/types';
 import type { DateRangePreset } from '../date-range/types';
 
 // ============================================================================
@@ -43,6 +51,63 @@ export type CapabilityMetric = CapabilityMetricBase & (
   | { since: string; lastReported: string }
   | { footer?: string }
 );
+
+/**
+ * Anything carrying `start` / `lastReported` that can back a metric.
+ *
+ * - `*StateApiResponse` types are live-state envelopes whose `value` may be
+ *   `null` when no observation has happened yet.
+ * - `*EventApiResponse` types are real events with a non-null `value`:
+ *   `BooleanEventApiResponse` is a momentary event (used by BUTTON), passed as
+ *   an `E | null` field where `null` means "never happened";
+ *   `EnumEventApiResponse` backs CAMERA's synchronously-built snapshot URL.
+ */
+export type CapabilityEvent =
+  | NumericStateApiResponse
+  | BooleanStateApiResponse
+  | EnumStateApiResponse
+  | BooleanEventApiResponse
+  | EnumEventApiResponse;
+
+/**
+ * Narrows a capability event's `value` to its non-null form. Used to type the
+ * `value` / `iconColor` / `iconHighlighted` / `isIssue` callbacks, which
+ * `createCapability` only invokes when an observed value is present.
+ */
+export type WithObservedValue<E> = E extends { value: infer V }
+  ? Omit<E, 'value'> & { value: NonNullable<V> }
+  : E;
+
+/**
+ * A config value that is either static, or a function resolved against the
+ * metric's backing event (which may be `null` when there is no event).
+ */
+export type EventResolved<E extends CapabilityEvent | null, T> = T | ((event: E) => T);
+
+/**
+ * Config for `createCapability`. Any of the display props may be a plain value
+ * or a function of the backing event. `since` / `lastReported` are derived from
+ * the event automatically unless given explicitly (or `footer` is used instead,
+ * for metrics with no backing event).
+ *
+ * Most callbacks receive the event with its `value` narrowed to non-null —
+ * `createCapability` short-circuits state envelopes whose `value` is `null` to
+ * a uniform "no reading" rendering, so per-capability callbacks never have to
+ * branch on absence. The `icon` callback is the exception: each capability
+ * picks its own neutral fallback icon for the unobserved state.
+ */
+export type CreateCapabilityConfig<E extends CapabilityEvent | null> = {
+  icon: EventResolved<E, IconDefinition>;
+  title: string;
+  value: EventResolved<WithObservedValue<E>, ReactNode>;
+  iconColor?: EventResolved<WithObservedValue<E>, string | undefined>;
+  iconHighlighted?: EventResolved<WithObservedValue<E>, boolean | undefined>;
+  isIssue?: EventResolved<WithObservedValue<E>, boolean | undefined>;
+  onIconClick?: (ctx: IconClickContext) => void | Promise<void>;
+  since?: string;
+  lastReported?: string;
+  footer?: string;
+};
 
 /**
  * Configuration for a graph on the device details page.

@@ -7,6 +7,7 @@ import { CapabilityGraph } from '../capability-graphs/capability-graph';
 import PageLoader from '../page-loader';
 import { Link } from 'react-router-dom';
 import { forDeviceCapability } from '../../helpers/device';
+import { formatValueOrUnknown as v } from '../../helpers/format';
 
 function ThermostatTable() {
   const { data, isLoading } = useDevices();
@@ -34,9 +35,9 @@ function ThermostatTable() {
               </Anchor>
               {cap.isPassive.value && <Badge ml="xs" size="xs" variant="outline" color="gray">Passive</Badge>}
             </Table.Td>
-            <Table.Td>{cap.targetTemperature.value}°</Table.Td>
-            <Table.Td>{cap.currentTemperature.value}°</Table.Td>
-            <Table.Td>{cap.power.value}%</Table.Td>
+            <Table.Td>{v(cap.targetTemperature.value, (temp) => `${temp}°`)}</Table.Td>
+            <Table.Td>{v(cap.currentTemperature.value, (temp) => `${temp}°`)}</Table.Td>
+            <Table.Td>{v(cap.power.value, (power) => `${power}%`)}</Table.Td>
           </Table.Tr>
         ))}
       </Table.Tbody>

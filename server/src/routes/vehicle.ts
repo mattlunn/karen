@@ -92,11 +92,10 @@ smartcarRouter.post('/webhook', async (req, res) => {
     }
 
     const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
-    const ev = device.getElectricVehicleCapability();
 
     for (const signal of req.body.data.signals) {
       try {
-        await processSignal(ev, signal);
+        await processSignal(device, signal);
       } catch (error) {
         logger.error(error, `Error processing webhook signal ${signal.code}`);
       }

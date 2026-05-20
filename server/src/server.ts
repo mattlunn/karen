@@ -34,6 +34,8 @@ require('./services/ebusd');
 require('./services/homeconnect');
 require('./services/vehicle');
 require('./services/bins');
+require('./services/octopus');
+require('./services/energy');
 
 require('./automations');
 
