@@ -94,8 +94,8 @@ declare namespace _default {
     const application_id: string;
     const client_id: string;
     const client_secret: string;
-    let refresh_token: string;
-    const vehicle_id: string;
+    let user_id: string;
+    let vehicle_id: string;
     const application_management_token: string;
     const secret: string;
     const default_charge_limit: number;

@@ -16,25 +16,25 @@ export async function synchronize() {
   let device = await Device.findByProviderId('vehicle', config.smartcar.vehicle_id);
 
   try {
-    const attributes = await client.getVehicleAttributes();
+    const signals = await client.getSignals();
+    const { make, model, year } = signals.included.vehicle.attributes;
 
     if (!device) {
       device = Device.build({
         provider: 'vehicle',
         providerId: config.smartcar.vehicle_id,
-        name: `${attributes.make} ${attributes.model}`,
+        name: `${make} ${model}`,
       });
     }
 
-    device.manufacturer = attributes.make;
-    device.model = `${attributes.model} (${attributes.year})`;
+    device.manufacturer = make;
+    device.model = `${model} (${year})`;
 
     await device.save();
 
     const ev = device.getElectricVehicleCapability();
-    const signals = await client.getSignals();
 
-    for (const signal of signals.body.data) {
+    for (const signal of signals.data) {
       try {
         await processSignal(ev, signal.attributes);
       } catch (error) {

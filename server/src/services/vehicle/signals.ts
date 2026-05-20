@@ -1,4 +1,4 @@
-import type { SmartcarSignalAttributes, SmartcarSuccessSignalAttributes } from 'smartcar';
+import type { SmartcarSignalAttributes, SmartcarSuccessSignalAttributes } from './types';
 import { ElectricVehicleCapability } from '../../models/capabilities';
 import logger from '../../logger';
 

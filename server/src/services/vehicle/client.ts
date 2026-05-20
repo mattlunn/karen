@@ -1,7 +1,9 @@
-import smartcar from 'smartcar';
 import config from '../../config';
-import { saveConfig } from '../../helpers/config';
 import logger from '../../logger';
+import type { SmartcarSignalsResponse, SmartcarConnectionsResponse } from './types';
+
+const IAM_TOKEN_URL = 'https://iam.smartcar.com/oauth2/token';
+const V3_BASE_URL = 'https://vehicle.api.smartcar.com/v3';
 
 type TokenCache = {
   accessToken: string;
@@ -12,103 +14,134 @@ let tokenCache: TokenCache | null = null;
 let pendingTokenRequest: Promise<string> | null = null;
 
 /**
- * Get a valid access token, refreshing if necessary
+ * Get a valid application-level access token, fetching a new one if necessary.
+ * V3 uses the OAuth client-credentials grant — there is no refresh token, so an
+ * expired token is simply replaced by a fresh one.
  */
 async function getAccessToken(): Promise<string> {
-  // If there's already a pending request, wait for it
   if (pendingTokenRequest) {
     return pendingTokenRequest;
   }
 
-  // If we have a cached token that hasn't expired, use it
   if (tokenCache && tokenCache.expiresAt > Date.now()) {
     return tokenCache.accessToken;
   }
 
-  // Otherwise, refresh the token
-  pendingTokenRequest = refreshAccessToken().finally(() => {
+  pendingTokenRequest = fetchAppToken().finally(() => {
     pendingTokenRequest = null;
   });
 
   return pendingTokenRequest;
 }
 
-async function refreshAccessToken(): Promise<string> {
-  const authClient = new smartcar.AuthClient({
-    clientId: config.smartcar.client_id,
-    clientSecret: config.smartcar.client_secret,
-    redirectUri: 'urn:ietf:wg:oauth:2.0:oob', // Placeholder (not used for refresh token exchange)
-    mode: 'live',
+async function fetchAppToken(): Promise<string> {
+  const response = await fetch(IAM_TOKEN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: config.smartcar.client_id,
+      client_secret: config.smartcar.client_secret,
+    }),
   });
 
-  const oldRefreshToken = config.smartcar.refresh_token;
-
-  if (!tokenCache) {
-    logger.info(`SmartCar: starting with refresh token ...${oldRefreshToken?.slice(-8)}`);
+  if (!response.ok) {
+    throw new Error(`SmartCar token request failed (${response.status}): ${await response.text()}`);
   }
 
-  const result = await authClient.exchangeRefreshToken(oldRefreshToken);
+  const { access_token: accessToken, expires_in: expiresIn } = await response.json();
 
-  logger.info(`SmartCar: exchanged refresh token ...${oldRefreshToken?.slice(-8)} → ...${result.refreshToken?.slice(-8)}`);
-
-  config.smartcar.refresh_token = result.refreshToken;
-  saveConfig();
-
-  // Cache the new access token
   tokenCache = {
-    accessToken: result.accessToken,
-    expiresAt: Date.now() + (result.expiresIn * 1000) - 60000, // 1 min buffer
+    accessToken,
+    expiresAt: Date.now() + (expiresIn * 1000) - 60000, // 1 min buffer
   };
 
-  return result.accessToken;
+  logger.info('SmartCar: obtained application access token');
+
+  return accessToken;
 }
 
-/**
- * Get a SmartCar vehicle instance
- */
-async function getVehicle() {
+type V3RequestOptions = {
+  method?: 'GET' | 'POST' | 'DELETE';
+  body?: unknown;
+  // Whether to send the sc-user-id header — required for vehicle signals and commands.
+  scoped?: boolean;
+};
+
+async function v3Request(path: string, { method = 'GET', body, scoped = false }: V3RequestOptions = {}) {
   const accessToken = await getAccessToken();
-  return new smartcar.Vehicle(config.smartcar.vehicle_id, accessToken);
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+  };
+
+  if (scoped) {
+    headers['sc-user-id'] = config.smartcar.user_id;
+  }
+
+  if (body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const response = await fetch(`${V3_BASE_URL}${path}`, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+
+  if (!response.ok) {
+    throw new Error(`SmartCar V3 request failed (${response.status} ${method} ${path}): ${await response.text()}`);
+  }
+
+  return response.json();
 }
 
 /**
- * Get vehicle attributes (make, model, year)
+ * List the vehicle connections for a given user.
  */
-export async function getVehicleAttributes(): Promise<{ id: string; make: string; model: string; year: number }> {
-  const vehicle = await getVehicle();
-  const attributes = await vehicle.attributes();
-  return attributes;
+export async function listConnections(userId: string): Promise<SmartcarConnectionsResponse> {
+  return v3Request(`/connections?filter[user_id]=${encodeURIComponent(userId)}`);
 }
 
 /**
- * Get signals
+ * Get the latest signals (battery %, charging state, odometer, etc.). The
+ * response also includes the vehicle's make/model/year under `included.vehicle`.
  */
-export async function getSignals() {
-  const vehicle = await getVehicle();
-  return vehicle.getSignals();
+export async function getSignals(): Promise<SmartcarSignalsResponse> {
+  return v3Request(`/vehicles/${config.smartcar.vehicle_id}/signals`, { scoped: true });
 }
 
 /**
- * Set charge limit
- * Accepts percentage as 0-100 (SmartCar expects 0-1)
+ * Set charge limit. Accepts percentage as 0-100 (SmartCar expects 0-1).
  */
 export async function setChargeLimit(limit: number): Promise<void> {
-  const vehicle = await getVehicle();
-  logger.info(await vehicle.setChargeLimit(limit / 100));
+  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/charge/limit`, {
+    method: 'POST',
+    body: { limit: String(limit / 100) },
+    scoped: true,
+  });
 }
 
 /**
- * Start charging
+ * Start charging.
  */
 export async function startCharge(): Promise<void> {
-  const vehicle = await getVehicle();
-  await vehicle.startCharge();
+  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/charge`, {
+    method: 'POST',
+    body: { action: 'START' },
+    scoped: true,
+  });
 }
 
 /**
- * Stop charging
+ * Stop charging.
  */
 export async function stopCharge(): Promise<void> {
-  const vehicle = await getVehicle();
-  await vehicle.stopCharge();
+  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/charge`, {
+    method: 'POST',
+    body: { action: 'STOP' },
+    scoped: true,
+  });
 }
