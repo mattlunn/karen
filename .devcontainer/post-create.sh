@@ -2,7 +2,7 @@
 set -e
 
 # Install MySQL client (mysqldump) and openssh-client (ssh-keygen, ssh-keyscan).
-apt-get update -qq && apt-get install -y -q default-mysql-client openssh-client
+apt-get update -qq && apt-get install -y -q default-mysql-client openssh-client jq iputils-ping vim
 
 # Provision a karen-only deploy key in the persisted ~/.ssh volume.
 # On first run we generate the key and print the public half so it can
