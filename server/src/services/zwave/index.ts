@@ -393,17 +393,6 @@ Device.registerProvider('zwave', {
 
           await knownDevice.save();
           await knownDevice.getConnectivityCapability().setIsConnectedState(node.status !== ZWAVE_NODE_STATUS_DEAD);
-
-          // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)
-          if (knownDevice.getCapabilities().includes('LIGHT')) {
-            const brightnessEvent = await knownDevice.getLightCapability().getBrightnessEvent();
-
-            if (brightnessEvent === null) {
-              await knownDevice.getLightCapability().setBrightnessState(100, knownDevice.createdAt);
-
-              logger.info(`Initialized brightness for zwave light device ${knownDevice.id}`);
-            }
-          }
         }
       }
     }

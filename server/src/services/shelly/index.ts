@@ -60,17 +60,6 @@ Device.registerProvider('shelly', {
           device.name = newName;
         }
 
-        // TODO: Eventually move this to "on create" (right now we also have to correct existing devices)
-        if (device.getCapabilities().includes('LIGHT')) {
-          const brightnessEvent = await device.getLightCapability().getBrightnessEvent();
-
-          if (brightnessEvent === null) {
-            await device.getLightCapability().setBrightnessState(100, device.createdAt);
-
-            logger.info(`Initialized brightness for Shelly light device ${device.id}`);
-          }
-        }
-
         device.manufacturer = 'Shelly';
         device.model = await shellyDevice.getModel() || 'Unknown';
 

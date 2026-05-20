@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Button, Group, Slider, Text, Title } from '@mantine/core';
 import { useThermostatMutation } from '../../hooks/mutations/use-device-mutations';
+import { formatValueOrUnknown as v } from '../../helpers/format';
 import type { RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 
 type ThermostatCapability = Extract<CapabilityApiResponse, { type: 'THERMOSTAT' }>;
@@ -12,7 +13,7 @@ interface ThermostatModalProps {
 }
 
 export default function ThermostatModal({ device, capability, closeModal }: ThermostatModalProps) {
-  const [targetTemperature, setTargetTemperature] = useState<number>(capability.targetTemperature.value);
+  const [targetTemperature, setTargetTemperature] = useState<number>(capability.targetTemperature.value ?? 18);
   const { mutate: updateThermostat, isPending } = useThermostatMutation(device.id);
 
   const handleSubmit = () => {
@@ -25,8 +26,8 @@ export default function ThermostatModal({ device, capability, closeModal }: Ther
     <>
       <Title order={3} mb="md">Set Temperature for {device.name}</Title>
 
-      <Text>Current Temperature: <strong>{capability.currentTemperature.value.toFixed(1)}°</strong></Text>
-      <Text mb="sm">Current Target: <strong>{capability.targetTemperature.value.toFixed(1)}°</strong></Text>
+      <Text>Current Temperature: <strong>{v(capability.currentTemperature.value, (temp) => `${temp.toFixed(1)}°`)}</strong></Text>
+      <Text mb="sm">Current Target: <strong>{v(capability.targetTemperature.value, (temp) => `${temp.toFixed(1)}°`)}</strong></Text>
 
       <Box my="xl">
         <Slider
