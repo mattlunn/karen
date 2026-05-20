@@ -8,6 +8,7 @@ import type {
   BooleanStateApiResponse,
   EnumStateApiResponse,
   BooleanEventApiResponse,
+  EnumEventApiResponse,
 } from '../../api/types';
 import type { DateRangePreset } from '../date-range/types';
 
@@ -56,14 +57,17 @@ export type CapabilityMetric = CapabilityMetricBase & (
  *
  * - `*StateApiResponse` types are live-state envelopes whose `value` may be
  *   `null` when no observation has happened yet.
- * - `BooleanEventApiResponse` is a real momentary event (used by BUTTON), passed
- *   as an `E | null` field where `null` means "never happened".
+ * - `*EventApiResponse` types are real events with a non-null `value`:
+ *   `BooleanEventApiResponse` is a momentary event (used by BUTTON), passed as
+ *   an `E | null` field where `null` means "never happened";
+ *   `EnumEventApiResponse` backs CAMERA's synchronously-built snapshot URL.
  */
 export type CapabilityEvent =
   | NumericStateApiResponse
   | BooleanStateApiResponse
   | EnumStateApiResponse
-  | BooleanEventApiResponse;
+  | BooleanEventApiResponse
+  | EnumEventApiResponse;
 
 /**
  * Narrows a capability event's `value` to its non-null form. Used to type the

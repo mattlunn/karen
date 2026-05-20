@@ -42,7 +42,7 @@ export type CapabilityApiResponse = {
   dayCoP: NumericStateApiResponse;
 } | {
   type: 'CAMERA';
-  snapshotUrl: EnumStateApiResponse;
+  snapshotUrl: EnumEventApiResponse;
 } | {
   type: 'LOCK';
   isLocked: BooleanStateApiResponse;

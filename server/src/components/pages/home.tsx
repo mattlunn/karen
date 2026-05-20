@@ -10,7 +10,7 @@ import { forDeviceCapability } from '../../helpers/device';
 interface Camera {
   id: number;
   name: string;
-  snapshotUrl: string | null;
+  snapshotUrl: string;
 }
 
 export default function Home() {

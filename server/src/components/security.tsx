@@ -6,7 +6,7 @@ import styles from './security.module.css';
 interface Camera {
   id: number;
   name: string;
-  snapshotUrl: string | null;
+  snapshotUrl: string;
 }
 
 interface SnapshotData {
@@ -16,8 +16,8 @@ interface SnapshotData {
 
 type SnapshotsMap = Record<number, SnapshotData>;
 
-async function loadSnapshot(snapshotUrl: string): Promise<string> {
-  const response = await fetch(snapshotUrl, {
+async function loadSnapshot(camera: Camera): Promise<string> {
+  const response = await fetch(camera.snapshotUrl, {
     credentials: 'same-origin'
   });
 
@@ -32,13 +32,9 @@ function useSnapshotData(cameras: Camera[]): SnapshotsMap {
     const urls = blobUrls.current;
 
     async function refreshCamera(camera: Camera) {
-      if (camera.snapshotUrl === null) {
-        return;
-      }
-
       setSnapshots(prev => ({ ...prev, [camera.id]: { loading: true, snapshot: prev[camera.id]?.snapshot ?? null } }));
       try {
-        const snapshot = await loadSnapshot(camera.snapshotUrl);
+        const snapshot = await loadSnapshot(camera);
         const old = urls.get(camera.id);
 
         if (old) {
