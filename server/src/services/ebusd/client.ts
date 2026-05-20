@@ -109,11 +109,13 @@ export default class EbusClient {
   }
 
   async getCurrentYield(): Promise<number> {
-    return this.#read({ value: 'CurrentYieldPower', circuit: 'hmu' }, toNumber);
+    // ebusd reports power in kW; Karen works in W throughout.
+    return this.#read({ value: 'CurrentYieldPower', circuit: 'hmu' }, (raw) => toNumber(raw) * 1000);
   }
 
   async getCurrentPower(): Promise<number> {
-    return this.#read({ value: 'CurrentConsumedPower', circuit: 'hmu' }, toNumber);
+    // ebusd reports power in kW; Karen works in W throughout.
+    return this.#read({ value: 'CurrentConsumedPower', circuit: 'hmu' }, (raw) => toNumber(raw) * 1000);
   }
 
   async getMode(): Promise<string> {
