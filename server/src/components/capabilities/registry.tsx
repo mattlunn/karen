@@ -127,32 +127,34 @@ export const MetricDisplayProvider = MetricDisplayContext.Provider;
 // ============================================================================
 
 type LightCapability = Extract<CapabilityApiResponse, { type: 'LIGHT' }>;
+type TelevisionCapability = Extract<CapabilityApiResponse, { type: 'TELEVISION' }>;
 
-function BrightnessControl({ device, capability }: { device: RestDeviceResponse; capability: LightCapability }) {
-  const queryClient = useQueryClient();
+function NumericControl({ selectedValue, min, max, increment, formatLabel = String, onClick }: {
+  selectedValue: number;
+  min: number;
+  max: number;
+  increment: number;
+  formatLabel?: (value: number) => string;
+  onClick: (value: number) => Promise<void>;
+}) {
   const variant = React.useContext(MetricDisplayContext);
-  const brightness = capability.brightness.value ?? 100;
-
   const data: { value: string; label: string }[] = [];
-  let selectedValue: string | undefined;
+  let selected: string | undefined;
 
-  for (let i = 0; i <= 100; i += 5) {
-    const shouldSelect = i === brightness || (brightness < i && selectedValue === undefined);
-
+  for (let i = min; i <= max; i += increment) {
+    const shouldSelect = i === selectedValue || (selectedValue < i && selected === undefined);
     if (shouldSelect) {
-      selectedValue = String(i);
+      selected = String(i);
     }
-
-    data.push({ value: String(i), label: `${i}%` });
+    data.push({ value: String(i), label: formatLabel(i) });
   }
 
   return (
     <NativeSelect
       data={data}
-      defaultValue={selectedValue}
+      defaultValue={selected}
       onChange={async (e) => {
-        const result = await updateLight(device.id, { brightness: Number(e.target.value) });
-        updateDeviceCache(queryClient, device.id, result);
+        await onClick(Number(e.target.value));
       }}
       size={variant === 'compact' ? 'xs' : 'xl'}
       w="fit-content"
@@ -161,35 +163,35 @@ function BrightnessControl({ device, capability }: { device: RestDeviceResponse;
   );
 }
 
-type TelevisionCapability = Extract<CapabilityApiResponse, { type: 'TELEVISION' }>;
+function BrightnessControl({ device, capability }: { device: RestDeviceResponse; capability: LightCapability }) {
+  const queryClient = useQueryClient();
+  return (
+    <NumericControl
+      selectedValue={capability.brightness.value ?? 100}
+      min={0}
+      max={100}
+      increment={5}
+      formatLabel={(i) => `${i}%`}
+      onClick={async (value) => {
+        const result = await updateLight(device.id, { brightness: value });
+        updateDeviceCache(queryClient, device.id, result);
+      }}
+    />
+  );
+}
 
 function VolumeControl({ device, capability }: { device: RestDeviceResponse; capability: TelevisionCapability }) {
   const queryClient = useQueryClient();
-  const variant = React.useContext(MetricDisplayContext);
-  const volume = capability.volume.value ?? 0;
-
-  const data: { value: string; label: string }[] = [];
-  let selectedValue: string | undefined;
-
-  for (let i = 0; i <= 100; i += 5) {
-    const shouldSelect = i === volume || (volume < i && selectedValue === undefined);
-    if (shouldSelect) {
-      selectedValue = String(i);
-    }
-    data.push({ value: String(i), label: String(i) });
-  }
-
   return (
-    <NativeSelect
-      data={data}
-      defaultValue={selectedValue}
-      onChange={async (e) => {
-        const result = await updateTelevision(device.id, { volume: Number(e.target.value) });
+    <NumericControl
+      selectedValue={capability.volume.value ?? 0}
+      min={0}
+      max={100}
+      increment={5}
+      onClick={async (value) => {
+        const result = await updateTelevision(device.id, { volume: value });
         updateDeviceCache(queryClient, device.id, result);
       }}
-      size={variant === 'compact' ? 'xs' : 'xl'}
-      w="fit-content"
-      display={variant === 'compact' ? 'inline-block' : 'block'}
     />
   );
 }

@@ -79,7 +79,7 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
           properties: {
             supported: [{ name: 'channel' }],
             proactivelyReported: false,
-            retrievable: true
+            retrievable: false
           }
         }, {
           type: 'AlexaInterface',

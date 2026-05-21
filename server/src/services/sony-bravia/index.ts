@@ -133,6 +133,7 @@ async function pollDevice(device: Device): Promise<boolean> {
       await tv.setVolumeState(volumeResult[0].value.volume);
       await tv.setIsMutedState(volumeResult[0].value.mute);
     } else if (!(volumeResult[0].reason instanceof BraviaError && volumeResult[0].reason.code === 7)) {
+      // code 7 = "Illegal State": TV reports active but audio API isn't ready yet (brief post-power-on race). Safe to skip.
       logger.warn({ err: volumeResult[0].reason }, `Bravia ${device.id} volume read failed`);
     }
   }
