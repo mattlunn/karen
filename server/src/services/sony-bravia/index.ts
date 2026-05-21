@@ -56,9 +56,11 @@ Device.registerProvider('sony-bravia', {
       async setVolume(device: Device, volume: number) {
         await clientFor(device).setVolume(volume);
       },
+
       async setIsMuted(device: Device, mute: boolean) {
         await clientFor(device).setMute(mute);
       },
+
       async setCurrentSource(device: Device, label: string) {
         const source = findSource(device, label);
 
@@ -72,6 +74,7 @@ Device.registerProvider('sony-bravia', {
           await clientFor(device).switchToChannel(source.number);
         }
       },
+      
       getAvailableSources(device: Device): TelevisionSource[] {
         return sourcesFor(device).map(s => ({ label: s.label, kind: s.kind }));
       },
@@ -127,14 +130,12 @@ async function pollDevice(device: Device): Promise<boolean> {
   await sw.setIsOnState(powerStatus === 'active');
 
   if (powerStatus === 'active') {
-    const volumeResult = await Promise.allSettled([client.getVolumeInformation()]);
-
-    if (volumeResult[0].status === 'fulfilled') {
-      await tv.setVolumeState(volumeResult[0].value.volume);
-      await tv.setIsMutedState(volumeResult[0].value.mute);
-    } else if (!(volumeResult[0].reason instanceof BraviaError && volumeResult[0].reason.code === 7)) {
-      // code 7 = "Illegal State": TV reports active but audio API isn't ready yet (brief post-power-on race). Safe to skip.
-      logger.warn({ err: volumeResult[0].reason }, `Bravia ${device.id} volume read failed`);
+    try {
+      const volume = await client.getVolumeInformation();
+      await tv.setVolumeState(volume.volume);
+      await tv.setIsMutedState(volume.mute);
+    } catch (err) {
+      logger.warn({ err }, `Bravia ${device.id} volume read failed`);
     }
   }
 

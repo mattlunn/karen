@@ -126,17 +126,18 @@ export const MetricDisplayProvider = MetricDisplayContext.Provider;
 // Interactive Controls
 // ============================================================================
 
-type LightCapability = Extract<CapabilityApiResponse, { type: 'LIGHT' }>;
 type TelevisionCapability = Extract<CapabilityApiResponse, { type: 'TELEVISION' }>;
 
-function NumericControl({ selectedValue, min, max, increment, formatLabel = String, onClick }: {
+function NumericControl({ deviceId, selectedValue, min, max, increment, formatLabel = String, onClick }: {
+  deviceId: number;
   selectedValue: number;
   min: number;
   max: number;
   increment: number;
   formatLabel?: (value: number) => string;
-  onClick: (value: number) => Promise<void>;
+  onClick: (value: number) => Promise<DeviceApiResponse>;
 }) {
+  const queryClient = useQueryClient();
   const variant = React.useContext(MetricDisplayContext);
   const data: { value: string; label: string }[] = [];
   let selected: string | undefined;
@@ -154,44 +155,12 @@ function NumericControl({ selectedValue, min, max, increment, formatLabel = Stri
       data={data}
       defaultValue={selected}
       onChange={async (e) => {
-        await onClick(Number(e.target.value));
+        const result = await onClick(Number(e.target.value));
+        updateDeviceCache(queryClient, deviceId, result);
       }}
       size={variant === 'compact' ? 'xs' : 'xl'}
       w="fit-content"
       display={variant === 'compact' ? 'inline-block' : 'block'}
-    />
-  );
-}
-
-function BrightnessControl({ device, capability }: { device: RestDeviceResponse; capability: LightCapability }) {
-  const queryClient = useQueryClient();
-  return (
-    <NumericControl
-      selectedValue={capability.brightness.value ?? 100}
-      min={0}
-      max={100}
-      increment={5}
-      formatLabel={(i) => `${i}%`}
-      onClick={async (value) => {
-        const result = await updateLight(device.id, { brightness: value });
-        updateDeviceCache(queryClient, device.id, result);
-      }}
-    />
-  );
-}
-
-function VolumeControl({ device, capability }: { device: RestDeviceResponse; capability: TelevisionCapability }) {
-  const queryClient = useQueryClient();
-  return (
-    <NumericControl
-      selectedValue={capability.volume.value ?? 0}
-      min={0}
-      max={100}
-      increment={5}
-      onClick={async (value) => {
-        const result = await updateTelevision(device.id, { volume: value });
-        updateDeviceCache(queryClient, device.id, result);
-      }}
     />
   );
 }
@@ -441,7 +410,7 @@ export const registry: CapabilityUIRegistry = {
       createCapability(cap.volume, {
         icon: cap.isMuted.value ? faVolumeXmark : faVolumeHigh,
         title: 'Volume',
-        value: <VolumeControl device={device} capability={cap} />,
+        value: <NumericControl deviceId={device.id} selectedValue={cap.volume.value ?? 0} min={0} max={100} increment={5} onClick={(value) => updateTelevision(device.id, { volume: value })} />,
         iconColor: '#04A7F4',
         iconHighlighted: !cap.isMuted.value,
         onIconClick: async ({ queryClient }) => {
@@ -580,7 +549,7 @@ export const registry: CapabilityUIRegistry = {
       createCapability(cap.brightness, {
         icon: faCircleHalfStroke,
         title: 'Brightness',
-        value: <BrightnessControl device={device} capability={cap} />,
+        value: <NumericControl deviceId={device.id} selectedValue={cap.brightness.value ?? 100} min={0} max={100} increment={5} formatLabel={(i) => `${i}%`} onClick={(value) => updateLight(device.id, { brightness: value })} />,
       }),
     ],
     getGraphs: () => [
