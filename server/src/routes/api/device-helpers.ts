@@ -2,7 +2,6 @@ import { Device, NumericEvent, BooleanEvent, StringEvent } from '../../models';
 import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
-import { sourcesFor } from '../../services/sony-bravia';
 
 export function mapNumericState(eventPromise: Promise<NumericEvent | null>, device: Device): Promise<NumericStateApiResponse> {
   return eventPromise.then(event => {
@@ -193,13 +192,12 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
     case 'TELEVISION': {
       const tv = device.getTelevisionCapability();
-      const sources = sourcesFor(device);
       return awaitPromises({
         type: 'TELEVISION' as const,
         volume: mapNumericState(tv.getVolumeEvent(), device),
         isMuted: mapBooleanState(tv.getIsMutedEvent(), device),
         currentSource: mapStringState(tv.getCurrentSourceEvent(), device),
-        availableSources: sources.map(s => ({ label: s.label, kind: s.kind })),
+        availableSources: tv.getAvailableSources(),
       });
     }
 

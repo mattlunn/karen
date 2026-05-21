@@ -1,4 +1,5 @@
 import { Device } from '../../models';
+import { TelevisionSource } from '../../models/capabilities';
 import config from '../../config';
 import logger from '../../logger';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
@@ -72,6 +73,9 @@ Device.registerProvider('sony-bravia', {
         }
 
         await device.getTelevisionCapability().setCurrentSourceState(label);
+      },
+      getAvailableSources(device: Device): TelevisionSource[] {
+        return sourcesFor(device).map(s => ({ label: s.label, kind: s.kind }));
       },
     };
   },

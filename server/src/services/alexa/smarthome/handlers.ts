@@ -134,16 +134,14 @@ async function createTelevisionResponseProperties(device: Device, sampleTime: Da
   const sw = device.getSwitchCapability();
   const tv = device.getTelevisionCapability();
 
-  const [isOn, volume, isMuted, connectivity] = await Promise.all([
+  const [isOn, volume, isMuted, currentSource, connectivity] = await Promise.all([
     sw.getIsOn(),
     tv.getVolume(),
     tv.getIsMuted(),
+    tv.getCurrentSource(),
     getConnectivityValue(device)
   ]);
 
-  // InputController / ChannelController are directive-only here (not declared
-  // retrievable in discovery), so only the genuinely-reportable properties
-  // are included in the state report.
   return [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
@@ -160,6 +158,12 @@ async function createTelevisionResponseProperties(device: Device, sampleTime: Da
     namespace: 'Alexa.Speaker',
     name: 'muted',
     value: isMuted,
+    timeOfSample: sampleTime.toISOString(),
+    uncertaintyInMilliseconds
+  }, {
+    namespace: 'Alexa.ChannelController',
+    name: 'channel',
+    value: { affiliateCallSign: currentSource },
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }, {

@@ -318,6 +318,8 @@
   "properties": []
 }, {
   "name": "Television",
+  "capabilityModelClassName": "TelevisionBase",
+  "capabilityProviderClassName": "ProviderTelevisionCapabilityBase",
   "properties": [
     {
       "name": "Volume",

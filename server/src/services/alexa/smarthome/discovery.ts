@@ -75,7 +75,12 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
         }, {
           type: 'AlexaInterface',
           interface: 'Alexa.ChannelController',
-          version: '3'
+          version: '3',
+          properties: {
+            supported: [{ name: 'channel' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
         }, {
           type: 'AlexaInterface',
           interface: 'Alexa.EndpointHealth',
