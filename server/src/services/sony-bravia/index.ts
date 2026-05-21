@@ -1,6 +1,7 @@
 import { Device } from '../../models';
 import { TelevisionSource } from '../../models/capabilities';
 import config from '../../config';
+import logger from '../../logger';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import BraviaClient from './client';
@@ -93,10 +94,14 @@ Device.registerProvider('sony-bravia', {
         });
       }
 
-      const info = await clientFor(device).getSystemInformation();
-
       device.manufacturer = 'Sony';
-      device.model = info.model || 'Bravia';
+
+      try {
+        const info = await clientFor(device).getSystemInformation();
+        device.model = info.model || 'Bravia';
+      } catch (err) {
+        logger.warn({ err }, `Could not read system info from Bravia ${entry.host}`);
+      }
 
       await device.save();
     }
@@ -112,10 +117,13 @@ async function pollDevice(device: Device) {
   await sw.setIsOnState(isOn);
 
   if (isOn) {
-    const volume = await client.getVolumeInformation();
-
-    await tv.setVolumeState(volume.volume);
-    await tv.setIsMutedState(volume.mute);
+    try {
+      const volume = await client.getVolumeInformation();
+      await tv.setVolumeState(volume.volume);
+      await tv.setIsMutedState(volume.mute);
+    } catch (err) {
+      logger.warn({ err }, `Bravia ${device.id} volume read failed`);
+    }
   }
 }
 
