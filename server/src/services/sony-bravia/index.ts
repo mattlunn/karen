@@ -4,7 +4,7 @@ import config from '../../config';
 import logger from '../../logger';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
-import BraviaClient, { BraviaError } from './client';
+import BraviaClient from './client';
 
 const YOUVIEW_URI = 'com.sony.dtv.com.youview.poa.com.youview.poa.ui.MainActivity';
 
@@ -118,13 +118,9 @@ async function pollDevice(device: Device): Promise<boolean> {
   try {
     powerStatus = await client.getPowerStatus();
   } catch (err) {
-    if (err instanceof BraviaError && err.code === 7) {
-      powerStatus = 'standby';
-    } else {
-      logger.debug({ err }, `Bravia ${device.id} unreachable`);
-      await sw.setIsOnState(false);
-      return false;
-    }
+    logger.debug({ err }, `Bravia ${device.id} unreachable`);
+    await sw.setIsOnState(false);
+    return false;
   }
 
   await sw.setIsOnState(powerStatus === 'active');

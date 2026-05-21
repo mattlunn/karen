@@ -112,8 +112,16 @@ export default class BraviaClient {
   }
 
   async getPowerStatus(): Promise<PowerStatus> {
-    const result = await this.#call<{ status: PowerStatus }>('/sony/system', 'getPowerStatus');
-    return result.status;
+    try {
+      const result = await this.#call<{ status: PowerStatus }>('/sony/system', 'getPowerStatus');
+      return result.status;
+    } catch (err) {
+      // code 7 = "Illegal State": API unavailable while TV is in standby.
+      if (err instanceof BraviaError && err.code === 7) {
+        return 'standby';
+      }
+      throw err;
+    }
   }
 
   async setPowerStatus(on: boolean): Promise<void> {
