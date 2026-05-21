@@ -46,7 +46,7 @@ async function storeDailyEnergyForDevice(
   const now = new Date();
   const today = dayjs(now).startOf('day');
   const startDay = latestDayEnergy !== null
-    ? dayjs(latestDayEnergy.start).startOf('day')
+    ? dayjs(latestDayEnergy.lastReported).startOf('day')
     : dayjs(device.createdAt).startOf('day');
 
   for (let day = startDay; day.isSameOrBefore(today); day = day.add(1, 'day').startOf('day')) {
