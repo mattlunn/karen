@@ -410,7 +410,7 @@ export const registry: CapabilityUIRegistry = {
       createCapability(cap.volume, {
         icon: cap.isMuted.value ? faVolumeXmark : faVolumeHigh,
         title: 'Volume',
-        value: <NumericControl deviceId={device.id} selectedValue={cap.volume.value ?? 0} min={0} max={100} increment={5} onClick={(value) => updateTelevision(device.id, { volume: value })} />,
+        value: <NumericControl deviceId={device.id} selectedValue={cap.volume.value ?? 0} min={0} max={20} increment={1} onClick={(value) => updateTelevision(device.id, { volume: value })} />,
         iconColor: '#04A7F4',
         iconHighlighted: !cap.isMuted.value,
         onIconClick: async ({ queryClient }) => {
