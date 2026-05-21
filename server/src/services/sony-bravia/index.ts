@@ -71,8 +71,6 @@ Device.registerProvider('sony-bravia', {
         } else {
           await clientFor(device).switchToChannel(source.number);
         }
-
-        await device.getTelevisionCapability().setCurrentSourceState(label);
       },
       getAvailableSources(device: Device): TelevisionSource[] {
         return sourcesFor(device).map(s => ({ label: s.label, kind: s.kind }));

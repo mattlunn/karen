@@ -60,7 +60,6 @@ export type CapabilityApiResponse = {
   type: 'TELEVISION';
   volume: NumericStateApiResponse;
   isMuted: BooleanStateApiResponse;
-  currentSource: EnumStateApiResponse;
   availableSources: { label: string; kind: 'channel' | 'guide' }[];
 } | {
   type: 'BATTERY_LEVEL_INDICATOR';

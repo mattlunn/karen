@@ -196,7 +196,6 @@ export async function getCapabilityData(device: Device, capability: string): Pro
         type: 'TELEVISION' as const,
         volume: mapNumericState(tv.getVolumeEvent(), device),
         isMuted: mapBooleanState(tv.getIsMutedEvent(), device),
-        currentSource: mapStringState(tv.getCurrentSourceEvent(), device),
         availableSources: tv.getAvailableSources(),
       });
     }

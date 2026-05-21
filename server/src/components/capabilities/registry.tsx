@@ -197,7 +197,6 @@ function VolumeControl({ device, capability }: { device: RestDeviceResponse; cap
 function SourceControl({ device, capability }: { device: RestDeviceResponse; capability: TelevisionCapability }) {
   const queryClient = useQueryClient();
   const variant = React.useContext(MetricDisplayContext);
-  const current = capability.currentSource.value ?? '';
 
   const guide = capability.availableSources.filter(s => s.kind === 'guide').map(s => s.label);
   const channels = capability.availableSources.filter(s => s.kind === 'channel').map(s => s.label);
@@ -208,8 +207,7 @@ function SourceControl({ device, capability }: { device: RestDeviceResponse; cap
 
   return (
     <NativeSelect
-      data={groups.length > 0 ? groups : [{ group: '', items: [current] }]}
-      defaultValue={current}
+      data={groups}
       onChange={async (e) => {
         const result = await updateTelevision(device.id, { source: e.target.value });
         updateDeviceCache(queryClient, device.id, result);
@@ -449,14 +447,12 @@ export const registry: CapabilityUIRegistry = {
           updateDeviceCache(queryClient, device.id, data);
         },
       }),
-      createCapability(cap.currentSource, {
+      {
         icon: faTv,
         title: 'Source',
-        value: cap.availableSources.length > 0
-          ? <SourceControl device={device} capability={cap} />
-          : (e) => e.value,
+        value: cap.availableSources.length > 0 ? <SourceControl device={device} capability={cap} /> : '-',
         iconColor: '#04A7F4',
-      }),
+      },
     ],
   },
 
