@@ -1,8 +1,13 @@
 #!/bin/bash
 set -e
 
-# Install MySQL client (mysqldump) and openssh-client (ssh-keygen, ssh-keyscan).
-apt-get update -qq && apt-get install -y -q default-mysql-client openssh-client
+# Install MySQL client, openssh-client, and GitHub CLI.
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+  | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null
+chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+  > /etc/apt/sources.list.d/github-cli.list
+apt-get update -qq && apt-get install -y -q default-mysql-client openssh-client gh
 
 # Provision a karen-only deploy key in the persisted ~/.ssh volume.
 # On first run we generate the key and print the public half so it can
@@ -48,6 +53,17 @@ npm install -g @anthropic-ai/claude-code
 # Running `claude` inside the container always skips permission prompts,
 # since the container itself is the security boundary.
 echo "alias claude='claude --dangerously-skip-permissions'" >> ~/.bashrc
+
+# Prompt for gh auth on first run (credentials persist in the gh volume).
+if ! gh auth status &>/dev/null; then
+  echo ""
+  echo "================================================================"
+  echo "GitHub CLI is not authenticated. Run: gh auth login"
+  echo "Choose GitHub.com → HTTPS → authenticate via browser or token."
+  echo "Credentials will persist across rebuilds."
+  echo "================================================================"
+  echo ""
+fi
 
 # Install project dependencies and generate capability types
 cd /workspace/server/src
