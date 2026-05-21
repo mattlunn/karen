@@ -11,13 +11,6 @@ interface SonyVolumeTarget {
   mute: boolean;
 }
 
-export interface SystemInformation {
-  model: string;
-  name?: string;
-  product?: string;
-  serial?: string;
-}
-
 interface SonyEnvelope<T> {
   result?: T[];
   error?: [number, string];
@@ -86,30 +79,6 @@ export default class BraviaClient {
     return envelope.result[0];
   }
 
-  // For methods that return {"result":[]} on success (no payload).
-  async #callVoid(path: string, method: string, params: object[] = []): Promise<void> {
-    const url = `http://${this.#host}${path}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-PSK': this.#psk,
-      },
-      body: JSON.stringify({ method, params, id: 1, version: '1.0' }),
-      signal: AbortSignal.timeout(this.#timeoutMs),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Bravia ${path}.${method} HTTP ${res.status}`);
-    }
-
-    const envelope = await res.json() as SonyEnvelope<never>;
-
-    if (envelope.error) {
-      const [code, message] = envelope.error;
-      throw new BraviaError(code, message, path, method);
-    }
-  }
 
   async getIsOn(): Promise<boolean> {
     try {
@@ -145,10 +114,6 @@ export default class BraviaClient {
     await this.#call('/sony/audio', 'setAudioMute', [{ status: mute }]);
   }
 
-  async setActiveApp(uri: string): Promise<void> {
-    await this.#callVoid('/sony/appControl', 'setActiveApp', [{ uri }]);
-  }
-
   async sendIrcc(name: keyof typeof IRCC_CODES): Promise<void> {
     const code = IRCC_CODES[name];
     const body = `<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:X_SendIRCC xmlns:u="urn:schemas-sony-com:service:IRCC:1"><IRCCCode>${code}</IRCCCode></u:X_SendIRCC></s:Body></s:Envelope>`;
@@ -176,10 +141,6 @@ export default class BraviaClient {
       await delay(600);
       await this.sendIrcc(`Num${digit}` as keyof typeof IRCC_CODES);
     }
-  }
-
-  async getSystemInformation(): Promise<SystemInformation> {
-    return await this.#call<SystemInformation>('/sony/system', 'getSystemInformation');
   }
 }
 

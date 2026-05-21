@@ -6,8 +6,6 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import BraviaClient from './client';
 
-const YOUVIEW_URI = 'com.sony.dtv.com.youview.poa.com.youview.poa.ui.MainActivity';
-
 export type SonySource =
   | { label: string; kind: 'channel'; number: number }
   | { label: string; kind: 'guide' };
@@ -69,7 +67,7 @@ Device.registerProvider('sony-bravia', {
         }
 
         if (source.kind === 'guide') {
-          await clientFor(device).setActiveApp(YOUVIEW_URI);
+          await clientFor(device).sendIrcc('GGuide');
         } else {
           await clientFor(device).switchToChannel(source.number);
         }
@@ -90,17 +88,9 @@ Device.registerProvider('sony-bravia', {
           provider: 'sony-bravia',
           providerId: entry.host,
           name: entry.name,
+          manufacturer: 'Sony',
           model: 'Bravia',
         });
-      }
-
-      device.manufacturer = 'Sony';
-
-      try {
-        const info = await clientFor(device).getSystemInformation();
-        device.model = info.model || 'Bravia';
-      } catch (err) {
-        logger.warn({ err }, `Could not read system info from Bravia ${entry.host}`);
       }
 
       await device.save();
