@@ -46,7 +46,7 @@ Device.registerProvider('sony-bravia', {
   provideSwitchCapability() {
     return {
       async setIsOn(device: Device, isOn: boolean) {
-        await clientFor(device).setPowerStatus(isOn);
+        await clientFor(device).setIsOn(isOn);
       },
     };
   },
@@ -113,19 +113,19 @@ async function pollDevice(device: Device): Promise<boolean> {
   const tv = device.getTelevisionCapability();
   const sw = device.getSwitchCapability();
 
-  let powerStatus: 'active' | 'standby';
+  let isOn: boolean;
 
   try {
-    powerStatus = await client.getPowerStatus();
+    isOn = await client.getIsOn();
   } catch (err) {
     logger.debug({ err }, `Bravia ${device.id} unreachable`);
     await sw.setIsOnState(false);
     return false;
   }
 
-  await sw.setIsOnState(powerStatus === 'active');
+  await sw.setIsOnState(isOn);
 
-  if (powerStatus === 'active') {
+  if (isOn) {
     try {
       const volume = await client.getVolumeInformation();
       await tv.setVolumeState(volume.volume);

@@ -1,4 +1,4 @@
-export type PowerStatus = 'active' | 'standby';
+type PowerStatus = 'active' | 'standby';
 
 export interface VolumeInformation {
   volume: number;
@@ -111,20 +111,20 @@ export default class BraviaClient {
     }
   }
 
-  async getPowerStatus(): Promise<PowerStatus> {
+  async getIsOn(): Promise<boolean> {
     try {
       const result = await this.#call<{ status: PowerStatus }>('/sony/system', 'getPowerStatus');
-      return result.status;
+      return result.status === 'active';
     } catch (err) {
       // code 7 = "Illegal State": API unavailable while TV is in standby.
       if (err instanceof BraviaError && err.code === 7) {
-        return 'standby';
+        return false;
       }
       throw err;
     }
   }
 
-  async setPowerStatus(on: boolean): Promise<void> {
+  async setIsOn(on: boolean): Promise<void> {
     await this.#call('/sony/system', 'setPowerStatus', [{ status: on }]);
   }
 
