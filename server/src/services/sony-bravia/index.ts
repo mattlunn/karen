@@ -1,7 +1,6 @@
 import { Device } from '../../models';
 import { TelevisionSource } from '../../models/capabilities';
 import config from '../../config';
-import logger from '../../logger';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import BraviaClient from './client';
@@ -94,55 +93,43 @@ Device.registerProvider('sony-bravia', {
         });
       }
 
-      device.manufacturer = 'Sony';
+      const info = await clientFor(device).getSystemInformation();
 
-      try {
-        const info = await clientFor(device).getSystemInformation();
-        device.model = info.model || 'Bravia';
-      } catch (err) {
-        logger.warn({ err }, `Could not read system info from Bravia ${entry.host}`);
-      }
+      device.manufacturer = 'Sony';
+      device.model = info.model || 'Bravia';
 
       await device.save();
     }
   }
 });
 
-async function pollDevice(device: Device): Promise<boolean> {
+async function pollDevice(device: Device) {
   const client = clientFor(device);
   const tv = device.getTelevisionCapability();
   const sw = device.getSwitchCapability();
-
-  let isOn: boolean;
-
-  try {
-    isOn = await client.getIsOn();
-  } catch (err) {
-    logger.debug({ err }, `Bravia ${device.id} unreachable`);
-    await sw.setIsOnState(false);
-    return false;
-  }
+  const isOn = await client.getIsOn();
 
   await sw.setIsOnState(isOn);
 
   if (isOn) {
-    try {
-      const volume = await client.getVolumeInformation();
-      await tv.setVolumeState(volume.volume);
-      await tv.setIsMutedState(volume.mute);
-    } catch (err) {
-      logger.warn({ err }, `Bravia ${device.id} volume read failed`);
-    }
-  }
+    const volume = await client.getVolumeInformation();
 
-  return true;
+    await tv.setVolumeState(volume.volume);
+    await tv.setIsMutedState(volume.mute);
+  }
 }
 
 nowAndSetInterval(createBackgroundTransaction('sony-bravia:poll', async () => {
   const devices = await Device.findByProvider('sony-bravia');
 
   await Promise.all(devices.map(async device => {
-    const isConnected = await pollDevice(device);
-    await device.getConnectivityCapability().setIsConnectedState(isConnected);
+    try {
+      await pollDevice(device);
+      await device.getConnectivityCapability().setIsConnectedState(true);
+    } catch (e) {
+      await device.getConnectivityCapability().setIsConnectedState(false);
+
+      throw e;
+    } 
   }));
 }), Math.max(config.sony_bravia.poll_interval_seconds, 5) * 1000);
