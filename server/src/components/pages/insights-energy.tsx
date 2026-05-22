@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Box, Title } from '@mantine/core';
+import dayjs from '../../dayjs';
 import { useEnergyInsights } from '../../hooks/queries/use-energy-insights';
 import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
@@ -24,7 +25,9 @@ function EnergyGraphs() {
 
   const params = useMemo(() => ({
     since: globalRange.since.toISOString(),
-    until: globalRange.until.toISOString()
+    until: globalRange.until.toISOString(),
+    costSince: dayjs().subtract(1, 'month').startOf('day').toISOString(),
+    costUntil: dayjs().toISOString()
   }), [globalRange.since, globalRange.until]);
 
   const { data, isPending, isError } = useEnergyInsights(params);
@@ -49,7 +52,7 @@ function EnergyGraphs() {
         yAxis={yAxisPower}
       />
 
-      <Title order={4} mt="lg">Cost (pence per day)</Title>
+      <Title order={4} mt="lg">Cost (£ per day)</Title>
       <CapabilityGraph
         lines={data.cost.map(line => ({ ...line, yAxisID: 'yCost' }))}
         yAxis={yAxisCost}

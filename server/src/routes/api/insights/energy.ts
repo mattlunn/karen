@@ -1,14 +1,19 @@
 import { Device } from '../../../models';
 import { Request, Response } from 'express';
 import { EnergyInsightsApiResponse } from '../../../api/types';
-import { mapNumericHistoryToResponse } from '../history-helpers';
+import { convertPenceToPounds, mapNumericHistoryToResponse } from '../history-helpers';
 import { awaitPromises } from '../../../helpers/promises';
 import { asyncMap } from '../../../helpers/array';
 
 export default async function (req: Request, res: Response) {
-  const selector = {
+  const usageSelector = {
     since: new Date(req.query.since as string),
     until: new Date(req.query.until as string)
+  };
+
+  const costSelector = {
+    since: new Date(req.query.costSince as string),
+    until: new Date(req.query.costUntil as string)
   };
 
   const devices = await Device.findByCapability('ENERGY_MONITOR');
@@ -18,7 +23,7 @@ export default async function (req: Request, res: Response) {
       const energyMonitor = device.getEnergyMonitorCapability();
 
       return {
-        data: await mapNumericHistoryToResponse((hs) => energyMonitor.getCurrentPowerHistory(hs), selector),
+        data: await mapNumericHistoryToResponse((hs) => energyMonitor.getCurrentPowerHistory(hs), usageSelector),
         label: device.name,
         deviceId: device.id,
         deviceName: device.name
@@ -28,7 +33,7 @@ export default async function (req: Request, res: Response) {
       const energyMonitor = device.getEnergyMonitorCapability();
 
       return {
-        data: await mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector),
+        data: convertPenceToPounds(await mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), costSelector)),
         label: device.name,
         deviceId: device.id,
         deviceName: device.name

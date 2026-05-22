@@ -39,6 +39,15 @@ export function mapNumericHistoryToResponse(
   }));
 }
 
+export function convertPenceToPounds(
+  response: HistoryDetailsApiResponse<NumericEventApiResponse>
+): HistoryDetailsApiResponse<NumericEventApiResponse> {
+  return {
+    ...response,
+    history: response.history.map((event) => ({ ...event, value: event.value / 100 }))
+  };
+}
+
 export function mapStringHistoryToResponse(
   fetchHistory: (hs: HistorySelector) => Promise<StringEvent[]>,
   historySelector: TimeRangeSelector
