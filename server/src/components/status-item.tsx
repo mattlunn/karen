@@ -1,12 +1,12 @@
 import React, { ReactNode, useState } from 'react';
-import { Group, Modal, Paper, Text } from '@mantine/core';
+import { ActionIcon, Group, Modal, Paper, Text } from '@mantine/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { faSync } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import dayjs from '../dayjs';
 import { humanDate } from '../helpers/date';
 import type { IconClickContext } from './capabilities';
+import { getMetricIconColor } from './capabilities';
 import styles from './status-item.module.css';
 
 function formatTimestamp(start: string, lastReported: string): string {
@@ -26,6 +26,8 @@ type StatusItemProps = {
   title: string;
   value: ReactNode;
   iconColor?: string;
+  iconHighlighted?: boolean;
+  isIssue?: boolean;
   onIconClick?: (ctx: IconClickContext) => void | Promise<void>;
 } & (
   | { since: string; lastReported: string }
@@ -33,7 +35,7 @@ type StatusItemProps = {
 );
 
 export function StatusItem(props: StatusItemProps) {
-  const { icon, title, value, iconColor, onIconClick } = props;
+  const { icon, title, value, onIconClick } = props;
   const queryClient = useQueryClient();
   const [isPending, setIsPending] = useState(false);
   const [modalContent, setModalContent] = useState<ReactNode>(null);
@@ -59,22 +61,29 @@ export function StatusItem(props: StatusItemProps) {
   };
 
   const isClickable = !!onIconClick;
-  const displayIcon = isPending ? faSync : icon;
+  const iconColor = getMetricIconColor(props);
+  const iconEl = <FontAwesomeIcon icon={icon} color={iconColor} className={styles.icon} />;
 
   return (
     <Paper withBorder p="md" radius="md">
-      <Group justify="space-between">
+      <Group justify="space-between" align="flex-start" wrap="nowrap">
         <Text size="xs" c="dimmed" className={styles.title}>
           {title}
         </Text>
-        <FontAwesomeIcon
-          icon={displayIcon}
-          spin={isPending}
-          color={iconColor || 'light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3))'}
-          className={`${styles.icon} ${isClickable ? styles.iconClickable : ''}`}
-          onClick={isClickable ? handleIconClick : undefined}
-          style={isClickable ? { cursor: 'pointer' } : undefined}
-        />
+        {isClickable ? (
+          <ActionIcon
+            variant="default"
+            radius="xl"
+            size="lg"
+            onClick={handleIconClick}
+            loading={isPending}
+            aria-label={title}
+          >
+            {iconEl}
+          </ActionIcon>
+        ) : (
+          iconEl
+        )}
       </Group>
 
       <Group align="flex-end" gap="xs" mt={typeof value === 'string' ? 20 : 0}>

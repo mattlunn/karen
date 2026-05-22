@@ -17,6 +17,7 @@ export {
   getDeviceIcon,
   getDeviceGraphs,
   getDeviceIssues,
+  getMetricIconColor,
 } from './helpers';
 
 // Context provider

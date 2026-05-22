@@ -74,6 +74,46 @@ export function getDeviceIssues(device: RestDeviceResponse): CapabilityMetric[] 
   return getDeviceMetrics(device).filter((m) => m.isIssue);
 }
 
+// Icon colour is a state signal, not decoration. See `getMetricIconColor`.
+const ICON_COLOR_NEUTRAL = 'light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3))';
+const ICON_COLOR_ISSUE = 'var(--mantine-color-red-6)';
+const ICON_COLOR_ACTIVE_FALLBACK = 'var(--mantine-primary-color-filled)';
+
+/**
+ * Resolves the colour a metric's icon should render in. Colour is reserved for
+ * meaning, never decoration:
+ *
+ * - `isIssue` wins outright and renders red.
+ * - `iconHighlighted` defined means the metric has an active/inactive concept:
+ *   `iconColor` (the "active" colour) shows only while highlighted, otherwise
+ *   the icon is neutral grey.
+ * - `iconHighlighted` undefined means there is no active/inactive concept; an
+ *   `iconColor` here is treated as intrinsic and always shown (rare — e.g. a
+ *   bin's collection colour). Most such metrics leave `iconColor` unset and
+ *   stay neutral grey.
+ */
+export function getMetricIconColor(
+  metric?: { iconColor?: string; iconHighlighted?: boolean; isIssue?: boolean }
+): string {
+  if (!metric) {
+    return ICON_COLOR_NEUTRAL;
+  }
+
+  if (metric.isIssue) {
+    return ICON_COLOR_ISSUE;
+  }
+
+  if (metric.iconHighlighted === undefined) {
+    return metric.iconColor ?? ICON_COLOR_NEUTRAL;
+  }
+
+  if (metric.iconHighlighted) {
+    return metric.iconColor ?? ICON_COLOR_ACTIVE_FALLBACK;
+  }
+
+  return ICON_COLOR_NEUTRAL;
+}
+
 export function getIsConnected(device: RestDeviceResponse): boolean | null {
   const conn = device.capabilities.find(c => c.type === 'CONNECTIVITY');
   return conn ? conn.isConnected.value : null;
