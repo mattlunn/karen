@@ -7,7 +7,7 @@ import type { IconName } from '@fortawesome/fontawesome-svg-core';
 import { faCouch, faHouseFire, faUtensils, faJugDetergent, faStairs, faComputer, faBed, faToiletPaper, faDoorClosed, faDoorOpen, faShop, faTree, faPeopleRobbery } from '@fortawesome/free-solid-svg-icons';
 import type { RestDeviceResponse } from '../api/types';
 import styles from './groups.module.css';
-import { getDeviceIcon, getDeviceMetrics, MetricDisplayProvider } from './capabilities';
+import { getDeviceIcon, getDeviceMetrics, getMetricIconColor, MetricDisplayProvider } from './capabilities';
 
 library.add(faCouch, faUtensils, faJugDetergent, faStairs, faBed, faToiletPaper, faComputer, faHouseFire, faDoorClosed, faDoorOpen, faShop, faTree, faPeopleRobbery);
 
@@ -36,7 +36,7 @@ export default function Group({ displayIconName, name, devices }: GroupProps) {
                   <DeviceControl
                     device={device}
                     icon={primary?.icon ?? getDeviceIcon(device)}
-                    color={primary?.iconColor ?? '#04A7F4'}
+                    color={getMetricIconColor(primary)}
                     colorIconBackground={primary?.iconHighlighted ?? false}
                     values={metrics.slice(0, 3).map((m) => m.value)}
                     iconOnClick={primary?.onIconClick}

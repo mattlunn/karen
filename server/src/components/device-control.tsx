@@ -51,7 +51,7 @@ export default function DeviceControl({ icon, iconOnClick, colorIconBackground, 
   return (
     <>
       <div className={styles.header}>
-        <a className={classNames(styles.iconContainer, isPending && styles.iconContainerDisabled)} style={{ backgroundColor: colorIconBackground ? color + '50' : 'transparent' }} onClick={handleClick} href="#">
+        <a className={classNames(styles.iconContainer, isPending && styles.iconContainerDisabled)} style={{ backgroundColor: colorIconBackground ? `color-mix(in srgb, ${color} 31%, transparent)` : 'transparent' }} onClick={handleClick} href="#">
           <FontAwesomeIcon icon={isPending ? faSync : icon} spin={isPending} color={color} />
         </a>
         <div>
