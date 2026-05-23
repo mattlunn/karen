@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import dayjs from '../dayjs';
 import { humanDate } from '../helpers/date';
 import type { IconClickContext } from './capabilities';
-import { getMetricIconColor } from './capabilities';
+import { getMetricIconColor, getMetricButtonBackgroundColor } from './capabilities';
 import styles from './status-item.module.css';
 
 function formatTimestamp(start: string, lastReported: string): string {
@@ -61,8 +61,6 @@ export function StatusItem(props: StatusItemProps) {
   };
 
   const isClickable = !!onIconClick;
-  const iconColor = getMetricIconColor(props);
-  const iconEl = <FontAwesomeIcon icon={icon} color={iconColor} className={styles.icon} />;
 
   return (
     <Paper withBorder p="md" radius="md">
@@ -72,17 +70,18 @@ export function StatusItem(props: StatusItemProps) {
         </Text>
         {isClickable ? (
           <ActionIcon
-            variant="default"
+            variant="filled"
             radius="xl"
             size="lg"
             onClick={handleIconClick}
             loading={isPending}
             aria-label={title}
+            style={{ backgroundColor: getMetricButtonBackgroundColor(props), borderColor: 'transparent' }}
           >
-            {iconEl}
+            <FontAwesomeIcon icon={icon} color="white" className={styles.icon} />
           </ActionIcon>
         ) : (
-          iconEl
+          <FontAwesomeIcon icon={icon} color={getMetricIconColor(props)} className={styles.icon} />
         )}
       </Group>
 

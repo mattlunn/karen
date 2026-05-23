@@ -79,9 +79,35 @@ const ICON_COLOR_NEUTRAL = 'light-dark(var(--mantine-color-gray-4), var(--mantin
 const ICON_COLOR_ISSUE = 'var(--mantine-color-red-6)';
 const ICON_COLOR_ACTIVE_FALLBACK = 'var(--mantine-primary-color-filled)';
 
+// Darker neutral used for the clickable filled-button background, so a white
+// glyph on top stays legible.
+const ICON_BG_NEUTRAL = 'light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-4))';
+
+type MetricColorInputs = { iconColor?: string; iconHighlighted?: boolean; isIssue?: boolean };
+
+function resolveSemanticColor(metric: MetricColorInputs | undefined, neutral: string): string {
+  if (!metric) {
+    return neutral;
+  }
+
+  if (metric.isIssue) {
+    return ICON_COLOR_ISSUE;
+  }
+
+  if (metric.iconHighlighted === undefined) {
+    return metric.iconColor ?? neutral;
+  }
+
+  if (metric.iconHighlighted) {
+    return metric.iconColor ?? ICON_COLOR_ACTIVE_FALLBACK;
+  }
+
+  return neutral;
+}
+
 /**
- * Resolves the colour a metric's icon should render in. Colour is reserved for
- * meaning, never decoration:
+ * Resolves the colour a metric's icon should render in when shown as a bare
+ * glyph (non-clickable). Colour is reserved for meaning, never decoration:
  *
  * - `isIssue` wins outright and renders red.
  * - `iconHighlighted` defined means the metric has an active/inactive concept:
@@ -92,26 +118,17 @@ const ICON_COLOR_ACTIVE_FALLBACK = 'var(--mantine-primary-color-filled)';
  *   bin's collection colour). Most such metrics leave `iconColor` unset and
  *   stay neutral grey.
  */
-export function getMetricIconColor(
-  metric?: { iconColor?: string; iconHighlighted?: boolean; isIssue?: boolean }
-): string {
-  if (!metric) {
-    return ICON_COLOR_NEUTRAL;
-  }
+export function getMetricIconColor(metric?: MetricColorInputs): string {
+  return resolveSemanticColor(metric, ICON_COLOR_NEUTRAL);
+}
 
-  if (metric.isIssue) {
-    return ICON_COLOR_ISSUE;
-  }
-
-  if (metric.iconHighlighted === undefined) {
-    return metric.iconColor ?? ICON_COLOR_NEUTRAL;
-  }
-
-  if (metric.iconHighlighted) {
-    return metric.iconColor ?? ICON_COLOR_ACTIVE_FALLBACK;
-  }
-
-  return ICON_COLOR_NEUTRAL;
+/**
+ * Resolves the filled background colour for a clickable metric icon. Same
+ * semantics as `getMetricIconColor`, but uses a darker neutral so the white
+ * glyph placed on top stays legible.
+ */
+export function getMetricButtonBackgroundColor(metric?: MetricColorInputs): string {
+  return resolveSemanticColor(metric, ICON_BG_NEUTRAL);
 }
 
 export function getIsConnected(device: RestDeviceResponse): boolean | null {

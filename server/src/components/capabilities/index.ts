@@ -18,6 +18,7 @@ export {
   getDeviceGraphs,
   getDeviceIssues,
   getMetricIconColor,
+  getMetricButtonBackgroundColor,
 } from './helpers';
 
 // Context provider
