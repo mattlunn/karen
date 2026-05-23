@@ -10,6 +10,7 @@ const presetOptions = [
   { value: 'last6hours', label: 'Last 6 hours' },
   { value: 'today', label: 'Today' },
   { value: 'yesterday', label: 'Yesterday' },
+  { value: 'lastMonth', label: 'Last month' },
   { value: 'custom', label: 'Custom' },
 ];
 

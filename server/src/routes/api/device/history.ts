@@ -118,17 +118,17 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     return {
       lines: await Promise.all([
         mapNumericHistoryToResponse((hs) => heatPump.getDayCumulativePowerHistory(hs), selector)
-          .then(data => ({ data, label: 'Total Power (Wh)' })),
+          .then(data => ({ data, label: 'Total Power (kWh)' })),
         mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCumulativePowerHistory(hs), selector)
-          .then(data => ({ data, label: 'Heating Power (Wh)' })),
+          .then(data => ({ data, label: 'Heating Power (kWh)' })),
         mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCumulativePowerHistory(hs), selector)
-          .then(data => ({ data, label: 'DHW Power (Wh)' })),
+          .then(data => ({ data, label: 'DHW Power (kWh)' })),
         mapNumericHistoryToResponse((hs) => heatPump.getDayCumulativeYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'Total Yield (Wh)' })),
+          .then(data => ({ data, label: 'Total Yield (kWh)' })),
         mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCumulativeYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'Heating Yield (Wh)' })),
+          .then(data => ({ data, label: 'Heating Yield (kWh)' })),
         mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCumulativeYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'DHW Yield (Wh)' })),
+          .then(data => ({ data, label: 'DHW Yield (kWh)' })),
       ])
     };
   }],
@@ -198,9 +198,9 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         .then(data => ({ data, label: 'CoP', yAxisID: 'yCoP' })),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => heatPump.getDayPowerHistory(hs), selector)
-          .then(data => ({ data, label: 'Power (Wh)', yAxisID: 'yEnergy' })),
+          .then(data => ({ data, label: 'Power (kWh)', yAxisID: 'yEnergy' })),
         mapNumericHistoryToResponse((hs) => heatPump.getDayYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'Yield (Wh)', yAxisID: 'yEnergy' }))
+          .then(data => ({ data, label: 'Yield (kWh)', yAxisID: 'yEnergy' }))
       ])
     });
   }],
@@ -214,9 +214,9 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         .then(data => ({ data, label: 'Heating CoP', yAxisID: 'yCoP' })),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingPowerHistory(hs), selector)
-          .then(data => ({ data, label: 'Heating Power (Wh)', yAxisID: 'yEnergy' })),
+          .then(data => ({ data, label: 'Heating Power (kWh)', yAxisID: 'yEnergy' })),
         mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'Heating Yield (Wh)', yAxisID: 'yEnergy' }))
+          .then(data => ({ data, label: 'Heating Yield (kWh)', yAxisID: 'yEnergy' }))
       ])
     });
   }],
@@ -230,9 +230,9 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         .then(data => ({ data, label: 'DHW CoP', yAxisID: 'yCoP' })),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => heatPump.getDayDHWPowerHistory(hs), selector)
-          .then(data => ({ data, label: 'DHW Power (Wh)', yAxisID: 'yEnergy' })),
+          .then(data => ({ data, label: 'DHW Power (kWh)', yAxisID: 'yEnergy' })),
         mapNumericHistoryToResponse((hs) => heatPump.getDayDHWYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'DHW Yield (Wh)', yAxisID: 'yEnergy' }))
+          .then(data => ({ data, label: 'DHW Yield (kWh)', yAxisID: 'yEnergy' }))
       ])
     });
   }],
@@ -344,8 +344,8 @@ const historyFetchers = new Map<string, HistoryFetcher>([
       bar: mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector)
         .then(data => ({ data, label: 'Energy (kWh)', yAxisID: 'yEnergy' })),
       lines: Promise.all([
-        mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector)
-          .then(data => ({ data, label: 'Cost (pence)', yAxisID: 'yCost' }))
+        mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
+          .then(data => ({ data, label: 'Cost (£)', yAxisID: 'yCost' }))
       ])
     });
   }],

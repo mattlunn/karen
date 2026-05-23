@@ -1,11 +1,10 @@
 import { Device } from '../../../models';
 import { Request, Response } from 'express';
-import { EnergyInsightsApiResponse } from '../../../api/types';
+import { EnergyInsightsSeriesApiResponse } from '../../../api/types';
 import { mapNumericHistoryToResponse } from '../history-helpers';
-import { awaitPromises } from '../../../helpers/promises';
 import { asyncMap } from '../../../helpers/array';
 
-export default async function (req: Request, res: Response) {
+export async function usageHandler(req: Request, res: Response) {
   const selector = {
     since: new Date(req.query.since as string),
     until: new Date(req.query.until as string)
@@ -13,8 +12,8 @@ export default async function (req: Request, res: Response) {
 
   const devices = await Device.findByCapability('ENERGY_MONITOR');
 
-  res.json(await awaitPromises({
-    usage: asyncMap(devices, async (device) => {
+  res.json({
+    series: await asyncMap(devices, async (device) => {
       const energyMonitor = device.getEnergyMonitorCapability();
 
       return {
@@ -23,16 +22,28 @@ export default async function (req: Request, res: Response) {
         deviceId: device.id,
         deviceName: device.name
       };
-    }),
-    cost: asyncMap(devices, async (device) => {
+    })
+  } satisfies EnergyInsightsSeriesApiResponse);
+}
+
+export async function costHandler(req: Request, res: Response) {
+  const selector = {
+    since: new Date(req.query.since as string),
+    until: new Date(req.query.until as string)
+  };
+
+  const devices = await Device.findByCapability('ENERGY_MONITOR');
+
+  res.json({
+    series: await asyncMap(devices, async (device) => {
       const energyMonitor = device.getEnergyMonitorCapability();
 
       return {
-        data: await mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector),
+        data: await mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100),
         label: device.name,
         deviceId: device.id,
         deviceName: device.name
       };
     })
-  }) satisfies EnergyInsightsApiResponse);
+  } satisfies EnergyInsightsSeriesApiResponse);
 }

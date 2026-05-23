@@ -6,9 +6,12 @@
   "forwardPorts": [8081],
   "initializeCommand": "touch ${localWorkspaceFolder}/../CLAUDE.local.md",
   "postCreateCommand": "bash /workspace/.devcontainer/post-create.sh",
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/root/.config/claude"
+  },
   "mounts": [
-    "source=claude-code-config,target=/root/.claude,type=volume",
     "source=karen-devcontainer-ssh-${devcontainerId},target=/root/.ssh,type=volume",
+    "source=karen-devcontainer-config-${devcontainerId},target=/root/.config,type=volume",
     "source=${localWorkspaceFolder}/../CLAUDE.local.md,target=/workspace/CLAUDE.local.md,type=bind",
     "source=${localWorkspaceFolder}/../.env.prod,target=/workspace/.env.prod,type=bind,readonly"
   ],

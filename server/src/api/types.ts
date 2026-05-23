@@ -320,16 +320,16 @@ export interface TimelineFeedApiResponse {
 export interface HeatingInsightsApiResponse {
   lines: (HistoryLineApiResponse & { deviceName: string })[];
   modes: HistoryModesApiResponse;
+  temperatures: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltas: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltaSwitchOnThreshold: number | null;
   heatPump: { id: number; name: string };
 }
 
-// /api/insights/energy endpoint
-export interface EnergyInsightsApiResponse {
-  usage: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
-  cost: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
-}
+// /api/insights/energy/usage and /api/insights/energy/cost endpoints
+export type EnergyInsightsSeriesApiResponse = {
+  series: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
+};
 
 export interface DeviceUpdateEvent {
   type: 'device_update';

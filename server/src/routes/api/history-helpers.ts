@@ -25,14 +25,15 @@ export function mapBooleanHistoryToResponse(
 
 export function mapNumericHistoryToResponse(
   fetchHistory: (hs: HistorySelector) => Promise<NumericEvent[]>,
-  historySelector: TimeRangeSelector
+  historySelector: TimeRangeSelector,
+  transform?: (value: number) => number
 ): Promise<HistoryDetailsApiResponse<NumericEventApiResponse>> {
   return fetchHistory(historySelector).then(events => ({
     history: events.map((event: NumericEvent) => ({
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
       lastReported: event.lastReported.toISOString(),
-      value: event.value
+      value: transform ? transform(event.value) : event.value
     })),
     since: historySelector.since.toISOString(),
     until: historySelector.until.toISOString()
