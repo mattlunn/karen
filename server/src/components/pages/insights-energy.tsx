@@ -19,12 +19,6 @@ const yAxisCost = {
   }
 };
 
-const yAxisTemperature = {
-  yTemperature: {
-    position: 'left' as const
-  }
-};
-
 function EnergyGraphs() {
   const { globalRange } = useDateRange();
 
@@ -59,12 +53,6 @@ function EnergyGraphs() {
       <CapabilityGraph
         lines={data.cost.map(line => ({ ...line, yAxisID: 'yCost' }))}
         yAxis={yAxisCost}
-      />
-
-      <Title order={4} mt="lg">Current temperature (°)</Title>
-      <CapabilityGraph
-        lines={data.temperatures.map(line => ({ ...line, yAxisID: 'yTemperature' }))}
-        yAxis={yAxisTemperature}
       />
     </>
   );

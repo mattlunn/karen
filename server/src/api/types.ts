@@ -320,6 +320,7 @@ export interface TimelineFeedApiResponse {
 export interface HeatingInsightsApiResponse {
   lines: (HistoryLineApiResponse & { deviceName: string })[];
   modes: HistoryModesApiResponse;
+  temperatures: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltas: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltaSwitchOnThreshold: number | null;
   heatPump: { id: number; name: string };
@@ -329,7 +330,6 @@ export interface HeatingInsightsApiResponse {
 export interface EnergyInsightsApiResponse {
   usage: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
   cost: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
-  temperatures: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
 }
 
 export interface DeviceUpdateEvent {

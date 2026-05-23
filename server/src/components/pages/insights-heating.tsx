@@ -78,6 +78,12 @@ const yAxisDelta = {
   }
 };
 
+const yAxisTemperature = {
+  yTemperature: {
+    position: 'left' as const
+  }
+};
+
 function HeatingDemandGraph() {
   const { globalRange } = useDateRange();
 
@@ -111,6 +117,12 @@ function HeatingDemandGraph() {
       <CapabilityGraph
         lines={data.lines}
         yAxis={yAxisPercentage}
+      />
+
+      <Title order={4} mt="lg">Current temperature (°)</Title>
+      <CapabilityGraph
+        lines={data.temperatures}
+        yAxis={yAxisTemperature}
       />
 
       <Title order={4} mt="lg">Temperature delta (current − target)</Title>
