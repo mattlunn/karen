@@ -117,9 +117,9 @@ export async function getSignals(): Promise<SmartcarSignalsResponse> {
  * Set charge limit. Accepts percentage as 0-100 (SmartCar expects 0-1).
  */
 export async function setChargeLimit(limit: number): Promise<void> {
-  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/charge/limit`, {
+  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/commands/charge/set-limit`, {
     method: 'POST',
-    body: { limit: String(limit / 100) },
+    body: { data: { attributes: { percent: limit } } },
     scoped: true,
   });
 }
@@ -128,9 +128,8 @@ export async function setChargeLimit(limit: number): Promise<void> {
  * Start charging.
  */
 export async function startCharge(): Promise<void> {
-  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/charge`, {
+  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/commands/charge/start`, {
     method: 'POST',
-    body: { action: 'START' },
     scoped: true,
   });
 }
@@ -139,9 +138,8 @@ export async function startCharge(): Promise<void> {
  * Stop charging.
  */
 export async function stopCharge(): Promise<void> {
-  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/charge`, {
+  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/commands/charge/stop`, {
     method: 'POST',
-    body: { action: 'STOP' },
     scoped: true,
   });
 }

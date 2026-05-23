@@ -57,7 +57,7 @@ export type SmartcarSignalAttributes =
   | SmartcarSignalNotCapable<'charge-chargelimits', 'ChargeLimits', 'Charge'>
   | SmartcarSignalNotCapable<'charge-chargetimers', 'ChargeTimers', 'Charge'>
   | SmartcarSignalNotCapable<'charge-wattage', 'Wattage', 'Charge'>
-  | SmartcarSignalNotCapable<'tractionbattery-range', 'Range', 'TractionBattery'>
+  | SmartcarSignal<'tractionbattery-range', 'Range', 'TractionBattery', { value: number; additionalValues: unknown[]; unit: string }>
   | SmartcarSignalNotCapable<'vehicleuseraccount-permissions', 'Permissions', 'VehicleUserAccount'>;
 
 // Helper type: only the success variants from the union
@@ -105,15 +105,46 @@ export interface SmartcarSignalsResponse {
 
 export interface SmartcarConnection {
   id: string;
-  userId: string;
-  vehicleId: string;
-  connectedAt: string;
+  type: 'connection';
+  attributes: {
+    permissions: string[];
+    vehicle: {
+      make: string;
+      model: string;
+      year: number;
+      mode: string;
+      powertrainType: string;
+    };
+  };
+  relationships: {
+    vehicle: {
+      data: { id: string; type: 'vehicle' };
+    };
+    user: {
+      data: { id: string; type: 'user' };
+    };
+  };
+  meta: {
+    createdAt: string;
+    updatedAt: string;
+  };
 }
 
 // Raw JSON body returned by GET /v3/connections
 export interface SmartcarConnectionsResponse {
-  connections: SmartcarConnection[];
-  paging: {
-    cursor: string | null;
+  data: SmartcarConnection[];
+  meta: {
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    orderBy: string;
+    orderDirection: string;
+  };
+  links: {
+    self: string;
+    first: string;
+    last: string;
+    next: string | null;
+    prev: string | null;
   };
 }

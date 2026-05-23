@@ -41,7 +41,7 @@ smartcarRouter.get('/callback', async (req, res) => {
   }
 
   try {
-    const { connections } = await listConnections(userId);
+    const { data: connections } = await listConnections(userId);
     const connection = connections[0];
 
     if (!connection) {
@@ -49,10 +49,10 @@ smartcarRouter.get('/callback', async (req, res) => {
     }
 
     config.smartcar.user_id = userId;
-    config.smartcar.vehicle_id = connection.vehicleId;
+    config.smartcar.vehicle_id = connection.relationships.vehicle.data.id;
     saveConfig();
 
-    logger.info(`SmartCar Connect successful - user ${userId}, vehicle ${connection.vehicleId}`);
+    logger.info(`SmartCar Connect successful - user ${userId}, vehicle ${connection.relationships.vehicle.data.id}`);
 
     res.send(`
       <h1>SmartCar Authorization Successful!</h1>
@@ -66,9 +66,6 @@ smartcarRouter.get('/callback', async (req, res) => {
 });
 
 smartcarRouter.post('/webhook', async (req, res) => {
-  logger.info('Received /vehicle/smartcar/webhook request');
-  logger.info(JSON.stringify(req.body));
-
   const { eventType } = req.body;
 
   // Handle webhook verification challenge
