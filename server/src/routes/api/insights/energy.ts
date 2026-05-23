@@ -11,7 +11,10 @@ export default async function (req: Request, res: Response) {
     until: new Date(req.query.until as string)
   };
 
-  const devices = await Device.findByCapability('ENERGY_MONITOR');
+  const [devices, thermostats] = await Promise.all([
+    Device.findByCapability('ENERGY_MONITOR'),
+    Device.findByCapability('THERMOSTAT')
+  ]);
 
   res.json(await awaitPromises({
     usage: asyncMap(devices, async (device) => {
@@ -29,6 +32,16 @@ export default async function (req: Request, res: Response) {
 
       return {
         data: await mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector),
+        label: device.name,
+        deviceId: device.id,
+        deviceName: device.name
+      };
+    }),
+    temperatures: asyncMap(thermostats, async (device) => {
+      const thermostat = device.getThermostatCapability();
+
+      return {
+        data: await mapNumericHistoryToResponse((hs) => thermostat.getCurrentTemperatureHistory(hs), selector),
         label: device.name,
         deviceId: device.id,
         deviceName: device.name

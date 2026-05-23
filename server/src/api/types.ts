@@ -329,6 +329,7 @@ export interface HeatingInsightsApiResponse {
 export interface EnergyInsightsApiResponse {
   usage: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
   cost: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
+  temperatures: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
 }
 
 export interface DeviceUpdateEvent {
