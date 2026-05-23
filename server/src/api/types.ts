@@ -325,11 +325,10 @@ export interface HeatingInsightsApiResponse {
   heatPump: { id: number; name: string };
 }
 
-// /api/insights/energy endpoint
-export interface EnergyInsightsApiResponse {
-  usage: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
-  cost: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
-}
+// /api/insights/energy/usage and /api/insights/energy/cost endpoints
+export type EnergyInsightsSeriesApiResponse = {
+  series: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
+};
 
 export interface DeviceUpdateEvent {
   type: 'device_update';

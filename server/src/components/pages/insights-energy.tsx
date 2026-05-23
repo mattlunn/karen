@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
-import { Box, Title } from '@mantine/core';
-import dayjs from '../../dayjs';
-import { useEnergyInsights } from '../../hooks/queries/use-energy-insights';
-import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
+import React, { useMemo, useState } from 'react';
+import { Box, Group, Title } from '@mantine/core';
+import { useEnergyCostInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
+import { DateRangeProvider, DateRangeSelector, getPresetRange } from '../date-range';
+import { DateRange, DateRangePreset } from '../date-range/types';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
 import PageLoader from '../page-loader';
 
@@ -20,43 +20,70 @@ const yAxisCost = {
   }
 };
 
-function EnergyGraphs() {
-  const { globalRange } = useDateRange();
+function useLocalRange(defaultPreset: DateRangePreset) {
+  const [preset, setPreset] = useState<DateRangePreset>(defaultPreset);
+  const [range, setRange] = useState<DateRange>(() => getPresetRange(defaultPreset));
 
   const params = useMemo(() => ({
-    since: globalRange.since.toISOString(),
-    until: globalRange.until.toISOString(),
-    costSince: dayjs().subtract(1, 'month').startOf('day').toISOString(),
-    costUntil: dayjs().toISOString()
-  }), [globalRange.since, globalRange.until]);
+    since: range.since.toISOString(),
+    until: range.until.toISOString()
+  }), [range.since, range.until]);
 
-  const { data, isPending, isError } = useEnergyInsights(params);
+  return { preset, setPreset, range, setRange, params };
+}
 
-  if (isPending) {
-    return <PageLoader />;
-  }
-
-  if (isError) {
-    return <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>;
-  }
-
-  if (!data) {
-    return null;
-  }
+function UsageGraph() {
+  const { preset, setPreset, range, setRange, params } = useLocalRange('last6hours');
+  const { data, isPending, isError } = useEnergyUsageInsights(params);
 
   return (
     <>
-      <Title order={4} mt="lg">Usage (W)</Title>
-      <CapabilityGraph
-        lines={data.usage.map(line => ({ ...line, yAxisID: 'yPower' }))}
-        yAxis={yAxisPower}
-      />
+      <Group justify="space-between" mt="lg">
+        <Title order={4}>Usage (W)</Title>
+        <DateRangeSelector
+          preset={preset}
+          range={range}
+          onPresetChange={setPreset}
+          onRangeChange={setRange}
+        />
+      </Group>
 
-      <Title order={4} mt="lg">Cost (£ per day)</Title>
-      <CapabilityGraph
-        lines={data.cost.map(line => ({ ...line, yAxisID: 'yCost' }))}
-        yAxis={yAxisCost}
-      />
+      {isPending ? <PageLoader /> : isError ? (
+        <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
+      ) : (
+        <CapabilityGraph
+          lines={data.series.map(line => ({ ...line, yAxisID: 'yPower' }))}
+          yAxis={yAxisPower}
+        />
+      )}
+    </>
+  );
+}
+
+function CostGraph() {
+  const { preset, setPreset, range, setRange, params } = useLocalRange('lastMonth');
+  const { data, isPending, isError } = useEnergyCostInsights(params);
+
+  return (
+    <>
+      <Group justify="space-between" mt="lg">
+        <Title order={4}>Cost (£ per day)</Title>
+        <DateRangeSelector
+          preset={preset}
+          range={range}
+          onPresetChange={setPreset}
+          onRangeChange={setRange}
+        />
+      </Group>
+
+      {isPending ? <PageLoader /> : isError ? (
+        <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
+      ) : (
+        <CapabilityGraph
+          lines={data.series.map(line => ({ ...line, yAxisID: 'yCost' }))}
+          yAxis={yAxisCost}
+        />
+      )}
     </>
   );
 }
@@ -67,11 +94,8 @@ export default function EnergyInsights() {
       <Title order={2}>Energy</Title>
 
       <DateRangeProvider>
-        <Box mt="md">
-          <DateRangeSelector />
-        </Box>
-
-        <EnergyGraphs />
+        <UsageGraph />
+        <CostGraph />
       </DateRangeProvider>
     </>
   );

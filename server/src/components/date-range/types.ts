@@ -1,6 +1,6 @@
 import { Dayjs } from '../../dayjs';
 
-export type DateRangePreset = 'last6hours' | 'today' | 'yesterday' | 'custom';
+export type DateRangePreset = 'last6hours' | 'today' | 'yesterday' | 'lastMonth' | 'custom';
 
 export interface DateRange {
   since: Dayjs;
