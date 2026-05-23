@@ -1,10 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
-import type { EnergyInsightsApiResponse } from '../../api/types';
+import type { EnergyInsightsSeriesApiResponse } from '../../api/types';
 import { fetchApi } from '../fetch-api';
 
-export function useEnergyInsights(params: { since: string; until: string }) {
+export function useEnergyUsageInsights(params: { since: string; until: string }) {
   return useQuery({
-    queryKey: ['energy-insights', params],
-    queryFn: () => fetchApi<EnergyInsightsApiResponse>('/insights/energy', params),
+    queryKey: ['energy-insights-usage', params],
+    queryFn: () => fetchApi<EnergyInsightsSeriesApiResponse>('/insights/energy/usage', params),
+  });
+}
+
+export function useEnergyCostInsights(params: { since: string; until: string }) {
+  return useQuery({
+    queryKey: ['energy-insights-cost', params],
+    queryFn: () => fetchApi<EnergyInsightsSeriesApiResponse>('/insights/energy/cost', params),
   });
 }

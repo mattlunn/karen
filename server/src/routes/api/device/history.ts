@@ -344,8 +344,8 @@ const historyFetchers = new Map<string, HistoryFetcher>([
       bar: mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector)
         .then(data => ({ data, label: 'Energy (kWh)', yAxisID: 'yEnergy' })),
       lines: Promise.all([
-        mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector)
-          .then(data => ({ data, label: 'Cost (pence)', yAxisID: 'yCost' }))
+        mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
+          .then(data => ({ data, label: 'Cost (£)', yAxisID: 'yCost' }))
       ])
     });
   }],
