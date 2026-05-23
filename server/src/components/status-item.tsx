@@ -72,7 +72,7 @@ export function StatusItem(props: StatusItemProps) {
           <ActionIcon
             variant="filled"
             radius="xl"
-            size="lg"
+            size="xl"
             onClick={handleIconClick}
             loading={isPending}
             aria-label={title}
