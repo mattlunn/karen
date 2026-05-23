@@ -40,7 +40,6 @@
     "react-router": "^7.0.0",
     "react-router-dom": "^7.0.0",
     "sequelize": "^6.25.8",
-    "smartcar": "^10.4.0",
     "suncalc": "^1.8.0",
     "tplink-smarthome-api": "^5.0.0",
     "twilio": "^6.0.2",
