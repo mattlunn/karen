@@ -8,7 +8,7 @@ import {
   HistoryDetailsApiResponse,
   NumericEventApiResponse
 } from '../../../api/types';
-import { convertPenceToPounds, mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
+import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
 
 // Types
 
@@ -344,8 +344,8 @@ const historyFetchers = new Map<string, HistoryFetcher>([
       bar: mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector)
         .then(data => ({ data, label: 'Energy (kWh)', yAxisID: 'yEnergy' })),
       lines: Promise.all([
-        mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector)
-          .then(data => ({ data: convertPenceToPounds(data), label: 'Cost (£)', yAxisID: 'yCost' }))
+        mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
+          .then(data => ({ data, label: 'Cost (£)', yAxisID: 'yCost' }))
       ])
     });
   }],

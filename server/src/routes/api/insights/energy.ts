@@ -1,7 +1,7 @@
 import { Device } from '../../../models';
 import { Request, Response } from 'express';
 import { EnergyInsightsSeriesApiResponse } from '../../../api/types';
-import { convertPenceToPounds, mapNumericHistoryToResponse } from '../history-helpers';
+import { mapNumericHistoryToResponse } from '../history-helpers';
 import { asyncMap } from '../../../helpers/array';
 
 export async function usageHandler(req: Request, res: Response) {
@@ -39,7 +39,7 @@ export async function costHandler(req: Request, res: Response) {
       const energyMonitor = device.getEnergyMonitorCapability();
 
       return {
-        data: convertPenceToPounds(await mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector)),
+        data: await mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100),
         label: device.name,
         deviceId: device.id,
         deviceName: device.name
