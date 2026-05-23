@@ -320,6 +320,7 @@ export interface TimelineFeedApiResponse {
 export interface HeatingInsightsApiResponse {
   lines: (HistoryLineApiResponse & { deviceName: string })[];
   modes: HistoryModesApiResponse;
+  temperatures: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltas: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltaSwitchOnThreshold: number | null;
   heatPump: { id: number; name: string };
