@@ -174,6 +174,7 @@ Device.registerProvider('providerName', {
 - Store using the start of the period as the timestamp (e.g., Monday 00:00 for weekly data)
 - Use the same timestamp to update existing events rather than creating duplicates
 - Fill historical gaps by querying the last stored period and calculating forward
+- **Always pass `reportedAt = now` (current time) as the third argument to the setter, distinct from `stateTimestamp` (period start).** If `reportedAt` defaults to `stateTimestamp`, the "same value" branch in `setNumericProperty` writes `lastReported = period_start` instead of the current time. The resume calculation (`dayjs(latestEvent.lastReported).startOf('day')`) then resolves back to that same period and the catch-up loop replays it on every run indefinitely — instead of jumping to today where the new value can differ and trigger a proper new event. The heat pump service demonstrates the correct pattern: `capability.setDayPowerState(value, dayStart, intervalEnd)`.
 
 **Event-Driven Updates**: Device changes emit events via `DeviceCapabilityEvents`, which trigger SSE (Server-Sent Events) for real-time UI updates.
 
