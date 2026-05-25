@@ -1,30 +1,25 @@
 import { Device } from '../../models';
-import { Capability } from '../../models/capabilities/capabilities.gen';
 import { publishCommand } from './mqtt';
 
 const TOPIC_PREFIX = 'shellies';
 
 Device.registerProvider('shelly', {
   getCapabilities(device) {
-    switch (device.meta.generation) {
-      case 1:
-      case 2: {
-        const caps: Capability[] = ['LIGHT', 'CONNECTIVITY'];
+    switch (device.model) {
+      case 'SHDM-2':       // Shelly Dimmer 2
+        return ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY'];
 
-        if (device.model === 'SHDM-2') {
-          caps.push('ENERGY_MONITOR');
-        }
+      case 'SNPL-00112UK': // Shelly Plus Plug UK
+        return ['SWITCH', 'ENERGY_MONITOR', 'CONNECTIVITY'];
 
-        return caps;
-      }
-      case 3:
+      case 'S3SW-001X8EU': // Shelly Plus 1 Mini (Heating)
         return ['SWITCH', 'CONNECTIVITY'];
-      case 4:
-        return device.meta.role === 'contact'
-          ? ['CONTACT_SENSOR', 'CONNECTIVITY']
-          : ['SWITCH', 'CONNECTIVITY'];
+
+      case 'S4SW-001X8EU': // Shelly 1 Mini Gen4 (Fire Alarm)
+        return ['CONTACT_SENSOR', 'CONNECTIVITY'];
+
       default:
-        throw new Error(`Cannot infer capabilities for device ${device.id}`);
+        throw new Error(`Cannot infer capabilities for device ${device.id} (${device.model})`);
     }
   },
 
