@@ -14,7 +14,6 @@ router.get('/install', async (req, res) => {
 
   const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
   const model = await client.getModel();
-  const generation = client.getGeneration();
   const mqttId = await client.getMqttId();
 
   let device = await Device.findByProviderId('shelly', mqttId);
@@ -23,21 +22,9 @@ router.get('/install', async (req, res) => {
     device = Device.build({ provider: 'shelly', providerId: mqttId });
   }
 
-  let role = 'switch';
-
-  if (generation === 4) {
-    const switchConfig = await client.getSwitchConfig();
-
-    if (switchConfig.in_mode === 'detached') {
-      role = 'contact';
-    }
-  }
-
   device.name = ip;
   device.manufacturer = 'Shelly';
   device.model = model;
-  device.meta.generation = generation;
-  device.meta.role = role;
 
   delete device.meta.endpoint;
 
