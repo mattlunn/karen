@@ -116,13 +116,7 @@ async function applyItem(device: Device, applianceType: string, item: SSEOperati
 }
 
 async function handleSseMessage(msg: { haId: string; items: { key: string; timestamp: number; value: unknown }[] }, type: SseType): Promise<void> {
-  const device = await Device.findOne({ where: { provider: 'homeconnect', providerId: msg.haId } });
-
-  if (!device) {
-    logger.warn({ haId: msg.haId }, 'Home Connect SSE message for unknown device');
-    return;
-  }
-
+  const device = await Device.findByProviderIdOrError('homeconnect', msg.haId);
   const now = new Date();
 
   if (type === 'CONNECTED') {
@@ -136,9 +130,6 @@ async function handleSseMessage(msg: { haId: string; items: { key: string; times
   }
 
   const applianceType = device.meta.applianceType as string;
-  if (!applianceType) {
-    return;
-  }
 
   // Process ActiveProgram items before OperationState so the program name is
   // set before the state check potentially clears it
