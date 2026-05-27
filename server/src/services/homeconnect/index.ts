@@ -191,14 +191,15 @@ Device.registerProvider('homeconnect', {
       const existing = await Device.findByProviderId('homeconnect', appliance.haId);
 
       if (!existing) {
-        await Device.create({
+        const device = Device.build({
           provider: 'homeconnect',
           providerId: appliance.haId,
           name: appliance.name,
           manufacturer: 'Home Connect',
           model: appliance.type,
-          metaStringified: JSON.stringify({ applianceType: appliance.type }),
         });
+        device.meta.applianceType = appliance.type;
+        await device.save();
       }
     }
   }
