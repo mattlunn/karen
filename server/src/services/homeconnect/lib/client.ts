@@ -1,92 +1,125 @@
-import logger from "../../../logger";
-import { EventEmitter } from 'events';
+import logger from '../../../logger';
 import { EventSource } from 'eventsource';
 
-enum Events {
-  PROGRAM_START = 'PROGRAM_START',
-}
+const API_BASE = 'https://api.home-connect.com/api';
 
-type ApiClientConfig = {
-  access_token: string;
-}
-
-type OnProgramStartPayload = {
-  deviceId: string;
-}
-
-type Appliance = {
+export type Appliance = {
   connected: boolean;
   haId: string;
-  name: 'Oven' | 'Dishwasher' | 'Microwave'
-  type: 'Oven' | 'Dishwasher';
+  name: string;
+  type: string;
 }
 
-export default class ApiClient {
-  #accessToken: string;
-  #eventEmitter: EventEmitter;
+type SseItem = { key: string; timestamp: number; value: unknown };
+export type SseType = 'NOTIFY' | 'EVENT' | 'STATUS' | 'CONNECTED' | 'DISCONNECTED';
+export type SseCallback = (msg: { haId: string; items: SseItem[] }, type: SseType) => void;
 
-  constructor(config: ApiClientConfig) {
-    this.#accessToken = config.access_token;
-    this.#eventEmitter = new EventEmitter();
+export default class ApiClient {
+  #getToken: () => Promise<string>;
+
+  constructor(getToken: () => Promise<string>) {
+    this.#getToken = getToken;
   }
 
-  async #request(path: string) {
-    const req = await fetch(`https://api.home-connect.com/api${path}`, {
+  async #request(path: string, options: RequestInit = {}): Promise<unknown> {
+    const token = await this.#getToken();
+    const req = await fetch(`${API_BASE}${path}`, {
+      ...options,
       headers: {
-        Authorization: `Bearer ${this.#accessToken}`
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...options.headers as Record<string, string>
       }
     });
+
+    if (req.status === 204) {
+      return null;
+    }
 
     const json = await req.json();
 
     if (req.ok) {
       return json.data;
     } else {
-      throw new Error(`${req.status}: ${await req.text()}`);
+      throw new Error(`HomeConnect API ${req.status}: ${JSON.stringify(json)}`);
     }
   }
 
   async getAppliances(): Promise<Appliance[]> {
-    return (await this.#request('/homeappliances')).homeappliances;
+    const data = await this.#request('/homeappliances') as { homeappliances: Appliance[] };
+    return data.homeappliances;
   }
 
-  subscribeToEvents() {
-    const accessToken = this.#accessToken;
-    const sse = new EventSource('https://api.home-connect.com/api/homeappliances/events', {
-      fetch: (url, init) => fetch(url, {
-        ...init,
-        headers: {
-          ...init?.headers as Record<string, string>,
-          Authorization: `Bearer ${accessToken}`
-        }
-      })
+  async stopActiveProgram(haId: string): Promise<void> {
+    await this.#request(`/homeappliances/${haId}/programs/active`, { method: 'DELETE' });
+  }
+
+  async startActiveProgram(haId: string, programKey: string, options: Array<{ key: string; value: number | string; unit?: string }>): Promise<void> {
+    await this.#request(`/homeappliances/${haId}/programs/active`, {
+      method: 'PUT',
+      body: JSON.stringify({ data: { key: programKey, options } })
     });
+  }
 
-    ['NOTIFY', 'EVENT', 'STATUS'].forEach((type) => {
-      sse.addEventListener(type, (message: MessageEvent) => {
-        const data = JSON.parse(message.data);
-
-        logger.info({
-          type,
-          data
+  subscribeToEvents(onMessage: SseCallback): void {
+    const connect = async () => {
+      try {
+        const token = await this.#getToken();
+        const es = new EventSource(`${API_BASE}/homeappliances/events`, {
+          fetch: (url, init) => fetch(url, {
+            ...init,
+            headers: {
+              ...init?.headers as Record<string, string>,
+              Authorization: `Bearer ${token}`
+            }
+          })
         });
-      });
-    });
 
-    sse.addEventListener('STATUS', (message: MessageEvent) => {
-      const data = JSON.parse(message.data);
+        const handleEvent = (type: SseType) => (message: MessageEvent) => {
+          try {
+            const data = JSON.parse(message.data);
+            const items: SseItem[] = data.items ?? [];
+            onMessage({ haId: data.haId, items }, type);
+          } catch (err) {
+            logger.warn({ err, type }, 'Home Connect SSE parse error');
+          }
+        };
 
-      this.#eventEmitter.emit(Events.PROGRAM_START, {
-        deviceId: data.haId
-      });
-    });
+        (['NOTIFY', 'EVENT', 'STATUS'] as const).forEach(type => {
+          es.addEventListener(type, handleEvent(type));
+        });
 
-    sse.onmessage = logger.info;
+        es.addEventListener('CONNECTED', (message: MessageEvent) => {
+          try {
+            const data = JSON.parse(message.data);
+            onMessage({ haId: data.haId, items: [] }, 'CONNECTED');
+          } catch (err) {
+            logger.warn({ err }, 'Home Connect CONNECTED parse error');
+          }
+        });
 
-    sse.onerror = logger.info;
-  }
+        es.addEventListener('DISCONNECTED', (message: MessageEvent) => {
+          try {
+            const data = JSON.parse(message.data);
+            onMessage({ haId: data.haId, items: [] }, 'DISCONNECTED');
+          } catch (err) {
+            logger.warn({ err }, 'Home Connect DISCONNECTED parse error');
+          }
+        });
 
-  onProgramStart(listener: (payload: OnProgramStartPayload) => void) {
-    this.#eventEmitter.addListener(Events.PROGRAM_START, listener);
+        es.onerror = (err) => {
+          logger.warn({ err }, 'Home Connect SSE error; reconnecting in 30s');
+          es.close();
+          setTimeout(connect, 30_000);
+        };
+
+        logger.info('Home Connect SSE connected');
+      } catch (err) {
+        logger.warn({ err }, 'Home Connect SSE connect failed; retrying in 30s');
+        setTimeout(connect, 30_000);
+      }
+    };
+
+    connect();
   }
 }

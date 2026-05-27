@@ -89,7 +89,7 @@ declare namespace _default {
     const client_id: string;
     const client_secret: string;
     const secret: string;
-    const access_token: string;
+    let refresh_token: string;
   }
   export namespace octopus {
     const api_key: string;

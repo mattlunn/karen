@@ -2,6 +2,7 @@ import express from 'express';
 import config from '../config';
 import { stringify} from 'querystring';
 import logger from '../logger';
+import { saveConfig } from '../helpers/config';
 
 const router = express.Router();
 
@@ -28,9 +29,17 @@ router.get('/authorize', async (req, res) => {
       method: 'POST'
     });
 
-    const token = await request.json();
+    const token = await request.json() as { access_token: string; refresh_token: string; expires_in: number };
 
-    logger.info(token);
+    if (!token.refresh_token) {
+      logger.error({ token }, 'HomeConnect OAuth response missing refresh_token');
+      return res.status(500).send('OAuth error: no refresh_token in response');
+    }
+
+    config.homeconnect.refresh_token = token.refresh_token;
+    saveConfig();
+    logger.info('HomeConnect authorized successfully');
+    res.send('HomeConnect authorized. You can close this tab.');
   } else {
     res.redirect(`https://api.home-connect.com/security/oauth/authorize?response_type=code&client_id=${config.homeconnect.client_id}`);
   }

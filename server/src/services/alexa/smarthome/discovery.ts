@@ -167,6 +167,147 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
           version: '3'
         }]
       });
+    } else if (capabilities.includes('OVEN')) {
+      endpoints.push({
+        friendlyName: device.name,
+        endpointId: String(device.id),
+        displayCategories: ['OVEN'],
+        manufacturerName: device.manufacturer,
+        description: device.name,
+        capabilities: [{
+          type: 'AlexaInterface',
+          interface: 'Alexa.Cooking',
+          version: '3',
+          properties: {
+            supported: [{ name: 'cookingMode' }],
+            proactivelyReported: false,
+            retrievable: true
+          },
+          configuration: {
+            supportsRemoteStart: true,
+            supportedCookingModes: [{ value: 'OFF' }, { value: 'BAKE' }]
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.Cooking.TemperatureController',
+          version: '3',
+          properties: {
+            supported: [{ name: 'targetCookingTemperature' }],
+            proactivelyReported: false,
+            retrievable: true
+          },
+          configuration: {
+            supportsRemoteStart: true,
+            supportedCookingModes: [{ value: 'BAKE' }]
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.Cooking.TemperatureSensor',
+          version: '3',
+          properties: {
+            supported: [{ name: 'currentCookingTemperature' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.PowerController',
+          version: '3',
+          properties: {
+            supported: [{ name: 'powerState' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.EndpointHealth',
+          version: '3',
+          properties: {
+            supported: [{ name: 'connectivity' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa',
+          version: '3'
+        }]
+      });
+    } else if (capabilities.includes('MICROWAVE')) {
+      endpoints.push({
+        friendlyName: device.name,
+        endpointId: String(device.id),
+        displayCategories: ['MICROWAVE_OVEN'],
+        manufacturerName: device.manufacturer,
+        description: device.name,
+        capabilities: [{
+          type: 'AlexaInterface',
+          interface: 'Alexa.Cooking',
+          version: '3',
+          properties: {
+            supported: [{ name: 'cookingMode' }],
+            proactivelyReported: false,
+            retrievable: true
+          },
+          configuration: {
+            supportsRemoteStart: false,
+            supportedCookingModes: [{ value: 'OFF' }]
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.PowerController',
+          version: '3',
+          properties: {
+            supported: [{ name: 'powerState' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.EndpointHealth',
+          version: '3',
+          properties: {
+            supported: [{ name: 'connectivity' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa',
+          version: '3'
+        }]
+      });
+    } else if (capabilities.includes('DISHWASHER')) {
+      endpoints.push({
+        friendlyName: device.name,
+        endpointId: String(device.id),
+        displayCategories: ['WASHER'],
+        manufacturerName: device.manufacturer,
+        description: device.name,
+        capabilities: [{
+          type: 'AlexaInterface',
+          interface: 'Alexa.PowerController',
+          version: '3',
+          properties: {
+            supported: [{ name: 'powerState' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.EndpointHealth',
+          version: '3',
+          properties: {
+            supported: [{ name: 'connectivity' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa',
+          version: '3'
+        }]
+      });
     } else if (capabilities.includes('BUTTON')) {
       const instanceId = `${device.id}-1`;
       endpoints.push({

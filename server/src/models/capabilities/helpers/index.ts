@@ -2,7 +2,7 @@ import { BooleanEvent, Device, Event, NumericEvent, StringEvent, Op } from "../.
 
 export type TimeRangeSelector = { since: Date; until: Date };
 export type ValueFilter =
-  | { eq: number }
+  | { eq: string | number }
   | { ne: number }
   | { gt: number }
   | { gte: number }
@@ -224,7 +224,7 @@ async function getEventsInRange(device: Device, propertyName: string, selector: 
 
   if (selector.value) {
     const f = selector.value;
-    if ('eq'  in f) valueWhere = { value: f.eq };
+    if ('eq'  in f) valueWhere = typeof f.eq === 'string' ? { stringValue: f.eq } : { value: f.eq };
     else if ('ne'  in f) valueWhere = { value: { [Op.ne]:  f.ne  } };
     else if ('gt'  in f) valueWhere = { value: { [Op.gt]:  f.gt  } };
     else if ('gte' in f) valueWhere = { value: { [Op.gte]: f.gte } };
@@ -282,4 +282,18 @@ export async function getNumericPropertyHistory(device: Device, propertyName: st
 export async function getStringPropertyHistory(device: Device, propertyName: string, timeRangeSelector: HistorySelector): Promise<StringEvent[]> {
   const events = await getEventsInRange(device, propertyName, timeRangeSelector);
   return events.map((event) => new StringEvent(event));
+}
+
+export async function clearStringProperty(device: Device, eventName: string, endTime: Date, reportedAt: Date): Promise<StringEvent | null> {
+  const currentEvent = await Event.findOne({
+    where: { deviceId: device.id, type: eventName, end: null },
+    order: [['start', 'DESC']]
+  });
+
+  if (currentEvent) {
+    await currentEvent.update({ end: endTime, lastReported: reportedAt });
+    return new StringEvent(currentEvent);
+  }
+
+  return null;
 }
