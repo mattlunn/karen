@@ -76,13 +76,9 @@ export default class ApiClient {
         });
 
         const handleEvent = (type: SseType) => (message: MessageEvent) => {
-          try {
-            const data = JSON.parse(message.data);
-            const items: SseItem[] = data.items ?? [];
-            onMessage({ haId: data.haId, items }, type);
-          } catch (err) {
-            logger.warn({ err, type }, 'Home Connect SSE parse error');
-          }
+          const data = JSON.parse(message.data);
+          const items: SseItem[] = data.items ?? [];
+          onMessage({ haId: data.haId, items }, type);
         };
 
         (['NOTIFY', 'EVENT', 'STATUS'] as const).forEach(type => {
@@ -90,21 +86,13 @@ export default class ApiClient {
         });
 
         es.addEventListener('CONNECTED', (message: MessageEvent) => {
-          try {
-            const data = JSON.parse(message.data);
-            onMessage({ haId: data.haId, items: [] }, 'CONNECTED');
-          } catch (err) {
-            logger.warn({ err }, 'Home Connect CONNECTED parse error');
-          }
+          const data = JSON.parse(message.data);
+          onMessage({ haId: data.haId, items: [] }, 'CONNECTED');
         });
 
         es.addEventListener('DISCONNECTED', (message: MessageEvent) => {
-          try {
-            const data = JSON.parse(message.data);
-            onMessage({ haId: data.haId, items: [] }, 'DISCONNECTED');
-          } catch (err) {
-            logger.warn({ err }, 'Home Connect DISCONNECTED parse error');
-          }
+          const data = JSON.parse(message.data);
+          onMessage({ haId: data.haId, items: [] }, 'DISCONNECTED');
         });
 
         es.onerror = (err) => {

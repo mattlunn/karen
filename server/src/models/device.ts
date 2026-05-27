@@ -9,6 +9,7 @@ import {
   ProviderThermostatCapability,
   ProviderSwitchCapability,
   ProviderElectricVehicleCapability,
+  ProviderOvenCapability,
 
   LightSensorCapability,
   HumiditySensorCapability,
@@ -284,6 +285,7 @@ type ProviderHandler = {
   provideLockCapability?(): ProviderLockCapability;
   provideThermostatCapability?(): ProviderThermostatCapability;
   provideSwitchCapability?(): ProviderSwitchCapability;
+  provideOvenCapability?(): ProviderOvenCapability;
   provideSpeakerCapability?(): ProviderSpeakerCapability;
   provideElectricVehicleCapability?(): ProviderElectricVehicleCapability;
 

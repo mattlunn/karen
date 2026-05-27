@@ -7,6 +7,15 @@ import ApiClient from './lib/client';
 import type { SseType } from './lib/client';
 import { formatProgramName } from './lib/format';
 
+type SSEOperation =
+  | { key: 'BSH.Common.Status.OperationState'; value: string; timestamp: number }
+  | { key: 'BSH.Common.Root.ActiveProgram'; value: string; timestamp: number }
+  | { key: 'BSH.Common.Option.RemainingProgramTime'; value: number; timestamp: number }
+  | { key: 'Cooking.Oven.Option.SetpointTemperature'; value: number; timestamp: number }
+  | { key: 'Cooking.Oven.Status.CurrentCavityTemperature'; value: number; timestamp: number }
+  | { key: 'Dishcare.Dishwasher.Status.SaltNearlyEmpty'; value: boolean; timestamp: number }
+  | { key: 'Dishcare.Dishwasher.Status.RinseAidNearlyEmpty'; value: boolean; timestamp: number };
+
 const CAPABILITY_MAP: Record<string, string> = {
   Oven: 'OVEN',
   Microwave: 'MICROWAVE',
@@ -46,68 +55,62 @@ async function getAccessToken(): Promise<string> {
 
 const client = new ApiClient(getAccessToken);
 
-async function applyItem(device: Device, applianceType: string, item: { key: string; timestamp: number; value: unknown }, now: Date): Promise<void> {
+async function applyItem(device: Device, applianceType: string, item: SSEOperation, now: Date): Promise<void> {
   const ts = new Date(item.timestamp * 1000);
 
   if (applianceType === 'Oven') {
     const capability = device.getOvenCapability();
 
     if (item.key === 'BSH.Common.Status.OperationState') {
-      const isRun = (item.value as string).endsWith('.Run');
-      if (!isRun) {
+      if (!item.value.endsWith('.Run')) {
         await capability.clearProgramNameState(ts, now);
       }
     } else if (item.key === 'BSH.Common.Root.ActiveProgram') {
-      const programKey = item.value as string;
-      if (programKey) {
-        await capability.setProgramNameState(formatProgramName(programKey), ts, now);
+      if (item.value) {
+        await capability.setProgramNameState(formatProgramName(item.value), ts, now);
       } else {
         await capability.clearProgramNameState(ts, now);
       }
     } else if (item.key === 'Cooking.Oven.Option.SetpointTemperature') {
-      await capability.setSetpointTemperatureState(item.value as number, ts, now);
+      await capability.setSetpointTemperatureState(item.value, ts, now);
     } else if (item.key === 'Cooking.Oven.Status.CurrentCavityTemperature') {
-      await capability.setCurrentTemperatureState(item.value as number, ts, now);
+      await capability.setCurrentTemperatureState(item.value, ts, now);
     }
   } else if (applianceType === 'Microwave') {
     const capability = device.getMicrowaveCapability();
 
     if (item.key === 'BSH.Common.Status.OperationState') {
-      const isRun = (item.value as string).endsWith('.Run');
-      if (!isRun) {
+      if (!item.value.endsWith('.Run')) {
         await capability.clearProgramNameState(ts, now);
       }
     } else if (item.key === 'BSH.Common.Root.ActiveProgram') {
-      const programKey = item.value as string;
-      if (programKey) {
-        await capability.setProgramNameState(formatProgramName(programKey), ts, now);
+      if (item.value) {
+        await capability.setProgramNameState(formatProgramName(item.value), ts, now);
       } else {
         await capability.clearProgramNameState(ts, now);
       }
     } else if (item.key === 'BSH.Common.Option.RemainingProgramTime') {
-      await capability.setEstimatedCompletionTimeState(item.timestamp * 1000 + (item.value as number) * 1000, ts, now);
+      await capability.setEstimatedCompletionTimeState(item.timestamp * 1000 + item.value * 1000, ts, now);
     }
   } else if (applianceType === 'Dishwasher') {
     const capability = device.getDishwasherCapability();
 
     if (item.key === 'BSH.Common.Status.OperationState') {
-      const isRun = (item.value as string).endsWith('.Run');
-      if (!isRun) {
+      if (!item.value.endsWith('.Run')) {
         await capability.clearProgramNameState(ts, now);
       }
     } else if (item.key === 'BSH.Common.Root.ActiveProgram') {
-      const programKey = item.value as string;
-      if (programKey) {
-        await capability.setProgramNameState(formatProgramName(programKey), ts, now);
+      if (item.value) {
+        await capability.setProgramNameState(formatProgramName(item.value), ts, now);
       } else {
         await capability.clearProgramNameState(ts, now);
       }
     } else if (item.key === 'BSH.Common.Option.RemainingProgramTime') {
-      await capability.setEstimatedCompletionTimeState(item.timestamp * 1000 + (item.value as number) * 1000, ts, now);
+      await capability.setEstimatedCompletionTimeState(item.timestamp * 1000 + item.value * 1000, ts, now);
     } else if (item.key === 'Dishcare.Dishwasher.Status.SaltNearlyEmpty') {
-      await capability.setIsSaltLowState(item.value as boolean, ts, now);
+      await capability.setIsSaltLowState(item.value, ts, now);
     } else if (item.key === 'Dishcare.Dishwasher.Status.RinseAidNearlyEmpty') {
-      await capability.setIsRinseAidLowState(item.value as boolean, ts, now);
+      await capability.setIsRinseAidLowState(item.value, ts, now);
     }
   }
 }
@@ -139,8 +142,8 @@ async function handleSseMessage(msg: { haId: string; items: { key: string; times
 
   // Process ActiveProgram items before OperationState so the program name is
   // set before the state check potentially clears it
-  const sorted = [...msg.items].sort((a, b) => {
-    const priority = (key: string) => key === 'BSH.Common.Root.ActiveProgram' ? 0 : 1;
+  const sorted = ([...msg.items] as SSEOperation[]).sort((a, b) => {
+    const priority = (key: SSEOperation['key']) => key === 'BSH.Common.Root.ActiveProgram' ? 0 : 1;
     return priority(a.key) - priority(b.key);
   });
 
@@ -153,6 +156,9 @@ async function handleSseMessage(msg: { haId: string; items: { key: string; times
   }
 }
 
+// Hardcoded to 3D Hot Air — the only program used via voice.
+const OVEN_DEFAULT_PROGRAM = 'Cooking.Oven.Program.HeatingMode.HotAir3D';
+
 Device.registerProvider('homeconnect', {
   getCapabilities(device) {
     const type = device.meta.applianceType as string | undefined;
@@ -160,12 +166,27 @@ Device.registerProvider('homeconnect', {
     return cap ? [cap as Capability, 'CONNECTIVITY'] : [];
   },
 
-  async synchronize() {
-    if (!config.homeconnect.refresh_token) {
-      logger.info('Home Connect not authorized yet (no refresh_token); skipping sync');
-      return;
-    }
+  provideSwitchCapability() {
+    return {
+      setIsOn: async (device: Device, value: boolean) => {
+        if (!value) {
+          await client.stopActiveProgram(device.providerId);
+        }
+      }
+    };
+  },
 
+  provideOvenCapability() {
+    return {
+      setSetpointTemperature: async (device: Device, celsius: number) => {
+        await client.startActiveProgram(device.providerId, OVEN_DEFAULT_PROGRAM, [
+          { key: 'Cooking.Oven.Option.SetpointTemperature', value: celsius, unit: '°C' },
+        ]);
+      }
+    };
+  },
+
+  async synchronize() {
     const appliances = await client.getAppliances();
 
     for (const appliance of appliances) {
@@ -192,19 +213,4 @@ Device.registerProvider('homeconnect', {
 
 // Subscribe to events at module load — exactly once, not in synchronize()
 // so periodic re-syncs don't open a second EventSource.
-if (config.homeconnect.refresh_token) {
-  client.subscribeToEvents(handleSseMessage);
-}
-
-export function stopHomeConnectProgram(haId: string): Promise<void> {
-  return client.stopActiveProgram(haId);
-}
-
-// Hardcoded to 3D Hot Air — the only program used via voice.
-const OVEN_DEFAULT_PROGRAM = 'Cooking.Oven.Program.HeatingMode.HotAir3D';
-
-export function cookOven(haId: string, temperatureCelsius: number): Promise<void> {
-  return client.startActiveProgram(haId, OVEN_DEFAULT_PROGRAM, [
-    { key: 'Cooking.Oven.Option.SetpointTemperature', value: temperatureCelsius, unit: '°C' },
-  ]);
-}
+client.subscribeToEvents(handleSseMessage);

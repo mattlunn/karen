@@ -825,25 +825,14 @@ export const registry: CapabilityUIRegistry = {
         value: (e) => e.value ? 'Low' : 'OK',
         isIssue: (e) => e.value,
       }),
-      ...(cap.lastSelfCareRun !== null ? [
-        createCapability(cap.lastSelfCareRun, {
-          icon: faWrench,
-          title: 'Machine Care',
-          value: (e) => dayjs(e.end ?? e.start).fromNow(),
-          isIssue: (e) => {
-            const ts = e.end ?? e.start;
-            return Date.now() - new Date(ts).getTime() > 30 * 24 * 3600_000;
-          },
-        }),
-      ] : [
-        createCapability(null, {
-          icon: faWrench,
-          title: 'Machine Care',
-          value: 'Never run',
-          isIssue: true,
-          footer: undefined,
-        }),
-      ]),
+      createCapability(cap.lastSelfCareRun, {
+        icon: faWrench,
+        title: 'Machine Care',
+        value: (e) => e !== null
+          ? (e.end === null ? 'Running now' : dayjs(e.end).fromNow())
+          : 'Never run',
+        isIssue: (e) => e === null || (e.end !== null && Date.now() - new Date(e.end).getTime() > 30 * 24 * 3600_000),
+      }),
     ],
   },
 };

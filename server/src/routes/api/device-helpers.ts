@@ -1,6 +1,4 @@
 import { Device, NumericEvent, BooleanEvent, StringEvent } from '../../models';
-
-const openOnly = (e: StringEvent | null) => (e && e.end === null ? e : null);
 import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
@@ -281,10 +279,10 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
     case 'OVEN': {
       const oven = device.getOvenCapability();
-      const programEvent = await oven.getProgramNameEvent();
+
       return awaitPromises({
         type: 'OVEN' as const,
-        runningProgram: mapStringState(Promise.resolve(openOnly(programEvent)), device),
+        runningProgram: mapStringState(oven.getProgramNameEvent().then(e => e?.end ? null : e), device),
         setpointTemperature: mapNumericState(oven.getSetpointTemperatureEvent(), device),
         currentTemperature: mapNumericState(oven.getCurrentTemperatureEvent(), device),
       });
@@ -292,10 +290,10 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
     case 'MICROWAVE': {
       const mw = device.getMicrowaveCapability();
-      const programEvent = await mw.getProgramNameEvent();
+
       return awaitPromises({
         type: 'MICROWAVE' as const,
-        runningProgram: mapStringState(Promise.resolve(openOnly(programEvent)), device),
+        runningProgram: mapStringState(mw.getProgramNameEvent().then(e => e?.end ? null : e), device),
         estimatedCompletionTime: mapNumericState(mw.getEstimatedCompletionTimeEvent(), device),
       });
     }
@@ -303,19 +301,17 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     case 'DISHWASHER': {
       const dw = device.getDishwasherCapability();
       const now = new Date();
-      const [programEvent, machineCareRuns] = await Promise.all([
-        dw.getProgramNameEvent(),
-        dw.getProgramNameHistory({
-          since: device.createdAt,
-          until: now,
-          value: { eq: 'Machine Care' },
-          limit: 2,
-        }),
-      ]);
-      const lastSelfCareRun = machineCareRuns.find(e => e.end !== null) ?? null;
+      const machineCareRuns = await dw.getProgramNameHistory({
+        since: device.createdAt,
+        until: now,
+        value: { eq: 'Machine Care' },
+        limit: 1,
+      });
+      const lastSelfCareRun = machineCareRuns[0] ?? null;
+
       return awaitPromises({
         type: 'DISHWASHER' as const,
-        runningProgram: mapStringState(Promise.resolve(openOnly(programEvent)), device),
+        runningProgram: mapStringState(dw.getProgramNameEvent().then(e => e?.end ? null : e), device),
         estimatedCompletionTime: mapNumericState(dw.getEstimatedCompletionTimeEvent(), device),
         lastSelfCareRun: lastSelfCareRun ? mapStringState(Promise.resolve(lastSelfCareRun), device) : Promise.resolve(null),
         isSaltLow: mapBooleanState(dw.getIsSaltLowEvent(), device),

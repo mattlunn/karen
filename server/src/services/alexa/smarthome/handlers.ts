@@ -169,9 +169,11 @@ function toCelsius(temp: { value: number; scale: 'CELSIUS' | 'FAHRENHEIT' | 'KEL
   if (temp.scale === 'CELSIUS') {
     return temp.value;
   }
+
   if (temp.scale === 'FAHRENHEIT') {
     return (temp.value - 32) * 5 / 9;
   }
+
   return temp.value - 273.15;
 }
 
@@ -299,8 +301,7 @@ export async function handleAppliancePowerOff(request: AlexaTurnOnOffRequest): P
   }
 
   const device = await Device.findByIdOrError(request.endpoint.endpointId);
-  const { stopHomeConnectProgram } = await import('../../homeconnect');
-  await stopHomeConnectProgram(device.providerId);
+  await device.getSwitchCapability().setIsOn(false);
 
   const then = new Date();
   return controlResponse(request, await responsePropsForAppliance(device, then, 0));
@@ -309,13 +310,12 @@ export async function handleAppliancePowerOff(request: AlexaTurnOnOffRequest): P
 export async function handleApplianceSetCookingMode(request: AlexaSetCookingModeRequest): Promise<object> {
   const mode = request.payload?.cookingMode?.value;
   const device = await Device.findByIdOrError(request.endpoint.endpointId);
-  const { stopHomeConnectProgram, cookOven } = await import('../../homeconnect');
 
   if (mode === 'OFF') {
-    await stopHomeConnectProgram(device.providerId);
+    await device.getSwitchCapability().setIsOn(false);
   } else if (device.getCapabilities().includes('OVEN')) {
     const setpoint = await device.getOvenCapability().getSetpointTemperature();
-    await cookOven(device.providerId, setpoint || 180);
+    await device.getOvenCapability().setSetpointTemperature(setpoint || 180);
   } else {
     throw new Error(`Cooking mode ${mode} not supported on this appliance`);
   }
@@ -327,8 +327,7 @@ export async function handleApplianceSetCookingMode(request: AlexaSetCookingMode
 export async function handleOvenCookByTemperature(request: AlexaCookByTemperatureRequest): Promise<object> {
   const device = await Device.findByIdOrError(request.endpoint.endpointId);
   const celsius = toCelsius(request.payload.targetCookingTemperature);
-  const { cookOven } = await import('../../homeconnect');
-  await cookOven(device.providerId, Math.round(celsius));
+  await device.getOvenCapability().setSetpointTemperature(Math.round(celsius));
 
   const then = new Date();
   return controlResponse(request, await responsePropsForAppliance(device, then, 0));
@@ -349,8 +348,12 @@ export async function handleReportState(request: AlexaReportStateRequest) {
     return stateReport(request, await createLightResponseProperties(device, then, Date.now() - then.valueOf()));
   } else if (capabilities.includes('THERMOSTAT')) {
     return stateReport(request, await createThermostatResponseProperties(device, then, Date.now() - then.valueOf()));
-  } else if (capabilities.some(c => (APPLIANCE_CAPS as readonly string[]).includes(c))) {
-    return stateReport(request, await responsePropsForAppliance(device, then, Date.now() - then.valueOf()));
+  } else if (capabilities.includes('OVEN')) {
+    return stateReport(request, await createOvenResponseProperties(device, then, Date.now() - then.valueOf()));
+  } else if (capabilities.includes('MICROWAVE')) {
+    return stateReport(request, await createMicrowaveResponseProperties(device, then, Date.now() - then.valueOf()));
+  } else if (capabilities.includes('DISHWASHER')) {
+    return stateReport(request, await createDishwasherResponseProperties(device, then, Date.now() - then.valueOf()));
   } else {
     throw new Error(`Unable to report state on ${endpointId}`);
   }

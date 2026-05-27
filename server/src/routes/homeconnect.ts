@@ -29,12 +29,8 @@ router.get('/authorize', async (req, res) => {
       method: 'POST'
     });
 
-    const token = await request.json() as { access_token: string; refresh_token: string; expires_in: number };
-
-    if (!token.refresh_token) {
-      logger.error({ token }, 'HomeConnect OAuth response missing refresh_token');
-      return res.status(500).send('OAuth error: no refresh_token in response');
-    }
+    type HomeConnectTokenResponse = { access_token: string; refresh_token: string; expires_in: number };
+    const token = await request.json() as HomeConnectTokenResponse;
 
     config.homeconnect.refresh_token = token.refresh_token;
     saveConfig();
