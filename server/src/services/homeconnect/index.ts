@@ -163,6 +163,7 @@ Device.registerProvider('homeconnect', {
   getCapabilities(device) {
     const type = device.meta.applianceType as string | undefined;
     const cap = type ? CAPABILITY_MAP[type] : undefined;
+
     return cap ? [cap as Capability, 'CONNECTIVITY'] : [];
   },
 
@@ -171,6 +172,8 @@ Device.registerProvider('homeconnect', {
       setIsOn: async (device: Device, value: boolean) => {
         if (!value) {
           await client.stopActiveProgram(device.providerId);
+        } else {
+          throw new Error('Remote start is not supported for Home Connect appliances');
         }
       }
     };
