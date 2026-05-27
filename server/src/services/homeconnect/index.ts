@@ -194,7 +194,7 @@ Device.registerProvider('homeconnect', {
         continue;
       }
 
-      const existing = await Device.findOne({ where: { provider: 'homeconnect', providerId: appliance.haId } });
+      const existing = await Device.findByProviderId('homeconnect', appliance.haId);
 
       if (!existing) {
         await Device.create({
@@ -205,12 +205,9 @@ Device.registerProvider('homeconnect', {
           model: appliance.type,
           metaStringified: JSON.stringify({ applianceType: appliance.type }),
         });
-        logger.info({ haId: appliance.haId, type: appliance.type }, 'Home Connect appliance discovered');
       }
     }
   }
 });
 
-// Subscribe to events at module load — exactly once, not in synchronize()
-// so periodic re-syncs don't open a second EventSource.
 client.subscribeToEvents(handleSseMessage);
