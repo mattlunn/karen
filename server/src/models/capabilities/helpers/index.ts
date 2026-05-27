@@ -29,7 +29,10 @@ export async function getLatestNumericEvent(device: Device, propertyName: string
 }
 
 export async function getLatestStringEvent(device: Device, propertyName: string): Promise<StringEvent | null> {
-  const event = await device.getLatestEvent(propertyName);
+  const event = await Event.findOne({
+    where: { deviceId: device.id, type: propertyName, end: null },
+    order: [['start', 'DESC']]
+  });
   return event ? new StringEvent(event) : null;
 }
 

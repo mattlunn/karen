@@ -282,7 +282,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
       return awaitPromises({
         type: 'OVEN' as const,
-        runningProgram: mapStringState(oven.getProgramNameEvent().then(e => e?.end ? null : e), device),
+        runningProgram: mapStringState(oven.getProgramNameEvent(), device),
         setpointTemperature: mapNumericState(oven.getSetpointTemperatureEvent(), device),
         currentTemperature: mapNumericState(oven.getCurrentTemperatureEvent(), device),
       });
@@ -293,7 +293,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
       return awaitPromises({
         type: 'MICROWAVE' as const,
-        runningProgram: mapStringState(mw.getProgramNameEvent().then(e => e?.end ? null : e), device),
+        runningProgram: mapStringState(mw.getProgramNameEvent(), device),
         estimatedCompletionTime: mapNumericState(mw.getEstimatedCompletionTimeEvent(), device),
       });
     }
@@ -311,7 +311,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
 
       return awaitPromises({
         type: 'DISHWASHER' as const,
-        runningProgram: mapStringState(dw.getProgramNameEvent().then(e => e?.end ? null : e), device),
+        runningProgram: mapStringState(dw.getProgramNameEvent(), device),
         estimatedCompletionTime: mapNumericState(dw.getEstimatedCompletionTimeEvent(), device),
         lastSelfCareRun: lastSelfCareRun ? mapStringState(Promise.resolve(lastSelfCareRun), device) : Promise.resolve(null),
         isSaltLow: mapBooleanState(dw.getIsSaltLowEvent(), device),

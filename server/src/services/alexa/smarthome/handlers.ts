@@ -186,7 +186,7 @@ async function createOvenResponseProperties(device: Device, sampleTime: Date, un
     getConnectivityValue(device),
   ]);
 
-  const isRunning = programEvent !== null && programEvent.end === null;
+  const isRunning = programEvent !== null;
   const props: AlexaEndpointProperty[] = [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
@@ -237,7 +237,7 @@ async function createMicrowaveResponseProperties(device: Device, sampleTime: Dat
     getConnectivityValue(device),
   ]);
 
-  const isRunning = programEvent !== null && programEvent.end === null;
+  const isRunning = programEvent !== null;
   return [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
@@ -266,7 +266,7 @@ async function createDishwasherResponseProperties(device: Device, sampleTime: Da
     getConnectivityValue(device),
   ]);
 
-  const isRunning = programEvent !== null && programEvent.end === null;
+  const isRunning = programEvent !== null;
   return [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
