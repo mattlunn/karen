@@ -35,6 +35,8 @@ export function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'da
   return 'minute';
 }
 
+export type TimeUnit = 'minute' | 'hour' | 'day' | 'month';
+
 ChartJS.register(
   LinearScale,
   CategoryScale,
@@ -104,7 +106,7 @@ export type CapabilityGraphProps = {
 
   yMin?: number
   yMax?: number
-  timeUnit?: 'minute' | 'hour' | 'day'
+  timeUnit?: TimeUnit
   height?: string
 };
 
@@ -157,7 +159,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
-  const tickStepSize = timeUnit === 'day' ? 1 : 15;
+  const tickStepSize = (timeUnit === 'day' || timeUnit === 'month') ? 1 : 15;
 
   // TODO: Fixme any
   const chartOptions: any = {

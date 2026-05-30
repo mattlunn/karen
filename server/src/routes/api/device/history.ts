@@ -309,17 +309,18 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     };
   }],
 
-  // Electric Vehicle - Weekly Mileage
-  ['vehicle-weekly-mileage', async (device, selector) => {
+  // Electric Vehicle - Monthly Mileage & Efficiency
+  ['vehicle-monthly-mileage', async (device, selector) => {
     const ev = device.getElectricVehicleCapability();
 
-    return {
-      bar: {
-        data: await mapNumericHistoryToResponse((hs) => ev.getWeeklyMileageHistory(hs), selector),
-        label: 'Weekly Mileage (mi)'
-      },
-      lines: []
-    };
+    return awaitPromises({
+      lines: Promise.all([
+        mapNumericHistoryToResponse((hs) => ev.getMonthlyMileageHistory(hs), selector)
+          .then(data => ({ data, label: 'Monthly Mileage (mi)', yAxisID: 'y' }))
+      ]),
+      bar: mapNumericHistoryToResponse((hs) => ev.getMonthlyEfficiencyHistory(hs), selector)
+        .then(data => ({ data, label: 'Efficiency (mi/kWh)', yAxisID: 'yEfficiency' }))
+    });
   }],
 
   // Energy Monitor - Power
