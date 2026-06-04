@@ -1,35 +1,25 @@
-import prompt from 'prompt';
+import { createInterface } from 'readline/promises';
+import { stdin, stdout } from 'process';
 import bcrypt from 'bcrypt';
 import { User } from '../models';
 
-prompt.start();
-prompt.get({
-  properties: {
-    handle: {
-      description: 'Username',
-      required: true
-    },
+const rl = createInterface({ input: stdin, output: stdout });
 
-    password: {
-      description: 'Password',
-      hidden: true,
-      required: true,
-      before: function (value) {
-        return bcrypt.hashSync(value, 15);
-      }
-    }
-  }
-}, function (err, results) {
-  if (err) {
-    process.exit(1);
-  } else {
-    User.build(results).save().then((what) => {
-      console.log('User created with id ' + what.id);
+const handle = await rl.question('Username: ');
+const password = await rl.question('Password: ');
+rl.close();
 
-      process.exit(0);
-    }).catch((err) => {
-      console.log(err);
-      process.exit(1);
-    });
-  }
+if (!handle || !password) {
+  console.log('Username and password are required');
+  process.exit(1);
+}
+
+const hashedPassword = await bcrypt.hash(password, 15);
+
+User.build({ handle, password: hashedPassword }).save().then((user) => {
+  console.log('User created with id ' + user.id);
+  process.exit(0);
+}).catch((err) => {
+  console.log(err);
+  process.exit(1);
 });
