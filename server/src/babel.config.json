@@ -16,10 +16,7 @@
     ],
     "@babel/preset-react"
   ],
-  "plugins": [
-    "@babel/plugin-transform-optional-chaining",
-    "@babel/plugin-proposal-export-default-from"
-  ],
+  "plugins": [],
   "ignore": [
     "node_modules"
   ]
