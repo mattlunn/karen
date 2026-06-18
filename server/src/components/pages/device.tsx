@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDevice } from '../../hooks/queries/use-device';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import styles from './device.module.css';
 
 import type { CapabilityApiResponse } from '../../api/types';
