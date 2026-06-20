@@ -237,7 +237,8 @@
       "name": "IsJammed",
       "isWriteable": false,
       "type": "boolean",
-      "eventName": "is_jammed"
+      "eventName": "is_jammed",
+      "isMomentary": true
     }
   ]
 }, {

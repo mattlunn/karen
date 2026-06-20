@@ -149,7 +149,13 @@ deviceHandlers.set('Yale SD-L1000-CH', [
   {
     propertyKey: 'Notification.Access Control',
     propertyMapper(device: Device, value: number) {
-      return device.getLockCapability().setIsJammedState(value === 11);
+      // is_jammed is a momentary event, so only record an occurrence when the
+      // lock reports a jam (value 11); other notifications are not "un-jams".
+      if (value === 11) {
+        return device.getLockCapability().setIsJammedState(true);
+      }
+
+      return Promise.resolve();
     }
   },
   {
