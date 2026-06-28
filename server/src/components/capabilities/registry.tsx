@@ -344,7 +344,7 @@ export const registry: CapabilityUIRegistry = {
         id: 'thermostat',
         title: 'Temperature & Power',
         yAxis: {
-          yTemperature: { position: 'left', min: 0, max: 30 },
+          yTemperature: { position: 'left', min: 0 },
           yPercentage: { position: 'right', min: 0, max: 100 },
         },
       },
