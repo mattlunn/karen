@@ -211,6 +211,27 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
           }
         }, {
           type: 'AlexaInterface',
+          interface: 'Alexa.RangeController',
+          instance: 'Oven.RunningTime',
+          version: '3',
+          properties: {
+            supported: [{ name: 'rangeValue' }],
+            proactivelyReported: false,
+            retrievable: true
+          },
+          capabilityResources: {
+            friendlyNames: [
+              { '@type': 'text', value: { text: 'running time', locale: 'en-US' } },
+              { '@type': 'text', value: { text: 'running time', locale: 'en-GB' } },
+              { '@type': 'text', value: { text: 'elapsed time', locale: 'en-GB' } }
+            ]
+          },
+          configuration: {
+            supportedRange: { minimumValue: 0, maximumValue: 1440, precision: 1 },
+            unitOfMeasure: 'Alexa.Unit.Time.Minute'
+          }
+        }, {
+          type: 'AlexaInterface',
           interface: 'Alexa.PowerController',
           version: '3',
           properties: {

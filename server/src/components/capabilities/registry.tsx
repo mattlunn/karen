@@ -50,6 +50,7 @@ import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import ChargeLimitModal from '../modals/charge-limit-modal';
 import dayjs from '../../dayjs';
 import { humanDate, formatDuration } from '../../helpers/date';
+import { RelativeDuration } from '../relative-duration';
 import type {
   MetricDisplayVariant,
   CapabilityUIRegistry,
@@ -766,6 +767,11 @@ export const registry: CapabilityUIRegistry = {
         value: (e) => e.value ?? 'Off',
         iconHighlighted: (e) => e.value !== null,
         iconColor: '#e67e22',
+      }),
+      createCapability(cap.runningProgram, {
+        icon: faClock,
+        title: 'Running for',
+        value: (e) => <RelativeDuration since={e.start} />,
       }),
       createCapability(cap.setpointTemperature, {
         icon: faThermometerFull,

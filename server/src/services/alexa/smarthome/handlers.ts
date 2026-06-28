@@ -22,6 +22,7 @@ export type AlexaRequestWithEndpoint = Extract<AlexaSmartHomeRequest, { endpoint
 
 interface AlexaEndpointProperty {
   namespace: string;
+  instance?: string;
   name: string;
   value: unknown;
   timeOfSample: string;
@@ -187,6 +188,9 @@ async function createOvenResponseProperties(device: Device, sampleTime: Date, un
   ]);
 
   const isRunning = programEvent !== null;
+  const runningMinutes = programEvent
+    ? Math.max(0, Math.floor((sampleTime.getTime() - programEvent.start.getTime()) / 60_000))
+    : 0;
   const props: AlexaEndpointProperty[] = [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
@@ -197,6 +201,13 @@ async function createOvenResponseProperties(device: Device, sampleTime: Date, un
     namespace: 'Alexa.Cooking',
     name: 'cookingMode',
     value: { value: isRunning ? 'BAKE' : 'OFF' },
+    timeOfSample: sampleTime.toISOString(),
+    uncertaintyInMilliseconds
+  }, {
+    namespace: 'Alexa.RangeController',
+    instance: 'Oven.RunningTime',
+    name: 'rangeValue',
+    value: runningMinutes,
     timeOfSample: sampleTime.toISOString(),
     uncertaintyInMilliseconds
   }, {
