@@ -126,6 +126,7 @@ export default function (config: OccupanyAutomationConfiguration) {
     const thermostats = await Device.findByCapability('THERMOSTAT');
     await Promise.all(thermostats.map(async (thermostat) => {
       const targetTemperature = await thermostat.getThermostatCapability().getTargetTemperature();
+
       if (targetTemperature !== 0) {
         await thermostat.getThermostatCapability().setIsOn(true);
       }

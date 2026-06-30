@@ -50,7 +50,6 @@ export default function ({
 
     for (const device of thermostatDevices) {
       const thermostat = device.getThermostatCapability();
-
       const targetTemperature = await thermostat.getTargetTemperature();
       if (targetTemperature === 0) {
         continue;
