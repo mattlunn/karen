@@ -46,7 +46,57 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
   for (const device of devices) {
     const capabilities = device.getCapabilities();
 
-    if (capabilities.includes('THERMOSTAT')) {
+    if (capabilities.includes('TELEVISION')) {
+
+      endpoints.push({
+        friendlyName: device.name,
+        endpointId: String(device.id),
+        displayCategories: ['TV'],
+        manufacturerName: device.manufacturer,
+        description: `${device.name} television`,
+        capabilities: [{
+          type: 'AlexaInterface',
+          interface: 'Alexa.PowerController',
+          version: '3',
+          properties: {
+            supported: [{ name: 'powerState' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.Speaker',
+          version: '3',
+          properties: {
+            supported: [{ name: 'volume' }, { name: 'muted' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.ChannelController',
+          version: '3',
+          properties: {
+            supported: [{ name: 'channel' }],
+            proactivelyReported: false,
+            retrievable: false
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.EndpointHealth',
+          version: '3',
+          properties: {
+            supported: [{ name: 'connectivity' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa',
+          version: '3'
+        }]
+      });
+    } else if (capabilities.includes('THERMOSTAT')) {
       endpoints.push({
         friendlyName: device.name,
         endpointId: String(device.id),
@@ -107,6 +157,37 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
             retrievable: true
           }
         }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.PowerController',
+          version: '3',
+          properties: {
+            supported: [{ name: 'powerState' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.EndpointHealth',
+          version: '3',
+          properties: {
+            supported: [{ name: 'connectivity' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa',
+          version: '3'
+        }]
+      });
+    } else if (capabilities.includes('SWITCH')) {
+      endpoints.push({
+        friendlyName: device.name,
+        endpointId: String(device.id),
+        displayCategories: ['SWITCH'],
+        manufacturerName: device.manufacturer,
+        description: `${device.name} switch`,
+        capabilities: [{
           type: 'AlexaInterface',
           interface: 'Alexa.PowerController',
           version: '3',

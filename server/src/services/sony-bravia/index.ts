@@ -1,0 +1,133 @@
+import { Device } from '../../models';
+import { TelevisionSource } from '../../models/capabilities';
+import config from '../../config';
+import logger from '../../logger';
+import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import { createBackgroundTransaction } from '../../helpers/newrelic';
+import BraviaClient from './client';
+
+export type SonySource =
+  | { label: string; kind: 'channel'; number: number }
+  | { label: string; kind: 'guide' };
+
+function configFor(device: Device) {
+  return config.sony_bravia.devices.find(e => e.host === device.providerId);
+}
+
+export function sourcesFor(device: Device): SonySource[] {
+  const entry = configFor(device);
+  const channels: SonySource[] = entry
+    ? entry.channels.map(c => ({ label: c.name, kind: 'channel' as const, number: c.number }))
+    : [];
+  return [{ label: 'TV Guide', kind: 'guide' }, ...channels];
+}
+
+function clientFor(device: Device): BraviaClient {
+  const entry = configFor(device);
+
+  if (!entry) {
+    throw new Error(`No sony-bravia config entry for device ${device.providerId}`);
+  }
+
+  return new BraviaClient(entry.host, entry.psk, config.sony_bravia.connect_timeout_milliseconds);
+}
+
+function findSource(device: Device, label: string): SonySource | undefined {
+  return sourcesFor(device).find(s => s.label === label);
+}
+
+Device.registerProvider('sony-bravia', {
+  getCapabilities() {
+    return ['SWITCH', 'TELEVISION', 'CONNECTIVITY'];
+  },
+
+  provideSwitchCapability() {
+    return {
+      async setIsOn(device: Device, isOn: boolean) {
+        await clientFor(device).setIsOn(isOn);
+      },
+    };
+  },
+
+  provideTelevisionCapability() {
+    return {
+      async setVolume(device: Device, volume: number) {
+        await clientFor(device).setVolume(volume);
+      },
+
+      async setIsMuted(device: Device, mute: boolean) {
+        await clientFor(device).setMute(mute);
+      },
+
+      async setCurrentSource(device: Device, label: string) {
+        const source = findSource(device, label);
+
+        if (!source) {
+          throw new Error(`Unknown TV source "${label}" for device ${device.id}`);
+        }
+
+        if (source.kind === 'guide') {
+          await clientFor(device).sendIrcc('GGuide');
+        } else {
+          await clientFor(device).switchToChannel(source.number);
+        }
+      },
+      
+      getAvailableSources(device: Device): TelevisionSource[] {
+        return sourcesFor(device).map(s => ({ label: s.label, kind: s.kind }));
+      },
+    };
+  },
+
+  async synchronize() {
+    for (const entry of config.sony_bravia.devices) {
+      let device = await Device.findByProviderId('sony-bravia', entry.host);
+
+      if (device === null) {
+        device = Device.build({
+          provider: 'sony-bravia',
+          providerId: entry.host,
+          name: entry.name,
+          manufacturer: 'Sony',
+          model: 'Bravia',
+        });
+      }
+
+      await device.save();
+    }
+  }
+});
+
+async function pollDevice(device: Device) {
+  const client = clientFor(device);
+  const tv = device.getTelevisionCapability();
+  const sw = device.getSwitchCapability();
+  const isOn = await client.getIsOn();
+
+  await sw.setIsOnState(isOn);
+
+  if (isOn) {
+    try {
+      const volume = await client.getVolumeInformation();
+      await tv.setVolumeState(volume.volume);
+      await tv.setIsMutedState(volume.mute);
+    } catch (err) {
+      logger.warn({ err }, `Bravia ${device.id} volume read failed`);
+    }
+  }
+}
+
+nowAndSetInterval(createBackgroundTransaction('sony-bravia:poll', async () => {
+  const devices = await Device.findByProvider('sony-bravia');
+
+  await Promise.all(devices.map(async device => {
+    try {
+      await pollDevice(device);
+      await device.getConnectivityCapability().setIsConnectedState(true);
+    } catch (e) {
+      await device.getConnectivityCapability().setIsConnectedState(false);
+
+      throw e;
+    } 
+  }));
+}), Math.max(config.sony_bravia.poll_interval_seconds, 5) * 1000);

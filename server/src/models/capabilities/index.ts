@@ -1,11 +1,12 @@
 import { Device } from '../';
-import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase } from './capabilities.gen';
+import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase } from './capabilities.gen';
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
 export { SpeakerCapability } from './speaker';
 export { ThermostatCapability } from './thermostat';
 export { ElectricVehicleCapability } from './electric-vehicle';
+export { TelevisionCapability } from './television';
 export { BinCollectionCapability } from './bin-collection';
 export * from './capabilities.gen';
 
@@ -35,6 +36,15 @@ export interface ManualChargeSchedule {
 export interface ProviderElectricVehicleCapability extends ProviderElectricVehicleCapabilityBase {
   getNextChargeSchedule(device: Device): NextChargeSchedule | null;
   setManualChargeSchedule(device: Device, schedule: ManualChargeSchedule | null): Promise<void>;
+}
+
+export interface TelevisionSource {
+  label: string;
+  kind: 'channel' | 'guide';
+}
+
+export interface ProviderTelevisionCapability extends ProviderTelevisionCapabilityBase {
+  getAvailableSources(device: Device): TelevisionSource[];
 }
 
 export type ProviderSpeakerCapability = {
