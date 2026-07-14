@@ -94,6 +94,22 @@ export type CapabilityApiResponse = {
   unitRate: NumericStateApiResponse;
   standingCharge: NumericStateApiResponse;
 } | {
+  type: 'OVEN';
+  runningProgram: EnumStateApiResponse;
+  setpointTemperature: NumericStateApiResponse;
+  currentTemperature: NumericStateApiResponse;
+} | {
+  type: 'MICROWAVE';
+  runningProgram: EnumStateApiResponse;
+  estimatedCompletionTime: NumericStateApiResponse;
+} | {
+  type: 'DISHWASHER';
+  runningProgram: EnumStateApiResponse;
+  estimatedCompletionTime: NumericStateApiResponse;
+  lastSelfCareRun: EnumStateApiResponse | null;
+  isSaltLow: BooleanStateApiResponse;
+  isRinseAidLow: BooleanStateApiResponse;
+} | {
   type: null;
 };
 

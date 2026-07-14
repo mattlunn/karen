@@ -277,6 +277,48 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
+    case 'OVEN': {
+      const oven = device.getOvenCapability();
+
+      return awaitPromises({
+        type: 'OVEN' as const,
+        runningProgram: mapStringState(oven.getProgramNameEvent(), device),
+        setpointTemperature: mapNumericState(oven.getSetpointTemperatureEvent(), device),
+        currentTemperature: mapNumericState(oven.getCurrentTemperatureEvent(), device),
+      });
+    }
+
+    case 'MICROWAVE': {
+      const mw = device.getMicrowaveCapability();
+
+      return awaitPromises({
+        type: 'MICROWAVE' as const,
+        runningProgram: mapStringState(mw.getProgramNameEvent(), device),
+        estimatedCompletionTime: mapNumericState(mw.getEstimatedCompletionTimeEvent(), device),
+      });
+    }
+
+    case 'DISHWASHER': {
+      const dw = device.getDishwasherCapability();
+      const now = new Date();
+      const machineCareRuns = await dw.getProgramNameHistory({
+        since: device.createdAt,
+        until: now,
+        value: { eq: 'Machine Care' },
+        limit: 1,
+      });
+      const lastSelfCareRun = machineCareRuns[0] ?? null;
+
+      return awaitPromises({
+        type: 'DISHWASHER' as const,
+        runningProgram: mapStringState(dw.getProgramNameEvent(), device),
+        estimatedCompletionTime: mapNumericState(dw.getEstimatedCompletionTimeEvent(), device),
+        lastSelfCareRun: lastSelfCareRun ? mapStringState(Promise.resolve(lastSelfCareRun), device) : Promise.resolve(null),
+        isSaltLow: mapBooleanState(dw.getIsSaltLowEvent(), device),
+        isRinseAidLow: mapBooleanState(dw.getIsRinseAidLowEvent(), device),
+      });
+    }
+
     default:
       return { type: null };
   }
