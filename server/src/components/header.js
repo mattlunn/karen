@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Group, Anchor, Burger } from '@mantine/core';
 import NavLinks from './nav-links';
 
