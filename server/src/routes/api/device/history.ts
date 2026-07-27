@@ -315,11 +315,11 @@ const historyFetchers = new Map<string, HistoryFetcher>([
 
     return awaitPromises({
       lines: Promise.all([
-        mapNumericHistoryToResponse((hs) => ev.getMonthlyMileageHistory(hs), selector)
-          .then(data => ({ data, label: 'Monthly Mileage (mi)', yAxisID: 'y' }))
+        mapNumericHistoryToResponse((hs) => ev.getMonthlyEfficiencyHistory(hs), selector)
+          .then(data => ({ data, label: 'Efficiency (mi/kWh)', yAxisID: 'yEfficiency' }))
       ]),
-      bar: mapNumericHistoryToResponse((hs) => ev.getMonthlyEfficiencyHistory(hs), selector)
-        .then(data => ({ data, label: 'Efficiency (mi/kWh)', yAxisID: 'yEfficiency' }))
+      bar: mapNumericHistoryToResponse((hs) => ev.getMonthlyMileageHistory(hs), selector)
+        .then(data => ({ data, label: 'Monthly Mileage (mi)', yAxisID: 'y' }))
     });
   }],
 
