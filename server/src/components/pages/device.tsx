@@ -92,6 +92,7 @@ export default function Device() {
                 overridePageDateRange={graph.overridePreset}
                 overridePageDateRangeStart={graph.overrideStart}
                 overridePageDateRangeEnd={graph.overrideEnd}
+                timeUnit={graph.timeUnit}
               />
             ))}
           </div>
