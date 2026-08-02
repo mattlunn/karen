@@ -1,6 +1,6 @@
 import React from 'react';
 import { useDevice } from '../../hooks/queries/use-device';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import styles from './device.module.css';
 
 import type { CapabilityApiResponse } from '../../api/types';
@@ -92,6 +92,7 @@ export default function Device() {
                 overridePageDateRange={graph.overridePreset}
                 overridePageDateRangeStart={graph.overrideStart}
                 overridePageDateRangeEnd={graph.overrideEnd}
+                timeUnit={graph.timeUnit}
               />
             ))}
           </div>

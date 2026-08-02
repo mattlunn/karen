@@ -1,7 +1,7 @@
 import React, { ReactNode, MouseEvent, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Anchor, Modal, Title } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import ThermostatHeatMap from './thermostat-heat-map';

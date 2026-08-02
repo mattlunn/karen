@@ -297,11 +297,16 @@ export const registry: CapabilityUIRegistry = {
         overrideEnd: dayjs().toISOString(),
       },
       {
-        id: 'vehicle-weekly-mileage',
-        title: 'Weekly Mileage',
+        id: 'vehicle-monthly-mileage',
+        title: 'Monthly Mileage & Efficiency',
+        timeUnit: 'month',
         overridePreset: 'custom',
-        overrideStart: dayjs().subtract(6, 'months').startOf('week').toISOString(),
+        overrideStart: dayjs().subtract(1, 'year').startOf('month').toISOString(),
         overrideEnd: dayjs().toISOString(),
+        yAxis: {
+          y: { position: 'left', min: 0 },
+          yEfficiency: { position: 'right', min: 0 },
+        },
       },
     ],
   },
@@ -344,7 +349,7 @@ export const registry: CapabilityUIRegistry = {
         id: 'thermostat',
         title: 'Temperature & Power',
         yAxis: {
-          yTemperature: { position: 'left', min: 0, max: 30 },
+          yTemperature: { position: 'left', min: 0, suggestedMax: 30 },
           yPercentage: { position: 'right', min: 0, max: 100 },
         },
       },
