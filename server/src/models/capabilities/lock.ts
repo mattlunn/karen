@@ -8,13 +8,9 @@ export class LockCapability extends LockBaseCapability {
       return;
     }
 
-    if (await this.getIsJammed()) {
-      throw new Error('Lock is jammed');
-    }
-
     return new Promise((res, rej) => {
       function cleanup() {
-        DeviceCapabilityEvents.offLockIsJammedStart(doorJammedHandler);
+        DeviceCapabilityEvents.offLockIsJammed(doorJammedHandler);
         DeviceCapabilityEvents.offLockIsLockedStart(doorLockedHandler);
       }
 
@@ -33,7 +29,7 @@ export class LockCapability extends LockBaseCapability {
         rej(abortSignal.reason);
       });
 
-      DeviceCapabilityEvents.onLockIsJammedStart(d => d.id === device.id, doorJammedHandler);
+      DeviceCapabilityEvents.onLockIsJammed(d => d.id === device.id, doorJammedHandler);
       DeviceCapabilityEvents.onLockIsLockedStart(d => d.id === device.id, doorLockedHandler);
 
       this.setIsLocked(true);
