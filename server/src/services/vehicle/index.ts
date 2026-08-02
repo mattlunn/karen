@@ -226,6 +226,10 @@ async function verifyChargingProgress(device: Device, ev: ElectricVehicleCapabil
     return;
   }
 
+  // The alert fires at most once per scheduled occurrence. issueNotified records
+  // whether we've already alerted, and trackedTargetTime records which occurrence
+  // that flag applies to — so when a new occurrence rolls in (a different
+  // targetTime), we reset the flag and let the new one alert afresh.
   if (trackedTargetTime !== stored.targetTime) {
     trackedTargetTime = stored.targetTime;
     issueNotified = false;
@@ -234,8 +238,7 @@ async function verifyChargingProgress(device: Device, ev: ElectricVehicleCapabil
   const startTime = dayjs(stored.calculatedStartTime);
   const targetTime = dayjs(stored.targetTime);
 
-  // Only relevant once charging should be underway and while there's still time
-  // to meet the target.
+  // Only relevant once charging should be underway, until the target time has passed.
   if (!now.isSameOrAfter(startTime) || now.isAfter(targetTime)) {
     return;
   }
@@ -246,7 +249,15 @@ async function verifyChargingProgress(device: Device, ev: ElectricVehicleCapabil
     ev.getChargePercentage(),
   ]);
 
-  const isHealthy = !isCableConnected || isCharging || chargePercentage >= stored.targetPercentage;
+  // Nothing to charge (or alert on) if the cable isn't connected — this alert is
+  // specifically about being plugged in but not charging. Treat a reconnect as a
+  // fresh start so a later failure can alert again.
+  if (!isCableConnected) {
+    issueNotified = false;
+    return;
+  }
+
+  const isHealthy = isCharging || chargePercentage >= stored.targetPercentage;
 
   if (isHealthy) {
     issueNotified = false;
