@@ -11,6 +11,7 @@ import type {
   EnumEventApiResponse,
 } from '../../api/types';
 import type { DateRangePreset } from '../date-range/types';
+import type { TimeUnit } from '../capability-graphs/capability-graph';
 
 // ============================================================================
 // Metric Display Context
@@ -122,7 +123,7 @@ export interface GraphConfig {
   overridePreset?: DateRangePreset;
   overrideStart?: string;
   overrideEnd?: string;
-  timeUnit?: string;
+  timeUnit?: TimeUnit;
 }
 
 // ============================================================================

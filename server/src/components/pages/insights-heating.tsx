@@ -5,7 +5,7 @@ import { useHeatingInsights } from '../../hooks/queries/use-heating-insights';
 import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
 import PageLoader from '../page-loader';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { forDeviceCapability } from '../../helpers/device';
 import { formatValueOrUnknown as v } from '../../helpers/format';
 

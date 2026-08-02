@@ -5,7 +5,7 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';
 import { processSignal } from './signals';
-import { ensureHistoricalMileage, storeWeeklyMileage } from './mileage';
+import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildScheduleNotification, buildChargingFailureNotification } from './schedule';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
@@ -280,12 +280,12 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async (
   await verifyChargingProgress(device, ev, now);
 }), 15 * 60 * 1000);
 
-nowAndSetIntervalForTime(createBackgroundTransaction('vehicle:weekly-mileage', async () => {
+nowAndSetIntervalForTime(createBackgroundTransaction('vehicle:monthly-mileage', async () => {
   const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
   const capability = device.getElectricVehicleCapability();
-  const startOfWeek = dayjs().startOf('week').toDate();
+  const startOfMonth = dayjs().startOf('month').toDate();
   const now = new Date();
 
-  await ensureHistoricalMileage(device, capability);
-  await storeWeeklyMileage(capability, startOfWeek, now);
+  await ensureHistoricalMonthly(device, capability);
+  await storeMonthlyAggregates(capability, startOfMonth, now, now);
 }), '00:00');
