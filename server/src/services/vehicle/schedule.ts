@@ -62,5 +62,5 @@ export function buildChargingFailureNotification(
 ): string {
   const targetStr = `${targetTime.format('HH:mm')} ${humanDate(targetTime)}`;
 
-  return `Car is plugged in but not charging; it won't reach ${targetPercentage}% by ${targetStr}. Please check it.`;
+  return `Car is plugged in but not charging; it won't reach ${targetPercentage}% by ${targetStr}. Check that the cable is fully plugged in and that the correct charge limit is set in the Kia app.`;
 }
