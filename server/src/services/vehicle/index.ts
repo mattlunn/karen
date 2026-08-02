@@ -6,7 +6,7 @@ import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';
 import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
-import { pickNextChargeSchedule, buildScheduleNotification } from './schedule';
+import { pickNextChargeSchedule, buildScheduleNotification, buildChargingFailureNotification } from './schedule';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
 import nowAndSetIntervalForTime from '../../helpers/now-and-set-interval-for-time';
@@ -209,6 +209,75 @@ async function startChargingAndNotifyUsers(device: Device, ev: ElectricVehicleCa
   }
 }
 
+// We can't read the charge limit back from SmartCar, so we can't verify the car
+// actually accepted it. Instead we watch an in-progress scheduled charge and
+// alert if the car is plugged in but not charging. State is transient and
+// single-vehicle, so it lives in module variables (not device.meta), keyed to
+// the active occurrence's targetTime so it resets when a new occurrence rolls in.
+// We deliberately do not self-heal for now — we want to learn how often this
+// happens rather than have it silently fixed.
+let trackedTargetTime: string | null = null;
+let issueNotified = false;
+
+async function verifyChargingProgress(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
+  const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
+
+  if (!stored || !stored.calculatedStartTime) {
+    return;
+  }
+
+  // The alert fires at most once per scheduled occurrence. issueNotified records
+  // whether we've already alerted, and trackedTargetTime records which occurrence
+  // that flag applies to — so when a new occurrence rolls in (a different
+  // targetTime), we reset the flag and let the new one alert afresh.
+  if (trackedTargetTime !== stored.targetTime) {
+    trackedTargetTime = stored.targetTime;
+    issueNotified = false;
+  }
+
+  const startTime = dayjs(stored.calculatedStartTime);
+  const targetTime = dayjs(stored.targetTime);
+
+  // Only relevant once charging should be underway, until the target time has passed.
+  if (!now.isSameOrAfter(startTime) || now.isAfter(targetTime)) {
+    return;
+  }
+
+  const [isCableConnected, isCharging, chargePercentage] = await Promise.all([
+    ev.getIsCableConnected(),
+    ev.getIsCharging(),
+    ev.getChargePercentage(),
+  ]);
+
+  // Nothing to charge (or alert on) if the cable isn't connected — this alert is
+  // specifically about being plugged in but not charging. Treat a reconnect as a
+  // fresh start so a later failure can alert again.
+  if (!isCableConnected) {
+    issueNotified = false;
+    return;
+  }
+
+  const isHealthy = isCharging || chargePercentage >= stored.targetPercentage;
+
+  if (isHealthy) {
+    issueNotified = false;
+    return;
+  }
+
+  if (issueNotified) {
+    return;
+  }
+
+  logger.error('Charge schedule: car is plugged in but not charging when it should be');
+
+  bus.emit(NOTIFICATION_TO_ADMINS, {
+    message: buildChargingFailureNotification(stored.targetPercentage, targetTime),
+    priority: 1,
+  });
+
+  issueNotified = true;
+}
+
 // Run charge schedule check every 15 minutes
 nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async () => {
   const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
@@ -219,6 +288,7 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async (
   await chooseNextCharge(device, now);
   await recomputeStartTimeForNextCharge(device, ev);
   await startChargingAndNotifyUsers(device, ev, now);
+  await verifyChargingProgress(device, ev, now);
 }), 15 * 60 * 1000);
 
 nowAndSetIntervalForTime(createBackgroundTransaction('vehicle:monthly-mileage', async () => {
