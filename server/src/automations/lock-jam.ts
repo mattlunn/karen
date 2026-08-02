@@ -11,6 +11,6 @@ export default function () {
     const message = `${device.name} is jammed (as of ${dayjs(event.start).format('HH:mm')}).`;
 
     logger.warn({ event: 'lock-jammed' }, message);
-    bus.emit(NOTIFICATION_TO_ALL, { message, priority: 0 });
+    bus.emit(NOTIFICATION_TO_ALL, { message });
   }));
 }
