@@ -1,5 +1,6 @@
 import { Sequelize, Op, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional } from 'sequelize';
 import { AlarmActivation } from './alarm_activation';
+import dayjs from '../dayjs';
 
 export enum ArmingMode {
   NIGHT = 'NIGHT',
@@ -40,6 +41,14 @@ export class Arming extends Model<InferAttributes<Arming>, InferCreationAttribut
 
     return activations.reduce((mostRecent, curr) => {
       return mostRecent.startedAt > curr.startedAt ? mostRecent : curr;
+    });
+  }
+
+  async hasSilencingActivationOn(when: Date) {
+    const activations = await this.getAlarmActivations();
+
+    return activations.some((activation) => {
+      return activation.suppressionReason !== null && dayjs(activation.startedAt).isSame(when, 'day');
     });
   }
 }

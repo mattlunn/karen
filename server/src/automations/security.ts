@@ -1,10 +1,12 @@
 import { Device, Arming, User, AlarmActivation, BooleanEvent } from '../models';
 import { callWithKarenMessage } from '../services/twilio';
+import bus, { NOTIFICATION_TO_ALL } from '../bus';
 import dayjs from '../dayjs';
 import sleep from '../helpers/sleep';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
 import { DeviceCapabilityEvents } from '../models/capabilities';
+import { findActiveSilencingWindow, SilencingWindow } from '../helpers/silencing-window';
 
 const successAsBoolean = (promise: Promise<void>) => promise.then(() => true, () => false);
 
@@ -13,6 +15,7 @@ type SecurityAutomationConfiguration = {
   alarm_alexa: string;
   night_excluded_devices: string[];
   excluded_devices: string[];
+  silencing_windows: SilencingWindow[];
 };
 
 async function turnOnAllTheLights() {
@@ -103,7 +106,8 @@ export default async function ({
   night_mode_alexa: nightModeAlexa,
   alarm_alexa: alarmAlexa,
   night_excluded_devices: nightExcludedDevices = [],
-  excluded_devices: excludedDevices = []
+  excluded_devices: excludedDevices = [],
+  silencing_windows: silencingWindows = []
 }: SecurityAutomationConfiguration) {
   DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:security:motion-detected', async (event) => {
     const [
@@ -115,6 +119,27 @@ export default async function ({
     ]);
 
     if (arming && !isExcludedDevice(arming.mode, device.name, excludedDevices, nightExcludedDevices)) {
+      const silencingWindow = findActiveSilencingWindow(silencingWindows, event.start);
+
+      if (silencingWindow) {
+        // Suppress the alarm during the configured window, but still record it and notify
+        // once per arming per day so we're not blind to the activation.
+        if (!await arming.hasSilencingActivationOn(event.start)) {
+          await AlarmActivation.create({
+            armingId: arming.id,
+            startedAt: event.start,
+            suppressedAt: event.start,
+            suppressionReason: silencingWindow.name
+          });
+
+          bus.emit(NOTIFICATION_TO_ALL, {
+            message: `🔕 FYI: alarm activation from ${device.name} was suppressed by the "${silencingWindow.name}" silencing window`
+          });
+        }
+
+        return;
+      }
+
       let mostRecentActivation = await arming.getMostRecentActivation();
 
       if (!mostRecentActivation || mostRecentActivation.isSuppressed) {

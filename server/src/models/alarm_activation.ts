@@ -8,6 +8,7 @@ export class AlarmActivation extends Model<InferAttributes<AlarmActivation>, Inf
   declare startedAt: CreationOptional<Date>;
   declare suppressedAt: CreationOptional<Date>;
   declare suppressedBy: CreationOptional<number>;
+  declare suppressionReason: CreationOptional<string | null>;
   declare isSuppressed: CreationOptional<boolean>;
 
   declare getArming: HasOneGetAssociationMixin<Arming>;
@@ -52,6 +53,11 @@ export default function (sequelize: Sequelize) {
 
     suppressedBy: {
       type: DataTypes.INTEGER,
+      allowNull: true
+    },
+
+    suppressionReason: {
+      type: DataTypes.STRING,
       allowNull: true
     },
 
