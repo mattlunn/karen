@@ -24,6 +24,7 @@ function getClient(): MqttClient {
         `${TOPIC_PREFIX}/+/light/0/power`,
         `${TOPIC_PREFIX}/+/status/switch:0`,
         `${TOPIC_PREFIX}/+/status/input:0`,
+        `${TOPIC_PREFIX}/+/blu`,
       ], (err) => {
         if (err) {
           logger.error(err, 'Shelly MQTT subscribe failed');
@@ -48,13 +49,26 @@ function getClient(): MqttClient {
 async function handleMessage(topic: string, payload: string): Promise<void> {
   const segments = topic.split('/');
   const mqttId = segments[1];
-  const device = await Device.findByProviderId('shelly', mqttId);
+  const subtopic = segments.slice(2).join('/');
+
+  let device = await Device.findByProviderId('shelly', mqttId);
 
   if (device === null) {
-    return;
+    // BLU (Bluetooth) door/window sensors can't be onboarded via the HTTP
+    // install route (they have no IP), so auto-provision them on first sighting.
+    // The gateway script publishes to `shellies/<blu-mac>/blu`, which places the
+    // MAC in the existing providerId slot. Any other unknown device is ignored.
+    if (subtopic !== 'blu') {
+      return;
+    }
+
+    device = Device.build({ provider: 'shelly', providerId: mqttId });
+    device.name = mqttId;
+    device.manufacturer = 'Shelly';
+    device.model = 'SBDW-002C';
+    await device.save();
   }
 
-  const subtopic = segments.slice(2).join('/');
   const capabilities = device.getCapabilities();
 
   if (subtopic === 'online') {
@@ -95,10 +109,21 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
     return;
   }
 
-  if (subtopic === 'status/input:0' && capabilities.includes('CONTACT_SENSOR')) {
+  if (subtopic === 'status/input:0' && capabilities.includes('ALARM_SENSOR')) {
     const data = JSON.parse(payload);
 
-    await device.getContactSensorCapability().setIsClosedState(data.state);
+    await device.getAlarmSensorCapability().setIsTriggeredState(data.state);
+
+    return;
+  }
+
+  if (subtopic === 'blu' && capabilities.includes('CONTACT_SENSOR')) {
+    const data = JSON.parse(payload);
+
+    // PROVISIONAL: the exact payload shape is defined by the BLE-gateway script
+    // and must be confirmed against a captured message. BTHome window/door
+    // (object 0x2D) reports 1 = open, 0 = closed.
+    await device.getContactSensorCapability().setIsOpenState(Boolean(data.window));
 
     return;
   }

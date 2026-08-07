@@ -16,7 +16,10 @@ Device.registerProvider('shelly', {
         return ['SWITCH', 'CONNECTIVITY'];
 
       case 'S4SW-001X8EU': // Shelly 1 Mini Gen4 (Fire Alarm)
-        return ['CONTACT_SENSOR', 'CONNECTIVITY'];
+        return ['ALARM_SENSOR', 'CONNECTIVITY'];
+
+      case 'SBDW-002C':    // Shelly BLU Door/Window (via BLE gateway)
+        return ['CONTACT_SENSOR'];
 
       default:
         throw new Error(`Cannot infer capabilities for device ${device.id} (${device.model})`);

@@ -554,11 +554,11 @@ export const registry: CapabilityUIRegistry = {
     ],
   },
 
-  CONTACT_SENSOR: {
+  ALARM_SENSOR: {
     priority: 55,
     getCapabilityMetrics: (cap) => {
       const metrics: CapabilityMetric[] = [
-        createCapability(cap.isClosed, {
+        createCapability(cap.isTriggered, {
           icon: faBell,
           title: 'Status',
           value: (e) => e.value ? 'TRIGGERED' : 'OK',
@@ -583,6 +583,22 @@ export const registry: CapabilityUIRegistry = {
 
       return metrics;
     },
+    getGraphs: () => [
+      { id: 'alarm-sensor', title: 'Activity' },
+    ],
+  },
+
+  CONTACT_SENSOR: {
+    priority: 55,
+    getCapabilityMetrics: (cap) => [
+      createCapability(cap.isOpen, {
+        icon: (e) => e.value ? faDoorOpen : faDoorClosed,
+        title: 'Status',
+        value: (e) => e.value ? 'Open' : 'Closed',
+        iconHighlighted: (e) => e.value,
+        iconColor: '#04A7F4',
+      }),
+    ],
     getGraphs: () => [
       { id: 'contact-sensor', title: 'Activity' },
     ],
