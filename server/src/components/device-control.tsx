@@ -1,7 +1,7 @@
 import React, { ReactNode, MouseEvent, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Anchor, Modal, Title } from '@mantine/core';
 import { useQueryClient } from '@tanstack/react-query';
 import ThermostatHeatMap from './thermostat-heat-map';
@@ -51,7 +51,7 @@ export default function DeviceControl({ icon, iconOnClick, colorIconBackground, 
   return (
     <>
       <div className={styles.header}>
-        <a className={classNames(styles.iconContainer, isPending && styles.iconContainerDisabled)} style={{ backgroundColor: colorIconBackground ? color + '50' : 'transparent' }} onClick={handleClick} href="#">
+        <a className={classNames(styles.iconContainer, isPending && styles.iconContainerDisabled)} style={{ backgroundColor: colorIconBackground ? `color-mix(in srgb, ${color} 31%, transparent)` : 'transparent' }} onClick={handleClick} href="#">
           <FontAwesomeIcon icon={isPending ? faSync : icon} spin={isPending} color={color} />
         </a>
         <div>

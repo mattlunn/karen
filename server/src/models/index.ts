@@ -54,11 +54,5 @@ AlarmActivation.belongsTo(Arming);
 Arming.hasMany(AlarmActivation, {
   as: 'AlarmActivations'
 });
-User.hasMany(AlarmActivation, {
-  foreignKey: 'suppressedBy'
-});
-AlarmActivation.belongsTo(User, {
-  foreignKey: 'suppressedBy'
-});
 
 export { Op } from 'sequelize';

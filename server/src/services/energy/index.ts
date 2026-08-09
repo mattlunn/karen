@@ -61,13 +61,13 @@ async function storeDailyEnergyForDevice(
     const clampedPower = filterClampAndSortHistory(powerHistory, dayStart, dayEnd, false);
     const kWh = Math.round(calculateWattHours(clampedPower) / 10) / 100;
 
-    await energyMonitor.setDayEnergyState(kWh, dayStart);
+    await energyMonitor.setDayEnergyState(kWh, dayStart, now);
 
     const rateHistory = await energyCost.getUnitRateHistory({ since: dayStart, until: dayEnd });
     const cost = calculateDayCost(powerHistory, rateHistory, dayStart, dayEnd);
 
     if (cost !== null) {
-      await energyMonitor.setDayCostState(cost, dayStart);
+      await energyMonitor.setDayCostState(cost, dayStart, now);
     }
   }
 }

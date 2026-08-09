@@ -50,6 +50,10 @@ chmod 644 ~/.ssh/known_hosts
 # Install Claude Code CLI
 npm install -g @anthropic-ai/claude-code
 
+# CLAUDE_CONFIG_DIR lives in a subdir of the persisted ~/.config volume;
+# create it so Claude Code's login state survives rebuilds.
+mkdir -p "$CLAUDE_CONFIG_DIR"
+
 # Running `claude` inside the container always skips permission prompts,
 # since the container itself is the security boundary.
 echo "alias claude='claude --dangerously-skip-permissions'" >> ~/.bashrc

@@ -75,6 +75,7 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 ### Naming Conventions
 
 - **Component files**: Use hyphenated lowercase names (e.g., `date-range-context.tsx`, not `DateRangeContext.tsx`)
+- **Database tables vs columns**: Table names are `snake_case` and pluralised (e.g. `alarm_activations`, `armings`, `events`); column names are `camelCase` (e.g. `armingId`, `startedAt`, `suppressFurtherAlertsUntil`, `lastReported`). Sequelize models map camelCase attributes straight to camelCase columns — the codebase does **not** use `underscored: true`. Follow both when adding migrations or model fields.
 
 ### Coding Style
 
@@ -174,10 +175,13 @@ Device.registerProvider('providerName', {
 - Store using the start of the period as the timestamp (e.g., Monday 00:00 for weekly data)
 - Use the same timestamp to update existing events rather than creating duplicates
 - Fill historical gaps by querying the last stored period and calculating forward
+- **Always pass `reportedAt = now` (current time) as the third argument to the setter, distinct from `stateTimestamp` (period start).** If `reportedAt` defaults to `stateTimestamp`, the "same value" branch in `setNumericProperty` writes `lastReported = period_start` instead of the current time. The resume calculation (`dayjs(latestEvent.lastReported).startOf('day')`) then resolves back to that same period and the catch-up loop replays it on every run indefinitely — instead of jumping to today where the new value can differ and trigger a proper new event. The heat pump service demonstrates the correct pattern: `capability.setDayPowerState(value, dayStart, intervalEnd)`.
 
 **Event-Driven Updates**: Device changes emit events via `DeviceCapabilityEvents`, which trigger SSE (Server-Sent Events) for real-time UI updates.
 
 **Configuration-Driven Automations**: Automations are configured in `config.json` and dynamically loaded at startup. Each automation module receives parameters and registers event handlers. Each automation exports a default function with a named `FooAutomationParameters` type for its config object (see `automations/bathroom.ts`). Required parameters have no defaults.
+
+**Runtime mutable config**: For settings that need to persist across server restarts and be changeable at runtime (e.g. feature flags, seasonal overrides), add a field to `config.json` and use `saveConfig()` from `helpers/config.js` to write back to disk atomically. Do NOT create a new DB settings table — `saveConfig` is the established pattern already used for Tado/Alexa/SmartCar token persistence and costs zero infrastructure.
 
 **Capability UI Registry**: UI configuration for device capabilities is centralized in `/components/capabilities/`. When adding a new capability type, only update `registry.tsx`:
 
@@ -211,6 +215,15 @@ The registry provides:
 - `MetricDisplayProvider` - Context for compact/full display variants
 
 Interactive controls use `onIconClick` which receives `{ openModal, closeModal, queryClient }`. The `value` field can be a React component for interactive controls (e.g., brightness dropdown).
+
+**Metric icon semantics**: a metric's icon is a deliberate signal, not decoration. Four orthogonal `CapabilityMetric` properties drive how it renders (in `StatusItem` on the device page and in the compact `DeviceControl` cards). When adding or editing a capability, set them by meaning — do not reach for `iconColor` just to make a card look colourful:
+
+- **`isIssue`** — the metric is in a problem state (offline, battery low, sensor triggered). Renders the icon **red**, overriding any colour, and surfaces the device in issue lists (`getDeviceIssues`). Set it whenever a state is genuinely wrong.
+- **`iconHighlighted`** — the metric has a meaningful active/inactive (on/off, running/idle) state and is currently *active* (light on, heating, motion detected, charging, schedule set). When defined, the icon is neutral grey while inactive and switches to `iconColor` while active. Only set it on metrics that actually have such a state — never on plain readings.
+- **`iconColor`** — **not decorative**. Use it for exactly one of two things: (a) the colour shown while `iconHighlighted` is `true` (pair the two together — e.g. light `#ffa24d`), or (b) a genuinely intrinsic colour on a metric that has *no* active/inactive concept (rare — e.g. `BIN_COLLECTION` uses the bin's own collection colour). If a metric is just a reading (temperature, humidity, energy, odometer), leave `iconColor` unset so the icon stays neutral grey.
+- **`onIconClick`** — makes the icon an interactive button. Clickable icons render as a filled `ActionIcon` (the metric's semantic colour as the background, white glyph on top) so the affordance is visible at rest; never rely on colour alone to imply clickability.
+
+The colour resolution lives in one place — `getMetricIconColor` (`components/capabilities/helpers.ts`): `isIssue` → red; else `iconHighlighted` defined → `iconColor` when active, neutral when not; else `iconColor` if intrinsic, otherwise neutral. The default (none of the four set) is a neutral grey, non-clickable icon — correct for a plain reading.
 
 **Exposing capability data in the UI registry**: To surface a value (live state, derived metric, or aggregate) on a device card, follow this layered flow — never short-circuit it:
 

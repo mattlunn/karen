@@ -17,6 +17,8 @@ export function getPresetRange(preset: DateRangePreset): DateRange {
         since: now.subtract(1, 'day').startOf('day'),
         until: now.subtract(1, 'day').endOf('day')
       };
+    case 'lastMonth':
+      return { since: now.subtract(1, 'month').startOf('day'), until: now };
     case 'custom':
     default:
       return { since: now.subtract(6, 'hours'), until: now };

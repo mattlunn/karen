@@ -237,7 +237,8 @@
       "name": "IsJammed",
       "isWriteable": false,
       "type": "boolean",
-      "eventName": "is_jammed"
+      "eventName": "is_jammed",
+      "isMomentary": true
     }
   ]
 }, {
@@ -373,10 +374,16 @@
       "eventName": "odometer"
     },
     {
-      "name": "WeeklyMileage",
+      "name": "MonthlyMileage",
       "isWriteable": false,
       "type": "number",
-      "eventName": "weekly_mileage"
+      "eventName": "monthly_mileage"
+    },
+    {
+      "name": "MonthlyEfficiency",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "monthly_efficiency"
     },
     {
       "name": "IsCableConnected",

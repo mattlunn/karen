@@ -88,6 +88,10 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
       await device.getSwitchCapability().setIsOnState(data.output);
     }
 
+    if (capabilities.includes('ENERGY_MONITOR')) {
+      await device.getEnergyMonitorCapability().setCurrentPowerState(Math.round(data.apower * 10) / 10);
+    }
+
     return;
   }
 

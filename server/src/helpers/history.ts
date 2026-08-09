@@ -23,7 +23,7 @@ export function filterClampAndSortHistory<U, T extends HistoryEvent<U>>(history:
     }
 
     // Can't !== or ===, as date instances for the same date will not be equal.
-    if (!expectGaps && currentItem.end > nextItem.start || currentItem.end < nextItem.end!) {
+    if (!expectGaps && (currentItem.end > nextItem.start || currentItem.end < nextItem.end!)) {
       currentItem.end = nextItem.start;
     } else if (currentItem.end > nextItem.start) {
       currentItem.end = nextItem.start;

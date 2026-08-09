@@ -1,4 +1,4 @@
-import type { SmartcarSignalAttributes, SmartcarSuccessSignalAttributes } from 'smartcar';
+import type { SmartcarSignalAttributes, SmartcarSuccessSignalAttributes } from './types';
 import { Device } from '../../models';
 import config from '../../config';
 import logger from '../../logger';

@@ -211,8 +211,8 @@ function hasNullValue(event: CapabilityEvent | null): boolean {
  * When the backing event exists but its `value` is `null` (no observation yet),
  * we short-circuit to a uniform "no reading" rendering (a `-` value): only the
  * `icon` callback is invoked (each capability picks a sensible neutral icon for
- * the unobserved state); `value`, `iconColor`, `iconHighlighted` and `isIssue`
- * fall back to generic defaults so per-capability callbacks don't handle absence.
+ * the unobserved state); `value`, `iconHighlighted` and `isIssue` fall back to
+ * generic defaults so per-capability callbacks don't handle absence.
  */
 function createCapability<E extends CapabilityEvent | null>(
   event: E,
@@ -223,7 +223,6 @@ function createCapability<E extends CapabilityEvent | null>(
       icon: resolve(config.icon, event),
       title: config.title,
       value: '-',
-      iconColor: '#aaaaaa',
       iconHighlighted: false,
       onIconClick: config.onIconClick,
       since: event!.start,
@@ -268,7 +267,6 @@ export const registry: CapabilityUIRegistry = {
         icon: faVideo,
         title: 'Camera',
         value: 'Active',
-        iconColor: '#04A7F4',
       }),
     ],
   },
@@ -330,7 +328,8 @@ export const registry: CapabilityUIRegistry = {
             ? `starts ${dayjs(cap.chargeSchedule.calculatedStartTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.calculatedStartTime))}`
             : 'start TBC'
           : undefined,
-        iconColor: cap.chargeSchedule ? '#3498db' : undefined,
+        iconColor: '#3498db',
+        iconHighlighted: !!cap.chargeSchedule,
         onIconClick: ({ openModal, closeModal }) => {
           openModal(
             <ChargeScheduleModal device={device} capability={cap} closeModal={closeModal} />
@@ -349,11 +348,16 @@ export const registry: CapabilityUIRegistry = {
         overrideEnd: dayjs().toISOString(),
       },
       {
-        id: 'vehicle-weekly-mileage',
-        title: 'Weekly Mileage',
+        id: 'vehicle-monthly-mileage',
+        title: 'Monthly Mileage & Efficiency',
+        timeUnit: 'month',
         overridePreset: 'custom',
-        overrideStart: dayjs().subtract(6, 'months').startOf('week').toISOString(),
+        overrideStart: dayjs().subtract(1, 'year').startOf('month').toISOString(),
         overrideEnd: dayjs().toISOString(),
+        yAxis: {
+          y: { position: 'left', min: 0 },
+          yEfficiency: { position: 'right', min: 0 },
+        },
       },
     ],
   },
@@ -377,19 +381,18 @@ export const registry: CapabilityUIRegistry = {
         icon: faThermometerQuarter,
         title: 'Target Temperature',
         value: (e) => `${e.value.toFixed(1)}°C`,
-        iconColor: '#ff6f22',
       }),
       createCapability(cap.power, {
         icon: faFire,
         title: 'Power',
         value: (e) => `${e.value}%`,
         iconColor: '#ff6f22',
+        iconHighlighted: (e) => e.value > 0,
       }),
       createCapability(cap.isPassive, {
         icon: faSnowflake,
         title: 'Passive',
         value: (e) => e.value ? 'Yes' : 'No',
-        iconColor: '#aaaaaa',
       }),
     ],
     getGraphs: () => [
@@ -397,7 +400,7 @@ export const registry: CapabilityUIRegistry = {
         id: 'thermostat',
         title: 'Temperature & Power',
         yAxis: {
-          yTemperature: { position: 'left', min: 0, max: 30 },
+          yTemperature: { position: 'left', min: 0, suggestedMax: 30 },
           yPercentage: { position: 'right', min: 0, max: 100 },
         },
       },
@@ -637,7 +640,6 @@ export const registry: CapabilityUIRegistry = {
           icon: faBell,
           title: 'Status',
           value: (e) => e.value ? 'TRIGGERED' : 'OK',
-          iconColor: (e) => e.value ? '#e74c3c' : '#2ecc71',
           iconHighlighted: (e) => e.value,
           isIssue: (e) => e.value,
         }),
@@ -653,7 +655,6 @@ export const registry: CapabilityUIRegistry = {
           icon: faBell,
           title: 'Last Triggered',
           value: `${humanDate(start)} at ${start.format('HH:mm')}`,
-          iconColor: '#04A7F4',
           footer,
         }));
       }
@@ -672,7 +673,6 @@ export const registry: CapabilityUIRegistry = {
         icon: faDroplet,
         title: 'Humidity',
         value: (e) => `${e.value}%`,
-        iconColor: '#04A7F4',
       }),
     ],
   },
@@ -684,7 +684,6 @@ export const registry: CapabilityUIRegistry = {
         icon: faThermometerQuarter,
         title: 'Current Temperature',
         value: (e) => `${e.value.toFixed(1)}°C`,
-        iconColor: '#ff6f22',
       }),
     ],
   },
@@ -722,7 +721,6 @@ export const registry: CapabilityUIRegistry = {
         value: (e) => e
           ? `${humanDate(dayjs(e.start))} at ${dayjs(e.start).format('HH:mm')}`
           : 'Never',
-        iconColor: '#04A7F4',
       }),
       createCapability(null, {
         icon: faCalendarDay,
@@ -735,7 +733,6 @@ export const registry: CapabilityUIRegistry = {
         icon: faHashtag,
         title: 'Total Presses',
         value: cap.totalPresses.toString(),
-        iconColor: '#04A7F4',
       }),
     ],
   },
@@ -752,11 +749,6 @@ export const registry: CapabilityUIRegistry = {
         },
         title: 'Battery',
         value: (e) => `${e.value}%`,
-        iconColor: (e) => {
-          if (e.value > 50) return '#2ecc71';
-          if (e.value > 25) return '#f39c12';
-          return '#e74c3c';
-        },
         isIssue: (e) => e.value <= 25,
       }),
     ],
@@ -769,7 +761,6 @@ export const registry: CapabilityUIRegistry = {
         icon: (e) => e.value === false ? faBatteryFull : faBatteryEmpty,
         title: 'Battery',
         value: (e) => e.value ? 'LOW' : 'OK',
-        iconColor: (e) => e.value ? '#e74c3c' : '#2ecc71',
         isIssue: (e) => e.value,
       }),
     ],
@@ -838,7 +829,6 @@ export const registry: CapabilityUIRegistry = {
         icon: faSignal,
         title: 'Connection',
         value: (e) => e.value ? 'Online' : 'Offline',
-        iconColor: (e) => e.value ? '#2ecc71' : '#e74c3c',
         iconHighlighted: (e) => !e.value,
         isIssue: (e) => !e.value,
       }),

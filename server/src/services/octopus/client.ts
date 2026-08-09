@@ -12,13 +12,6 @@ export interface RateInterval {
   value: number; // pence (inc. VAT)
 }
 
-export interface MeterPoint {
-  mpan: string;
-  serialNumber: string;
-  productCode: string;
-  tariffCode: string;
-}
-
 interface AccountResponse {
   properties: {
     electricity_meter_points: {
@@ -88,25 +81,20 @@ function productCodeFromTariff(tariffCode: string): string {
   return tariffCode.replace(/^E-1R-/, '').replace(/-[A-Z]$/, '');
 }
 
-export async function getMeterPoint(): Promise<MeterPoint> {
+export async function getTariff(): Promise<{ tariffCode: string; productCode: string }> {
   const account = await request<AccountResponse>(
     `${BASE_URL}/v1/accounts/${config.octopus.account_number}/`
   );
 
   const meterPoint = account.properties[0].electricity_meter_points[0];
-  const meter = meterPoint.meters[0];
   const agreement = meterPoint.agreements[meterPoint.agreements.length - 1];
+  const tariffCode = agreement.tariff_code;
 
-  return {
-    mpan: meterPoint.mpan,
-    serialNumber: meter.serial_number,
-    tariffCode: agreement.tariff_code,
-    productCode: productCodeFromTariff(agreement.tariff_code)
-  };
+  return { tariffCode, productCode: productCodeFromTariff(tariffCode) };
 }
 
-export async function getConsumption(meterPoint: MeterPoint, since: Date, until: Date): Promise<ConsumptionInterval[]> {
-  const url = `${BASE_URL}/v1/electricity-meter-points/${meterPoint.mpan}/meters/${meterPoint.serialNumber}`
+export async function getConsumption(since: Date, until: Date): Promise<ConsumptionInterval[]> {
+  const url = `${BASE_URL}/v1/electricity-meter-points/${config.octopus.mpan}/meters/${config.octopus.serial_number}`
     + `/consumption/?period_from=${since.toISOString()}&period_to=${until.toISOString()}&page_size=25000&order_by=period`;
 
   const results = await requestAllPages<ConsumptionResult>(url);
@@ -118,15 +106,15 @@ export async function getConsumption(meterPoint: MeterPoint, since: Date, until:
   }));
 }
 
-export async function getUnitRates(meterPoint: MeterPoint, since: Date, until: Date): Promise<RateInterval[]> {
-  const url = `${BASE_URL}/v1/products/${meterPoint.productCode}/electricity-tariffs/${meterPoint.tariffCode}`
+export async function getUnitRates(tariffCode: string, productCode: string, since: Date, until: Date): Promise<RateInterval[]> {
+  const url = `${BASE_URL}/v1/products/${productCode}/electricity-tariffs/${tariffCode}`
     + `/standard-unit-rates/?period_from=${since.toISOString()}&period_to=${until.toISOString()}&page_size=25000`;
 
   return mapRates(await requestAllPages<RateResult>(url));
 }
 
-export async function getStandingCharges(meterPoint: MeterPoint, since: Date, until: Date): Promise<RateInterval[]> {
-  const url = `${BASE_URL}/v1/products/${meterPoint.productCode}/electricity-tariffs/${meterPoint.tariffCode}`
+export async function getStandingCharges(tariffCode: string, productCode: string, since: Date, until: Date): Promise<RateInterval[]> {
+  const url = `${BASE_URL}/v1/products/${productCode}/electricity-tariffs/${tariffCode}`
     + `/standing-charges/?period_from=${since.toISOString()}&period_to=${until.toISOString()}&page_size=25000`;
 
   return mapRates(await requestAllPages<RateResult>(url));

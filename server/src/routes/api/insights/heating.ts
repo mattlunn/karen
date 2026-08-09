@@ -103,6 +103,21 @@ export default async function (req: Request, res: Response) {
         { value: 'DHW', label: 'Hot Water' }
       ]
     }),
+    temperatures: asyncMap(thermostats, async (device) => {
+      const thermostat = device.getThermostatCapability();
+      const [data, isPassive] = await Promise.all([
+        mapNumericHistoryToResponse((hs) => thermostat.getCurrentTemperatureHistory(hs), selector),
+        thermostat.getIsPassive()
+      ]);
+
+      return {
+        data,
+        label: device.name,
+        deviceName: device.name,
+        yAxisID: 'yTemperature',
+        borderDash: isPassive ? [5, 5] : undefined
+      };
+    }),
     temperatureDeltas: asyncMap(thermostats, async (device) => {
       const thermostat = device.getThermostatCapability();
       const [currentEvents, targetEvents, isPassive] = await Promise.all([
