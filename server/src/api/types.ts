@@ -60,7 +60,7 @@ export type CapabilityApiResponse = {
   type: 'TELEVISION';
   volume: NumericStateApiResponse;
   isMuted: BooleanStateApiResponse;
-  availableSources: { label: string; kind: 'channel' | 'guide' }[];
+  availableSources: TelevisionSourceApiResponse[];
 } | {
   type: 'BATTERY_LEVEL_INDICATOR';
   batteryPercentage: NumericStateApiResponse;
@@ -124,6 +124,11 @@ export type EnumStateApiResponse = {
   end: string | null;
   lastReported: string;
   value: string | null;
+};
+
+export type TelevisionSourceApiResponse = {
+  label: string;
+  kind: 'channel' | 'guide';
 };
 
 // History API response types (real DB rows; `value` is never null).
