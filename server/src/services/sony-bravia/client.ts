@@ -1,3 +1,5 @@
+import sleep from '../../helpers/sleep';
+
 type PowerStatus = 'active' | 'standby';
 
 export interface VolumeInformation {
@@ -34,8 +36,6 @@ const IRCC_CODES: Record<string, string> = {
   GGuide: 'AAAAAQAAAAEAAAAOAw==',
   Power: 'AAAAAQAAAAEAAAAVAw==',
 };
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default class BraviaClient {
   #host: string;
@@ -182,7 +182,7 @@ export default class BraviaClient {
     const digits = String(number).split('');
     await this.sendIrcc('Return');
     for (const digit of digits) {
-      await delay(600);
+      await sleep(600);
       await this.sendIrcc(`Num${digit}` as keyof typeof IRCC_CODES);
     }
   }
