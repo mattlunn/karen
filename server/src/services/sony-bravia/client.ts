@@ -135,10 +135,10 @@ export default class BraviaClient {
 
     const deadline = Date.now() + 15_000;
     while (Date.now() < deadline && !await this.getIsOn()) {
-      await delay(500);
+      await sleep(500);
     }
 
-    await delay(6_000);
+    await sleep(6_000);
   }
 
   async getVolumeInformation(): Promise<VolumeInformation> {
