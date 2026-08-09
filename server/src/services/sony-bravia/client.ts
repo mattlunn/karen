@@ -1,3 +1,5 @@
+import sleep from '../../helpers/sleep';
+
 type PowerStatus = 'active' | 'standby';
 
 export interface VolumeInformation {
@@ -34,8 +36,6 @@ const IRCC_CODES: Record<string, string> = {
   GGuide: 'AAAAAQAAAAEAAAAOAw==',
   Power: 'AAAAAQAAAAEAAAAVAw==',
 };
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default class BraviaClient {
   #host: string;
@@ -107,16 +107,11 @@ export default class BraviaClient {
   }
 
   async setIsOn(on: boolean): Promise<void> {
-    if (!on) {
-      await this.#callVoid('/sony/system', 'setPowerStatus', [{ status: false }]);
-      return;
-    }
-
-    // setPowerStatus can't wake this TV from standby — Google TV rejects it with
-    // error 7 "Illegal State" regardless of network-standby settings. The IRCC
-    // power key does wake it, but it's a physical-remote-style toggle rather than
-    // an explicit "on", so only send it when we know the TV is actually off.
-    if (!await this.getIsOn()) {
+    // IRCC Power is a physical-remote-style toggle, not an explicit on/off,
+    // so only send it when the current state differs from what we want.
+    // (We use IRCC rather than REST setPowerStatus because Google TV rejects
+    // setPowerStatus with error 7 "Illegal State" when waking from standby.)
+    if (await this.getIsOn() !== on) {
       await this.sendIrcc('Power');
     }
   }
@@ -135,10 +130,10 @@ export default class BraviaClient {
 
     const deadline = Date.now() + 15_000;
     while (Date.now() < deadline && !await this.getIsOn()) {
-      await delay(500);
+      await sleep(500);
     }
 
-    await delay(6_000);
+    await sleep(6_000);
   }
 
   async getVolumeInformation(): Promise<VolumeInformation> {
@@ -180,9 +175,11 @@ export default class BraviaClient {
 
   async switchToChannel(number: number): Promise<void> {
     const digits = String(number).split('');
+
     await this.sendIrcc('Return');
+
     for (const digit of digits) {
-      await delay(600);
+      await sleep(600);
       await this.sendIrcc(`Num${digit}` as keyof typeof IRCC_CODES);
     }
   }
