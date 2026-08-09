@@ -260,22 +260,30 @@ export async function handlePowerControl(request: AlexaTurnOnOffRequest) {
   const turnOn = request.header.name === 'TurnOn';
   const then = new Date();
 
-  if (capabilities.includes('TELEVISION') || capabilities.includes('SWITCH')) {
-    await device.getSwitchCapability().setIsOn(turnOn);
-
-    const properties = capabilities.includes('TELEVISION')
-      ? await createTelevisionResponseProperties(device, then)
-      : await createSwitchResponseProperties(device, then);
-
-    return controlResponse(request, then, properties);
-  }
-
   if (capabilities.includes('LIGHT')) {
     await device.getLightCapability().setIsOn(turnOn);
-    return controlResponse(request, then, await createLightResponseProperties(device, then));
+  } else if (capabilities.includes('SWITCH')) {
+    await device.getSwitchCapability().setIsOn(turnOn);
+  } else {
+    throw new Error(`Endpoint ${request.endpoint.endpointId} does not support PowerController`);
   }
 
-  throw new Error(`Endpoint ${request.endpoint.endpointId} does not support PowerController`);
+  // Per Alexa's Smart Home API docs, a directive Response only needs to report
+  // what changed (plus connectivity) — unlike ReportState, which must report
+  // full state. powerState is reported optimistically since we just set it.
+  const properties: AlexaEndpointPropertyDraft[] = [{
+    namespace: 'Alexa.PowerController',
+    name: 'powerState',
+    value: turnOn ? 'ON' : 'OFF',
+    timeOfSample: then.toISOString()
+  }, {
+    namespace: 'Alexa.EndpointHealth',
+    name: 'connectivity',
+    value: { value: await getConnectivityValue(device) },
+    timeOfSample: then.toISOString()
+  }];
+
+  return controlResponse(request, then, properties);
 }
 
 export async function handleLightControl(request: AlexaBrightnessRequest) {
