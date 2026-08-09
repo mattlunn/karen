@@ -6,7 +6,7 @@ import { createBackgroundTransaction } from '../../helpers/newrelic';
 import BraviaClient from './client';
 
 export type SonySource =
-  | { label: string; kind: 'channel'; number: number }
+  | { label: string; kind: 'channel'; number: number; aliases: string[] }
   | { label: string; kind: 'guide' };
 
 function configFor(device: Device) {
@@ -20,7 +20,13 @@ export function sourcesFor(device: Device): SonySource[] {
     throw new Error(`No sony-bravia config entry for device ${device.providerId}`);
   }
 
-  const channels: SonySource[] = entry.channels.map(c => ({ label: c.name, kind: 'channel' as const, number: c.number }));
+  const channels: SonySource[] = entry.channels.map(c => ({
+    label: c.label,
+    kind: 'channel' as const,
+    number: c.number,
+    aliases: c.aliases ?? [],
+  }));
+
   return [{ label: 'TV Guide', kind: 'guide' }, ...channels];
 }
 
@@ -34,63 +40,27 @@ function clientFor(device: Device): BraviaClient {
   return new BraviaClient(entry.host, entry.psk, config.sony_bravia.connect_timeout_milliseconds);
 }
 
-const WORD_TO_DIGIT: Record<string, string> = {
-  zero: '0', one: '1', two: '2', three: '3', four: '4',
-  five: '5', six: '6', seven: '7', eight: '8', nine: '9',
-};
-
-// Alexa resolves spoken channel names against its own EPG data before sending
-// us channelMetadata.name, so "BBC One" arrives as "BBC 1" — a different
-// string to our config's "BBC ONE". Normalize both sides (case, spacing, and
-// spelled-out digits) before comparing so wording differences like this don't
-// cause a false "unknown channel".
-function normalizeChannelLabel(label: string): string {
-  return label
-    .toLowerCase()
-    .split(/\s+/)
-    .map(word => WORD_TO_DIGIT[word] ?? word)
-    .join('')
-    .replace(/[^a-z0-9]/g, '');
-}
-
-// Confirmed by live testing: Alexa's channel.number for this UK Freeview setup
-// isn't our real LCN — it's the old analogue-era terrestrial numbering
-// (BBC1=1, BBC2=2, ITV=3, Channel4=4, Five=5), regardless of the declared
-// ChannelController `lineup`. Map that fixed, well-known scheme onto whichever
-// of our configured channels normalizes to that brand's "1".
-const UK_ANALOGUE_CHANNEL_NUMBERS: Record<string, string> = {
-  '1': 'bbc1', '2': 'bbc2', '3': 'itv1', '4': 'channel4', '5': 'channel5',
-};
-
+// Alexa resolves what the user said against its own idea of our channel
+// lineup before sending us channelMetadata.name/number, so the value it sends
+// often doesn't match our config's canonical channel label (e.g. "BBC 1"
+// instead of "BBC ONE"). There's no general algorithm for this — it's a fixed
+// set of per-deployment quirks discovered by testing real voice commands — so
+// known variants are enumerated per-channel via config.json's `aliases`. Add
+// a new alias whenever testing turns up another phrasing Alexa uses.
 function findSource(device: Device, label: string): SonySource | undefined {
-  const sources = sourcesFor(device);
+  const target = label.toLowerCase();
 
-  // Alexa sends a bare channel.number (matched against its own guess at our
-  // lineup, not necessarily our real LCNs) when the user asks for a channel by
-  // digit rather than name — match it directly against our configured numbers.
-  const byNumber = sources.find(s => s.kind === 'channel' && String(s.number) === label);
-  if (byNumber) {
-    return byNumber;
-  }
+  for (const source of sourcesFor(device)) {
+    if (source.label.toLowerCase() === target) {
+      return source;
+    }
 
-  const target = normalizeChannelLabel(label);
-  const exact = sources.find(s => normalizeChannelLabel(s.label) === target);
-  if (exact) {
-    return exact;
-  }
-
-  const analogueTarget = UK_ANALOGUE_CHANNEL_NUMBERS[label];
-  if (analogueTarget) {
-    const analogueMatch = sources.find(s => normalizeChannelLabel(s.label) === analogueTarget);
-    if (analogueMatch) {
-      return analogueMatch;
+    if (source.kind === 'channel' && (String(source.number) === label || source.aliases.some(a => a.toLowerCase() === target))) {
+      return source;
     }
   }
 
-  // Alexa sometimes resolves a spoken brand name without its number (e.g.
-  // "itv" for our "ITV1") — a bare name defaults to that brand's "1", matching
-  // how our config names multi-channel brands (ITV1/ITV2/ITV3 etc.).
-  return sources.find(s => normalizeChannelLabel(s.label) === `${target}1`);
+  return undefined;
 }
 
 Device.registerProvider('sony-bravia', {

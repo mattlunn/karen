@@ -62,7 +62,7 @@ declare namespace _default {
       name: string;
       host: string;
       psk: string;
-      channels: { name: string; number: number }[];
+      channels: { label: string; number: number; aliases?: string[] }[];
     }[];
     const poll_interval_seconds: number;
     const connect_timeout_milliseconds: number;
