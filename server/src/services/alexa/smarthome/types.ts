@@ -72,6 +72,20 @@ export interface AlexaSetMuteRequest {
 
 export type AlexaSpeakerRequest = AlexaSetVolumeRequest | AlexaAdjustVolumeRequest | AlexaSetMuteRequest;
 
+export interface AlexaAdjustVolumeStepRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.StepSpeaker'; name: 'AdjustVolume' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { volumeSteps: number; volumeStepsDefault?: boolean };
+}
+
+export interface AlexaSetMuteStepRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.StepSpeaker'; name: 'SetMute' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { mute: boolean };
+}
+
+export type AlexaStepSpeakerRequest = AlexaAdjustVolumeStepRequest | AlexaSetMuteStepRequest;
+
 export interface AlexaSelectInputRequest {
   header: AlexaRequestHeader & { namespace: 'Alexa.InputController'; name: 'SelectInput' };
   endpoint: AlexaRequestEndpoint;
@@ -87,6 +101,12 @@ export interface AlexaChangeChannelRequest {
   };
 }
 
+export interface AlexaLaunchTargetRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.Launcher'; name: 'LaunchTarget' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { name?: string; identifier: string };
+}
+
 export type AlexaSmartHomeRequest =
   | AlexaAcceptGrantRequest
   | AlexaDiscoverRequest
@@ -95,8 +115,10 @@ export type AlexaSmartHomeRequest =
   | AlexaBrightnessRequest
   | AlexaSecurityPanelRequest
   | AlexaSpeakerRequest
+  | AlexaStepSpeakerRequest
   | AlexaSelectInputRequest
-  | AlexaChangeChannelRequest;
+  | AlexaChangeChannelRequest
+  | AlexaLaunchTargetRequest;
 
 // Responses (outbound from Karen → Alexa)
 

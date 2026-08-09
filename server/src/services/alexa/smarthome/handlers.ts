@@ -16,8 +16,12 @@ import {
   AlexaSetVolumeRequest,
   AlexaAdjustVolumeRequest,
   AlexaSetMuteRequest,
+  AlexaStepSpeakerRequest,
+  AlexaAdjustVolumeStepRequest,
+  AlexaSetMuteStepRequest,
   AlexaSelectInputRequest,
   AlexaChangeChannelRequest,
+  AlexaLaunchTargetRequest,
   AlexaRequestEndpoint
 } from './types';
 import { ALARM_ENDPOINT_ID, buildDiscoveryEndpoints } from './discovery';
@@ -289,7 +293,7 @@ export async function handleLightControl(request: AlexaBrightnessRequest) {
   return controlResponse(request, then, await createLightResponseProperties(device, then));
 }
 
-export async function handleTelevisionControl(request: AlexaSpeakerRequest | AlexaSelectInputRequest | AlexaChangeChannelRequest) {
+export async function handleTelevisionControl(request: AlexaSpeakerRequest | AlexaStepSpeakerRequest | AlexaSelectInputRequest | AlexaChangeChannelRequest) {
   const device = await Device.findByIdOrError(request.endpoint.endpointId);
   const tv = device.getTelevisionCapability();
   const then = new Date();
@@ -303,11 +307,19 @@ export async function handleTelevisionControl(request: AlexaSpeakerRequest | Ale
     } else {
       await tv.setIsMuted((request as AlexaSetMuteRequest).payload.mute);
     }
+  } else if (request.header.namespace === 'Alexa.StepSpeaker') {
+    if (request.header.name === 'AdjustVolume') {
+      const current = await tv.getVolume();
+      await tv.setVolume(Math.max(0, Math.min(100, current + (request as AlexaAdjustVolumeStepRequest).payload.volumeSteps)));
+    } else {
+      await tv.setIsMuted((request as AlexaSetMuteStepRequest).payload.mute);
+    }
   } else {
     const payload = (request as AlexaChangeChannelRequest).payload;
     const name = payload.channelMetadata?.name
       ?? payload.channel?.affiliateCallSign
-      ?? payload.channel?.callSign;
+      ?? payload.channel?.callSign
+      ?? payload.channel?.number;
 
     if (!name) {
       throw new AlexaInvalidValueError('ChangeChannel directive did not include a channel name');
@@ -322,6 +334,38 @@ export async function handleTelevisionControl(request: AlexaSpeakerRequest | Ale
   }
 
   return controlResponse(request, then, await createTelevisionResponseProperties(device, then));
+}
+
+// Predefined Alexa launch-target identifiers we act on ("Alexa, open the TV
+// guide on the living room TV"). Amazon's launch target reference documents
+// "Guide" (shortcut.68228) for this, but in practice "open the TV guide"
+// resolves to the "TV_SHOW" target (shortcut.78662) — accept both.
+const GUIDE_LAUNCH_TARGET_IDS = [
+  'amzn1.alexa-ask-target.shortcut.68228', // Guide
+  'amzn1.alexa-ask-target.shortcut.78662', // TV_SHOW
+];
+
+export async function handleLauncherControl(request: AlexaLaunchTargetRequest) {
+  const device = await Device.findByIdOrError(request.endpoint.endpointId);
+  const tv = device.getTelevisionCapability();
+  const then = new Date();
+
+  if (!GUIDE_LAUNCH_TARGET_IDS.includes(request.payload.identifier)) {
+    throw new AlexaInvalidValueError(`Unsupported launch target "${request.payload.identifier}"`);
+  }
+
+  await tv.setCurrentSource('TV Guide');
+
+  const properties = await createTelevisionResponseProperties(device, then);
+
+  properties.push({
+    namespace: 'Alexa.Launcher',
+    name: 'target',
+    value: { name: request.payload.name ?? 'Guide', identifier: request.payload.identifier },
+    timeOfSample: then.toISOString()
+  });
+
+  return controlResponse(request, then, properties);
 }
 
 export class AlexaInvalidValueError extends Error {

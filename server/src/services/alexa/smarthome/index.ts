@@ -11,7 +11,9 @@ import {
   handleAlarmControl,
   handlePowerControl,
   handleTelevisionControl,
-  AlexaRequestWithEndpoint
+  handleLauncherControl,
+  AlexaRequestWithEndpoint,
+  AlexaInvalidValueError
 } from './handlers';
 import {
   AlexaSmartHomeRequest,
@@ -22,11 +24,14 @@ import {
   AlexaReportStateRequest,
   AlexaSecurityPanelRequest,
   AlexaSpeakerRequest,
+  AlexaStepSpeakerRequest,
   AlexaSelectInputRequest,
-  AlexaChangeChannelRequest
+  AlexaChangeChannelRequest,
+  AlexaLaunchTargetRequest
 } from './types';
 
 export type { AlexaRequestWithEndpoint };
+export { AlexaInvalidValueError };
 
 async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void> {
   await makeEventsRequest('Alexa.Discovery', 'AddOrUpdateReport', '3', undefined, (bearer) => ({
@@ -86,6 +91,8 @@ export const smarthomeHandlers: Record<string, SmartHomeRequestHandler> = {
   'Alexa.BrightnessController': (r) => handleLightControl(r as AlexaBrightnessRequest),
   'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest),
   'Alexa.Speaker': (r) => handleTelevisionControl(r as AlexaSpeakerRequest),
+  'Alexa.StepSpeaker': (r) => handleTelevisionControl(r as AlexaStepSpeakerRequest),
   'Alexa.InputController': (r) => handleTelevisionControl(r as AlexaSelectInputRequest),
-  'Alexa.ChannelController': (r) => handleTelevisionControl(r as AlexaChangeChannelRequest)
+  'Alexa.ChannelController': (r) => handleTelevisionControl(r as AlexaChangeChannelRequest),
+  'Alexa.Launcher': (r) => handleLauncherControl(r as AlexaLaunchTargetRequest)
 };

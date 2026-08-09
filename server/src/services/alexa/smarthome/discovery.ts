@@ -74,10 +74,28 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
           }
         }, {
           type: 'AlexaInterface',
+          interface: 'Alexa.StepSpeaker',
+          version: '3',
+          properties: {
+            supported: [{ name: 'volume' }, { name: 'muted' }],
+            proactivelyReported: false,
+            retrievable: false
+          }
+        }, {
+          type: 'AlexaInterface',
           interface: 'Alexa.ChannelController',
           version: '3',
           properties: {
             supported: [{ name: 'channel' }],
+            proactivelyReported: false,
+            retrievable: false
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.Launcher',
+          version: '3',
+          properties: {
+            supported: [{ name: 'target' }],
             proactivelyReported: false,
             retrievable: false
           }
