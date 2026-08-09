@@ -37,6 +37,11 @@ import {
   faBell,
   faSignal,
   faSterlingSign,
+  faClock,
+  faMicrochip,
+  faWrench,
+  faFlaskVial,
+  faWind,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
@@ -45,6 +50,7 @@ import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import ChargeLimitModal from '../modals/charge-limit-modal';
 import dayjs from '../../dayjs';
 import { humanDate, formatDuration } from '../../helpers/date';
+import { RelativeDuration } from '../relative-duration';
 import type {
   MetricDisplayVariant,
   CapabilityUIRegistry,
@@ -753,6 +759,90 @@ export const registry: CapabilityUIRegistry = {
         value: (e) => e.value ? 'Online' : 'Offline',
         iconHighlighted: (e) => !e.value,
         isIssue: (e) => !e.value,
+      }),
+    ],
+  },
+
+  OVEN: {
+    priority: 12,
+    getCapabilityMetrics: (cap) => [
+      createCapability(cap.runningProgram, {
+        icon: faFire,
+        title: 'Program',
+        value: (e) => e.value ?? 'Off',
+        iconHighlighted: (e) => e.value !== null,
+        iconColor: '#e67e22',
+      }),
+      createCapability(cap.runningProgram, {
+        icon: faClock,
+        title: 'Running for',
+        value: (e) => <RelativeDuration since={e.start} />,
+      }),
+      createCapability(cap.setpointTemperature, {
+        icon: faThermometerFull,
+        title: 'Target Temp',
+        value: (e) => `${e.value}°`,
+      }),
+      createCapability(cap.currentTemperature, {
+        icon: faThermometerQuarter,
+        title: 'Cavity Temp',
+        value: (e) => `${e.value}°`,
+      }),
+    ],
+  },
+
+  MICROWAVE: {
+    priority: 13,
+    getCapabilityMetrics: (cap) => [
+      createCapability(cap.runningProgram, {
+        icon: faMicrochip,
+        title: 'Program',
+        value: (e) => e.value ?? 'Off',
+        iconHighlighted: (e) => e.value !== null,
+        iconColor: '#3498db',
+      }),
+      createCapability(cap.estimatedCompletionTime, {
+        icon: faClock,
+        title: 'Finishes',
+        value: (e) => dayjs(e.value).fromNow(),
+      }),
+    ],
+  },
+
+  DISHWASHER: {
+    priority: 14,
+    getCapabilityMetrics: (cap) => [
+      createCapability(cap.runningProgram, {
+        icon: faWind,
+        title: 'Program',
+        value: (e) => e.value ?? 'Off',
+        iconHighlighted: (e) => e.value !== null,
+        iconColor: '#2980b9',
+      }),
+      createCapability(cap.estimatedCompletionTime, {
+        icon: faClock,
+        title: 'Finishes',
+        value: (e) => dayjs(e.value).fromNow(),
+      }),
+      createCapability(cap.isSaltLow, {
+        icon: faFlaskVial,
+        title: 'Salt',
+        value: (e) => e.value ? 'Low' : 'OK',
+        isIssue: (e) => e.value,
+      }),
+      createCapability(cap.isRinseAidLow, {
+        icon: faDroplet,
+        title: 'Rinse Aid',
+        value: (e) => e.value ? 'Low' : 'OK',
+        isIssue: (e) => e.value,
+      }),
+      createCapability(cap.lastSelfCareRun, {
+        icon: faWrench,
+        title: 'Machine Care',
+        value: (e) => e !== null
+          ? (e.end === null ? 'Running now' : dayjs(e.end).fromNow())
+          : 'Never run',
+        isIssue: (e) => e === null || (e.end !== null && Date.now() - new Date(e.end).getTime() > 30 * 24 * 3600_000),
       }),
     ],
   },

@@ -9,6 +9,9 @@ import {
   handleReportState,
   handleLightControl,
   handleAlarmControl,
+  handleAppliancePowerOff,
+  handleApplianceSetCookingMode,
+  handleOvenCookByTemperature,
   AlexaRequestWithEndpoint
 } from './handlers';
 import {
@@ -18,7 +21,9 @@ import {
   AlexaDiscoverRequest,
   AlexaAcceptGrantRequest,
   AlexaReportStateRequest,
-  AlexaSecurityPanelRequest
+  AlexaSecurityPanelRequest,
+  AlexaSetCookingModeRequest,
+  AlexaCookByTemperatureRequest
 } from './types';
 
 export type { AlexaRequestWithEndpoint };
@@ -73,11 +78,22 @@ export async function syncDiscovery(): Promise<void> {
 
 export type SmartHomeRequestHandler = (r: AlexaSmartHomeRequest) => Promise<object>;
 
+const APPLIANCE_CAPS = ['OVEN', 'MICROWAVE', 'DISHWASHER'];
+
 export const smarthomeHandlers: Record<string, SmartHomeRequestHandler> = {
   'Alexa.Discovery': (r) => handleDiscover(r as AlexaDiscoverRequest),
   'Alexa.Authorization': (r) => handleAcceptGrant(r as AlexaAcceptGrantRequest),
   'Alexa': (r) => handleReportState(r as AlexaReportStateRequest),
-  'Alexa.PowerController': (r) => handleLightControl(r as AlexaTurnOnOffRequest),
+  'Alexa.PowerController': async (r) => {
+    const req = r as AlexaTurnOnOffRequest;
+    const device = await Device.findByIdOrError(req.endpoint.endpointId);
+    if (device.getCapabilities().some(c => APPLIANCE_CAPS.includes(c))) {
+      return handleAppliancePowerOff(req);
+    }
+    return handleLightControl(req);
+  },
   'Alexa.BrightnessController': (r) => handleLightControl(r as AlexaBrightnessRequest),
-  'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest)
+  'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest),
+  'Alexa.Cooking': (r) => handleApplianceSetCookingMode(r as AlexaSetCookingModeRequest),
+  'Alexa.Cooking.TemperatureController': (r) => handleOvenCookByTemperature(r as AlexaCookByTemperatureRequest),
 };

@@ -441,4 +441,70 @@
       "eventName": "energy_standing_charge"
     }
   ]
+}, {
+  "name": "Oven",
+  "properties": [
+    {
+      "name": "ProgramName",
+      "isWriteable": false,
+      "type": "string",
+      "eventName": "program_name"
+    },
+    {
+      "name": "SetpointTemperature",
+      "isWriteable": true,
+      "type": "number",
+      "eventName": "setpoint_temperature"
+    },
+    {
+      "name": "CurrentTemperature",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "current_temperature"
+    }
+  ]
+}, {
+  "name": "Microwave",
+  "properties": [
+    {
+      "name": "ProgramName",
+      "isWriteable": false,
+      "type": "string",
+      "eventName": "program_name"
+    },
+    {
+      "name": "EstimatedCompletionTime",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "estimated_completion_time"
+    }
+  ]
+}, {
+  "name": "Dishwasher",
+  "properties": [
+    {
+      "name": "ProgramName",
+      "isWriteable": false,
+      "type": "string",
+      "eventName": "program_name"
+    },
+    {
+      "name": "EstimatedCompletionTime",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "estimated_completion_time"
+    },
+    {
+      "name": "IsSaltLow",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "is_salt_low"
+    },
+    {
+      "name": "IsRinseAidLow",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "is_rinse_aid_low"
+    }
+  ]
 }]
