@@ -175,7 +175,9 @@ export default class BraviaClient {
 
   async switchToChannel(number: number): Promise<void> {
     const digits = String(number).split('');
+
     await this.sendIrcc('Return');
+
     for (const digit of digits) {
       await sleep(600);
       await this.sendIrcc(`Num${digit}` as keyof typeof IRCC_CODES);
