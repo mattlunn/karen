@@ -32,11 +32,13 @@ interface AlexaEndpointProperty {
   uncertaintyInMilliseconds: number;
 }
 
+type AlexaEndpointPropertyDraft = Omit<AlexaEndpointProperty, 'uncertaintyInMilliseconds'>;
+
 async function getConnectivityValue(device: Device): Promise<'OK' | 'UNREACHABLE'> {
   return await device.getConnectivityCapability().getIsConnected() ? 'OK' : 'UNREACHABLE';
 }
 
-async function createLightResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
+async function createLightResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
   const light = device.getLightCapability();
 
   const [isOn, brightness, connectivity] = await Promise.all([
@@ -49,24 +51,21 @@ async function createLightResponseProperties(device: Device, sampleTime: Date, u
     namespace: 'Alexa.PowerController',
     name: 'powerState',
     value: isOn ? 'ON' : 'OFF',
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }, {
     namespace: 'Alexa.BrightnessController',
     name: 'brightness',
     value: brightness,
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }, {
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
     value: { value: connectivity },
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }];
 }
 
-async function createThermostatResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
+async function createThermostatResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
   const thermostat = device.getThermostatCapability();
 
   const [currentTemperature, targetTemperature, isHeating, connectivity] = await Promise.all([
@@ -80,30 +79,26 @@ async function createThermostatResponseProperties(device: Device, sampleTime: Da
     namespace: 'Alexa.TemperatureSensor',
     name: 'temperature',
     value: { value: currentTemperature, scale: 'CELSIUS' },
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }, {
     namespace: 'Alexa.ThermostatController',
     name: 'thermostatMode',
     value: isHeating ? 'HEAT' : 'OFF',
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }, {
     namespace: 'Alexa.ThermostatController',
     name: 'targetSetpoint',
     value: { value: targetTemperature, scale: 'CELSIUS' },
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }, {
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
     value: { value: connectivity },
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }];
 }
 
-async function createSwitchResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
+async function createSwitchResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
   const sw = device.getSwitchCapability();
 
   const [isOn, connectivity] = await Promise.all([
@@ -115,18 +110,16 @@ async function createSwitchResponseProperties(device: Device, sampleTime: Date, 
     namespace: 'Alexa.PowerController',
     name: 'powerState',
     value: isOn ? 'ON' : 'OFF',
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }, {
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
     value: { value: connectivity },
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }];
 }
 
-async function createTelevisionResponseProperties(device: Device, sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
+async function createTelevisionResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
   const sw = device.getSwitchCapability();
   const tv = device.getTelevisionCapability();
 
@@ -141,36 +134,31 @@ async function createTelevisionResponseProperties(device: Device, sampleTime: Da
     namespace: 'Alexa.PowerController',
     name: 'powerState',
     value: isOn ? 'ON' : 'OFF',
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }, {
     namespace: 'Alexa.Speaker',
     name: 'volume',
     value: volume,
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }, {
     namespace: 'Alexa.Speaker',
     name: 'muted',
     value: isMuted,
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }, {
     namespace: 'Alexa.ChannelController',
     name: 'channel',
     value: {},
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }, {
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
     value: { value: connectivity },
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }];
 }
 
-async function createAlarmResponseProperties(sampleTime: Date, uncertaintyInMilliseconds: number): Promise<AlexaEndpointProperty[]> {
+async function createAlarmResponseProperties(sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
   const activeArming = await Arming.getActiveArming();
   const mode: AlarmMode = activeArming ? activeArming.mode as AlarmMode : 'OFF';
 
@@ -178,34 +166,36 @@ async function createAlarmResponseProperties(sampleTime: Date, uncertaintyInMill
     namespace: 'Alexa.SecurityPanelController',
     name: 'armState',
     value: mode,
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }, {
     namespace: 'Alexa.EndpointHealth',
     name: 'connectivity',
     value: { value: 'OK' },
-    timeOfSample: sampleTime.toISOString(),
-    uncertaintyInMilliseconds
+    timeOfSample: sampleTime.toISOString()
   }];
 }
 
-function stateReport(request: AlexaRequestWithEndpoint, properties: AlexaEndpointProperty[]) {
+function stateReport(request: AlexaRequestWithEndpoint, then: Date, properties: AlexaEndpointPropertyDraft[]) {
+  const uncertaintyInMilliseconds = Date.now() - then.valueOf();
+
   return {
     event: {
       header: { ...request.header, name: 'StateReport' },
       endpoint: request.endpoint
     },
-    context: { properties }
+    context: { properties: properties.map((property) => ({ ...property, uncertaintyInMilliseconds })) }
   };
 }
 
-function controlResponse(request: AlexaRequestWithEndpoint, properties: AlexaEndpointProperty[]) {
+function controlResponse(request: AlexaRequestWithEndpoint, then: Date, properties: AlexaEndpointPropertyDraft[]) {
+  const uncertaintyInMilliseconds = Date.now() - then.valueOf();
+
   return {
     event: {
       header: { ...request.header, namespace: 'Alexa', name: 'Response' },
       endpoint: request.endpoint
     },
-    context: { properties }
+    context: { properties: properties.map((property) => ({ ...property, uncertaintyInMilliseconds })) }
   };
 }
 
@@ -241,20 +231,20 @@ export async function handleReportState(request: AlexaReportStateRequest) {
   const then = new Date();
 
   if (endpointId === ALARM_ENDPOINT_ID) {
-    return stateReport(request, await createAlarmResponseProperties(then, Date.now() - then.valueOf()));
+    return stateReport(request, then, await createAlarmResponseProperties(then));
   }
 
   const device = await Device.findByIdOrError(endpointId);
   const capabilities = device.getCapabilities();
 
   if (capabilities.includes('TELEVISION')) {
-    return stateReport(request, await createTelevisionResponseProperties(device, then, Date.now() - then.valueOf()));
+    return stateReport(request, then, await createTelevisionResponseProperties(device, then));
   } else if (capabilities.includes('LIGHT')) {
-    return stateReport(request, await createLightResponseProperties(device, then, Date.now() - then.valueOf()));
+    return stateReport(request, then, await createLightResponseProperties(device, then));
   } else if (capabilities.includes('THERMOSTAT')) {
-    return stateReport(request, await createThermostatResponseProperties(device, then, Date.now() - then.valueOf()));
+    return stateReport(request, then, await createThermostatResponseProperties(device, then));
   } else if (capabilities.includes('SWITCH')) {
-    return stateReport(request, await createSwitchResponseProperties(device, then, Date.now() - then.valueOf()));
+    return stateReport(request, then, await createSwitchResponseProperties(device, then));
   } else {
     throw new Error(`Unable to report state on ${endpointId}`);
   }
@@ -270,15 +260,15 @@ export async function handlePowerControl(request: AlexaTurnOnOffRequest) {
     await device.getSwitchCapability().setIsOn(turnOn);
 
     const properties = capabilities.includes('TELEVISION')
-      ? await createTelevisionResponseProperties(device, then, Date.now() - then.valueOf())
-      : await createSwitchResponseProperties(device, then, Date.now() - then.valueOf());
+      ? await createTelevisionResponseProperties(device, then)
+      : await createSwitchResponseProperties(device, then);
 
-    return controlResponse(request, properties);
+    return controlResponse(request, then, properties);
   }
 
   if (capabilities.includes('LIGHT')) {
     await device.getLightCapability().setIsOn(turnOn);
-    return controlResponse(request, await createLightResponseProperties(device, then, Date.now() - then.valueOf()));
+    return controlResponse(request, then, await createLightResponseProperties(device, then));
   }
 
   throw new Error(`Endpoint ${request.endpoint.endpointId} does not support PowerController`);
@@ -296,7 +286,7 @@ export async function handleLightControl(request: AlexaBrightnessRequest) {
     await light.setBrightness(Math.max(0, Math.min(100, await light.getBrightness() + delta)));
   }
 
-  return controlResponse(request, await createLightResponseProperties(device, then, Date.now() - then.valueOf()));
+  return controlResponse(request, then, await createLightResponseProperties(device, then));
 }
 
 export async function handleTelevisionControl(request: AlexaSpeakerRequest | AlexaSelectInputRequest | AlexaChangeChannelRequest) {
@@ -331,7 +321,7 @@ export async function handleTelevisionControl(request: AlexaSpeakerRequest | Ale
     }
   }
 
-  return controlResponse(request, await createTelevisionResponseProperties(device, then, Date.now() - then.valueOf()));
+  return controlResponse(request, then, await createTelevisionResponseProperties(device, then));
 }
 
 export class AlexaInvalidValueError extends Error {
@@ -368,5 +358,5 @@ export async function handleAlarmControl(request: AlexaSecurityPanelRequest) {
     }
   }
 
-  return controlResponse(request, await createAlarmResponseProperties(now, Date.now() - now.valueOf()));
+  return controlResponse(request, now, await createAlarmResponseProperties(now));
 }
