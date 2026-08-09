@@ -1,7 +1,6 @@
 import { Device } from '../../models';
 import { TelevisionSource } from '../../models/capabilities';
 import config from '../../config';
-import logger from '../../logger';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import BraviaClient from './client';
@@ -168,13 +167,9 @@ async function pollDevice(device: Device) {
   await sw.setIsOnState(isOn);
 
   if (isOn) {
-    try {
-      const volume = await client.getVolumeInformation();
-      await tv.setVolumeState(volume.volume);
-      await tv.setIsMutedState(volume.mute);
-    } catch (err) {
-      logger.warn({ err }, `Bravia ${device.id} volume read failed`);
-    }
+    const volume = await client.getVolumeInformation();
+    await tv.setVolumeState(volume.volume);
+    await tv.setIsMutedState(volume.mute);
   }
 }
 
