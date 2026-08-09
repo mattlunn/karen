@@ -16,9 +16,12 @@ function configFor(device: Device) {
 
 export function sourcesFor(device: Device): SonySource[] {
   const entry = configFor(device);
-  const channels: SonySource[] = entry
-    ? entry.channels.map(c => ({ label: c.name, kind: 'channel' as const, number: c.number }))
-    : [];
+
+  if (!entry) {
+    throw new Error(`No sony-bravia config entry for device ${device.providerId}`);
+  }
+
+  const channels: SonySource[] = entry.channels.map(c => ({ label: c.name, kind: 'channel' as const, number: c.number }));
   return [{ label: 'TV Guide', kind: 'guide' }, ...channels];
 }
 
