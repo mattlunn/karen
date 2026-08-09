@@ -16,7 +16,7 @@ type SecurityAutomationConfiguration = {
   night_excluded_devices: string[];
   excluded_devices: string[];
   silencing_windows: SilencingWindow[];
-  alarm_duration_minutes?: number;
+  alarm_duration_minutes: number;
 };
 
 async function turnOnAllTheLights() {
@@ -108,7 +108,7 @@ export default async function ({
   night_excluded_devices: nightExcludedDevices = [],
   excluded_devices: excludedDevices = [],
   silencing_windows: silencingWindows = [],
-  alarm_duration_minutes: alarmDurationMinutes = 5
+  alarm_duration_minutes: alarmDurationMinutes
 }: SecurityAutomationConfiguration) {
   DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:security:motion-detected', async (event) => {
     const [
