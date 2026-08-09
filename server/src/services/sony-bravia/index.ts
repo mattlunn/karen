@@ -66,10 +66,13 @@ Device.registerProvider('sony-bravia', {
           throw new Error(`Unknown TV source "${label}" for device ${device.id}`);
         }
 
+        const client = clientFor(device);
+        await client.wakeAndWaitUntilReady();
+
         if (source.kind === 'guide') {
-          await clientFor(device).sendIrcc('GGuide');
+          await client.sendIrcc('GGuide');
         } else {
-          await clientFor(device).switchToChannel(source.number);
+          await client.switchToChannel(source.number);
         }
       },
       

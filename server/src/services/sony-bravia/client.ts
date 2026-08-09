@@ -93,7 +93,6 @@ export default class BraviaClient {
     await this.#request(path, method, params);
   }
 
-
   async getIsOn(): Promise<boolean> {
     try {
       const result = await this.#call<{ status: PowerStatus }>('/sony/system', 'getPowerStatus');
@@ -120,6 +119,26 @@ export default class BraviaClient {
     if (!await this.getIsOn()) {
       await this.sendIrcc('Power');
     }
+  }
+
+  // Wakes the TV if it's off and waits for it to be ready to accept further
+  // IRCC input (e.g. before switching channel or opening the guide). The
+  // power API reports "active" within a second or two of waking, but the
+  // Android/Google TV shell takes noticeably longer to start accepting
+  // remote key presses, hence the fixed buffer on top of the poll.
+  async wakeAndWaitUntilReady(): Promise<void> {
+    if (await this.getIsOn()) {
+      return;
+    }
+
+    await this.setIsOn(true);
+
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline && !await this.getIsOn()) {
+      await delay(500);
+    }
+
+    await delay(6_000);
   }
 
   async getVolumeInformation(): Promise<VolumeInformation> {
