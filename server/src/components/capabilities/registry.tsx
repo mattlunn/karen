@@ -415,6 +415,12 @@ export const registry: CapabilityUIRegistry = {
   TELEVISION: {
     priority: 32,
     getCapabilityMetrics: (cap, device) => [
+      {
+        icon: faTv,
+        title: 'Source',
+        value: cap.availableSources.length > 0 ? <SourceControl device={device} capability={cap} /> : '-',
+        iconColor: '#04A7F4',
+      },
       createCapability(cap.volume, {
         icon: cap.isMuted.value ? faVolumeXmark : faVolumeHigh,
         title: 'Volume',
@@ -426,12 +432,6 @@ export const registry: CapabilityUIRegistry = {
           updateDeviceCache(queryClient, device.id, data);
         },
       }),
-      {
-        icon: faTv,
-        title: 'Source',
-        value: cap.availableSources.length > 0 ? <SourceControl device={device} capability={cap} /> : '-',
-        iconColor: '#04A7F4',
-      },
     ],
   },
 
