@@ -16,6 +16,7 @@ type SecurityAutomationConfiguration = {
   night_excluded_devices: string[];
   excluded_devices: string[];
   silencing_windows: SilencingWindow[];
+  alarm_duration_minutes?: number;
 };
 
 async function turnOnAllTheLights() {
@@ -83,6 +84,8 @@ async function soundTheAlarm(alarmAlexa: string, activation: AlarmActivation) {
       await sleep(20000);
     }
 
+    // Re-read the arming so we notice a disarm (the API sets arming.end when the alarm is turned
+    // off) and stop sounding immediately, rather than only once the suppression window elapses.
     await arming.reload();
   }
 }
@@ -104,7 +107,8 @@ export default async function ({
   alarm_alexa: alarmAlexa,
   night_excluded_devices: nightExcludedDevices = [],
   excluded_devices: excludedDevices = [],
-  silencing_windows: silencingWindows = []
+  silencing_windows: silencingWindows = [],
+  alarm_duration_minutes: alarmDurationMinutes = 5
 }: SecurityAutomationConfiguration) {
   DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:security:motion-detected', async (event) => {
     const [
@@ -118,8 +122,8 @@ export default async function ({
     if (arming && !isExcludedDevice(arming.mode, device.name, excludedDevices, nightExcludedDevices)) {
       const mostRecentActivation = await arming.getMostRecentActivation();
 
-      // The most recent alert is still suppressing further ones (the 5-minute alarm cooldown, or
-      // an in-progress silencing window), so there is nothing to do.
+      // The most recent alert is still suppressing further ones (the alarm cooldown, or an
+      // in-progress silencing window), so there is nothing to do.
       if (mostRecentActivation && mostRecentActivation.isSuppressingFurtherAlerts(event.start)) {
         return;
       }
@@ -145,7 +149,7 @@ export default async function ({
       const activation = await AlarmActivation.create({
         armingId: arming.id,
         startedAt: event.start,
-        suppressFurtherAlertsUntil: dayjs(event.start).add(5, 'minutes').toDate()
+        suppressFurtherAlertsUntil: dayjs(event.start).add(alarmDurationMinutes, 'minutes').toDate()
       });
 
       notifyAbsentUsersOfEvent(event);
