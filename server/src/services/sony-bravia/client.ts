@@ -112,7 +112,7 @@ export default class BraviaClient {
     // (We use IRCC rather than REST setPowerStatus because Google TV rejects
     // setPowerStatus with error 7 "Illegal State" when waking from standby.)
     if (await this.getIsOn() !== on) {
-      await this.sendIrcc('Power');
+      await this.#sendIrcc('Power');
     }
   }
 
@@ -153,7 +153,11 @@ export default class BraviaClient {
     await this.#callVoid('/sony/audio', 'setAudioMute', [{ status: mute }]);
   }
 
-  async sendIrcc(name: keyof typeof IRCC_CODES): Promise<void> {
+  async showTvGuide(): Promise<void> {
+    await this.#sendIrcc('GGuide');
+  }
+
+  async #sendIrcc(name: keyof typeof IRCC_CODES): Promise<void> {
     const code = IRCC_CODES[name];
     const body = `<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:X_SendIRCC xmlns:u="urn:schemas-sony-com:service:IRCC:1"><IRCCCode>${code}</IRCCCode></u:X_SendIRCC></s:Body></s:Envelope>`;
 
@@ -176,11 +180,11 @@ export default class BraviaClient {
   async switchToChannel(number: number): Promise<void> {
     const digits = String(number).split('');
 
-    await this.sendIrcc('Return');
+    await this.#sendIrcc('Return');
 
     for (const digit of digits) {
       await sleep(600);
-      await this.sendIrcc(`Num${digit}` as keyof typeof IRCC_CODES);
+      await this.#sendIrcc(`Num${digit}` as keyof typeof IRCC_CODES);
     }
   }
 }

@@ -128,7 +128,7 @@ Device.registerProvider('sony-bravia', {
         await client.wakeAndWaitUntilReady();
 
         if (source.kind === 'guide') {
-          await client.sendIrcc('GGuide');
+          await client.showTvGuide();
         } else {
           await client.switchToChannel(source.number);
         }
