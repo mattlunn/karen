@@ -75,6 +75,7 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 ### Naming Conventions
 
 - **Component files**: Use hyphenated lowercase names (e.g., `date-range-context.tsx`, not `DateRangeContext.tsx`)
+- **Database tables vs columns**: Table names are `snake_case` and pluralised (e.g. `alarm_activations`, `armings`, `events`); column names are `camelCase` (e.g. `armingId`, `startedAt`, `suppressFurtherAlertsUntil`, `lastReported`). Sequelize models map camelCase attributes straight to camelCase columns — the codebase does **not** use `underscored: true`. Follow both when adding migrations or model fields.
 
 ### Coding Style
 
