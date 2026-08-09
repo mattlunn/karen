@@ -107,16 +107,11 @@ export default class BraviaClient {
   }
 
   async setIsOn(on: boolean): Promise<void> {
-    if (!on) {
-      await this.#callVoid('/sony/system', 'setPowerStatus', [{ status: false }]);
-      return;
-    }
-
-    // setPowerStatus can't wake this TV from standby — Google TV rejects it with
-    // error 7 "Illegal State" regardless of network-standby settings. The IRCC
-    // power key does wake it, but it's a physical-remote-style toggle rather than
-    // an explicit "on", so only send it when we know the TV is actually off.
-    if (!await this.getIsOn()) {
+    // IRCC Power is a physical-remote-style toggle, not an explicit on/off,
+    // so only send it when the current state differs from what we want.
+    // (We use IRCC rather than REST setPowerStatus because Google TV rejects
+    // setPowerStatus with error 7 "Illegal State" when waking from standby.)
+    if (await this.getIsOn() !== on) {
       await this.sendIrcc('Power');
     }
   }
