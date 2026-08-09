@@ -9,7 +9,11 @@ import {
   handleReportState,
   handleLightControl,
   handleAlarmControl,
-  AlexaRequestWithEndpoint
+  handlePowerControl,
+  handleTelevisionControl,
+  handleLauncherControl,
+  AlexaRequestWithEndpoint,
+  AlexaInvalidValueError
 } from './handlers';
 import {
   AlexaSmartHomeRequest,
@@ -18,10 +22,16 @@ import {
   AlexaDiscoverRequest,
   AlexaAcceptGrantRequest,
   AlexaReportStateRequest,
-  AlexaSecurityPanelRequest
+  AlexaSecurityPanelRequest,
+  AlexaSpeakerRequest,
+  AlexaStepSpeakerRequest,
+  AlexaSelectInputRequest,
+  AlexaChangeChannelRequest,
+  AlexaLaunchTargetRequest
 } from './types';
 
 export type { AlexaRequestWithEndpoint };
+export { AlexaInvalidValueError };
 
 async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void> {
   await makeEventsRequest('Alexa.Discovery', 'AddOrUpdateReport', '3', undefined, (bearer) => ({
@@ -77,7 +87,12 @@ export const smarthomeHandlers: Record<string, SmartHomeRequestHandler> = {
   'Alexa.Discovery': (r) => handleDiscover(r as AlexaDiscoverRequest),
   'Alexa.Authorization': (r) => handleAcceptGrant(r as AlexaAcceptGrantRequest),
   'Alexa': (r) => handleReportState(r as AlexaReportStateRequest),
-  'Alexa.PowerController': (r) => handleLightControl(r as AlexaTurnOnOffRequest),
+  'Alexa.PowerController': (r) => handlePowerControl(r as AlexaTurnOnOffRequest),
   'Alexa.BrightnessController': (r) => handleLightControl(r as AlexaBrightnessRequest),
-  'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest)
+  'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest),
+  'Alexa.Speaker': (r) => handleTelevisionControl(r as AlexaSpeakerRequest),
+  'Alexa.StepSpeaker': (r) => handleTelevisionControl(r as AlexaStepSpeakerRequest),
+  'Alexa.InputController': (r) => handleTelevisionControl(r as AlexaSelectInputRequest),
+  'Alexa.ChannelController': (r) => handleTelevisionControl(r as AlexaChangeChannelRequest),
+  'Alexa.Launcher': (r) => handleLauncherControl(r as AlexaLaunchTargetRequest)
 };

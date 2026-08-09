@@ -1,7 +1,8 @@
 import express from 'express';
 import newrelic from 'newrelic';
 import auth from '../middleware/auth';
-import { smarthomeHandlers, AlexaRequestWithEndpoint } from '../services/alexa/smarthome';
+import logger from '../logger';
+import { smarthomeHandlers, AlexaRequestWithEndpoint, AlexaInvalidValueError } from '../services/alexa/smarthome';
 import { intentHandlers } from '../services/alexa/skill';
 import { AlexaSmartHomeRequest } from '../services/alexa/smarthome/types';
 import { AlexaSkillRequestBody } from '../services/alexa/skill/types';
@@ -29,6 +30,7 @@ router.post('/smarthome', auth, async (req, res) => {
     const response = await handler(request);
     res.json(response);
   } catch (e) {
+    logger.warn({ err: e, namespace, action: actionName }, 'Alexa smarthome directive failed');
     res.json({
       event: {
         header: {
@@ -39,7 +41,7 @@ router.post('/smarthome', auth, async (req, res) => {
         },
         endpoint: (request as AlexaRequestWithEndpoint).endpoint,
         payload: {
-          type: 'INTERNAL_ERROR',
+          type: e instanceof AlexaInvalidValueError ? 'INVALID_VALUE' : 'INTERNAL_ERROR',
           message: (e as Error).message
         }
       }

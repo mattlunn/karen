@@ -57,6 +57,11 @@ export type CapabilityApiResponse = {
   type: 'SWITCH';
   isOn: BooleanStateApiResponse;
 } | {
+  type: 'TELEVISION';
+  volume: NumericStateApiResponse;
+  isMuted: BooleanStateApiResponse;
+  availableSources: TelevisionSourceApiResponse[];
+} | {
   type: 'BATTERY_LEVEL_INDICATOR';
   batteryPercentage: NumericStateApiResponse;
 } | {
@@ -119,6 +124,11 @@ export type EnumStateApiResponse = {
   end: string | null;
   lastReported: string;
   value: string | null;
+};
+
+export type TelevisionSourceApiResponse = {
+  label: string;
+  kind: 'channel' | 'guide';
 };
 
 // History API response types (real DB rows; `value` is never null).
@@ -256,6 +266,18 @@ export interface ThermostatUpdateRequest {
 export interface VehicleUpdateRequest {
   chargeLimit?: number;
   manualChargeSchedule?: { targetPercentage: number; targetTime: string } | null;
+}
+
+// /api/device/:id/switch endpoint
+export interface SwitchUpdateRequest {
+  isOn: boolean;
+}
+
+// /api/device/:id/television endpoint
+export interface TelevisionUpdateRequest {
+  volume?: number;
+  isMuted?: boolean;
+  source?: string;
 }
 
 // /api/security endpoint

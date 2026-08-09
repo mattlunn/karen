@@ -52,13 +52,73 @@ export interface AlexaSecurityPanelRequest {
   payload: { armState?: string };
 }
 
+export interface AlexaSetVolumeRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.Speaker'; name: 'SetVolume' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { volume: number };
+}
+
+export interface AlexaAdjustVolumeRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.Speaker'; name: 'AdjustVolume' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { volume: number; volumeDefault?: boolean };
+}
+
+export interface AlexaSetMuteRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.Speaker'; name: 'SetMute' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { mute: boolean };
+}
+
+export type AlexaSpeakerRequest = AlexaSetVolumeRequest | AlexaAdjustVolumeRequest | AlexaSetMuteRequest;
+
+export interface AlexaAdjustVolumeStepRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.StepSpeaker'; name: 'AdjustVolume' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { volumeSteps: number; volumeStepsDefault?: boolean };
+}
+
+export interface AlexaSetMuteStepRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.StepSpeaker'; name: 'SetMute' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { mute: boolean };
+}
+
+export type AlexaStepSpeakerRequest = AlexaAdjustVolumeStepRequest | AlexaSetMuteStepRequest;
+
+export interface AlexaSelectInputRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.InputController'; name: 'SelectInput' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { input: string };
+}
+
+export interface AlexaChangeChannelRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.ChannelController'; name: 'ChangeChannel' };
+  endpoint: AlexaRequestEndpoint;
+  payload: {
+    channel?: { number?: string; callSign?: string; affiliateCallSign?: string };
+    channelMetadata?: { name?: string; image?: string };
+  };
+}
+
+export interface AlexaLaunchTargetRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.Launcher'; name: 'LaunchTarget' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { name?: string; identifier: string };
+}
+
 export type AlexaSmartHomeRequest =
   | AlexaAcceptGrantRequest
   | AlexaDiscoverRequest
   | AlexaReportStateRequest
   | AlexaTurnOnOffRequest
   | AlexaBrightnessRequest
-  | AlexaSecurityPanelRequest;
+  | AlexaSecurityPanelRequest
+  | AlexaSpeakerRequest
+  | AlexaStepSpeakerRequest
+  | AlexaSelectInputRequest
+  | AlexaChangeChannelRequest
+  | AlexaLaunchTargetRequest;
 
 // Responses (outbound from Karen → Alexa)
 
@@ -69,6 +129,7 @@ export interface AlexaDiscoveryCapability {
   instance?: string;
   capabilityResources?: Record<string, unknown>;
   configuration?: Record<string, unknown>;
+  inputs?: { name: string }[];
   properties?: {
     supported: { name: string }[];
     configuration?: Record<string, unknown>;

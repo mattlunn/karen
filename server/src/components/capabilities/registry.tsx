@@ -14,6 +14,7 @@ import {
   faDoorClosed,
   faDoorOpen,
   faVolumeHigh,
+  faVolumeXmark,
   faBatteryFull,
   faBatteryHalf,
   faBatteryQuarter,
@@ -36,10 +37,11 @@ import {
   faHashtag,
   faBell,
   faSignal,
+  faTv,
   faSterlingSign,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
-import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest } from '../../api/types';
+import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, SwitchUpdateRequest, TelevisionUpdateRequest } from '../../api/types';
 import ThermostatModal from '../modals/thermostat-modal';
 import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import ChargeLimitModal from '../modals/charge-limit-modal';
@@ -77,6 +79,26 @@ async function updateLock(deviceId: number, data: LockUpdateRequest): Promise<De
   return res.json();
 }
 
+async function updateSwitch(deviceId: number, data: SwitchUpdateRequest): Promise<DeviceApiResponse> {
+  const res = await fetch(`/api/device/${deviceId}/switch`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update switch');
+  return res.json();
+}
+
+async function updateTelevision(deviceId: number, data: TelevisionUpdateRequest): Promise<DeviceApiResponse> {
+  const res = await fetch(`/api/device/${deviceId}/television`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update television');
+  return res.json();
+}
+
 function updateDeviceCache(queryClient: QueryClient, deviceId: number, data: DeviceApiResponse) {
   queryClient.setQueryData(['device', deviceId], data);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -104,32 +126,66 @@ export const MetricDisplayProvider = MetricDisplayContext.Provider;
 // Interactive Controls
 // ============================================================================
 
-type LightCapability = Extract<CapabilityApiResponse, { type: 'LIGHT' }>;
+type TelevisionCapability = Extract<CapabilityApiResponse, { type: 'TELEVISION' }>;
 
-function BrightnessControl({ device, capability }: { device: RestDeviceResponse; capability: LightCapability }) {
+function NumericControl({ deviceId, selectedValue, min, max, increment, formatLabel = String, onClick }: {
+  deviceId: number;
+  selectedValue: number;
+  min: number;
+  max: number;
+  increment: number;
+  formatLabel?: (value: number) => string;
+  onClick: (value: number) => Promise<DeviceApiResponse>;
+}) {
   const queryClient = useQueryClient();
   const variant = React.useContext(MetricDisplayContext);
-  const brightness = capability.brightness.value ?? 100;
-
   const data: { value: string; label: string }[] = [];
-  let selectedValue: string | undefined;
+  let selected: string | undefined;
 
-  for (let i = 0; i <= 100; i += 5) {
-    const shouldSelect = i === brightness || (brightness < i && selectedValue === undefined);
-
+  for (let i = min; i <= max; i += increment) {
+    const shouldSelect = i === selectedValue || (selectedValue < i && selected === undefined);
     if (shouldSelect) {
-      selectedValue = String(i);
+      selected = String(i);
     }
-
-    data.push({ value: String(i), label: `${i}%` });
+    data.push({ value: String(i), label: formatLabel(i) });
   }
 
   return (
     <NativeSelect
       data={data}
-      defaultValue={selectedValue}
+      defaultValue={selected}
       onChange={async (e) => {
-        const result = await updateLight(device.id, { brightness: Number(e.target.value) });
+        const result = await onClick(Number(e.target.value));
+        updateDeviceCache(queryClient, deviceId, result);
+      }}
+      size={variant === 'compact' ? 'xs' : 'xl'}
+      w="fit-content"
+      display={variant === 'compact' ? 'inline-block' : 'block'}
+    />
+  );
+}
+
+function SourceControl({ device, capability }: { device: RestDeviceResponse; capability: TelevisionCapability }) {
+  const queryClient = useQueryClient();
+  const variant = React.useContext(MetricDisplayContext);
+
+  const guide = capability.availableSources.filter(s => s.kind === 'guide').map(s => s.label);
+  const channels = capability.availableSources.filter(s => s.kind === 'channel').map(s => s.label);
+
+  // CurrentSource is write-only (there's no way to read the TV's actual source
+  // back), so this control always starts on a blank placeholder rather than
+  // whichever source happens to be listed first. Without it, selecting that
+  // first-listed source (e.g. the guide) wouldn't fire onChange at all.
+  const data: ({ value: string; label: string } | { group: string; items: string[] })[] = [{ value: '', label: '-' }];
+  if (guide.length > 0) data.push({ group: 'Guide', items: guide });
+  if (channels.length > 0) data.push({ group: 'Channels', items: channels });
+
+  return (
+    <NativeSelect
+      data={data}
+      defaultValue=""
+      onChange={async (e) => {
+        const result = await updateTelevision(device.id, { source: e.target.value });
         updateDeviceCache(queryClient, device.id, result);
       }}
       size={variant === 'compact' ? 'xs' : 'xl'}
@@ -356,6 +412,29 @@ export const registry: CapabilityUIRegistry = {
     ],
   },
 
+  TELEVISION: {
+    priority: 32,
+    getCapabilityMetrics: (cap, device) => [
+      {
+        icon: faTv,
+        title: 'Source',
+        value: cap.availableSources.length > 0 ? <SourceControl device={device} capability={cap} /> : '-',
+        iconColor: '#04A7F4',
+      },
+      createCapability(cap.volume, {
+        icon: cap.isMuted.value ? faVolumeXmark : faVolumeHigh,
+        title: 'Volume',
+        value: <NumericControl deviceId={device.id} selectedValue={cap.volume.value ?? 0} min={0} max={20} increment={1} onClick={(value) => updateTelevision(device.id, { volume: value })} />,
+        iconColor: '#04A7F4',
+        iconHighlighted: !cap.isMuted.value,
+        onIconClick: async ({ queryClient }) => {
+          const data = await updateTelevision(device.id, { isMuted: !cap.isMuted.value });
+          updateDeviceCache(queryClient, device.id, data);
+        },
+      }),
+    ],
+  },
+
   HEAT_PUMP: {
     priority: 25,
     getCapabilityMetrics: (cap) => [
@@ -478,7 +557,7 @@ export const registry: CapabilityUIRegistry = {
       createCapability(cap.brightness, {
         icon: faCircleHalfStroke,
         title: 'Brightness',
-        value: <BrightnessControl device={device} capability={cap} />,
+        value: <NumericControl deviceId={device.id} selectedValue={cap.brightness.value ?? 100} min={0} max={100} increment={5} formatLabel={(i) => `${i}%`} onClick={(value) => updateLight(device.id, { brightness: value })} />,
       }),
     ],
     getGraphs: () => [
@@ -505,13 +584,17 @@ export const registry: CapabilityUIRegistry = {
 
   SWITCH: {
     priority: 40,
-    getCapabilityMetrics: (cap) => [
+    getCapabilityMetrics: (cap, device) => [
       createCapability(cap.isOn, {
         icon: (e) => e.value === true ? faToggleOn : faToggleOff,
         title: 'Switch',
         value: (e) => e.value ? 'On' : 'Off',
         iconColor: '#04A7F4',
         iconHighlighted: (e) => e.value,
+        onIconClick: async ({ queryClient }) => {
+          const data = await updateSwitch(device.id, { isOn: !cap.isOn.value });
+          updateDeviceCache(queryClient, device.id, data);
+        },
       }),
     ],
   },

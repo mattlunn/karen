@@ -190,6 +190,16 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
+    case 'TELEVISION': {
+      const tv = device.getTelevisionCapability();
+      return awaitPromises({
+        type: 'TELEVISION' as const,
+        volume: mapNumericState(tv.getVolumeEvent(), device),
+        isMuted: mapBooleanState(tv.getIsMutedEvent(), device),
+        availableSources: tv.getAvailableSources(),
+      });
+    }
+
     case 'BATTERY_LEVEL_INDICATOR': {
       const battery = device.getBatteryLevelIndicatorCapability();
       return awaitPromises({
