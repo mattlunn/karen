@@ -172,13 +172,18 @@ function SourceControl({ device, capability }: { device: RestDeviceResponse; cap
   const guide = capability.availableSources.filter(s => s.kind === 'guide').map(s => s.label);
   const channels = capability.availableSources.filter(s => s.kind === 'channel').map(s => s.label);
 
-  const groups: { group: string; items: string[] }[] = [];
-  if (guide.length > 0) groups.push({ group: 'Guide', items: guide });
-  if (channels.length > 0) groups.push({ group: 'Channels', items: channels });
+  // CurrentSource is write-only (there's no way to read the TV's actual source
+  // back), so this control always starts on a blank placeholder rather than
+  // whichever source happens to be listed first. Without it, selecting that
+  // first-listed source (e.g. the guide) wouldn't fire onChange at all.
+  const data: ({ value: string; label: string } | { group: string; items: string[] })[] = [{ value: '', label: '-' }];
+  if (guide.length > 0) data.push({ group: 'Guide', items: guide });
+  if (channels.length > 0) data.push({ group: 'Channels', items: channels });
 
   return (
     <NativeSelect
-      data={groups}
+      data={data}
+      defaultValue=""
       onChange={async (e) => {
         const result = await updateTelevision(device.id, { source: e.target.value });
         updateDeviceCache(queryClient, device.id, result);
