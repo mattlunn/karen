@@ -140,7 +140,7 @@ export default async function ({
         });
 
         bus.emit(NOTIFICATION_TO_ALL, {
-          message: `🔕 FYI: alarm activation from ${device.name} was suppressed by the "${silencingWindow.name}" silencing window`
+          message: `🔕 Motion detected by the ${device.name} at ${dayjs(event.start).format('HH:mm:ss')} was suppressed by the "${silencingWindow.name}" silencing window`
         });
 
         return;
