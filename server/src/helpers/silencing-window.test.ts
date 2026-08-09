@@ -1,7 +1,7 @@
 jest.mock('../config', () => ({}), { virtual: true });
 
 import dayjs from '../dayjs';
-import { findActiveSilencingWindow, SilencingWindow } from './silencing-window';
+import { findActiveSilencingWindow, getSilencingWindowEndsAt, SilencingWindow } from './silencing-window';
 
 // 2026-05-06 is a Wednesday.
 const cleaner: SilencingWindow = {
@@ -51,5 +51,13 @@ describe('findActiveSilencingWindow', () => {
 
   it('returns undefined when no windows are configured', () => {
     expect(findActiveSilencingWindow([], at('2026-05-06T09:00:00'))).toBeUndefined();
+  });
+});
+
+describe('getSilencingWindowEndsAt', () => {
+  it('resolves the window end to a concrete instant on the day of the motion', () => {
+    const endsAt = getSilencingWindowEndsAt(cleaner, at('2026-05-06T09:00:00'));
+
+    expect(dayjs(endsAt).tz('Europe/London').format('YYYY-MM-DD HH:mm')).toBe('2026-05-06 12:00');
   });
 });

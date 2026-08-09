@@ -1,4 +1,4 @@
-import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, HasManyGetAssociationsMixin, CreationOptional, NonAttribute, HasOneGetAssociationMixin } from 'sequelize';
+import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, HasOneGetAssociationMixin } from 'sequelize';
 import dayjs from '../dayjs';
 import { Arming } from './arming';
 
@@ -6,12 +6,13 @@ export class AlarmActivation extends Model<InferAttributes<AlarmActivation>, Inf
   declare id: CreationOptional<number>;
   declare armingId: CreationOptional<number>;
   declare startedAt: CreationOptional<Date>;
-  declare suppressedAt: CreationOptional<Date>;
-  declare suppressedBy: CreationOptional<number>;
-  declare suppressionReason: CreationOptional<string | null>;
-  declare isSuppressed: CreationOptional<boolean>;
+  declare suppressFurtherAlertsUntil: Date;
 
   declare getArming: HasOneGetAssociationMixin<Arming>;
+
+  isSuppressingFurtherAlerts(at: Date = new Date()): boolean {
+    return dayjs(at).isBefore(this.suppressFurtherAlertsUntil);
+  }
 }
 
 export default function (sequelize: Sequelize) {
@@ -34,41 +35,9 @@ export default function (sequelize: Sequelize) {
       allowNull: false
     },
 
-    suppressedAt: {
+    suppressFurtherAlertsUntil: {
       type: DataTypes.DATE,
-      allowNull: true,
-
-      get() {
-        if (this.getDataValue('suppressedAt')) {
-          return this.getDataValue('suppressedAt');
-        }
-
-        const autoSuppressionTime = dayjs(this.startedAt).add(5, 'minutes');
-
-        return autoSuppressionTime.isAfter(dayjs())
-          ? null
-          : autoSuppressionTime;
-      }
-    },
-
-    suppressedBy: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
-
-    suppressionReason: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-
-    isSuppressed: {
-      type: DataTypes.VIRTUAL,
-      get() {
-        return !!this.suppressedAt;
-      },
-      set() {
-        throw new Error();
-      }
+      allowNull: false
     }
   }, {
     sequelize,

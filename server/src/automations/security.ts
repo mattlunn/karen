@@ -6,7 +6,7 @@ import sleep from '../helpers/sleep';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
 import { DeviceCapabilityEvents } from '../models/capabilities';
-import { findActiveSilencingWindow, SilencingWindow } from '../helpers/silencing-window';
+import { findActiveSilencingWindow, getSilencingWindowEndsAt, SilencingWindow } from '../helpers/silencing-window';
 
 const successAsBoolean = (promise: Promise<void>) => promise.then(() => true, () => false);
 
@@ -72,7 +72,7 @@ async function soundTheAlarm(alarmAlexa: string, activation: AlarmActivation) {
     }
   }());
 
-  while (!arming.end && !activation.isSuppressed) {
+  while (!arming.end && activation.isSuppressingFurtherAlerts()) {
     if (await successAsBoolean(device.getSpeakerCapability().emitSound([
       sounds.next().value,
       sounds.next().value,
@@ -83,10 +83,7 @@ async function soundTheAlarm(alarmAlexa: string, activation: AlarmActivation) {
       await sleep(20000);
     }
 
-    await Promise.all([
-      activation.reload(),
-      arming.reload()
-    ]);
+    await arming.reload();
   }
 }
 
@@ -119,43 +116,45 @@ export default async function ({
     ]);
 
     if (arming && !isExcludedDevice(arming.mode, device.name, excludedDevices, nightExcludedDevices)) {
+      const mostRecentActivation = await arming.getMostRecentActivation();
+
+      // The most recent alert is still suppressing further ones (the 5-minute alarm cooldown, or
+      // an in-progress silencing window), so there is nothing to do.
+      if (mostRecentActivation && mostRecentActivation.isSuppressingFurtherAlerts(event.start)) {
+        return;
+      }
+
+      // First motion within a configured silencing window: record it and notify once so we're not
+      // blind to it, but stay silent until the window ends.
       const silencingWindow = findActiveSilencingWindow(silencingWindows, event.start);
 
       if (silencingWindow) {
-        // Suppress the alarm during the configured window, but still record it and notify
-        // once per arming per day so we're not blind to the activation.
-        if (!await arming.hasSilencingActivationOn(event.start)) {
-          await AlarmActivation.create({
-            armingId: arming.id,
-            startedAt: event.start,
-            suppressedAt: event.start,
-            suppressionReason: silencingWindow.name
-          });
+        await AlarmActivation.create({
+          armingId: arming.id,
+          startedAt: event.start,
+          suppressFurtherAlertsUntil: getSilencingWindowEndsAt(silencingWindow, event.start)
+        });
 
-          bus.emit(NOTIFICATION_TO_ALL, {
-            message: `🔕 FYI: alarm activation from ${device.name} was suppressed by the "${silencingWindow.name}" silencing window`
-          });
-        }
+        bus.emit(NOTIFICATION_TO_ALL, {
+          message: `🔕 FYI: alarm activation from ${device.name} was suppressed by the "${silencingWindow.name}" silencing window`
+        });
 
         return;
       }
 
-      let mostRecentActivation = await arming.getMostRecentActivation();
+      const activation = await AlarmActivation.create({
+        armingId: arming.id,
+        startedAt: event.start,
+        suppressFurtherAlertsUntil: dayjs(event.start).add(5, 'minutes').toDate()
+      });
 
-      if (!mostRecentActivation || mostRecentActivation.isSuppressed) {
-        mostRecentActivation = await AlarmActivation.create({
-          armingId: arming.id,
-          startedAt: event.start
-        });
+      notifyAbsentUsersOfEvent(event);
+      turnOnAllTheLights();
 
-        notifyAbsentUsersOfEvent(event);
-        turnOnAllTheLights();
-
-        if (arming.mode === ArmingMode.NIGHT) {
-          notifyNightModeAlexa(nightModeAlexa, event);
-        } else {
-          soundTheAlarm(alarmAlexa, mostRecentActivation);
-        }
+      if (arming.mode === ArmingMode.NIGHT) {
+        notifyNightModeAlexa(nightModeAlexa, event);
+      } else {
+        soundTheAlarm(alarmAlexa, activation);
       }
     }
   }));

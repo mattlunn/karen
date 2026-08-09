@@ -1,6 +1,6 @@
 import dayjs from '../dayjs';
 import { isOccurrenceDay } from './recurrence';
-import { isWithinTime } from './time';
+import { isWithinTime, normalizeTime } from './time';
 
 export type SilencingWindow = {
   name: string;
@@ -17,4 +17,8 @@ export function findActiveSilencingWindow(windows: SilencingWindow[], when: Date
     return isOccurrenceDay(window.anchor_date, window.interval_weeks, dateStr)
       && isWithinTime(window.start, window.end, when);
   });
+}
+
+export function getSilencingWindowEndsAt(window: SilencingWindow, when: Date): Date {
+  return normalizeTime(window.end, when).toDate();
 }
