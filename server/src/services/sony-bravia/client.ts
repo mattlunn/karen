@@ -32,6 +32,7 @@ const IRCC_CODES: Record<string, string> = {
   ChannelUp: 'AAAAAQAAAAEAAAAQAw==',
   ChannelDown: 'AAAAAQAAAAEAAAARAw==',
   GGuide: 'AAAAAQAAAAEAAAAOAw==',
+  Power: 'AAAAAQAAAAEAAAAVAw==',
 };
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -47,7 +48,7 @@ export default class BraviaClient {
     this.#timeoutMs = timeoutMs;
   }
 
-  async #call<T>(path: string, method: string, params: object[] = []): Promise<T> {
+  async #request<T>(path: string, method: string, params: object[] = []): Promise<SonyEnvelope<T>> {
     const url = `http://${this.#host}${path}`;
     const body = JSON.stringify({ method, params, id: 1, version: '1.0' });
 
@@ -72,11 +73,24 @@ export default class BraviaClient {
       throw new BraviaError(code, message, path, method);
     }
 
+    return envelope;
+  }
+
+  async #call<T>(path: string, method: string, params: object[] = []): Promise<T> {
+    const envelope = await this.#request<T>(path, method, params);
+
     if (!envelope.result || envelope.result.length === 0) {
       throw new Error(`Bravia ${path}.${method} returned empty result`);
     }
 
     return envelope.result[0];
+  }
+
+  // Sony's mutation endpoints (setPowerStatus, setAudioVolume, setAudioMute) reply
+  // with an empty `result` array on success, so they can't go through #call's
+  // non-empty-result check above.
+  async #callVoid(path: string, method: string, params: object[] = []): Promise<void> {
+    await this.#request(path, method, params);
   }
 
 
@@ -94,7 +108,18 @@ export default class BraviaClient {
   }
 
   async setIsOn(on: boolean): Promise<void> {
-    await this.#call('/sony/system', 'setPowerStatus', [{ status: on }]);
+    if (!on) {
+      await this.#callVoid('/sony/system', 'setPowerStatus', [{ status: false }]);
+      return;
+    }
+
+    // setPowerStatus can't wake this TV from standby — Google TV rejects it with
+    // error 7 "Illegal State" regardless of network-standby settings. The IRCC
+    // power key does wake it, but it's a physical-remote-style toggle rather than
+    // an explicit "on", so only send it when we know the TV is actually off.
+    if (!await this.getIsOn()) {
+      await this.sendIrcc('Power');
+    }
   }
 
   async getVolumeInformation(): Promise<VolumeInformation> {
@@ -105,13 +130,13 @@ export default class BraviaClient {
   }
 
   async setVolume(level: number): Promise<void> {
-    await this.#call('/sony/audio', 'setAudioVolume', [
+    await this.#callVoid('/sony/audio', 'setAudioVolume', [
       { target: 'speaker', volume: String(level) },
     ]);
   }
 
   async setMute(mute: boolean): Promise<void> {
-    await this.#call('/sony/audio', 'setAudioMute', [{ status: mute }]);
+    await this.#callVoid('/sony/audio', 'setAudioMute', [{ status: mute }]);
   }
 
   async sendIrcc(name: keyof typeof IRCC_CODES): Promise<void> {
