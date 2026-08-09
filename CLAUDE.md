@@ -75,6 +75,7 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 ### Naming Conventions
 
 - **Component files**: Use hyphenated lowercase names (e.g., `date-range-context.tsx`, not `DateRangeContext.tsx`)
+- **Database tables vs columns**: Table names are `snake_case` and pluralised (e.g. `alarm_activations`, `armings`, `events`); column names are `camelCase` (e.g. `armingId`, `startedAt`, `suppressFurtherAlertsUntil`, `lastReported`). Sequelize models map camelCase attributes straight to camelCase columns — the codebase does **not** use `underscored: true`. Follow both when adding migrations or model fields.
 
 ### Coding Style
 
@@ -179,6 +180,8 @@ Device.registerProvider('providerName', {
 **Event-Driven Updates**: Device changes emit events via `DeviceCapabilityEvents`, which trigger SSE (Server-Sent Events) for real-time UI updates.
 
 **Configuration-Driven Automations**: Automations are configured in `config.json` and dynamically loaded at startup. Each automation module receives parameters and registers event handlers. Each automation exports a default function with a named `FooAutomationParameters` type for its config object (see `automations/bathroom.ts`). Required parameters have no defaults.
+
+**Runtime mutable config**: For settings that need to persist across server restarts and be changeable at runtime (e.g. feature flags, seasonal overrides), add a field to `config.json` and use `saveConfig()` from `helpers/config.js` to write back to disk atomically. Do NOT create a new DB settings table — `saveConfig` is the established pattern already used for Tado/Alexa/SmartCar token persistence and costs zero infrastructure.
 
 **Capability UI Registry**: UI configuration for device capabilities is centralized in `/components/capabilities/`. When adding a new capability type, only update `registry.tsx`:
 
