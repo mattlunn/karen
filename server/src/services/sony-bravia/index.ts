@@ -138,6 +138,7 @@ async function pollDevice(device: Device) {
 
   if (isOn) {
     const volume = await client.getVolumeInformation();
+
     await tv.setVolumeState(volume.volume);
     await tv.setIsMutedState(volume.mute);
   }

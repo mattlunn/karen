@@ -196,6 +196,7 @@ export class BraviaError extends Error {
 
   constructor(code: number, message: string, path: string, method: string) {
     super(`Bravia ${path}.${method} error ${code}: ${message}`);
+
     this.code = code;
     this.path = path;
     this.method = method;
