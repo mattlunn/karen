@@ -37,7 +37,7 @@ function clientFor(device: Device): BraviaClient {
     throw new Error(`No sony-bravia config entry for device ${device.providerId}`);
   }
 
-  return new BraviaClient(entry.host, entry.psk, config.sony_bravia.connect_timeout_milliseconds);
+  return new BraviaClient(entry.host, entry.psk, config.sony_bravia.connect_timeout_milliseconds, entry.mac);
 }
 
 // Alexa resolves what the user said against its own idea of our channel

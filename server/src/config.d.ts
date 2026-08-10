@@ -62,6 +62,7 @@ declare namespace _default {
       name: string;
       host: string;
       psk: string;
+      mac?: string;
       channels: { label: string; number: number; aliases?: string[] }[];
     }[];
     const poll_interval_seconds: number;

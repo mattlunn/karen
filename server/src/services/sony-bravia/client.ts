@@ -1,4 +1,5 @@
 import sleep from '../../helpers/sleep';
+import wakeOnLan from './wake-on-lan';
 
 type PowerStatus = 'active' | 'standby';
 
@@ -41,11 +42,13 @@ export default class BraviaClient {
   #host: string;
   #psk: string;
   #timeoutMs: number;
+  #mac: string | undefined;
 
-  constructor(host: string, psk: string, timeoutMs: number) {
+  constructor(host: string, psk: string, timeoutMs: number, mac?: string) {
     this.#host = host;
     this.#psk = psk;
     this.#timeoutMs = timeoutMs;
+    this.#mac = mac;
   }
 
   async #request<T>(path: string, method: string, params: object[] = []): Promise<SonyEnvelope<T>> {
@@ -112,13 +115,30 @@ export default class BraviaClient {
   }
 
   async setIsOn(on: boolean): Promise<void> {
-    // IRCC Power is a physical-remote-style toggle, not an explicit on/off,
-    // so only send it when the current state differs from what we want.
-    // (We use IRCC rather than REST setPowerStatus because Google TV rejects
-    // setPowerStatus with error 7 "Illegal State" when waking from standby.)
-    if (await this.getIsOn() !== on) {
-      await this.#sendIrcc('Power');
+    if (await this.getIsOn() === on) {
+      return;
     }
+
+    // When the TV is fully off it drops its network interface entirely and
+    // won't answer IRCC either, so we need a Wake-on-LAN magic packet first.
+    // WoL is a no-op if the TV is already awake, so it's also safe to send
+    // in the standby case; the IRCC Power toggle below then covers TVs that
+    // only reachable-in-standby (network up, code 7) and don't need WoL.
+    if (on && this.#mac) {
+      await wakeOnLan(this.#mac);
+      await sleep(2_000);
+
+      if (await this.getIsOn()) {
+        return;
+      }
+    }
+
+    // IRCC Power is a physical-remote-style toggle, not an explicit on/off,
+    // so we only reach this point when the current state differs from what
+    // we want. (We use IRCC rather than REST setPowerStatus because Google
+    // TV rejects setPowerStatus with error 7 "Illegal State" when waking
+    // from standby.)
+    await this.#sendIrcc('Power');
   }
 
   // Wakes the TV if it's off and waits for it to be ready to accept further
