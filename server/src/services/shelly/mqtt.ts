@@ -104,11 +104,13 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
   }
 
   // BLU (Bluetooth) sensors are relayed under their pairing gateway's own topic,
-  // keyed by a small integer the gateway assigns locally when the sensor is bound
-  // (see BTHome.AddDevice) rather than by the sensor's own MAC. That id isn't
-  // stable across a delete/re-pair, so devices carry the current
-  // `{ [sensorId]: property }` mapping in `meta.sensors`, keyed against the
-  // gateway they're paired to via `meta.gatewayProviderId`.
+  // keyed by a small integer the gateway assigns locally when the sensor is
+  // bound (see BTHome.AddDevice) rather than by the sensor's own MAC. That id
+  // isn't unique across Shelly devices — only within one gateway — so it can't
+  // be the child's providerId; and the gateway's own providerId is already
+  // taken by the gateway device itself. So each BLU child stores its pairing
+  // in meta (`gatewayProviderId` + `sensors: { [sensorId]: property }`) and we
+  // look it up by that pair.
   if (subtopic.startsWith('status/bthomesensor:')) {
     const sensorId = subtopic.slice('status/bthomesensor:'.length);
     const data = JSON.parse(payload);
