@@ -250,7 +250,7 @@ export async function handleReportState(request: AlexaReportStateRequest) {
   } else if (capabilities.includes('SWITCH')) {
     return stateReport(request, then, await createSwitchResponseProperties(device, then));
   } else {
-    throw new Error(`Unable to report state on ${endpointId} (capabilities: ${capabilities.join(', ') || 'none'})`);
+    throw new Error(`Unable to report state for "${device.name}" (${endpointId}), with capabilities: ${capabilities.join(', ') || 'none'}`);
   }
 }
 
