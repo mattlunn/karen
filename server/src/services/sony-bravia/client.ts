@@ -99,7 +99,12 @@ export default class BraviaClient {
       return result.status === 'active';
     } catch (err) {
       // code 7 = "Illegal State": API unavailable while TV is in standby.
+      // A fetch timeout means the TV dropped off the network entirely, which
+      // is also how a fully-off Bravia presents itself.
       if (err instanceof BraviaError && err.code === 7) {
+        return false;
+      }
+      if (err instanceof DOMException && err.name === 'TimeoutError') {
         return false;
       }
       throw err;
