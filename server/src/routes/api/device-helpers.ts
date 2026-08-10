@@ -216,13 +216,13 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       });
     }
 
-    case 'CONTACT_SENSOR': {
-      const sensor = device.getContactSensorCapability();
-      const event = await sensor.getIsClosedEvent();
+    case 'ALARM_SENSOR': {
+      const sensor = device.getAlarmSensorCapability();
+      const event = await sensor.getIsTriggeredEvent();
 
       return {
-        type: 'CONTACT_SENSOR' as const,
-        isClosed: await mapBooleanState(Promise.resolve(event), device),
+        type: 'ALARM_SENSOR' as const,
+        isTriggered: await mapBooleanState(Promise.resolve(event), device),
         lastTriggered: event ? {
           start: event.start.toISOString(),
           end: event.end?.toISOString() ?? null,
@@ -231,6 +231,14 @@ export async function getCapabilityData(device: Device, capability: string): Pro
             : null
         } : null
       };
+    }
+
+    case 'CONTACT_SENSOR': {
+      const sensor = device.getContactSensorCapability();
+      return awaitPromises({
+        type: 'CONTACT_SENSOR' as const,
+        isOpen: mapBooleanState(sensor.getIsOpenEvent(), device)
+      });
     }
 
     case 'BIN_COLLECTION': {

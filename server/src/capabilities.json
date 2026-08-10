@@ -408,13 +408,23 @@
     }
   ]
 }, {
-  "name": "ContactSensor",
+  "name": "AlarmSensor",
   "properties": [
     {
-      "name": "IsClosed",
+      "name": "IsTriggered",
       "isWriteable": false,
       "type": "boolean",
       "eventName": "closed"
+    }
+  ]
+}, {
+  "name": "ContactSensor",
+  "properties": [
+    {
+      "name": "IsOpen",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "open"
     }
   ]
 }, {
