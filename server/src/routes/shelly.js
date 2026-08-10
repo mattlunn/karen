@@ -79,25 +79,29 @@ async function setupBLUDevice(ip, mac, name) {
   await device.save();
 }
 
-router.get('/install', async (req, res) => {
-  const { ip, mac, name } = req.query;
+router.get('/install-wifi', async (req, res) => {
+  const { ip } = req.query;
 
   if (!ip) {
     return res.end('Pass ip in query string');
   }
 
-  if (mac) {
-    if (!name) {
-      return res.end('Pass name in query string when installing a BLU device (mac was given)');
-    }
+  await setupWiFiDevice(ip);
 
-    try {
-      await setupBLUDevice(ip, mac, name);
-    } catch (err) {
-      return res.status(404).end(err.message);
-    }
-  } else {
-    await setupWiFiDevice(ip);
+  res.sendStatus(201).end();
+});
+
+router.get('/install-blu', async (req, res) => {
+  const { ip, mac, name } = req.query;
+
+  if (!ip || !mac || !name) {
+    return res.end('Pass ip (gateway), mac (sensor BLE MAC), and name in query string');
+  }
+
+  try {
+    await setupBLUDevice(ip, mac, name);
+  } catch (err) {
+    return res.status(404).end(err.message);
   }
 
   res.sendStatus(201).end();
