@@ -7,9 +7,10 @@ type AutoRelockParameters = {
   locks: {
     name: string;
     delaySeconds: number;
-    // Optional door/window sensor. If set, the auto-relock is vetoed the moment
-    // the door opens (see below). Omit for timer-only relocking.
-    doorSensorName?: string;
+    // Door/window sensor whose state vetoes the relock (see below). Required:
+    // without one, Karen has no way to tell the door was opened, and blindly
+    // re-throwing the bolt on a timer risks jamming it against an open door.
+    doorSensorName: string;
   }[];
 };
 
@@ -26,12 +27,10 @@ export default function ({ locks }: AutoRelockParameters) {
   const locksByDoorSensor = new Map<string, string[]>();
 
   for (const lock of locks) {
-    if (lock.doorSensorName !== undefined) {
-      const existing = locksByDoorSensor.get(lock.doorSensorName) ?? [];
+    const existing = locksByDoorSensor.get(lock.doorSensorName) ?? [];
 
-      existing.push(lock.name);
-      locksByDoorSensor.set(lock.doorSensorName, existing);
-    }
+    existing.push(lock.name);
+    locksByDoorSensor.set(lock.doorSensorName, existing);
   }
 
   function cancelPendingRelock(lockName: string): void {
@@ -88,12 +87,10 @@ export default function ({ locks }: AutoRelockParameters) {
       // The bolt can only be re-thrown remotely while the door has stayed shut —
       // once opened, the handle must be lifted manually to re-engage. So if the
       // door is already open, there is nothing we can safely do.
-      if (lock.doorSensorName !== undefined) {
-        const doorSensor = await Device.findByName(lock.doorSensorName);
+      const doorSensor = await Device.findByName(lock.doorSensorName);
 
-        if (doorSensor !== null && await doorSensor.getContactSensorCapability().getIsOpen()) {
-          return;
-        }
+      if (doorSensor !== null && await doorSensor.getContactSensorCapability().getIsOpen()) {
+        return;
       }
 
       scheduleRelock(lockName, device, lock.delaySeconds);
