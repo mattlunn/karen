@@ -42,9 +42,9 @@ export default class BraviaClient {
   #host: string;
   #psk: string;
   #timeoutMs: number;
-  #mac: string | undefined;
+  #mac: string;
 
-  constructor(host: string, psk: string, timeoutMs: number, mac?: string) {
+  constructor(host: string, psk: string, timeoutMs: number, mac: string) {
     this.#host = host;
     this.#psk = psk;
     this.#timeoutMs = timeoutMs;
@@ -120,24 +120,17 @@ export default class BraviaClient {
     }
 
     // When the TV is fully off it drops its network interface entirely and
-    // won't answer IRCC either, so we need a Wake-on-LAN magic packet first.
-    // WoL is a no-op if the TV is already awake, so it's also safe to send
-    // in the standby case; the IRCC Power toggle below then covers TVs that
-    // only reachable-in-standby (network up, code 7) and don't need WoL.
-    if (on && this.#mac) {
+    // won't answer IRCC either, so waking always goes via a Wake-on-LAN
+    // magic packet. WoL is a no-op if the TV is already awake, so it's
+    // safe when the TV was merely in standby too.
+    if (on) {
       await wakeOnLan(this.#mac);
-      await sleep(2_000);
-
-      if (await this.getIsOn()) {
-        return;
-      }
+      return;
     }
 
-    // IRCC Power is a physical-remote-style toggle, not an explicit on/off,
-    // so we only reach this point when the current state differs from what
-    // we want. (We use IRCC rather than REST setPowerStatus because Google
-    // TV rejects setPowerStatus with error 7 "Illegal State" when waking
-    // from standby.)
+    // IRCC Power is a physical-remote-style toggle, not an explicit on/off.
+    // (We use IRCC rather than REST setPowerStatus because Google TV rejects
+    // setPowerStatus with error 7 "Illegal State" when waking from standby.)
     await this.#sendIrcc('Power');
   }
 
