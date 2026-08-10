@@ -1,5 +1,3 @@
-// BTHome object ids (https://bthome.io/format) mapped to the capability
-// property Karen exposes them as.
 const BTHOME_OBJECT_ID_TO_PROPERTY = {
   1: 'battery',
   45: 'contact',
