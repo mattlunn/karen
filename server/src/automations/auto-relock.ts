@@ -5,11 +5,8 @@ import { createBackgroundTransaction } from '../helpers/newrelic';
 
 type AutoRelockParameters = {
   locks: {
-    name: string;
+    lockName: string;
     delaySeconds: number;
-    // Door/window sensor whose state vetoes the relock (see below). Required:
-    // without one, Karen has no way to tell the door was opened, and blindly
-    // re-throwing the bolt on a timer risks jamming it against an open door.
     doorSensorName: string;
   }[];
 };
@@ -20,7 +17,7 @@ type PendingRelock = {
 };
 
 export default function ({ locks }: AutoRelockParameters) {
-  for (const { name: lockName, delaySeconds, doorSensorName } of locks) {
+  for (const { lockName, delaySeconds, doorSensorName } of locks) {
     let pending: PendingRelock | undefined;
 
     function cancelPendingRelock(): void {
@@ -75,7 +72,11 @@ export default function ({ locks }: AutoRelockParameters) {
         // door is already open, there is nothing we can safely do.
         const doorSensor = await Device.findByName(doorSensorName);
 
-        if (doorSensor !== null && await doorSensor.getContactSensorCapability().getIsOpen()) {
+        if (doorSensor === null) {
+          throw new Error(`Auto-relock for lock '${lockName}' is misconfigured: door sensor '${doorSensorName}' does not exist`);
+        }
+
+        if (await doorSensor.getContactSensorCapability().getIsOpen()) {
           return;
         }
 
