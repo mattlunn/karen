@@ -77,12 +77,12 @@ export default class Gen2PlusDeviceClient {
 
   // Returns the `{ [localSensorId]: property }` mapping for a BTHome (BLU) device
   // already paired to this gateway, restricted to object types Karen understands.
-  async getBTHomeSensorsFor(addr) {
+  async getBTHomeSensorsFor(mac) {
     const { components } = await this._request('/rpc/Shelly.GetComponents?dynamic_only=true');
     const sensors = {};
 
     for (const component of components) {
-      if (!component.key.startsWith('bthomesensor:') || component.config.addr !== addr) {
+      if (!component.key.startsWith('bthomesensor:') || component.config.addr !== mac) {
         continue;
       }
 

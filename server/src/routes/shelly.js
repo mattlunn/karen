@@ -5,13 +5,15 @@ import DeviceClient from '../services/shelly/client/device';
 
 const router = express.Router();
 
-router.get('/install', async (req, res) => {
-  const ip = req.query.ip;
-
-  if (!ip) {
-    return res.end('Pass IP in query string');
+router.use((req, res, next) => {
+  if (req.query.secret !== config.shelly.secret) {
+    return res.sendStatus(401).end();
+  } else {
+    next();
   }
+});
 
+async function setupWiFiDevice(ip) {
   const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
   const model = await client.getModel();
   const mqttId = await client.getMqttId();
@@ -48,32 +50,24 @@ router.get('/install', async (req, res) => {
 
   await client.reboot();
   await device.save();
-
-  res.sendStatus(201).end();
-});
+}
 
 // Onboards a BLU (Bluetooth) sensor that's already been paired locally (not just
 // cloud relay) to a gateway device, e.g. via the Shelly app's Bluetooth settings
-// for that gateway. `ip` is the gateway's own IP; `addr` is the sensor's BLE MAC.
-router.get('/install-blu', async (req, res) => {
-  const { ip, addr, name } = req.query;
-
-  if (!ip || !addr || !name) {
-    return res.end('Pass ip (gateway), addr (sensor BLE MAC), and name in query string');
-  }
-
+// for that gateway. `ip` is the gateway's own IP; `mac` is the sensor's BLE MAC.
+async function setupBLUDevice(ip, mac, name) {
   const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
   const gatewayProviderId = await client.getMqttId();
-  const sensors = await client.getBTHomeSensorsFor(addr);
+  const sensors = await client.getBTHomeSensorsFor(mac);
 
   if (Object.keys(sensors).length === 0) {
-    return res.status(404).end(`No known BTHome sensor objects found for ${addr} on ${ip}. Has it been paired locally to this gateway (not just cloud relay)?`);
+    throw new Error(`No known BTHome sensor objects found for ${mac} on ${ip}. Has it been paired locally to this gateway (not just cloud relay)?`);
   }
 
-  let device = await Device.findByProviderId('shelly', addr);
+  let device = await Device.findByProviderId('shelly', mac);
 
   if (!device) {
-    device = Device.build({ provider: 'shelly', providerId: addr });
+    device = Device.build({ provider: 'shelly', providerId: mac });
   }
 
   device.name = name;
@@ -83,6 +77,28 @@ router.get('/install-blu', async (req, res) => {
   device.meta.sensors = sensors;
 
   await device.save();
+}
+
+router.get('/install', async (req, res) => {
+  const { ip, mac, name } = req.query;
+
+  if (!ip) {
+    return res.end('Pass ip in query string');
+  }
+
+  if (mac) {
+    if (!name) {
+      return res.end('Pass name in query string when installing a BLU device (mac was given)');
+    }
+
+    try {
+      await setupBLUDevice(ip, mac, name);
+    } catch (err) {
+      return res.status(404).end(err.message);
+    }
+  } else {
+    await setupWiFiDevice(ip);
+  }
 
   res.sendStatus(201).end();
 });
