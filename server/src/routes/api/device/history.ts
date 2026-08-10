@@ -293,17 +293,33 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     });
   }],
 
-  // Contact Sensor (input/dry-contact, e.g. fire alarm relay)
+  // Alarm Sensor (input/dry-contact, e.g. fire alarm relay)
+  ['alarm-sensor', async (device, selector) => {
+    const sensor = device.getAlarmSensorCapability();
+
+    return {
+      lines: [],
+      modes: await mapBooleanHistoryToResponse((hs) => sensor.getIsTriggeredHistory(hs), selector)
+        .then(data => ({
+          data,
+          details: [
+            { value: true as const, label: 'Triggered', fillColor: 'rgba(231, 76, 60, 0.35)' }
+          ]
+        }))
+    };
+  }],
+
+  // Contact Sensor (door/window open-closed position)
   ['contact-sensor', async (device, selector) => {
     const sensor = device.getContactSensorCapability();
 
     return {
       lines: [],
-      modes: await mapBooleanHistoryToResponse((hs) => sensor.getIsClosedHistory(hs), selector)
+      modes: await mapBooleanHistoryToResponse((hs) => sensor.getIsOpenHistory(hs), selector)
         .then(data => ({
           data,
           details: [
-            { value: true as const, label: 'Triggered', fillColor: 'rgba(231, 76, 60, 0.35)' }
+            { value: true as const, label: 'Open', fillColor: 'rgba(52, 152, 219, 0.3)' }
           ]
         }))
     };

@@ -24,7 +24,7 @@ async function describeWhoIsHome(): Promise<string> {
 export default function ({ deviceName }: FireAlarmAutomationParameters) {
   const isThisDevice = (d: Device) => d.name === deviceName;
 
-  DeviceCapabilityEvents.onContactSensorIsClosedStart(isThisDevice, createBackgroundTransaction('automations:fire-alarm:triggered', async (event: BooleanEvent) => {
+  DeviceCapabilityEvents.onAlarmSensorIsTriggeredStart(isThisDevice, createBackgroundTransaction('automations:fire-alarm:triggered', async (event: BooleanEvent) => {
     const time = dayjs(event.start).format('HH:mm');
     const homeList = await describeWhoIsHome();
     const message = `Fire alarm activated at ${time}. ${homeList}.`;
