@@ -250,7 +250,7 @@ export async function handleReportState(request: AlexaReportStateRequest) {
   } else if (capabilities.includes('SWITCH')) {
     return stateReport(request, then, await createSwitchResponseProperties(device, then));
   } else {
-    throw new Error(`Unable to report state on ${endpointId}`);
+    throw new Error(`Unable to report state on ${endpointId} (capabilities: ${capabilities.join(', ') || 'none'})`);
   }
 }
 
@@ -330,7 +330,7 @@ export async function handleTelevisionControl(request: AlexaSpeakerRequest | Ale
       ?? payload.channel?.number;
 
     if (!name) {
-      throw new AlexaInvalidValueError('ChangeChannel directive did not include a channel name');
+      throw new AlexaInvalidValueError(`ChangeChannel directive did not include a channel name (payload: ${JSON.stringify(payload)})`);
     }
 
     try {
