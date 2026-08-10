@@ -1,3 +1,10 @@
+// BTHome object ids (https://bthome.io/format) mapped to the capability
+// property Karen exposes them as.
+const BTHOME_OBJECT_ID_TO_PROPERTY = {
+  1: 'battery',
+  45: 'contact',
+};
+
 export default class Gen2PlusDeviceClient {
   constructor(ip, username, password, generation) {
     this._ip = ip;
@@ -68,5 +75,28 @@ export default class Gen2PlusDeviceClient {
 
   async setLedMode(mode) {
     return await this._request(`/rpc/PLUGUK_UI.SetConfig?config={"leds":{"mode":"${mode}"}}`);
+  }
+
+  // Returns the `{ [localSensorId]: property }` mapping for a BTHome (BLU) device
+  // already paired to this gateway, restricted to object types Karen understands.
+  async getBTHomeSensorsFor(addr) {
+    const { components } = await this._request('/rpc/Shelly.GetComponents?dynamic_only=true');
+    const sensors = {};
+
+    for (const component of components) {
+      if (!component.key.startsWith('bthomesensor:') || component.config.addr !== addr) {
+        continue;
+      }
+
+      const property = BTHOME_OBJECT_ID_TO_PROPERTY[component.config.obj_id];
+
+      if (property) {
+        const id = component.key.split(':')[1];
+
+        sensors[id] = property;
+      }
+    }
+
+    return sensors;
   }
 }

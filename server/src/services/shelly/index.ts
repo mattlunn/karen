@@ -19,7 +19,7 @@ Device.registerProvider('shelly', {
         return ['ALARM_SENSOR', 'CONNECTIVITY'];
 
       case 'SBDW-002C':    // Shelly BLU Door/Window (via BLE gateway)
-        return ['CONTACT_SENSOR'];
+        return ['CONTACT_SENSOR', 'BATTERY_LEVEL_INDICATOR'];
 
       default:
         throw new Error(`Cannot infer capabilities for device ${device.id} (${device.model})`);
