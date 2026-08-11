@@ -682,9 +682,6 @@ export const registry: CapabilityUIRegistry = {
         iconColor: '#04A7F4',
       }),
     ],
-    getGraphs: () => [
-      { id: 'contact-sensor', title: 'Activity' },
-    ],
   },
 
   HUMIDITY_SENSOR: {
