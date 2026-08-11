@@ -202,6 +202,10 @@ export type DeviceTimelineEventApiResponse = {
   type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline';
   timestamp: string;
   value?: string;
+} | {
+  type: 'contact-opened';
+  timestamp: string;
+  durationSeconds: number | null;
 };
 
 export type DeviceTimelineApiResponse = {

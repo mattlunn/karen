@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Checkbox, Group, Title } from '@mantine/core';
-import { faLightbulb, faPersonWalking, faFireBurner, faHandPointer, faSignal } from '@fortawesome/free-solid-svg-icons';
+import { faLightbulb, faPersonWalking, faFireBurner, faHandPointer, faSignal, faDoorOpen } from '@fortawesome/free-solid-svg-icons';
 import { useDeviceTimeline } from '../hooks/queries/use-device-timeline';
 import { useDateRange, DateRangeSelector } from './date-range';
 import { DateRange, DateRangePreset } from './date-range/types';
 import Timeline, { TimelineItem } from './timeline/timeline';
 import { DeviceTimelineEventApiResponse } from '../api/types';
+import { formatDuration } from '../helpers/date';
 
 type DeviceTimelineProps = {
   deviceId: number;
@@ -29,6 +30,15 @@ function mapEventToTimelineItem(event: DeviceTimelineEventApiResponse): Timeline
       return { icon: faSignal, title: 'Device came online', timestamp: event.timestamp, iconColor: '#33aa33' };
     case 'connectivity-offline':
       return { icon: faSignal, title: 'Device went offline', timestamp: event.timestamp, iconColor: '#cc3333' };
+    case 'contact-opened':
+      return {
+        icon: faDoorOpen,
+        title: event.durationSeconds === null
+          ? 'Opened'
+          : `Opened for ${formatDuration(event.durationSeconds)}`,
+        timestamp: event.timestamp,
+        iconColor: '#04A7F4',
+      };
   }
 
   return null;

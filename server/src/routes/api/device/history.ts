@@ -309,22 +309,6 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     };
   }],
 
-  // Contact Sensor (door/window open-closed position)
-  ['contact-sensor', async (device, selector) => {
-    const sensor = device.getContactSensorCapability();
-
-    return {
-      lines: [],
-      modes: await mapBooleanHistoryToResponse((hs) => sensor.getIsOpenHistory(hs), selector)
-        .then(data => ({
-          data,
-          details: [
-            { value: true as const, label: 'Open', fillColor: 'rgba(52, 152, 219, 0.3)' }
-          ]
-        }))
-    };
-  }],
-
   // Electric Vehicle - Monthly Mileage & Efficiency
   ['vehicle-monthly-mileage', async (device, selector) => {
     const ev = device.getElectricVehicleCapability();

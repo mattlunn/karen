@@ -105,6 +105,27 @@ export default async function (req: Request<{ id: string }>, res: Response, next
         break;
       }
 
+      case 'CONTACT_SENSOR': {
+        const sensor = device.getContactSensorCapability();
+        historyPromises.push(
+          sensor.getIsOpenHistory(historySelector).then(history => {
+            for (const event of history) {
+              if (event.value) {
+                const durationSeconds = event.end
+                  ? Math.round((event.end.getTime() - event.start.getTime()) / 1000)
+                  : null;
+                events.push({
+                  type: 'contact-opened',
+                  timestamp: event.start.toISOString(),
+                  durationSeconds
+                });
+              }
+            }
+          })
+        );
+        break;
+      }
+
       case 'HEAT_PUMP': {
         const heatPump = device.getHeatPumpCapability();
         historyPromises.push(
