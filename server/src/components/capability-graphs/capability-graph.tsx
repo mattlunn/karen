@@ -186,6 +186,40 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
       colors: {
         forceOverride: true
+      },
+
+      legend: {
+        onClick: (_e: unknown, legendItem: { datasetIndex: number }, legend: { chart: any }) => {
+          const chart = legend.chart;
+          const clickedIndex = legendItem.datasetIndex;
+          const eligible: number[] = chart.data.datasets
+            .map((d: { label?: string }, i: number) => ({ d, i }))
+            .filter(({ d }: { d: { label?: string } }) => d.label !== '')
+            .map(({ i }: { i: number }) => i);
+
+          const visibleCount = eligible.filter((i: number) => chart.isDatasetVisible(i)).length;
+          const clickedVisible = chart.isDatasetVisible(clickedIndex);
+
+          if (visibleCount === eligible.length) {
+            // All visible → isolate clicked
+            for (const i of eligible) {
+              chart.setDatasetVisibility(i, i === clickedIndex);
+            }
+          } else if (!clickedVisible) {
+            // Clicked a hidden one → add it
+            chart.setDatasetVisibility(clickedIndex, true);
+          } else if (visibleCount === 1) {
+            // Clicked the last visible one → restore all
+            for (const i of eligible) {
+              chart.setDatasetVisibility(i, true);
+            }
+          } else {
+            // Clicked a visible one, others still visible → hide it
+            chart.setDatasetVisibility(clickedIndex, false);
+          }
+
+          chart.update();
+        }
       }
     },
 
