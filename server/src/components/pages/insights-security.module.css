@@ -16,11 +16,24 @@
   padding: 2px 4px;
 }
 
+.heatmapCornerCell {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: var(--mantine-color-body);
+  border-right: 1px solid var(--mantine-color-default-border);
+}
+
 .heatmapRowLabel {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: var(--mantine-color-body);
   text-align: left;
   font-weight: 500;
   white-space: nowrap;
-  padding-right: var(--mantine-spacing-sm);
+  padding: 2px 8px 2px 4px;
+  border-right: 1px solid var(--mantine-color-default-border);
 }
 
 .heatmapCell {
@@ -29,6 +42,11 @@
   text-align: center;
   font-size: 0.65em;
   border: 1px solid var(--mantine-color-default-border);
+}
+
+.heatmapRow:nth-child(even) .heatmapRowLabel,
+.heatmapRow:nth-child(even) .heatmapCell {
+  background-color: var(--mantine-color-default-hover);
 }
 
 .kpiTile {

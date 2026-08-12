@@ -28,7 +28,7 @@ import { useDevices } from '../../hooks/queries/use-devices';
 import { useSecurity } from '../../hooks/queries/use-security';
 import { useAlarmMutation } from '../../hooks/mutations/use-security-mutations';
 import { useSecurityInsights } from '../../hooks/queries/use-security-insights';
-import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
+import { DateRangeProvider, DateRangeSelector, getPresetRange, useDateRange } from '../date-range';
 import { forDeviceCapability } from '../../helpers/device';
 import { humanDate } from '../../helpers/date';
 import dayjs from '../../dayjs';
@@ -207,7 +207,7 @@ function MotionHeatmapCard({ data, rangeLabel }: { data: SecurityInsightsApiResp
           <table className={styles.heatmapTable}>
             <thead>
               <tr>
-                <th></th>
+                <th className={styles.heatmapCornerCell}></th>
                 {Array.from({ length: 24 }, (_, hour) => (
                   <th key={hour} className={styles.heatmapHour}>{hour}</th>
                 ))}
@@ -215,7 +215,7 @@ function MotionHeatmapCard({ data, rangeLabel }: { data: SecurityInsightsApiResp
             </thead>
             <tbody>
               {rows.map(([label, hours]) => (
-                <tr key={label}>
+                <tr key={label} className={styles.heatmapRow}>
                   <th className={styles.heatmapRowLabel}>{label}</th>
                   {hours.map((count, hour) => (
                     <td
@@ -411,6 +411,9 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
     && (selectedDevices === null || event.deviceId === null || selectedDevices.has(event.deviceId))
   );
 
+  const selectedKindCount = selectedKinds === null ? ALL_KINDS.length : selectedKinds.size;
+  const selectedDeviceCount = selectedDevices === null ? deviceOptions.length : selectedDevices.size;
+
   function toggleKind(kind: TimelineEventKind) {
     setSelectedKinds((prev) => {
       const next = new Set(prev ?? ALL_KINDS);
@@ -447,7 +450,7 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
         <Group gap="xs">
           <Menu closeOnItemClick={false} shadow="md">
             <Menu.Target>
-              <Button variant="default" size="xs">All types</Button>
+              <Button variant="default" size="xs">{selectedKindCount}/{ALL_KINDS.length} types</Button>
             </Menu.Target>
             <Menu.Dropdown>
               {ALL_KINDS.map((kind) => (
@@ -465,7 +468,7 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
 
           <Menu closeOnItemClick={false} shadow="md">
             <Menu.Target>
-              <Button variant="default" size="xs">All devices</Button>
+              <Button variant="default" size="xs">{selectedDeviceCount}/{deviceOptions.length} devices</Button>
             </Menu.Target>
             <Menu.Dropdown>
               {deviceOptions.map(([id, name]) => (
@@ -496,7 +499,37 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
 // Page
 // ============================================================================
 
-function SecurityInsightsContent() {
+// Status card + KPI strip always reflect "today", independent of the timeline's date range
+// selector below them, so switching the range never reloads/reflows anything above it.
+function StatusAndKpiSection() {
+  const params = useMemo(() => {
+    const range = getPresetRange('today');
+
+    return {
+      since: range.since.toISOString(),
+      until: range.until.toISOString(),
+    };
+  }, []);
+
+  const { data, isPending, isError } = useSecurityInsights(params);
+
+  if (isPending) {
+    return <PageLoader />;
+  }
+
+  if (isError || !data) {
+    return <Box style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>;
+  }
+
+  return (
+    <>
+      <StatusCard currentArming={data.currentArming} />
+      <KpiStrip data={data} />
+    </>
+  );
+}
+
+function RangeDependentSection() {
   const { globalRange, activePreset } = useDateRange();
 
   const params = useMemo(() => ({
@@ -520,8 +553,6 @@ function SecurityInsightsContent() {
 
   return (
     <>
-      <StatusCard currentArming={data.currentArming} />
-      <KpiStrip data={data} />
       <MotionHeatmapCard data={data.motionByRoomHour} rangeLabel={rangeLabel} />
       <TimelineCard data={data} />
     </>
@@ -531,19 +562,21 @@ function SecurityInsightsContent() {
 export default function SecurityInsights() {
   return (
     <>
-      <Title order={2}>Security</Title>
+      <CameraRow />
 
-      <Box mt="md">
-        <CameraRow />
+      <Box p="md">
+        <Title order={2}>Security</Title>
+
+        <StatusAndKpiSection />
+
+        <DateRangeProvider defaultPreset="today">
+          <Box mt="lg">
+            <DateRangeSelector />
+          </Box>
+
+          <RangeDependentSection />
+        </DateRangeProvider>
       </Box>
-
-      <DateRangeProvider defaultPreset="today">
-        <Box mt="md">
-          <DateRangeSelector />
-        </Box>
-
-        <SecurityInsightsContent />
-      </DateRangeProvider>
     </>
   );
 }

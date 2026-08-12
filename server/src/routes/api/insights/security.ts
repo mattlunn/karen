@@ -273,6 +273,17 @@ export default async function (req: Request, res: Response) {
     }
   }
 
+  // Every motion sensor should still get a row on the heatmap even if it hasn't recorded any
+  // motion in the selected range - seed a zero-count bucket for any label not already present.
+  const labelsWithMotion = new Set([...motionByRoomHourBuckets.values()].map(bucket => bucket.label));
+
+  for (const { key, label } of motionLabelByDeviceId.values()) {
+    if (!labelsWithMotion.has(label)) {
+      motionByRoomHourBuckets.set(`${key}|empty`, { roomId: null, label, hour: 0, count: 0 });
+      labelsWithMotion.add(label);
+    }
+  }
+
   const response: SecurityInsightsApiResponse = {
     currentArming,
     armings,
