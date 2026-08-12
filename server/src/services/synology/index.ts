@@ -1,7 +1,7 @@
 import dayjs, { Dayjs } from '../../dayjs';
 import config from '../../config';
 import logger from '../../logger';
-import { Event, Recording, Stay, Device, Op } from '../../models';
+import { Event, BooleanEvent, Recording, Stay, Device, Op } from '../../models';
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
 import { v4 as uuidv4 } from 'uuid';
@@ -27,30 +27,32 @@ type SynologyCamera = { id: number; status: number; enabled: boolean; vendor: st
 
 // Download footage from start -> end, +- 5 seconds.
 
-async function extendOrCreateMotionEvent(device: Device, now: Dayjs): Promise<Event> {
+async function extendOrCreateMotionEvent(device: Device, now: Dayjs): Promise<BooleanEvent> {
   const motion = device.getMotionSensorCapability();
-  const latestMotionEvent = await device.getLatestEvent('motion');
+  const latestMotionEvent = await motion.getHasMotionEvent();
   const activeCameraEvent = latestMotionEvent && !latestMotionEvent.end ? latestMotionEvent : null;
 
   if (activeCameraEvent) {
     const cutoffForExtension = dayjs(now).subtract(config.synology.maximum_length_of_event_in_seconds, 's');
     const canExtendActiveCameraEvent = cutoffForExtension.isBefore(activeCameraEvent.start);
 
-    if (!canExtendActiveCameraEvent) {
-      // Close out the event that's grown too long - the setHasMotionState(true, ...) call
-      // below will then open a fresh one, rather than extending this one further.
-      await motion.setHasMotionState(false, now.toDate());
+    if (canExtendActiveCameraEvent) {
+      // setBooleanProperty's same-value handling just bumps lastReported rather than writing a
+      // new row, so there's nothing new to return - the active event is still this one.
+      await motion.setHasMotionState(true, now.toDate());
+
+      return activeCameraEvent;
     }
+
+    // Close out the event that's grown too long - the setHasMotionState(true, ...) call
+    // below will then open a fresh one, rather than extending this one further.
+    await motion.setHasMotionState(false, now.toDate());
   }
 
-  // If there's no active event, this creates one. If the active event can still be extended,
-  // setBooleanProperty's same-value handling just bumps lastReported rather than writing a new row.
-  await motion.setHasMotionState(true, now.toDate());
-
-  return (await device.getLatestEvent('motion'))!;
+  return (await motion.setHasMotionState(true, now.toDate()))!;
 }
 
-async function captureRecording(event: Event, providerId: string, startOfRecording: Dayjs, endOfRecording: Dayjs) {
+async function captureRecording(event: BooleanEvent, providerId: string, startOfRecording: Dayjs, endOfRecording: Dayjs) {
   const existingRecording = await event.getRecording();
   let attempts = 10;
   let cameraRecording;
