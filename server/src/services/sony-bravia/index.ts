@@ -151,10 +151,12 @@ nowAndSetInterval(createBackgroundTransaction('sony-bravia:poll', async () => {
     try {
       await pollDevice(device);
       await device.getConnectivityCapability().setIsConnectedState(true);
-    } catch (e) {
+    } catch {
+      // A poll failure while the TV is off/unreachable is expected, not
+      // exceptional — setIsConnectedState(false) is the meaningful signal
+      // here, so don't also propagate the error and spam the background
+      // transaction with a failure on every single poll interval.
       await device.getConnectivityCapability().setIsConnectedState(false);
-
-      throw e;
-    } 
+    }
   }));
 }), Math.max(config.sony_bravia.poll_interval_seconds, 5) * 1000);

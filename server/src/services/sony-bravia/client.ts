@@ -98,7 +98,13 @@ export default class BraviaClient {
       const result = await this.#call<{ status: PowerStatus }>('/sony/system', 'getPowerStatus');
       return result.status === 'active';
     } catch (err) {
-      // code 7 = "Illegal State": API unavailable while TV is in standby.
+      // code 7 = "Illegal State": the TV answered, so it's reachable and on
+      // the network — just in standby. A timeout or connection failure
+      // (EHOSTUNREACH, ECONNREFUSED, etc.) is a different situation: we
+      // can't tell if it's off or merely unreachable, and either way we
+      // can't control it via IRCC. Let those propagate so the caller can
+      // reflect that as a connectivity problem rather than reporting a
+      // confident (and, without WoL, unactionable) "off".
       if (err instanceof BraviaError && err.code === 7) {
         return false;
       }
@@ -106,14 +112,16 @@ export default class BraviaClient {
     }
   }
 
+  // IRCC Power is a physical-remote-style toggle, not an explicit on/off, so
+  // we only send it when the current state doesn't already match.
+  // (We use IRCC rather than REST setPowerStatus because Google TV rejects
+  // setPowerStatus with error 7 "Illegal State" when waking from standby.)
   async setIsOn(on: boolean): Promise<void> {
-    // IRCC Power is a physical-remote-style toggle, not an explicit on/off,
-    // so only send it when the current state differs from what we want.
-    // (We use IRCC rather than REST setPowerStatus because Google TV rejects
-    // setPowerStatus with error 7 "Illegal State" when waking from standby.)
-    if (await this.getIsOn() !== on) {
-      await this.#sendIrcc('Power');
+    if (await this.getIsOn() === on) {
+      return;
     }
+
+    await this.#sendIrcc('Power');
   }
 
   // Wakes the TV if it's off and waits for it to be ready to accept further
