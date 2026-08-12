@@ -98,18 +98,14 @@ export default class BraviaClient {
       const result = await this.#call<{ status: PowerStatus }>('/sony/system', 'getPowerStatus');
       return result.status === 'active';
     } catch (err) {
-      // code 7 = "Illegal State": API unavailable while TV is in standby.
-      // A fetch timeout, or fetch failing to connect at all (EHOSTUNREACH,
-      // ECONNREFUSED, etc. — observed when the TV has dropped off the LAN
-      // entirely rather than just being slow to answer), both mean the same
-      // thing: this is also how a fully-off Bravia presents itself.
+      // code 7 = "Illegal State": the TV answered, so it's reachable and on
+      // the network — just in standby. A timeout or connection failure
+      // (EHOSTUNREACH, ECONNREFUSED, etc.) is a different situation: we
+      // can't tell if it's off or merely unreachable, and either way we
+      // can't control it via IRCC. Let those propagate so the caller can
+      // reflect that as a connectivity problem rather than reporting a
+      // confident (and, without WoL, unactionable) "off".
       if (err instanceof BraviaError && err.code === 7) {
-        return false;
-      }
-      if (err instanceof DOMException && err.name === 'TimeoutError') {
-        return false;
-      }
-      if (err instanceof TypeError && err.message === 'fetch failed') {
         return false;
       }
       throw err;
