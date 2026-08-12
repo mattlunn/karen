@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Device, Arming, Room, Op } from '../../../models';
+import { Device, Arming, Op } from '../../../models';
 import { SecurityInsightsApiResponse, AlarmMode } from '../../../api/types';
 import { Capability } from '../../../models/capabilities';
 import { HistorySelector } from '../../../models/capabilities/helpers';
@@ -22,8 +22,7 @@ export default async function (req: Request, res: Response) {
     cameraDevices,
     connectivityDevices,
     armingRows,
-    activeArming,
-    rooms
+    activeArming
   ] = await Promise.all([
     Device.findByCapability('MOTION_SENSOR'),
     Device.findByCapability('DOORBELL'),
@@ -41,11 +40,8 @@ export default async function (req: Request, res: Response) {
       },
       order: [['start', 'DESC']]
     }),
-    Arming.getActiveArming(),
-    Room.findAll()
+    Arming.getActiveArming()
   ]);
-
-  const roomNamesById = new Map(rooms.map(room => [room.id as number, room.name]));
 
   // Motion history, per device, hydrated with the recording (if the source device is a camera).
   const motionEventLists = await asyncMap(motionDevices, async (device) => {
@@ -244,29 +240,20 @@ export default async function (req: Request, res: Response) {
     };
   }
 
-  // Motion-by-room-hour heatmap, aggregated across every day in the selected range.
-  const motionLabelByDeviceId = new Map(motionDevices.map((device) => {
-    const roomId = (device.roomId as number | null) ?? null;
-    const key = roomId ?? -device.id;
-    const label = roomId !== null ? (roomNamesById.get(roomId) ?? device.name) : device.name;
-
-    return [device.id, { key, label }];
-  }));
-
-  const motionByRoomHourBuckets = new Map<string, { roomId: number | null; label: string; hour: number; count: number }>();
+  // Motion-by-device-hour heatmap, aggregated across every day in the selected range.
+  const motionByDeviceHourBuckets = new Map<string, { deviceId: number; label: string; hour: number; count: number }>();
 
   for (const event of motionEvents) {
-    const bucketInfo = motionLabelByDeviceId.get(event.deviceId)!;
     const hour = dayjs(event.start).hour();
-    const bucketKey = `${bucketInfo.key}|${hour}`;
-    const existing = motionByRoomHourBuckets.get(bucketKey);
+    const bucketKey = `${event.deviceId}|${hour}`;
+    const existing = motionByDeviceHourBuckets.get(bucketKey);
 
     if (existing) {
       existing.count += 1;
     } else {
-      motionByRoomHourBuckets.set(bucketKey, {
-        roomId: event.roomId,
-        label: bucketInfo.label,
+      motionByDeviceHourBuckets.set(bucketKey, {
+        deviceId: event.deviceId,
+        label: event.deviceName,
         hour,
         count: 1
       });
@@ -274,13 +261,12 @@ export default async function (req: Request, res: Response) {
   }
 
   // Every motion sensor should still get a row on the heatmap even if it hasn't recorded any
-  // motion in the selected range - seed a zero-count bucket for any label not already present.
-  const labelsWithMotion = new Set([...motionByRoomHourBuckets.values()].map(bucket => bucket.label));
+  // motion in the selected range - seed a zero-count bucket for any device not already present.
+  const deviceIdsWithMotion = new Set([...motionByDeviceHourBuckets.values()].map(bucket => bucket.deviceId));
 
-  for (const { key, label } of motionLabelByDeviceId.values()) {
-    if (!labelsWithMotion.has(label)) {
-      motionByRoomHourBuckets.set(`${key}|empty`, { roomId: null, label, hour: 0, count: 0 });
-      labelsWithMotion.add(label);
+  for (const device of motionDevices) {
+    if (!deviceIdsWithMotion.has(device.id)) {
+      motionByDeviceHourBuckets.set(`${device.id}|empty`, { deviceId: device.id, label: device.name, hour: 0, count: 0 });
     }
   }
 
@@ -292,7 +278,7 @@ export default async function (req: Request, res: Response) {
     contactEvents,
     doorbellRings,
     cameras,
-    motionByRoomHour: [...motionByRoomHourBuckets.values()],
+    motionByDeviceHour: [...motionByDeviceHourBuckets.values()],
     connectivityEvents
   };
 

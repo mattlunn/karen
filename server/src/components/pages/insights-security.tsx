@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router';
 import {
   Alert,
+  Anchor,
   Badge,
   Box,
   Button,
@@ -25,10 +27,12 @@ import {
   faSignal,
 } from '@fortawesome/free-solid-svg-icons';
 import { useDevices } from '../../hooks/queries/use-devices';
+import { useCameraDevices } from '../../hooks/queries/use-camera-devices';
 import { useSecurity } from '../../hooks/queries/use-security';
 import { useAlarmMutation } from '../../hooks/mutations/use-security-mutations';
 import { useSecurityInsights } from '../../hooks/queries/use-security-insights';
 import { DateRangeProvider, DateRangeSelector, getPresetRange, useDateRange } from '../date-range';
+import type { DateRange } from '../date-range';
 import { forDeviceCapability } from '../../helpers/device';
 import { humanDate } from '../../helpers/date';
 import dayjs from '../../dayjs';
@@ -41,34 +45,6 @@ import styles from './insights-security.module.css';
 
 const MODE_LABELS: Record<AlarmMode, string> = { OFF: 'Home', NIGHT: 'Night', AWAY: 'Away' };
 const MODE_COLORS: Record<AlarmMode, string> = { OFF: 'green', NIGHT: 'grape', AWAY: 'red' };
-
-// ============================================================================
-// Live camera snapshots
-// ============================================================================
-
-function CameraRow() {
-  const { data, isLoading } = useDevices();
-
-  if (isLoading || !data) {
-    return null;
-  }
-
-  const cameras = forDeviceCapability(data.devices, 'CAMERA', (device, capability) => ({
-    id: device.id,
-    name: device.name,
-    snapshotUrl: capability.snapshotUrl.value,
-  }));
-
-  if (cameras.length === 0) {
-    return null;
-  }
-
-  return <Security cameras={cameras} />;
-}
-
-// ============================================================================
-// Alarm status card
-// ============================================================================
 
 function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiResponse['currentArming'] }) {
   const { data: security } = useSecurity();
@@ -113,10 +89,6 @@ function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiRespo
     </Card>
   );
 }
-
-// ============================================================================
-// KPI strip
-// ============================================================================
 
 function KpiTile({ icon, label, value, color }: { icon: IconDefinition; label: string; value: string; color?: string }) {
   return (
@@ -175,30 +147,26 @@ function KpiStrip({ data }: { data: SecurityInsightsApiResponse }) {
   );
 }
 
-// ============================================================================
-// Motion-by-room heatmap
-// ============================================================================
-
-function MotionHeatmapCard({ data, rangeLabel }: { data: SecurityInsightsApiResponse['motionByRoomHour']; rangeLabel: string }) {
+function MotionHeatmapCard({ data }: { data: SecurityInsightsApiResponse['motionByDeviceHour'] }) {
   const rows = useMemo(() => {
-    const byLabel = new Map<string, number[]>();
+    const byDevice = new Map<number, { label: string; hours: number[] }>();
 
-    for (const { label, hour, count } of data) {
-      if (!byLabel.has(label)) {
-        byLabel.set(label, new Array(24).fill(0));
+    for (const { deviceId, label, hour, count } of data) {
+      if (!byDevice.has(deviceId)) {
+        byDevice.set(deviceId, { label, hours: new Array(24).fill(0) });
       }
 
-      byLabel.get(label)![hour] += count;
+      byDevice.get(deviceId)!.hours[hour] += count;
     }
 
-    return [...byLabel.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    return [...byDevice.entries()].sort((a, b) => a[1].label.localeCompare(b[1].label));
   }, [data]);
 
-  const maxCount = Math.max(1, ...rows.flatMap(([, hours]) => hours));
+  const maxCount = Math.max(1, ...rows.flatMap(([, { hours }]) => hours));
 
   return (
     <Card withBorder mt="lg" padding="lg">
-      <Title order={4} mb="md">Motion by room · {rangeLabel}</Title>
+      <Title order={4} mb="md">Motion by device</Title>
 
       {rows.length === 0 ? (
         <Text c="dimmed">No motion recorded in this range.</Text>
@@ -214,9 +182,11 @@ function MotionHeatmapCard({ data, rangeLabel }: { data: SecurityInsightsApiResp
               </tr>
             </thead>
             <tbody>
-              {rows.map(([label, hours]) => (
-                <tr key={label} className={styles.heatmapRow}>
-                  <th className={styles.heatmapRowLabel}>{label}</th>
+              {rows.map(([deviceId, { label, hours }]) => (
+                <tr key={deviceId} className={styles.heatmapRow}>
+                  <th className={styles.heatmapRowLabel}>
+                    <Anchor component={Link} to={`/device/${deviceId}`}>{label}</Anchor>
+                  </th>
                   {hours.map((count, hour) => (
                     <td
                       key={hour}
@@ -236,10 +206,6 @@ function MotionHeatmapCard({ data, rangeLabel }: { data: SecurityInsightsApiResp
     </Card>
   );
 }
-
-// ============================================================================
-// Timeline card
-// ============================================================================
 
 type TimelineEventKind = 'arming' | 'activation' | 'motion' | 'lock' | 'contact' | 'doorbell' | 'connectivity';
 
@@ -495,21 +461,13 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
   );
 }
 
-// ============================================================================
-// Page
-// ============================================================================
-
 // Status card + KPI strip always reflect "today", independent of the timeline's date range
 // selector below them, so switching the range never reloads/reflows anything above it.
-function StatusAndKpiSection() {
-  const params = useMemo(() => {
-    const range = getPresetRange('today');
-
-    return {
-      since: range.since.toISOString(),
-      until: range.until.toISOString(),
-    };
-  }, []);
+function StatusAndKpiSection({ range }: { range: DateRange }) {
+  const params = useMemo(() => ({
+    since: range.since.toISOString(),
+    until: range.until.toISOString(),
+  }), [range]);
 
   const { data, isPending, isError } = useSecurityInsights(params);
 
@@ -530,7 +488,7 @@ function StatusAndKpiSection() {
 }
 
 function RangeDependentSection() {
-  const { globalRange, activePreset } = useDateRange();
+  const { globalRange } = useDateRange();
 
   const params = useMemo(() => ({
     since: globalRange.since.toISOString(),
@@ -547,29 +505,32 @@ function RangeDependentSection() {
     return <Box style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>;
   }
 
-  const rangeLabel = activePreset === 'custom'
-    ? `${globalRange.since.format('D MMM')} – ${globalRange.until.format('D MMM')}`
-    : { last6hours: 'last 6 hours', today: 'today', yesterday: 'yesterday', lastMonth: 'last month' }[activePreset];
-
   return (
     <>
-      <MotionHeatmapCard data={data.motionByRoomHour} rangeLabel={rangeLabel} />
+      <MotionHeatmapCard data={data.motionByDeviceHour} />
       <TimelineCard data={data} />
     </>
   );
 }
 
 export default function SecurityInsights() {
+  // Computed once and shared as the date range selector's initial value, so the KPI section's
+  // fixed "today" request and the range section's default "today" request are identical (and
+  // therefore deduped by react-query into a single fetch) rather than two near-identical ones
+  // that only differ by the millisecond each independently called getPresetRange('today').
+  const [todayRange] = useState<DateRange>(() => getPresetRange('today'));
+  const { cameras, isLoading: camerasLoading } = useCameraDevices();
+
   return (
     <>
-      <CameraRow />
+      {!camerasLoading && cameras.length > 0 && <Security cameras={cameras} />}
 
       <Box p="md">
         <Title order={2}>Security</Title>
 
-        <StatusAndKpiSection />
+        <StatusAndKpiSection range={todayRange} />
 
-        <DateRangeProvider defaultPreset="today">
+        <DateRangeProvider defaultPreset="today" defaultRange={todayRange}>
           <Box mt="lg">
             <DateRangeSelector />
           </Box>

@@ -420,8 +420,8 @@ export interface SecurityInsightsApiResponse {
     isConnected: boolean;
     snapshotUrl: string;
   }>;
-  motionByRoomHour: Array<{
-    roomId: number | null;
+  motionByDeviceHour: Array<{
+    deviceId: number;
     label: string;
     hour: number;
     count: number;
