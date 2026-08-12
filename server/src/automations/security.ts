@@ -142,7 +142,7 @@ export default async function ({
         });
 
         bus.emit(NOTIFICATION_TO_ALL, {
-          message: `🔕 ${device.name} triggered motion, suppressed by "${silencingWindow.name}". No further alerts until ${dayjs(suppressFurtherAlertsUntil).format('HH:mm')}.`
+          message: `🔕 ${device.name} triggered motion, but alerts are suppressed until ${dayjs(suppressFurtherAlertsUntil).format('HH:mm')}.`
         });
 
         return;
