@@ -20,6 +20,7 @@ import Login from './components/pages/login';
 import HeatingInsights from './components/pages/insights-heating';
 import EnergyInsights from './components/pages/insights-energy';
 import InsightsBins from './components/pages/insights-bins';
+import SecurityInsights from './components/pages/insights-security';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +62,7 @@ const router = createBrowserRouter([
       { path: '/device/:id', element: <Device /> },
       { path: '/device', element: <Devices /> },
       { path: '/insights/bins', element: <InsightsBins /> },
+      { path: '/insights/security', element: <SecurityInsights /> },
     ],
   },
 ]);

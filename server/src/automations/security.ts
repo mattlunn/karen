@@ -136,7 +136,8 @@ export default async function ({
         await AlarmActivation.create({
           armingId: arming.id,
           startedAt: event.start,
-          suppressFurtherAlertsUntil: getSilencingWindowEndsAt(silencingWindow, event.start)
+          suppressFurtherAlertsUntil: getSilencingWindowEndsAt(silencingWindow, event.start),
+          triggeringDeviceId: device.id
         });
 
         bus.emit(NOTIFICATION_TO_ALL, {
@@ -149,7 +150,8 @@ export default async function ({
       const activation = await AlarmActivation.create({
         armingId: arming.id,
         startedAt: event.start,
-        suppressFurtherAlertsUntil: dayjs(event.start).add(alarmDurationMinutes, 'minutes').toDate()
+        suppressFurtherAlertsUntil: dayjs(event.start).add(alarmDurationMinutes, 'minutes').toDate(),
+        triggeringDeviceId: device.id
       });
 
       notifyAbsentUsersOfEvent(event);

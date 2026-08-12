@@ -27,6 +27,7 @@ import {
   ElectricVehicleCapability,
   BinCollectionCapability,
   ButtonCapability,
+  DoorbellCapability,
   AlarmSensorCapability,
   ContactSensorCapability,
   ConnectivityCapability,
@@ -138,6 +139,10 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   getButtonCapability(): ButtonCapability {
     return this.#getCapabilityOrThrow(() => new ButtonCapability(this));
+  }
+
+  getDoorbellCapability(): DoorbellCapability {
+    return this.#getCapabilityOrThrow(() => new DoorbellCapability(this));
   }
 
   getAlarmSensorCapability(): AlarmSensorCapability {

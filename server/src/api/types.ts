@@ -360,6 +360,81 @@ export type EnergyInsightsSeriesApiResponse = {
   series: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
 };
 
+// /api/insights/security endpoint
+export interface SecurityInsightsApiResponse {
+  currentArming: {
+    mode: AlarmMode;
+    start: string | null;
+    lastActivation: {
+      start: string;
+      end?: string;
+      triggeringDevice?: { id: number; name: string };
+    } | null;
+  };
+  armings: Array<{
+    id: number;
+    mode: 'NIGHT' | 'AWAY';
+    start: string;
+    end: string | null;
+    activations: Array<{
+      id: number;
+      startedAt: string;
+      suppressFurtherAlertsUntil: string;
+      triggeringDevice: { id: number; name: string } | null;
+    }>;
+  }>;
+  motionEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    roomId: number | null;
+    start: string;
+    end: string | null;
+    recordingId: number | null;
+  }>;
+  lockEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    isLocked: boolean;
+  }>;
+  contactEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    isOpen: boolean;
+  }>;
+  doorbellRings: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    hasThumbnail: boolean;
+  }>;
+  cameras: Array<{
+    id: number;
+    name: string;
+    roomId: number | null;
+    isConnected: boolean;
+    snapshotUrl: string;
+  }>;
+  motionByRoomHour: Array<{
+    roomId: number | null;
+    label: string;
+    hour: number;
+    count: number;
+  }>;
+  connectivityEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    isConnected: boolean;
+  }>;
+}
+
 export interface DeviceUpdateEvent {
   type: 'device_update';
   device: RestDeviceResponse;

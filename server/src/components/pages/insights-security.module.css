@@ -1,0 +1,36 @@
+.heatmapScroll {
+  overflow-x: auto;
+}
+
+.heatmapTable {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 760px;
+}
+
+.heatmapHour {
+  font-size: 0.7em;
+  font-weight: normal;
+  color: var(--mantine-color-dimmed);
+  text-align: center;
+  padding: 2px 4px;
+}
+
+.heatmapRowLabel {
+  text-align: left;
+  font-weight: 500;
+  white-space: nowrap;
+  padding-right: var(--mantine-spacing-sm);
+}
+
+.heatmapCell {
+  width: 26px;
+  height: 22px;
+  text-align: center;
+  font-size: 0.65em;
+  border: 1px solid var(--mantine-color-default-border);
+}
+
+.kpiTile {
+  height: 100%;
+}

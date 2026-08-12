@@ -145,6 +145,7 @@ export default function (sequelize: Sequelize) {
 export class BooleanEvent {
   protected event: Event;
 
+  public id: number;
   public value: boolean;
   public start: Date;
   public end: Date | null;
@@ -153,6 +154,7 @@ export class BooleanEvent {
 
   constructor(e: Event) {
     this.event = e;
+    this.id = e.id;
     this.value = !!e.value;
     this.start = e.start;
     this.end = e.end;
@@ -167,11 +169,16 @@ export class BooleanEvent {
   getDevice() {
     return this.event.getDevice();
   }
+
+  getRecording() {
+    return this.event.getRecording();
+  }
 }
 
 export class NumericEvent {
   protected event: Event;
 
+  public id: number;
   public value: number;
   public start: Date;
   public end: Date | null;
@@ -180,6 +187,7 @@ export class NumericEvent {
 
   constructor(e: Event) {
     this.event = e;
+    this.id = e.id;
     this.value = e.value;
     this.start = e.start;
     this.end = e.end;
@@ -190,11 +198,16 @@ export class NumericEvent {
   getDevice() {
     return this.event.getDevice();
   }
+
+  getRecording() {
+    return this.event.getRecording();
+  }
 }
 
 export class StringEvent {
   protected event: Event;
 
+  public id: number;
   public value: string;
   public start: Date;
   public end: Date | null;
@@ -203,6 +216,7 @@ export class StringEvent {
 
   constructor(e: Event) {
     this.event = e;
+    this.id = e.id;
     this.value = e.stringValue ?? '';
     this.start = e.start;
     this.end = e.end;
@@ -212,5 +226,9 @@ export class StringEvent {
 
   getDevice() {
     return this.event.getDevice();
+  }
+
+  getRecording() {
+    return this.event.getRecording();
   }
 }

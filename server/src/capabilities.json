@@ -408,6 +408,17 @@
     }
   ]
 }, {
+  "name": "Doorbell",
+  "properties": [
+    {
+      "name": "Ring",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "ring",
+      "isMomentary": true
+    }
+  ]
+}, {
   "name": "AlarmSensor",
   "properties": [
     {

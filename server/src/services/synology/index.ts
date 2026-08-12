@@ -27,32 +27,27 @@ type SynologyCamera = { id: number; status: number; enabled: boolean; vendor: st
 
 // Download footage from start -> end, +- 5 seconds.
 
-async function createEvent(device: Device, now: Dayjs) {
-  const latestCameraEvent = await device.getLatestEvent('motion');
-  let activeCameraEvent = latestCameraEvent && !latestCameraEvent.end ? latestCameraEvent : null;
+async function extendOrCreateMotionEvent(device: Device, now: Dayjs): Promise<Event> {
+  const motion = device.getMotionSensorCapability();
+  const latestMotionEvent = await device.getLatestEvent('motion');
+  const activeCameraEvent = latestMotionEvent && !latestMotionEvent.end ? latestMotionEvent : null;
 
   if (activeCameraEvent) {
     const cutoffForExtension = dayjs(now).subtract(config.synology.maximum_length_of_event_in_seconds, 's');
     const canExtendActiveCameraEvent = cutoffForExtension.isBefore(activeCameraEvent.start);
 
     if (!canExtendActiveCameraEvent) {
-      activeCameraEvent.end = now.toDate();
-      await activeCameraEvent.save();
-
-      activeCameraEvent = null;
+      // Close out the event that's grown too long - the setHasMotionState(true, ...) call
+      // below will then open a fresh one, rather than extending this one further.
+      await motion.setHasMotionState(false, now.toDate());
     }
   }
 
-  if (!activeCameraEvent) {
-    activeCameraEvent = await Event.create({
-      start: now.toDate(),
-      lastReported: now.toDate(),
-      deviceId: device.id,
-      type: 'motion'
-    });
-  }
+  // If there's no active event, this creates one. If the active event can still be extended,
+  // setBooleanProperty's same-value handling just bumps lastReported rather than writing a new row.
+  await motion.setHasMotionState(true, now.toDate());
 
-  return activeCameraEvent;
+  return (await device.getLatestEvent('motion'))!;
 }
 
 async function captureRecording(event: Event, providerId: string, startOfRecording: Dayjs, endOfRecording: Dayjs) {
@@ -103,7 +98,7 @@ async function captureRecording(event: Event, providerId: string, startOfRecordi
 
 export async function onMotionDetected(cameraId: string, startOfDetectedMotion: Dayjs) {
   const device = await Device.findByProviderIdOrError('synology', cameraId);
-  const event = await createEvent(device, startOfDetectedMotion);
+  const event = await extendOrCreateMotionEvent(device, startOfDetectedMotion);
 
   latestCameraEvents.set(device.id, startOfDetectedMotion);
 
@@ -111,8 +106,7 @@ export async function onMotionDetected(cameraId: string, startOfDetectedMotion: 
     const now = new Date();
 
     if (latestCameraEvents.get(device.id) === startOfDetectedMotion) {
-      event.end = now;
-      await event.save();
+      await device.getMotionSensorCapability().setHasMotionState(false, now);
     }
 
     enqueueWorkItem(() => captureRecording(event, device.providerId, dayjs(event.start).subtract(2, 's'), dayjs(now).add(2, 's')));
@@ -132,14 +126,9 @@ export async function onDoorbellRing(cameraId: string) {
     sound: 'doorbell'
   });
 
-  const event = await Event.create({
-    deviceId: device.id,
-    start: now,
-    end: now,
-    lastReported: now,
-    type: 'ring',
-    value: 1
-  });
+  await device.getDoorbellCapability().setRingState(true, now);
+
+  const event = (await device.getLatestEvent('ring'))!;
 
   await s3.store(event.id.toString(), image, 'image/jpeg');
 }
@@ -201,7 +190,7 @@ export async function onConnectivityChanged() {
 
 Device.registerProvider('synology', {
   getCapabilities(device) {
-    return ['CAMERA', 'CONNECTIVITY'];
+    return ['CAMERA', 'CONNECTIVITY', 'MOTION_SENSOR', 'DOORBELL'];
   },
 
   async synchronize() {

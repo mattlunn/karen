@@ -54,5 +54,9 @@ AlarmActivation.belongsTo(Arming);
 Arming.hasMany(AlarmActivation, {
   as: 'AlarmActivations'
 });
+AlarmActivation.belongsTo(Device, {
+  foreignKey: 'triggeringDeviceId',
+  as: 'triggeringDevice'
+});
 
 export { Op } from 'sequelize';
