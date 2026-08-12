@@ -14,6 +14,7 @@ import {
   SegmentedControl,
   Stack,
   Text,
+  ThemeIcon,
   Title,
 } from '@mantine/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -57,6 +58,18 @@ function useTick(intervalMs: number) {
   }, [intervalMs]);
 }
 
+// Fixed-size icon badge shared by the status card and the KPI tiles, so the "headline" icon
+// reads at the same size and weight everywhere in this row, regardless of how much text sits
+// next to it - previously the shield used FontAwesomeIcon's "2x" size while the KPI tiles used
+// "lg", which made the row look mismatched as soon as the status card grew taller.
+function KpiIcon({ icon, color }: { icon: IconDefinition; color?: string }) {
+  return (
+    <ThemeIcon size={40} radius="xl" variant="light" color={color ?? 'gray'}>
+      <FontAwesomeIcon icon={icon} />
+    </ThemeIcon>
+  );
+}
+
 function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiResponse['currentArming'] }) {
   const { data: security } = useSecurity();
   const { mutate: updateAlarmMode, isPending: alarmMutating } = useAlarmMutation();
@@ -73,10 +86,10 @@ function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiRespo
 
   return (
     <Card withBorder padding="lg" h="100%">
-      <Group justify="space-between" wrap="wrap" gap="md">
-        <Group gap="md">
-          <FontAwesomeIcon icon={faShieldHalved} size="2x" />
-          <div>
+      <Group justify="space-between" wrap="wrap" gap="md" align="flex-start">
+        <Group gap="md" align="flex-start">
+          <KpiIcon icon={faShieldHalved} color={MODE_COLORS[mode]} />
+          <Stack gap={0} justify="center" className={styles.iconAlignedText}>
             <Badge color={MODE_COLORS[mode]} size="lg">{MODE_LABELS[mode]}</Badge>
             {currentArming.start && (
               <Text size="sm" c="dimmed" mt={4}>
@@ -90,7 +103,7 @@ function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiRespo
                   : `${currentArming.activationCount} activation${currentArming.activationCount === 1 ? '' : 's'} this arming, ${isAlerting ? 'ongoing since' : 'last at'} ${dayjs(currentArming.lastActivation!.start).format('HH:mm')} ${humanDate(dayjs(currentArming.lastActivation!.start))}`}
               </Text>
             )}
-          </div>
+          </Stack>
         </Group>
 
         <SegmentedControl
@@ -122,9 +135,9 @@ function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiRespo
 function KpiTile({ icon, label, value, color }: { icon: IconDefinition; label: string; value: string; color?: string }) {
   return (
     <Card withBorder padding="md" h="100%" className={styles.kpiTile}>
-      <Group gap="sm" wrap="nowrap">
-        <FontAwesomeIcon icon={icon} size="lg" color={color} />
-        <Stack gap={0}>
+      <Group gap="sm" wrap="nowrap" align="flex-start">
+        <KpiIcon icon={icon} color={color} />
+        <Stack gap={0} justify="center" className={styles.iconAlignedText}>
           <Text size="xs" c="dimmed">{label}</Text>
           <Text fw={600}>{value}</Text>
         </Stack>
@@ -147,7 +160,7 @@ function DoorsTile() {
       icon={allLocked ? faDoorClosed : faDoorOpen}
       label="Doors"
       value={locks.length === 0 ? '-' : allLocked ? 'All locked' : unlockedDoors.join(' · ')}
-      color={locks.length === 0 ? undefined : allLocked ? '#2ecc71' : '#e74c3c'}
+      color={locks.length === 0 ? undefined : allLocked ? 'green' : 'red'}
     />
   );
 }
@@ -166,7 +179,7 @@ function WindowsAndDoorsTile() {
       icon={allClosed ? faDoorClosed : faDoorOpen}
       label="Windows & doors"
       value={contacts.length === 0 ? '-' : allClosed ? 'All closed' : openContacts.join(' · ')}
-      color={contacts.length === 0 ? undefined : allClosed ? '#2ecc71' : '#f39c12'}
+      color={contacts.length === 0 ? undefined : allClosed ? 'green' : 'orange'}
     />
   );
 }

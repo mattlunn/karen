@@ -53,6 +53,12 @@
   height: 100%;
 }
 
+/* Matches the 40px KpiIcon badge height, so text sitting next to the icon centers against it
+   rather than sitting flush with its top edge - used in both the KPI tiles and the status card. */
+.iconAlignedText {
+  min-height: 40px;
+}
+
 .alertBellIcon {
   display: inline-block;
 }
