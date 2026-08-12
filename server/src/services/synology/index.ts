@@ -126,9 +126,9 @@ export async function onDoorbellRing(cameraId: string) {
     sound: 'doorbell'
   });
 
-  const event = (await device.getDoorbellCapability().setRingState(true, now))!;
+  const event = await device.getDoorbellCapability().setRingState(true, now);
 
-  await s3.store(event.id.toString(), image, 'image/jpeg');
+  await s3.store(event!.id.toString(), image, 'image/jpeg');
 }
 
 setInterval(createBackgroundTransaction('synology:clear-old-recordings', async () => {
