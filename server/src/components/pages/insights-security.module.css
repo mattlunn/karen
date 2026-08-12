@@ -52,3 +52,18 @@
 .kpiTile {
   height: 100%;
 }
+
+.alertBellIcon {
+  display: inline-block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .alertBellIcon {
+    animation: bellPulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes bellPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.55; }
+}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import {
   Alert,
@@ -8,10 +8,10 @@ import {
   Button,
   Card,
   Checkbox,
+  Grid,
   Group,
   Menu,
   SegmentedControl,
-  SimpleGrid,
   Stack,
   Text,
   Title,
@@ -46,14 +46,33 @@ import styles from './insights-security.module.css';
 const MODE_LABELS: Record<AlarmMode, string> = { OFF: 'Home', NIGHT: 'Night', AWAY: 'Away' };
 const MODE_COLORS: Record<AlarmMode, string> = { OFF: 'green', NIGHT: 'grape', AWAY: 'red' };
 
+// Ticks the component every intervalMs, purely so time-relative UI (e.g. "is the alarm still
+// actively alerting") keeps itself up to date without requiring a full data refetch.
+function useTick(intervalMs: number) {
+  const [, forceUpdate] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => forceUpdate((n) => n + 1), intervalMs);
+    return () => clearInterval(interval);
+  }, [intervalMs]);
+}
+
 function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiResponse['currentArming'] }) {
   const { data: security } = useSecurity();
   const { mutate: updateAlarmMode, isPending: alarmMutating } = useAlarmMutation();
 
+  useTick(30000);
+
   const mode = security?.alarmMode ?? currentArming.mode;
 
+  // "Alerting" = there's a recent activation whose alert window (loud siren, or the quiet
+  // grace period after a single motion trigger) hasn't elapsed yet - i.e. something just
+  // happened and is still live, as opposed to a historic activation from earlier this arming.
+  const isAlerting = currentArming.lastActivation !== null
+    && dayjs().isBefore(currentArming.lastActivation.end);
+
   return (
-    <Card withBorder mt="lg" padding="lg">
+    <Card withBorder padding="lg" h="100%">
       <Group justify="space-between" wrap="wrap" gap="md">
         <Group gap="md">
           <FontAwesomeIcon icon={faShieldHalved} size="2x" />
@@ -62,6 +81,13 @@ function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiRespo
             {currentArming.start && (
               <Text size="sm" c="dimmed" mt={4}>
                 Armed since {dayjs(currentArming.start).format('HH:mm')} {humanDate(dayjs(currentArming.start))}
+              </Text>
+            )}
+            {mode !== 'OFF' && (
+              <Text size="sm" c="dimmed">
+                {currentArming.activationCount === 0
+                  ? 'No activations this arming'
+                  : `${currentArming.activationCount} activation${currentArming.activationCount === 1 ? '' : 's'} this arming, ${isAlerting ? 'ongoing since' : 'last at'} ${dayjs(currentArming.lastActivation!.start).format('HH:mm')} ${humanDate(dayjs(currentArming.lastActivation!.start))}`}
               </Text>
             )}
           </div>
@@ -79,11 +105,14 @@ function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiRespo
         />
       </Group>
 
-      {currentArming.lastActivation && (
-        <Alert mt="md" color="red" icon={<FontAwesomeIcon icon={faBell} />}>
-          Alarm was triggered at {dayjs(currentArming.lastActivation.start).format('HH:mm')} {humanDate(dayjs(currentArming.lastActivation.start))}
-          {currentArming.lastActivation.triggeringDevice ? ` by ${currentArming.lastActivation.triggeringDevice.name}` : ''}.
-          {currentArming.lastActivation.end ? ` Further alerts suppressed until ${dayjs(currentArming.lastActivation.end).format('HH:mm')}.` : ''}
+      {isAlerting && (
+        <Alert
+          mt="md"
+          color={mode === 'NIGHT' ? 'grape' : 'red'}
+          icon={<FontAwesomeIcon icon={faBell} className={styles.alertBellIcon} />}
+        >
+          {currentArming.lastActivation!.triggeringDevice ? `Triggered by ${currentArming.lastActivation!.triggeringDevice.name}. ` : ''}
+          Further alerts suppressed until {dayjs(currentArming.lastActivation!.end).format('HH:mm')}.
         </Alert>
       )}
     </Card>
@@ -92,7 +121,7 @@ function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiRespo
 
 function KpiTile({ icon, label, value, color }: { icon: IconDefinition; label: string; value: string; color?: string }) {
   return (
-    <Card withBorder padding="md" className={styles.kpiTile}>
+    <Card withBorder padding="md" h="100%" className={styles.kpiTile}>
       <Group gap="sm" wrap="nowrap">
         <FontAwesomeIcon icon={icon} size="lg" color={color} />
         <Stack gap={0}>
@@ -104,17 +133,27 @@ function KpiTile({ icon, label, value, color }: { icon: IconDefinition; label: s
   );
 }
 
-function KpiStrip({ data }: { data: SecurityInsightsApiResponse }) {
+function DoorsTile() {
   const { data: devicesData } = useDevices();
-
-  const motionCount = data.motionEvents.length;
-  const activationCount = data.armings.reduce((sum, arming) => sum + arming.activations.length, 0);
 
   const locks = devicesData
     ? forDeviceCapability(devicesData.devices, 'LOCK', (device, cap) => ({ name: device.name, isLocked: cap.isLocked.value }))
     : [];
   const unlockedDoors = locks.filter((lock) => lock.isLocked !== true).map((lock) => lock.name);
   const allLocked = locks.length > 0 && unlockedDoors.length === 0;
+
+  return (
+    <KpiTile
+      icon={allLocked ? faDoorClosed : faDoorOpen}
+      label="Doors"
+      value={locks.length === 0 ? '-' : allLocked ? 'All locked' : unlockedDoors.join(' · ')}
+      color={locks.length === 0 ? undefined : allLocked ? '#2ecc71' : '#e74c3c'}
+    />
+  );
+}
+
+function WindowsAndDoorsTile() {
+  const { data: devicesData } = useDevices();
 
   const contacts = devicesData
     ? forDeviceCapability(devicesData.devices, 'CONTACT_SENSOR', (device, cap) => ({ name: device.name, isOpen: cap.isOpen.value }))
@@ -123,27 +162,12 @@ function KpiStrip({ data }: { data: SecurityInsightsApiResponse }) {
   const allClosed = contacts.length > 0 && openContacts.length === 0;
 
   return (
-    <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }} mt="lg">
-      <KpiTile icon={faPersonWalking} label="Motion events" value={String(motionCount)} color="#04A7F4" />
-      <KpiTile
-        icon={faBell}
-        label="Alarm activations"
-        value={String(activationCount)}
-        color={activationCount > 0 ? '#e74c3c' : undefined}
-      />
-      <KpiTile
-        icon={allLocked ? faDoorClosed : faDoorOpen}
-        label="Doors"
-        value={locks.length === 0 ? '-' : allLocked ? 'All locked' : unlockedDoors.join(' · ')}
-        color={locks.length === 0 ? undefined : allLocked ? '#2ecc71' : '#e74c3c'}
-      />
-      <KpiTile
-        icon={allClosed ? faDoorClosed : faDoorOpen}
-        label="Windows & doors"
-        value={contacts.length === 0 ? '-' : allClosed ? 'All closed' : openContacts.join(' · ')}
-        color={contacts.length === 0 ? undefined : allClosed ? '#2ecc71' : '#f39c12'}
-      />
-    </SimpleGrid>
+    <KpiTile
+      icon={allClosed ? faDoorClosed : faDoorOpen}
+      label="Windows & doors"
+      value={contacts.length === 0 ? '-' : allClosed ? 'All closed' : openContacts.join(' · ')}
+      color={contacts.length === 0 ? undefined : allClosed ? '#2ecc71' : '#f39c12'}
+    />
   );
 }
 
@@ -480,10 +504,17 @@ function StatusAndKpiSection({ range }: { range: DateRange }) {
   }
 
   return (
-    <>
-      <StatusCard currentArming={data.currentArming} />
-      <KpiStrip data={data} />
-    </>
+    <Grid mt="lg">
+      <Grid.Col span={{ base: 12, md: 6 }}>
+        <StatusCard currentArming={data.currentArming} />
+      </Grid.Col>
+      <Grid.Col span={{ base: 12, xs: 6, md: 3 }}>
+        <DoorsTile />
+      </Grid.Col>
+      <Grid.Col span={{ base: 12, xs: 6, md: 3 }}>
+        <WindowsAndDoorsTile />
+      </Grid.Col>
+    </Grid>
   );
 }
 

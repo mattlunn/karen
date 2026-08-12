@@ -216,9 +216,13 @@ export default async function (req: Request, res: Response) {
   let currentArming: SecurityInsightsApiResponse['currentArming'];
 
   if (!activeArming) {
-    currentArming = { mode: 'OFF', start: null, lastActivation: null };
+    currentArming = { mode: 'OFF', start: null, activationCount: 0, lastActivation: null };
   } else {
-    const mostRecentActivation = await activeArming.getMostRecentActivation();
+    const activations = await activeArming.getAlarmActivations();
+    const mostRecentActivation = activations.length === 0 ? null : activations.reduce((mostRecent, curr) =>
+      mostRecent.startedAt > curr.startedAt ? mostRecent : curr
+    );
+
     let lastActivation: SecurityInsightsApiResponse['currentArming']['lastActivation'] = null;
 
     if (mostRecentActivation) {
@@ -236,6 +240,7 @@ export default async function (req: Request, res: Response) {
     currentArming = {
       mode: activeArming.mode as AlarmMode,
       start: activeArming.start.toISOString(),
+      activationCount: activations.length,
       lastActivation
     };
   }

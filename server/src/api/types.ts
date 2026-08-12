@@ -365,6 +365,7 @@ export interface SecurityInsightsApiResponse {
   currentArming: {
     mode: AlarmMode;
     start: string | null;
+    activationCount: number;
     lastActivation: {
       start: string;
       end?: string;
