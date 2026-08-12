@@ -142,7 +142,7 @@ export default async function ({
         });
 
         bus.emit(NOTIFICATION_TO_ALL, {
-          message: `🔕 ${device.name} triggered motion, but alerts are suppressed until ${dayjs(suppressFurtherAlertsUntil).format('HH:mm')}.`
+          message: `🔕 Motion detected by the ${device.name} at ${dayjs(event.start).format('HH:mm:ss')}. Further alerts will be suppressed until ${dayjs(suppressFurtherAlertsUntil).format('HH:mm')}.`
         });
 
         return;
