@@ -43,23 +43,28 @@ export class {{className}} {
     return getBooleanPropertyHistory(this.device, '{{fieldName}}', selection);
   }
 
-  async set{{propertyName}}State(value: boolean, stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
+  async set{{propertyName}}State(value: boolean, stateTimestamp?: Date, reportedAt?: Date): Promise<BooleanEvent | null> {
     const event = await setBooleanProperty(this.device, '{{fieldName}}', value, {{#if isMomentary}}true{{else}}false{{/if}}, stateTimestamp, reportedAt);
 
-    if (event !== null) {
-      {{#if isMomentary}}
-      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}(new BooleanEvent(event));
-      {{else}}
-      const eventWrapper = new BooleanEvent(event);
-      if (value) {
-        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Start(eventWrapper);
-      } else {
-        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}End(eventWrapper);
-      }
-
-      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
-      {{/if}}
+    if (event === null) {
+      return null;
     }
+
+    {{#if isMomentary}}
+    const eventWrapper = new BooleanEvent(event);
+    DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}(eventWrapper);
+    {{else}}
+    const eventWrapper = new BooleanEvent(event);
+    if (value) {
+      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Start(eventWrapper);
+    } else {
+      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}End(eventWrapper);
+    }
+
+    DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
+    {{/if}}
+
+    return eventWrapper;
   }
   {{#if isWriteable}}
   set{{propertyName}}(value: boolean): Promise<void> {
@@ -80,12 +85,17 @@ export class {{className}} {
     return getStringPropertyHistory(this.device, '{{fieldName}}', selection);
   }
 
-  async set{{propertyName}}State(value: {{{valueType}}}, stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
+  async set{{propertyName}}State(value: {{{valueType}}}, stateTimestamp?: Date, reportedAt?: Date): Promise<StringEvent | null> {
     const event = await setStringProperty(this.device, '{{fieldName}}', value, false, stateTimestamp, reportedAt);
 
-    if (event !== null) {
-      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(new StringEvent(event));
+    if (event === null) {
+      return null;
     }
+
+    const eventWrapper = new StringEvent(event);
+    DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
+
+    return eventWrapper;
   }
 
   {{#if isWriteable}}
@@ -106,12 +116,17 @@ export class {{className}} {
     return getNumericPropertyHistory(this.device, '{{fieldName}}', selection);
   }
 
-  async set{{propertyName}}State(value: number, stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
+  async set{{propertyName}}State(value: number, stateTimestamp?: Date, reportedAt?: Date): Promise<NumericEvent | null> {
     const event = await setNumericProperty(this.device, '{{fieldName}}', value, false, stateTimestamp, reportedAt);
 
-    if (event !== null) {
-      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(new NumericEvent(event));
+    if (event === null) {
+      return null;
     }
+
+    const eventWrapper = new NumericEvent(event);
+    DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
+
+    return eventWrapper;
   }
 
   {{#if isWriteable}}
