@@ -424,8 +424,8 @@ export interface SecurityInsightsApiResponse {
   motionByDeviceHour: Array<{
     deviceId: number;
     label: string;
-    hour: number;
-    count: number;
+    // Always 24 entries, one motion count per hour of day (0-23).
+    countByHour: number[];
   }>;
   connectivityEvents: Array<{
     id: number;

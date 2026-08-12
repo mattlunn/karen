@@ -172,21 +172,11 @@ function WindowsAndDoorsTile() {
 }
 
 function MotionHeatmapCard({ data }: { data: SecurityInsightsApiResponse['motionByDeviceHour'] }) {
-  const rows = useMemo(() => {
-    const byDevice = new Map<number, { label: string; hours: number[] }>();
+  const rows = useMemo(() => (
+    [...data].sort((a, b) => a.label.localeCompare(b.label))
+  ), [data]);
 
-    for (const { deviceId, label, hour, count } of data) {
-      if (!byDevice.has(deviceId)) {
-        byDevice.set(deviceId, { label, hours: new Array(24).fill(0) });
-      }
-
-      byDevice.get(deviceId)!.hours[hour] += count;
-    }
-
-    return [...byDevice.entries()].sort((a, b) => a[1].label.localeCompare(b[1].label));
-  }, [data]);
-
-  const maxCount = Math.max(1, ...rows.flatMap(([, { hours }]) => hours));
+  const maxCount = Math.max(1, ...rows.flatMap((row) => row.countByHour));
 
   return (
     <Card withBorder mt="lg" padding="lg">
@@ -206,12 +196,12 @@ function MotionHeatmapCard({ data }: { data: SecurityInsightsApiResponse['motion
               </tr>
             </thead>
             <tbody>
-              {rows.map(([deviceId, { label, hours }]) => (
+              {rows.map(({ deviceId, label, countByHour }) => (
                 <tr key={deviceId} className={styles.heatmapRow}>
                   <th className={styles.heatmapRowLabel}>
                     <Anchor component={Link} to={`/device/${deviceId}`}>{label}</Anchor>
                   </th>
-                  {hours.map((count, hour) => (
+                  {countByHour.map((count, hour) => (
                     <td
                       key={hour}
                       className={styles.heatmapCell}

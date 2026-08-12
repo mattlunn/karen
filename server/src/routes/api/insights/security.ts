@@ -245,34 +245,15 @@ export default async function (req: Request, res: Response) {
     };
   }
 
-  // Motion-by-device-hour heatmap, aggregated across every day in the selected range.
-  const motionByDeviceHourBuckets = new Map<string, { deviceId: number; label: string; hour: number; count: number }>();
+  // Motion-by-device-hour heatmap, aggregated across every day in the selected range. Seed
+  // every motion sensor up front so it still gets a row even with zero motion in the range.
+  const motionByDeviceHour = new Map(motionDevices.map((device) =>
+    [device.id, { deviceId: device.id, label: device.name, countByHour: new Array(24).fill(0) }]
+  ));
 
   for (const event of motionEvents) {
     const hour = dayjs(event.start).hour();
-    const bucketKey = `${event.deviceId}|${hour}`;
-    const existing = motionByDeviceHourBuckets.get(bucketKey);
-
-    if (existing) {
-      existing.count += 1;
-    } else {
-      motionByDeviceHourBuckets.set(bucketKey, {
-        deviceId: event.deviceId,
-        label: event.deviceName,
-        hour,
-        count: 1
-      });
-    }
-  }
-
-  // Every motion sensor should still get a row on the heatmap even if it hasn't recorded any
-  // motion in the selected range - seed a zero-count bucket for any device not already present.
-  const deviceIdsWithMotion = new Set([...motionByDeviceHourBuckets.values()].map(bucket => bucket.deviceId));
-
-  for (const device of motionDevices) {
-    if (!deviceIdsWithMotion.has(device.id)) {
-      motionByDeviceHourBuckets.set(`${device.id}|empty`, { deviceId: device.id, label: device.name, hour: 0, count: 0 });
-    }
+    motionByDeviceHour.get(event.deviceId)!.countByHour[hour] += 1;
   }
 
   const response: SecurityInsightsApiResponse = {
@@ -283,7 +264,7 @@ export default async function (req: Request, res: Response) {
     contactEvents,
     doorbellRings,
     cameras,
-    motionByDeviceHour: [...motionByDeviceHourBuckets.values()],
+    motionByDeviceHour: [...motionByDeviceHour.values()],
     connectivityEvents
   };
 
