@@ -133,15 +133,17 @@ export default async function ({
       const silencingWindow = findActiveSilencingWindow(silencingWindows, event.start);
 
       if (silencingWindow) {
+        const suppressFurtherAlertsUntil = getSilencingWindowEndsAt(silencingWindow, event.start);
+
         await AlarmActivation.create({
           armingId: arming.id,
           startedAt: event.start,
-          suppressFurtherAlertsUntil: getSilencingWindowEndsAt(silencingWindow, event.start),
+          suppressFurtherAlertsUntil,
           triggeringDeviceId: device.id
         });
 
         bus.emit(NOTIFICATION_TO_ALL, {
-          message: `🔕 Motion detected by the ${device.name} at ${dayjs(event.start).format('HH:mm:ss')} was suppressed by the "${silencingWindow.name}" silencing window`
+          message: `🔕 Motion detected by the ${device.name} at ${dayjs(event.start).format('HH:mm:ss')}. Further alerts will be suppressed until ${dayjs(suppressFurtherAlertsUntil).format('HH:mm')}.`
         });
 
         return;
