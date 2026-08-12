@@ -1,5 +1,4 @@
 import sleep from '../../helpers/sleep';
-import wakeOnLan from './wake-on-lan';
 
 type PowerStatus = 'active' | 'standby';
 
@@ -42,13 +41,11 @@ export default class BraviaClient {
   #host: string;
   #psk: string;
   #timeoutMs: number;
-  #mac: string;
 
-  constructor(host: string, psk: string, timeoutMs: number, mac: string) {
+  constructor(host: string, psk: string, timeoutMs: number) {
     this.#host = host;
     this.#psk = psk;
     this.#timeoutMs = timeoutMs;
-    this.#mac = mac;
   }
 
   async #request<T>(path: string, method: string, params: object[] = []): Promise<SonyEnvelope<T>> {
@@ -102,35 +99,32 @@ export default class BraviaClient {
       return result.status === 'active';
     } catch (err) {
       // code 7 = "Illegal State": API unavailable while TV is in standby.
-      // A fetch timeout means the TV dropped off the network entirely, which
-      // is also how a fully-off Bravia presents itself.
+      // A fetch timeout, or fetch failing to connect at all (EHOSTUNREACH,
+      // ECONNREFUSED, etc. — observed when the TV has dropped off the LAN
+      // entirely rather than just being slow to answer), both mean the same
+      // thing: this is also how a fully-off Bravia presents itself.
       if (err instanceof BraviaError && err.code === 7) {
         return false;
       }
       if (err instanceof DOMException && err.name === 'TimeoutError') {
         return false;
       }
+      if (err instanceof TypeError && err.message === 'fetch failed') {
+        return false;
+      }
       throw err;
     }
   }
 
+  // IRCC Power is a physical-remote-style toggle, not an explicit on/off, so
+  // we only send it when the current state doesn't already match.
+  // (We use IRCC rather than REST setPowerStatus because Google TV rejects
+  // setPowerStatus with error 7 "Illegal State" when waking from standby.)
   async setIsOn(on: boolean): Promise<void> {
     if (await this.getIsOn() === on) {
       return;
     }
 
-    // When the TV is fully off it drops its network interface entirely and
-    // won't answer IRCC either, so waking always goes via a Wake-on-LAN
-    // magic packet. WoL is a no-op if the TV is already awake, so it's
-    // safe when the TV was merely in standby too.
-    if (on) {
-      await wakeOnLan(this.#mac);
-      return;
-    }
-
-    // IRCC Power is a physical-remote-style toggle, not an explicit on/off.
-    // (We use IRCC rather than REST setPowerStatus because Google TV rejects
-    // setPowerStatus with error 7 "Illegal State" when waking from standby.)
     await this.#sendIrcc('Power');
   }
 
