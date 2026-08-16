@@ -1,3 +1,4 @@
+import dayjs from '../../dayjs';
 import { Device } from '../../models';
 import { Capability } from '../../models/capabilities';
 import ZWaveClient from './lib/client';
@@ -18,6 +19,15 @@ const deviceCapabilitiesMap = new Map<string, Capability[]>([
 // Battery-powered devices spend most of their time asleep but are still reachable;
 // only "Dead" means the controller has lost contact.
 const ZWAVE_NODE_STATUS_DEAD = 3;
+
+// zwave-js only marks a node "Dead" after actively trying to reach it and failing.
+// Sleeping (battery) nodes are never actively probed, so a dead-battery node just
+// stays "Asleep" forever and never becomes "Dead". node.statistics.lastSeen ("the
+// last time a command was received from or successfully sent to the node") is a
+// generic per-node check-in signal, independent of which capability last reported,
+// so we fall back to it to catch nodes that have gone quiet without zwave-js itself
+// noticing.
+const CONNECTIVITY_STALE_AFTER_MS = dayjs.duration(24, 'hours').asMilliseconds();
 
 type DeviceHandler<T extends boolean | number | string = boolean | number | string> = {
   propertyKey: string,
@@ -398,7 +408,12 @@ Device.registerProvider('zwave', {
           knownDevice.model = model;
 
           await knownDevice.save();
-          await knownDevice.getConnectivityCapability().setIsConnectedState(node.status !== ZWAVE_NODE_STATUS_DEAD);
+
+          const isDead = node.status === ZWAVE_NODE_STATUS_DEAD;
+          const lastSeen = node.statistics?.lastSeen ? new Date(node.statistics.lastSeen) : null;
+          const isStale = lastSeen !== null && (Date.now() - lastSeen.getTime()) > CONNECTIVITY_STALE_AFTER_MS;
+
+          await knownDevice.getConnectivityCapability().setIsConnectedState(!isDead && !isStale);
         }
       }
     }
