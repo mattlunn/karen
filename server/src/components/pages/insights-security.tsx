@@ -32,8 +32,7 @@ import { useCameraDevices } from '../../hooks/queries/use-camera-devices';
 import { useSecurity } from '../../hooks/queries/use-security';
 import { useAlarmMutation } from '../../hooks/mutations/use-security-mutations';
 import { useSecurityInsights } from '../../hooks/queries/use-security-insights';
-import { DateRangeProvider, DateRangeSelector, getPresetRange, useDateRange } from '../date-range';
-import type { DateRange } from '../date-range';
+import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
 import { forDeviceCapability } from '../../helpers/device';
 import { humanDate } from '../../helpers/date';
 import dayjs from '../../dayjs';
@@ -70,19 +69,27 @@ function KpiIcon({ icon, color }: { icon: IconDefinition; color?: string }) {
   );
 }
 
-function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiResponse['currentArming'] }) {
-  const { data: security } = useSecurity();
+function StatusCard() {
+  const { data: security, isPending, isError } = useSecurity();
   const { mutate: updateAlarmMode, isPending: alarmMutating } = useAlarmMutation();
 
   useTick(30000);
 
-  const mode = security?.alarmMode ?? currentArming.mode;
+  if (isPending || isError || !security) {
+    return <Card withBorder padding="lg" h="100%" />;
+  }
+
+  const mode = security.alarmMode;
+  const activationCount = security.activations.length;
+  const lastActivation = activationCount === 0 ? null : security.activations.reduce((mostRecent, curr) =>
+    mostRecent.startedAt > curr.startedAt ? mostRecent : curr
+  );
 
   // "Alerting" = there's a recent activation whose alert window (loud siren, or the quiet
   // grace period after a single motion trigger) hasn't elapsed yet - i.e. something just
   // happened and is still live, as opposed to a historic activation from earlier this arming.
-  const isAlerting = currentArming.lastActivation !== null
-    && dayjs().isBefore(currentArming.lastActivation.end);
+  const isAlerting = lastActivation !== null
+    && dayjs().isBefore(lastActivation.suppressFurtherAlertsUntil);
 
   return (
     <Card withBorder padding="lg" h="100%">
@@ -91,16 +98,16 @@ function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiRespo
           <KpiIcon icon={faShieldHalved} color={MODE_COLORS[mode]} />
           <Stack gap={0} justify="center" className={styles.iconAlignedText}>
             <Badge color={MODE_COLORS[mode]} size="lg">{MODE_LABELS[mode]}</Badge>
-            {currentArming.start && (
+            {security.start && (
               <Text size="sm" c="dimmed" mt={4}>
-                Armed since {dayjs(currentArming.start).format('HH:mm')} {humanDate(dayjs(currentArming.start))}
+                Armed since {dayjs(security.start).format('HH:mm')} {humanDate(dayjs(security.start))}
               </Text>
             )}
             {mode !== 'OFF' && (
               <Text size="sm" c="dimmed">
-                {currentArming.activationCount === 0
+                {activationCount === 0
                   ? 'No activations this arming'
-                  : `${currentArming.activationCount} activation${currentArming.activationCount === 1 ? '' : 's'} this arming, ${isAlerting ? 'ongoing since' : 'last at'} ${dayjs(currentArming.lastActivation!.start).format('HH:mm')} ${humanDate(dayjs(currentArming.lastActivation!.start))}`}
+                  : `${activationCount} activation${activationCount === 1 ? '' : 's'} this arming, ${isAlerting ? 'ongoing since' : 'last at'} ${dayjs(lastActivation!.startedAt).format('HH:mm')} ${humanDate(dayjs(lastActivation!.startedAt))}`}
               </Text>
             )}
           </Stack>
@@ -124,8 +131,8 @@ function StatusCard({ currentArming }: { currentArming: SecurityInsightsApiRespo
           color={mode === 'NIGHT' ? 'grape' : 'red'}
           icon={<FontAwesomeIcon icon={faBell} className={styles.alertBellIcon} />}
         >
-          {currentArming.lastActivation!.triggeringDevice ? `Triggered by ${currentArming.lastActivation!.triggeringDevice.name}. ` : ''}
-          Further alerts suppressed until {dayjs(currentArming.lastActivation!.end).format('HH:mm')}.
+          {lastActivation!.triggeringDevice ? `Triggered by ${lastActivation!.triggeringDevice.name}. ` : ''}
+          Further alerts suppressed until {dayjs(lastActivation!.suppressFurtherAlertsUntil).format('HH:mm')}.
         </Alert>
       )}
     </Card>
@@ -488,28 +495,14 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
   );
 }
 
-// Status card + KPI strip always reflect "today", independent of the timeline's date range
-// selector below them, so switching the range never reloads/reflows anything above it.
-function StatusAndKpiSection({ range }: { range: DateRange }) {
-  const params = useMemo(() => ({
-    since: range.since.toISOString(),
-    until: range.until.toISOString(),
-  }), [range]);
-
-  const { data, isPending, isError } = useSecurityInsights(params);
-
-  if (isPending) {
-    return <PageLoader />;
-  }
-
-  if (isError || !data) {
-    return <Box style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>;
-  }
-
+// Status card + KPI strip always reflect "right now" - each tile sources its own live data
+// (useSecurity / useDevices) independent of the timeline's date range selector below them, so
+// switching the range never reloads/reflows anything above it.
+function StatusAndKpiSection() {
   return (
     <Grid mt="lg">
       <Grid.Col span={{ base: 12, md: 6 }}>
-        <StatusCard currentArming={data.currentArming} />
+        <StatusCard />
       </Grid.Col>
       <Grid.Col span={{ base: 12, xs: 6, md: 3 }}>
         <DoorsTile />
@@ -548,11 +541,6 @@ function RangeDependentSection() {
 }
 
 export default function SecurityInsights() {
-  // Computed once and shared as the date range selector's initial value, so the KPI section's
-  // fixed "today" request and the range section's default "today" request are identical (and
-  // therefore deduped by react-query into a single fetch) rather than two near-identical ones
-  // that only differ by the millisecond each independently called getPresetRange('today').
-  const [todayRange] = useState<DateRange>(() => getPresetRange('today'));
   const { cameras, isLoading: camerasLoading } = useCameraDevices();
 
   return (
@@ -562,9 +550,9 @@ export default function SecurityInsights() {
       <Box p="md">
         <Title order={2}>Security</Title>
 
-        <StatusAndKpiSection range={todayRange} />
+        <StatusAndKpiSection />
 
-        <DateRangeProvider defaultPreset="today" defaultRange={todayRange}>
+        <DateRangeProvider defaultPreset="today">
           <Box mt="lg">
             <DateRangeSelector />
           </Box>

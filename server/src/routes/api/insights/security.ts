@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Device, Arming, Op } from '../../../models';
-import { SecurityInsightsApiResponse, AlarmMode } from '../../../api/types';
+import { SecurityInsightsApiResponse } from '../../../api/types';
 import { Capability } from '../../../models/capabilities';
 import { HistorySelector } from '../../../models/capabilities/helpers';
 import { asyncMap } from '../../../helpers/array';
@@ -19,16 +19,13 @@ export default async function (req: Request, res: Response) {
     doorbellDevices,
     lockDevices,
     contactDevices,
-    cameraDevices,
     connectivityDevices,
-    armingRows,
-    activeArming
+    armingRows
   ] = await Promise.all([
     Device.findByCapability('MOTION_SENSOR'),
     Device.findByCapability('DOORBELL'),
     Device.findByCapability('LOCK'),
     Device.findByCapability('CONTACT_SENSOR'),
-    Device.findByCapability('CAMERA'),
     Device.findByCapability('CONNECTIVITY'),
     Arming.findAll({
       where: {
@@ -39,8 +36,7 @@ export default async function (req: Request, res: Response) {
         ]
       },
       order: [['start', 'DESC']]
-    }),
-    Arming.getActiveArming()
+    })
   ]);
 
   // Motion history, per device, hydrated with the recording (if the source device is a camera).
@@ -139,18 +135,6 @@ export default async function (req: Request, res: Response) {
 
   const doorbellRings = doorbellEventLists.flat();
 
-  const cameras = await asyncMap(cameraDevices, async (device) => {
-    const isConnected = await device.getConnectivityCapability().getIsConnected();
-
-    return {
-      id: device.id,
-      name: device.name,
-      roomId: (device.roomId as number | null) ?? null,
-      isConnected,
-      snapshotUrl: `/api/snapshot/${device.providerId}`
-    };
-  });
-
   // Connectivity offline/online, but only for devices that are also security-relevant -
   // connectivity for e.g. a light isn't interesting on this page.
   const securityRelevantConnectivityDevices = connectivityDevices.filter((device) =>
@@ -212,39 +196,6 @@ export default async function (req: Request, res: Response) {
     };
   });
 
-  // Current arming status, independent of the selected date range.
-  let currentArming: SecurityInsightsApiResponse['currentArming'];
-
-  if (!activeArming) {
-    currentArming = { mode: 'OFF', start: null, activationCount: 0, lastActivation: null };
-  } else {
-    const activations = await activeArming.getAlarmActivations();
-    const mostRecentActivation = activations.length === 0 ? null : activations.reduce((mostRecent, curr) =>
-      mostRecent.startedAt > curr.startedAt ? mostRecent : curr
-    );
-
-    let lastActivation: SecurityInsightsApiResponse['currentArming']['lastActivation'] = null;
-
-    if (mostRecentActivation) {
-      const triggeringDevice = mostRecentActivation.triggeringDeviceId !== null
-        ? await mostRecentActivation.getTriggeringDevice()
-        : null;
-
-      lastActivation = {
-        start: mostRecentActivation.startedAt.toISOString(),
-        end: mostRecentActivation.suppressFurtherAlertsUntil.toISOString(),
-        ...(triggeringDevice ? { triggeringDevice: { id: triggeringDevice.id, name: triggeringDevice.name } } : {})
-      };
-    }
-
-    currentArming = {
-      mode: activeArming.mode as AlarmMode,
-      start: activeArming.start.toISOString(),
-      activationCount: activations.length,
-      lastActivation
-    };
-  }
-
   // Motion-by-device-hour heatmap, aggregated across every day in the selected range. Seed
   // every motion sensor up front so it still gets a row even with zero motion in the range.
   const motionByDeviceHour = new Map(motionDevices.map((device) =>
@@ -257,13 +208,11 @@ export default async function (req: Request, res: Response) {
   }
 
   const response: SecurityInsightsApiResponse = {
-    currentArming,
     armings,
     motionEvents,
     lockEvents,
     contactEvents,
     doorbellRings,
-    cameras,
     motionByDeviceHour: [...motionByDeviceHour.values()],
     connectivityEvents
   };

@@ -2,15 +2,41 @@ import express from 'express';
 import { Arming } from '../../models';
 import { ArmingMode } from '../../models/arming';
 import { AlarmMode, AlarmStatusResponse, AlarmUpdateRequest, ApiErrorResponse } from '../../api/types';
+import { asyncMap } from '../../helpers/array';
 
 const router = express.Router();
 
-router.get<Record<string, never>, AlarmStatusResponse>('/', async (req, res) => {
+async function getAlarmStatus(): Promise<AlarmStatusResponse> {
   const activeArming = await Arming.getActiveArming();
 
-  res.json({
-    alarmMode: activeArming ? activeArming.mode as AlarmMode : 'OFF'
+  if (!activeArming) {
+    return { alarmMode: 'OFF', start: null, activations: [] };
+  }
+
+  const activationRows = await activeArming.getAlarmActivations();
+
+  const activations = await asyncMap(activationRows, async (activation) => {
+    const triggeringDevice = activation.triggeringDeviceId !== null
+      ? await activation.getTriggeringDevice()
+      : null;
+
+    return {
+      id: activation.id,
+      startedAt: activation.startedAt.toISOString(),
+      suppressFurtherAlertsUntil: activation.suppressFurtherAlertsUntil.toISOString(),
+      triggeringDevice: triggeringDevice ? { id: triggeringDevice.id, name: triggeringDevice.name } : null
+    };
   });
+
+  return {
+    alarmMode: activeArming.mode as AlarmMode,
+    start: activeArming.start.toISOString(),
+    activations
+  };
+}
+
+router.get<Record<string, never>, AlarmStatusResponse>('/', async (req, res) => {
+  res.json(await getAlarmStatus());
 });
 
 router.put<Record<string, never>, AlarmStatusResponse | ApiErrorResponse, AlarmUpdateRequest>('/', async (req, res) => {
@@ -25,9 +51,7 @@ router.put<Record<string, never>, AlarmStatusResponse | ApiErrorResponse, AlarmU
   const now = new Date();
 
   if ((currentArming === null && desiredMode === 'OFF') || currentArming?.mode === desiredMode) {
-    res.json({
-      alarmMode: desiredMode
-    });
+    res.json(await getAlarmStatus());
     return;
   }
 
@@ -43,9 +67,7 @@ router.put<Record<string, never>, AlarmStatusResponse | ApiErrorResponse, AlarmU
     });
   }
 
-  res.json({
-    alarmMode: desiredMode
-  });
+  res.json(await getAlarmStatus());
 });
 
 export default router;

@@ -290,6 +290,13 @@ export interface TelevisionUpdateRequest {
 // /api/security endpoint
 export interface AlarmStatusResponse {
   alarmMode: AlarmMode;
+  start: string | null;
+  activations: Array<{
+    id: number;
+    startedAt: string;
+    suppressFurtherAlertsUntil: string;
+    triggeringDevice: { id: number; name: string } | null;
+  }>;
 }
 
 export interface AlarmUpdateRequest {
@@ -362,16 +369,6 @@ export type EnergyInsightsSeriesApiResponse = {
 
 // /api/insights/security endpoint
 export interface SecurityInsightsApiResponse {
-  currentArming: {
-    mode: AlarmMode;
-    start: string | null;
-    activationCount: number;
-    lastActivation: {
-      start: string;
-      end?: string;
-      triggeringDevice?: { id: number; name: string };
-    } | null;
-  };
   armings: Array<{
     id: number;
     mode: 'NIGHT' | 'AWAY';
@@ -413,13 +410,6 @@ export interface SecurityInsightsApiResponse {
     deviceName: string;
     timestamp: string;
     hasThumbnail: boolean;
-  }>;
-  cameras: Array<{
-    id: number;
-    name: string;
-    roomId: number | null;
-    isConnected: boolean;
-    snapshotUrl: string;
   }>;
   motionByDeviceHour: Array<{
     deviceId: number;
