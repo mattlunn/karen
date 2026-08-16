@@ -102,14 +102,14 @@ async function pollCurrentPower(device: Device) {
   );
 }
 
-nowAndSetInterval(createBackgroundTransaction('octopus:poll', async () => {
+nowAndSetInterval(createBackgroundTransaction('octopus:poll-rates', async () => {
   const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
 
   await pollRates(device);
-}), Math.max(config.octopus.rates_poll_interval_minutes, 1) * 60 * 1000);
+}), Math.max(config.octopus.poll_rates_interval_minutes, 1) * 60 * 1000);
 
-nowAndSetInterval(createBackgroundTransaction('octopus:telemetry', async () => {
+nowAndSetInterval(createBackgroundTransaction('octopus:poll-current-power', async () => {
   const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
 
   await pollCurrentPower(device);
-}), Math.max(config.octopus.telemetry_poll_interval_seconds, 1) * 1000);
+}), Math.max(config.octopus.poll_current_power_interval_minutes, 1) * 60 * 1000);
