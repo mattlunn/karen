@@ -2,7 +2,7 @@ import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router';
-import { Alert, Anchor, Table, Title } from '@mantine/core';
+import { Alert, Anchor, List, Table, Title } from '@mantine/core';
 import PageLoader from '../page-loader';
 import { useDevices } from '../../hooks/queries/use-devices';
 import dayjs from '../../dayjs';
@@ -103,11 +103,29 @@ export default function Devices() {
   return (
     <>
       <Title order={2}>Devices</Title>
+
+      {old.length > 0 ? (
+        <Alert
+          variant="light"
+          color="orange"
+          icon={<FontAwesomeIcon icon={faExclamationTriangle} />}
+          mt="md"
+          mb="md"
+        >
+          {`${old.length} device(s) are offline:`}
+          <List size="sm" mt="xs">
+            {old.map((device) => (
+              <List.Item key={device.id}>{device.name}</List.Item>
+            ))}
+          </List>
+        </Alert>
+      ) : null}
+
       <DevicesTable devices={active} />
 
       {old.length > 0 ? (
         <>
-          <Title order={3} mt="md">Offline Devices</Title>
+          <Title id="offline-devices" order={3} mt="md">Offline Devices</Title>
           <DevicesTable devices={old} />
         </>
       ) : null}
