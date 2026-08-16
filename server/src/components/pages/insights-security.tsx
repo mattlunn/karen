@@ -81,9 +81,8 @@ function StatusCard() {
 
   const mode = security.alarmMode;
   const activationCount = security.activations.length;
-  const lastActivation = activationCount === 0 ? null : security.activations.reduce((mostRecent, curr) =>
-    mostRecent.startedAt > curr.startedAt ? mostRecent : curr
-  );
+  // security.activations is in time-order (ascending), so the most recent is always last.
+  const lastActivation = activationCount === 0 ? null : security.activations[activationCount - 1];
 
   // "Alerting" = there's a recent activation whose alert window (loud siren, or the quiet
   // grace period after a single motion trigger) hasn't elapsed yet - i.e. something just
@@ -138,14 +137,27 @@ function StatusCard() {
   );
 }
 
-function KpiTile({ icon, label, value, color }: { icon: IconDefinition; label: string; value: string; color?: string }) {
+// Generic "are all these devices in the good state?" tile, shared by DoorsTile and
+// WindowsAndDoorsTile - "healthy" when there's at least one device and none of them are
+// reported as an issue, "-" when there are no devices at all to report on.
+function KpiTile({ label, allDevices, issues, issueIcon, issueColor, healthyIcon, healthyLabel }: {
+  label: string;
+  allDevices: { name: string }[];
+  issues: string[];
+  issueIcon: IconDefinition;
+  issueColor: string;
+  healthyIcon: IconDefinition;
+  healthyLabel: string;
+}) {
+  const isHealthy = allDevices.length > 0 && issues.length === 0;
+
   return (
     <Card withBorder padding="md" h="100%" className={styles.kpiTile}>
       <Group gap="sm" wrap="nowrap" align="flex-start">
-        <KpiIcon icon={icon} color={color} />
+        <KpiIcon icon={isHealthy ? healthyIcon : issueIcon} color={allDevices.length === 0 ? undefined : isHealthy ? 'green' : issueColor} />
         <Stack gap={0} justify="center" className={styles.iconAlignedText}>
           <Text size="xs" c="dimmed">{label}</Text>
-          <Text fw={600}>{value}</Text>
+          <Text fw={600}>{allDevices.length === 0 ? '-' : isHealthy ? healthyLabel : issues.join(' · ')}</Text>
         </Stack>
       </Group>
     </Card>
@@ -159,14 +171,16 @@ function DoorsTile() {
     ? forDeviceCapability(devicesData.devices, 'LOCK', (device, cap) => ({ name: device.name, isLocked: cap.isLocked.value }))
     : [];
   const unlockedDoors = locks.filter((lock) => lock.isLocked !== true).map((lock) => lock.name);
-  const allLocked = locks.length > 0 && unlockedDoors.length === 0;
 
   return (
     <KpiTile
-      icon={allLocked ? faDoorClosed : faDoorOpen}
       label="Doors"
-      value={locks.length === 0 ? '-' : allLocked ? 'All locked' : unlockedDoors.join(' · ')}
-      color={locks.length === 0 ? undefined : allLocked ? 'green' : 'red'}
+      allDevices={locks}
+      issues={unlockedDoors}
+      issueIcon={faDoorOpen}
+      issueColor="red"
+      healthyIcon={faDoorClosed}
+      healthyLabel="All locked"
     />
   );
 }
@@ -178,14 +192,16 @@ function WindowsAndDoorsTile() {
     ? forDeviceCapability(devicesData.devices, 'CONTACT_SENSOR', (device, cap) => ({ name: device.name, isOpen: cap.isOpen.value }))
     : [];
   const openContacts = contacts.filter((contact) => contact.isOpen !== false).map((contact) => contact.name);
-  const allClosed = contacts.length > 0 && openContacts.length === 0;
 
   return (
     <KpiTile
-      icon={allClosed ? faDoorClosed : faDoorOpen}
       label="Windows & doors"
-      value={contacts.length === 0 ? '-' : allClosed ? 'All closed' : openContacts.join(' · ')}
-      color={contacts.length === 0 ? undefined : allClosed ? 'green' : 'orange'}
+      allDevices={contacts}
+      issues={openContacts}
+      issueIcon={faDoorOpen}
+      issueColor="orange"
+      healthyIcon={faDoorClosed}
+      healthyLabel="All closed"
     />
   );
 }
@@ -492,25 +508,6 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
   );
 }
 
-// Status card + KPI strip always reflect "right now" - each tile sources its own live data
-// (useSecurity / useDevices) independent of the timeline's date range selector below them, so
-// switching the range never reloads/reflows anything above it.
-function StatusAndKpiSection() {
-  return (
-    <Grid mt="lg">
-      <Grid.Col span={{ base: 12, md: 6 }}>
-        <StatusCard />
-      </Grid.Col>
-      <Grid.Col span={{ base: 12, xs: 6, md: 3 }}>
-        <DoorsTile />
-      </Grid.Col>
-      <Grid.Col span={{ base: 12, xs: 6, md: 3 }}>
-        <WindowsAndDoorsTile />
-      </Grid.Col>
-    </Grid>
-  );
-}
-
 function RangeDependentSection() {
   const { globalRange } = useDateRange();
 
@@ -538,16 +535,29 @@ function RangeDependentSection() {
 }
 
 export default function SecurityInsights() {
-  const { cameras, isLoading: camerasLoading } = useCameraDevices();
+  const { cameras } = useCameraDevices();
 
   return (
     <>
-      {!camerasLoading && cameras.length > 0 && <Security cameras={cameras} />}
+      <Security cameras={cameras} />
 
       <Box p="md">
         <Title order={2}>Security</Title>
 
-        <StatusAndKpiSection />
+        {/* Status card + KPI strip always reflect "right now" - each tile sources its own live
+            data (useSecurity / useDevices) independent of the timeline's date range selector
+            below them, so switching the range never reloads/reflows anything above it. */}
+        <Grid mt="lg">
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <StatusCard />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, xs: 6, md: 3 }}>
+            <DoorsTile />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, xs: 6, md: 3 }}>
+            <WindowsAndDoorsTile />
+          </Grid.Col>
+        </Grid>
 
         <DateRangeProvider defaultPreset="today">
           <Box mt="lg">

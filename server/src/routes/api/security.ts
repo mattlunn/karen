@@ -13,7 +13,8 @@ async function getAlarmStatus(): Promise<AlarmStatusResponse> {
     return { alarmMode: 'OFF', start: null, activations: [] };
   }
 
-  const activationRows = await activeArming.getAlarmActivations();
+  // Ascending by startedAt, so callers can rely on the most recent activation being last.
+  const activationRows = await activeArming.getAlarmActivations({ order: [['startedAt', 'ASC']] });
 
   const activations = await asyncMap(activationRows, async (activation) => {
     const triggeringDevice = await activation.getTriggeringDevice();

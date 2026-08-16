@@ -385,7 +385,6 @@ export interface SecurityInsightsApiResponse {
     id: number;
     deviceId: number;
     deviceName: string;
-    roomId: number | null;
     start: string;
     end: string | null;
     recordingId: number | null;
