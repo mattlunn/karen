@@ -290,6 +290,13 @@ export interface TelevisionUpdateRequest {
 // /api/security endpoint
 export interface AlarmStatusResponse {
   alarmMode: AlarmMode;
+  start: string | null;
+  activations: Array<{
+    id: number;
+    startedAt: string;
+    suppressFurtherAlertsUntil: string;
+    triggeringDevice: { id: number; name: string };
+  }>;
 }
 
 export interface AlarmUpdateRequest {
@@ -359,6 +366,66 @@ export interface HeatingInsightsApiResponse {
 export type EnergyInsightsSeriesApiResponse = {
   series: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
 };
+
+// /api/insights/security endpoint
+export interface SecurityInsightsApiResponse {
+  armings: Array<{
+    id: number;
+    mode: 'NIGHT' | 'AWAY';
+    start: string;
+    end: string | null;
+    activations: Array<{
+      id: number;
+      startedAt: string;
+      suppressFurtherAlertsUntil: string;
+      triggeringDevice: { id: number; name: string };
+    }>;
+  }>;
+  motionEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    start: string;
+    end: string | null;
+    recordingId: number | null;
+  }>;
+  lockEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    isLocked: boolean;
+  }>;
+  contactEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    isOpen: boolean;
+  }>;
+  doorbellRings: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    hasThumbnail: boolean;
+  }>;
+  motionByDeviceHour: Array<{
+    deviceId: number;
+    label: string;
+    // Always 24 entries, one motion count per hour of day (0-23).
+    countByHour: number[];
+    // Independent of the selected range - the device's last motion detection full-stop.
+    lastMotion: string | null;
+  }>;
+  connectivityEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    isConnected: boolean;
+  }>;
+}
 
 export interface DeviceUpdateEvent {
   type: 'device_update';

@@ -10,6 +10,10 @@ export class Recording extends Model<InferAttributes<Recording>, InferCreationAt
   declare public size: CreationOptional<number>;
 
   declare public event: NonAttribute<Event>;
+
+  static findByEventId(eventId: number) {
+    return this.findOne({ where: { eventId } });
+  }
 }
 
 export default function (sequelize: Sequelize) {

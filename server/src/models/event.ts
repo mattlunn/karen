@@ -1,5 +1,4 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, HasOneGetAssociationMixin, CreationOptional } from 'sequelize';
-import { Recording } from './recording';
 import { Device } from './device';
 
 export class Event extends Model<InferAttributes<Event>, InferCreationAttributes<Event>> {
@@ -14,7 +13,6 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
   declare public createdAt: CreationOptional<Date>;
   declare public updatedAt: CreationOptional<Date>;
 
-  declare getRecording: HasOneGetAssociationMixin<Recording>;
   declare getDevice: HasOneGetAssociationMixin<Device>;
 
   // Cache: Map<deviceId, Map<type, Event | null>>
@@ -145,6 +143,7 @@ export default function (sequelize: Sequelize) {
 export class BooleanEvent {
   protected event: Event;
 
+  public id: number;
   public value: boolean;
   public start: Date;
   public end: Date | null;
@@ -153,6 +152,7 @@ export class BooleanEvent {
 
   constructor(e: Event) {
     this.event = e;
+    this.id = e.id;
     this.value = !!e.value;
     this.start = e.start;
     this.end = e.end;
@@ -172,6 +172,7 @@ export class BooleanEvent {
 export class NumericEvent {
   protected event: Event;
 
+  public id: number;
   public value: number;
   public start: Date;
   public end: Date | null;
@@ -180,6 +181,7 @@ export class NumericEvent {
 
   constructor(e: Event) {
     this.event = e;
+    this.id = e.id;
     this.value = e.value;
     this.start = e.start;
     this.end = e.end;
@@ -195,6 +197,7 @@ export class NumericEvent {
 export class StringEvent {
   protected event: Event;
 
+  public id: number;
   public value: string;
   public start: Date;
   public end: Date | null;
@@ -203,6 +206,7 @@ export class StringEvent {
 
   constructor(e: Event) {
     this.event = e;
+    this.id = e.id;
     this.value = e.stringValue ?? '';
     this.start = e.start;
     this.end = e.end;
