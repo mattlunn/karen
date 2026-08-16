@@ -106,10 +106,10 @@ nowAndSetInterval(createBackgroundTransaction('octopus:poll', async () => {
   const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
 
   await pollRates(device);
-}), Math.max(config.octopus.poll_interval_minutes, 1) * 60 * 1000);
+}), Math.max(config.octopus.rates_poll_interval_minutes, 1) * 60 * 1000);
 
 nowAndSetInterval(createBackgroundTransaction('octopus:telemetry', async () => {
   const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
 
   await pollCurrentPower(device);
-}), 60 * 1000);
+}), Math.max(config.octopus.telemetry_poll_interval_seconds, 1) * 1000);

@@ -104,7 +104,8 @@ declare namespace _default {
   export namespace octopus {
     const api_key: string;
     const account_number: string;
-    const poll_interval_minutes: number;
+    const rates_poll_interval_minutes: number;
+    const telemetry_poll_interval_seconds: number;
     const mpan: string;
     const serial_number: string;
   }
