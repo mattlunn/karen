@@ -131,8 +131,7 @@ function StatusCard() {
           color={mode === 'NIGHT' ? 'grape' : 'red'}
           icon={<FontAwesomeIcon icon={faBell} className={styles.alertBellIcon} />}
         >
-          {lastActivation!.triggeringDevice ? `Triggered by ${lastActivation!.triggeringDevice.name}. ` : ''}
-          Further alerts suppressed until {dayjs(lastActivation!.suppressFurtherAlertsUntil).format('HH:mm')}.
+          Triggered by {lastActivation!.triggeringDevice.name}. Further alerts suppressed until {dayjs(lastActivation!.suppressFurtherAlertsUntil).format('HH:mm')}.
         </Alert>
       )}
     </Card>
@@ -293,15 +292,13 @@ function buildTimelineEvents(data: SecurityInsightsApiResponse): MergedEvent[] {
     for (const activation of arming.activations) {
       events.push({
         kind: 'activation',
-        deviceId: activation.triggeringDevice?.id ?? null,
-        deviceName: activation.triggeringDevice?.name ?? null,
+        deviceId: activation.triggeringDevice.id,
+        deviceName: activation.triggeringDevice.name,
         item: {
           timestamp: activation.startedAt,
           icon: faBell,
           iconColor: '#e74c3c',
-          title: activation.triggeringDevice
-            ? `Alarm triggered by ${activation.triggeringDevice.name}`
-            : 'Alarm triggered',
+          title: `Alarm triggered by ${activation.triggeringDevice.name}`,
         },
       });
     }

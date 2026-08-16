@@ -8,7 +8,7 @@ export class AlarmActivation extends Model<InferAttributes<AlarmActivation>, Inf
   declare armingId: CreationOptional<number>;
   declare startedAt: CreationOptional<Date>;
   declare suppressFurtherAlertsUntil: Date;
-  declare triggeringDeviceId: CreationOptional<number | null>;
+  declare triggeringDeviceId: number;
 
   declare getArming: HasOneGetAssociationMixin<Arming>;
   declare getTriggeringDevice: BelongsToGetAssociationMixin<Device>;
@@ -45,7 +45,7 @@ export default function (sequelize: Sequelize) {
 
     triggeringDeviceId: {
       type: DataTypes.INTEGER,
-      allowNull: true
+      allowNull: false
     }
   }, {
     sequelize,

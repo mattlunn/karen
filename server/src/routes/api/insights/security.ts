@@ -175,15 +175,13 @@ export default async function (req: Request, res: Response) {
     const activationRows = await arming.getAlarmActivations();
 
     const activations = await asyncMap(activationRows, async (activation) => {
-      const triggeringDevice = activation.triggeringDeviceId !== null
-        ? await activation.getTriggeringDevice()
-        : null;
+      const triggeringDevice = await activation.getTriggeringDevice();
 
       return {
         id: activation.id,
         startedAt: activation.startedAt.toISOString(),
         suppressFurtherAlertsUntil: activation.suppressFurtherAlertsUntil.toISOString(),
-        triggeringDevice: triggeringDevice ? { id: triggeringDevice.id, name: triggeringDevice.name } : null
+        triggeringDevice: { id: triggeringDevice.id, name: triggeringDevice.name }
       };
     });
 

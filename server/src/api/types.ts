@@ -295,7 +295,7 @@ export interface AlarmStatusResponse {
     id: number;
     startedAt: string;
     suppressFurtherAlertsUntil: string;
-    triggeringDevice: { id: number; name: string } | null;
+    triggeringDevice: { id: number; name: string };
   }>;
 }
 
@@ -378,7 +378,7 @@ export interface SecurityInsightsApiResponse {
       id: number;
       startedAt: string;
       suppressFurtherAlertsUntil: string;
-      triggeringDevice: { id: number; name: string } | null;
+      triggeringDevice: { id: number; name: string };
     }>;
   }>;
   motionEvents: Array<{
