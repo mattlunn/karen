@@ -107,7 +107,7 @@ export async function getSmartMeterDeviceId(accountNumber: string): Promise<stri
     .flatMap(a => a.meterPoint.meters)
     .flatMap(m => m.smartDevices);
 
-  const device = smartDevices.find(d => d.status === 'COMMISSIONED') ?? smartDevices[0];
+  const device = smartDevices.find(d => d.status === 'COMMISSIONED');
 
   if (!device) {
     throw new Error(`No smart meter telemetry device found for Octopus account ${accountNumber}`);
