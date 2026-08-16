@@ -55,7 +55,7 @@ async function sync<T>(
 // Unit rates / standing charges only - current power comes from the live
 // smart-meter telemetry poll below, since Octopus's half-hourly consumption
 // endpoint runs ~24h (or more) behind and shouldn't be presented as "current".
-async function poll(device: Device) {
+async function pollRates(device: Device) {
   const now = new Date();
   const tariffCode = device.meta.tariffCode as string;
   const productCode = device.meta.productCode as string;
@@ -80,7 +80,7 @@ async function poll(device: Device) {
 
 // Home Mini telemetry: near-real-time (sub-minute) wattage readings, polled
 // far more frequently than the half-hourly consumption/rates data above.
-async function pollTelemetry(device: Device) {
+async function pollCurrentPower(device: Device) {
   const telemetryDeviceId = device.meta.telemetryDeviceId as string | undefined;
 
   // synchronize() persists this and runs fire-and-forget at provider
@@ -105,11 +105,11 @@ async function pollTelemetry(device: Device) {
 nowAndSetInterval(createBackgroundTransaction('octopus:poll', async () => {
   const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
 
-  await poll(device);
+  await pollRates(device);
 }), Math.max(config.octopus.poll_interval_minutes, 1) * 60 * 1000);
 
 nowAndSetInterval(createBackgroundTransaction('octopus:telemetry', async () => {
   const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
 
-  await pollTelemetry(device);
+  await pollCurrentPower(device);
 }), 60 * 1000);
