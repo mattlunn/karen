@@ -87,16 +87,7 @@ async function getGraphQLToken(): Promise<string> {
   return token;
 }
 
-// The telemetry device ID never changes for a given account, and doesn't fit
-// in devices.metaStringified (varchar(255)) alongside the existing tariff
-// meta, so it's cached in-memory for the life of the process instead.
-let cachedTelemetryDeviceId: string | null = null;
-
 export async function getSmartMeterDeviceId(accountNumber: string): Promise<string> {
-  if (cachedTelemetryDeviceId) {
-    return cachedTelemetryDeviceId;
-  }
-
   const token = await getGraphQLToken();
   const data = await graphqlRequest<{
     account: { electricityAgreements: { meterPoint: { meters: { smartDevices: { deviceId: string; status: string }[] }[] } }[] };
@@ -122,9 +113,7 @@ export async function getSmartMeterDeviceId(accountNumber: string): Promise<stri
     throw new Error(`No smart meter telemetry device found for Octopus account ${accountNumber}`);
   }
 
-  cachedTelemetryDeviceId = device.deviceId;
-
-  return cachedTelemetryDeviceId;
+  return device.deviceId;
 }
 
 export async function getTelemetry(deviceId: string, since: Date, until: Date): Promise<TelemetryReading[]> {

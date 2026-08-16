@@ -29,6 +29,7 @@ Device.registerProvider('octopus', {
     const { tariffCode, productCode } = await getTariff();
     device.meta.tariffCode = tariffCode;
     device.meta.productCode = productCode;
+    device.meta.telemetryDeviceId = await getSmartMeterDeviceId(config.octopus.account_number);
 
     await device.save();
   },
@@ -80,8 +81,17 @@ async function poll(device: Device) {
 // Home Mini telemetry: near-real-time (sub-minute) wattage readings, polled
 // far more frequently than the half-hourly consumption/rates data above.
 async function pollTelemetry(device: Device) {
+  const telemetryDeviceId = device.meta.telemetryDeviceId as string | undefined;
+
+  // synchronize() persists this and runs fire-and-forget at provider
+  // registration, so it may not have completed yet on a fresh start - skip
+  // this tick and pick it up on the next one rather than calling the API
+  // with no device id.
+  if (!telemetryDeviceId) {
+    return;
+  }
+
   const now = new Date();
-  const telemetryDeviceId = await getSmartMeterDeviceId(config.octopus.account_number);
   const energyMonitor = device.getEnergyMonitorCapability();
 
   await sync(
