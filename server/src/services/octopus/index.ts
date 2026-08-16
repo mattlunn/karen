@@ -3,7 +3,7 @@ import config from '../../config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import type { Capability } from '../../models/capabilities';
-import { getTariff, getConsumption, getUnitRates, getStandingCharges } from './client';
+import { getTariff, getUnitRates, getStandingCharges, getSmartMeterDeviceId, getTelemetry } from './client';
 
 const PROVIDER_ID = 'electricity-meter';
 
@@ -34,54 +34,61 @@ Device.registerProvider('octopus', {
   },
 });
 
+// Fetches a time-series forward from the latest stored event (or the
+// device's creation when there is none) and applies each item.
+async function sync<T>(
+  device: Device,
+  now: Date,
+  getLatest: () => Promise<{ start: Date } | null>,
+  fetchItems: (since: Date, until: Date) => Promise<T[]>,
+  apply: (item: T) => Promise<unknown>
+) {
+  const latest = await getLatest();
+  const since = latest?.start ?? device.createdAt;
+
+  for (const item of await fetchItems(since, now)) {
+    await apply(item);
+  }
+}
+
+// Unit rates / standing charges only - current power comes from the live
+// smart-meter telemetry poll below, since Octopus's half-hourly consumption
+// endpoint runs ~24h (or more) behind and shouldn't be presented as "current".
 async function poll(device: Device) {
   const now = new Date();
   const tariffCode = device.meta.tariffCode as string;
   const productCode = device.meta.productCode as string;
-  const energyMonitor = device.getEnergyMonitorCapability();
   const energyCost = device.getEnergyCostCapability();
-
-  // Fetches a time-series forward from the latest stored event (or the
-  // device's creation when there is none) and applies each item.
-  async function sync<T>(
-    getLatest: () => Promise<{ start: Date } | null>,
-    fetchItems: (since: Date, until: Date) => Promise<T[]>,
-    apply: (item: T) => Promise<unknown>
-  ) {
-    const latest = await getLatest();
-    const since = latest?.start ?? device.createdAt;
-
-    for (const item of await fetchItems(since, now)) {
-      await apply(item);
-    }
-  }
-
-  // Consumption: half-hourly kWh, reported with ~24h delay. Convert each
-  // slice to an average wattage so the shared energy aggregator can integrate
-  // it like any other EnergyMonitor device.
-  await sync(
-    () => energyMonitor.getCurrentPowerEvent(),
-    (since, until) => getConsumption(since, until),
-    (interval) => {
-      const durationHours = (interval.end.getTime() - interval.start.getTime()) / (60 * 60 * 1000);
-      const averageWatts = durationHours > 0 ? Math.round((interval.consumption / durationHours) * 1000) : 0;
-
-      return energyMonitor.setCurrentPowerState(averageWatts, interval.start);
-    }
-  );
 
   // Unit rates / standing charges: Octopus publishes these slightly ahead of
   // time, so this naturally records near-future rates too.
   await sync(
+    device, now,
     () => energyCost.getUnitRateEvent(),
     (since, until) => getUnitRates(tariffCode, productCode, since, until),
     (rate) => energyCost.setUnitRateState(rate.value, rate.start)
   );
 
   await sync(
+    device, now,
     () => energyCost.getStandingChargeEvent(),
     (since, until) => getStandingCharges(tariffCode, productCode, since, until),
     (standingCharge) => energyCost.setStandingChargeState(standingCharge.value, standingCharge.start)
+  );
+}
+
+// Home Mini telemetry: near-real-time (sub-minute) wattage readings, polled
+// far more frequently than the half-hourly consumption/rates data above.
+async function pollTelemetry(device: Device) {
+  const now = new Date();
+  const telemetryDeviceId = await getSmartMeterDeviceId(config.octopus.account_number);
+  const energyMonitor = device.getEnergyMonitorCapability();
+
+  await sync(
+    device, now,
+    () => energyMonitor.getCurrentPowerEvent(),
+    (since, until) => getTelemetry(telemetryDeviceId, since, until),
+    (reading) => energyMonitor.setCurrentPowerState(reading.demandWatts, reading.readAt, now)
   );
 }
 
@@ -90,3 +97,9 @@ nowAndSetInterval(createBackgroundTransaction('octopus:poll', async () => {
 
   await poll(device);
 }), Math.max(config.octopus.poll_interval_minutes, 1) * 60 * 1000);
+
+nowAndSetInterval(createBackgroundTransaction('octopus:telemetry', async () => {
+  const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
+
+  await pollTelemetry(device);
+}), 60 * 1000);

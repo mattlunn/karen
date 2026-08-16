@@ -1,9 +1,8 @@
 import config from '../../config';
 
-export interface ConsumptionInterval {
-  start: Date;
-  end: Date;
-  consumption: number; // kWh
+export interface TelemetryReading {
+  readAt: Date;
+  demandWatts: number;
 }
 
 export interface RateInterval {
@@ -22,12 +21,6 @@ interface AccountResponse {
   }[];
 }
 
-interface ConsumptionResult {
-  consumption: number;
-  interval_start: string;
-  interval_end: string;
-}
-
 interface RateResult {
   value_inc_vat: number;
   valid_from: string;
@@ -35,9 +28,124 @@ interface RateResult {
 }
 
 const BASE_URL = 'https://api.octopus.energy';
+const GRAPHQL_URL = 'https://api.octopus.energy/v1/graphql/';
 
 function authHeader(): string {
   return `Basic ${Buffer.from(`${config.octopus.api_key}:`).toString('base64')}`;
+}
+
+// Kraken (GraphQL) tokens are short-lived (~1h). Cache and refresh ahead of expiry
+// rather than re-authenticating on every telemetry poll.
+let cachedToken: { token: string; expiresAt: number } | null = null;
+
+async function graphqlRequest<T>(query: string, variables: Record<string, unknown>, authToken?: string): Promise<T> {
+  let response;
+
+  try {
+    response = await fetch(GRAPHQL_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken && { Authorization: authToken })
+      },
+      body: JSON.stringify({ query, variables })
+    });
+  } catch (e: any) {
+    throw new Error(`Octopus GraphQL request failed: ${e.message}`);
+  }
+
+  if (!response.ok) {
+    throw new Error(`Octopus GraphQL request failed with HTTP status ${response.status}: ${await response.text()}`);
+  }
+
+  const body = await response.json() as { data: T; errors?: { message: string }[] };
+
+  if (body.errors) {
+    throw new Error(`Octopus GraphQL request failed: ${body.errors.map(e => e.message).join(', ')}`);
+  }
+
+  return body.data;
+}
+
+async function getGraphQLToken(): Promise<string> {
+  if (cachedToken && cachedToken.expiresAt > Date.now() + 60 * 1000) {
+    return cachedToken.token;
+  }
+
+  const data = await graphqlRequest<{ obtainKrakenToken: { token: string } }>(
+    `mutation krakenTokenAuthentication($apiKey: String!) {
+      obtainKrakenToken(input: { APIKey: $apiKey }) { token }
+    }`,
+    { apiKey: config.octopus.api_key }
+  );
+
+  const token = data.obtainKrakenToken.token;
+  const { exp } = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString('utf8'));
+
+  cachedToken = { token, expiresAt: exp * 1000 };
+
+  return token;
+}
+
+// The telemetry device ID never changes for a given account, and doesn't fit
+// in devices.metaStringified (varchar(255)) alongside the existing tariff
+// meta, so it's cached in-memory for the life of the process instead.
+let cachedTelemetryDeviceId: string | null = null;
+
+export async function getSmartMeterDeviceId(accountNumber: string): Promise<string> {
+  if (cachedTelemetryDeviceId) {
+    return cachedTelemetryDeviceId;
+  }
+
+  const token = await getGraphQLToken();
+  const data = await graphqlRequest<{
+    account: { electricityAgreements: { meterPoint: { meters: { smartDevices: { deviceId: string; status: string }[] }[] } }[] };
+  }>(
+    `query getSmartDevices($accountNumber: String!) {
+      account(accountNumber: $accountNumber) {
+        electricityAgreements(active: true) {
+          meterPoint { meters { smartDevices { deviceId status } } }
+        }
+      }
+    }`,
+    { accountNumber },
+    token
+  );
+
+  const smartDevices = data.account.electricityAgreements
+    .flatMap(a => a.meterPoint.meters)
+    .flatMap(m => m.smartDevices);
+
+  const device = smartDevices.find(d => d.status === 'COMMISSIONED') ?? smartDevices[0];
+
+  if (!device) {
+    throw new Error(`No smart meter telemetry device found for Octopus account ${accountNumber}`);
+  }
+
+  cachedTelemetryDeviceId = device.deviceId;
+
+  return cachedTelemetryDeviceId;
+}
+
+export async function getTelemetry(deviceId: string, since: Date, until: Date): Promise<TelemetryReading[]> {
+  const token = await getGraphQLToken();
+  const data = await graphqlRequest<{
+    smartMeterTelemetry: { readAt: string; demand: string }[];
+  }>(
+    `query getTelemetry($deviceId: String!, $start: DateTime!, $end: DateTime!, $grouping: TelemetryGrouping!) {
+      smartMeterTelemetry(deviceId: $deviceId, start: $start, end: $end, grouping: $grouping) {
+        readAt
+        demand
+      }
+    }`,
+    { deviceId, start: since.toISOString(), end: until.toISOString(), grouping: 'ONE_MINUTE' },
+    token
+  );
+
+  return data.smartMeterTelemetry.map(r => ({
+    readAt: new Date(r.readAt),
+    demandWatts: Math.round(Number(r.demand))
+  }));
 }
 
 async function request<T>(url: string): Promise<T> {
@@ -91,19 +199,6 @@ export async function getTariff(): Promise<{ tariffCode: string; productCode: st
   const tariffCode = agreement.tariff_code;
 
   return { tariffCode, productCode: productCodeFromTariff(tariffCode) };
-}
-
-export async function getConsumption(since: Date, until: Date): Promise<ConsumptionInterval[]> {
-  const url = `${BASE_URL}/v1/electricity-meter-points/${config.octopus.mpan}/meters/${config.octopus.serial_number}`
-    + `/consumption/?period_from=${since.toISOString()}&period_to=${until.toISOString()}&page_size=25000&order_by=period`;
-
-  const results = await requestAllPages<ConsumptionResult>(url);
-
-  return results.map(r => ({
-    start: new Date(r.interval_start),
-    end: new Date(r.interval_end),
-    consumption: r.consumption
-  }));
 }
 
 export async function getUnitRates(tariffCode: string, productCode: string, since: Date, until: Date): Promise<RateInterval[]> {
