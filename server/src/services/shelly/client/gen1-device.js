@@ -51,6 +51,7 @@ export default class Gen1DeviceClient {
       mqtt_server: url,
       mqtt_user: user,
       mqtt_pass: password,
+      mqtt_retain: 'true',
     });
   }
 
