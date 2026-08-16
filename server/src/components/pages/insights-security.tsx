@@ -228,10 +228,11 @@ function MotionHeatmapCard({ data }: { data: SecurityInsightsApiResponse['motion
                 {Array.from({ length: 24 }, (_, hour) => (
                   <th key={hour} className={styles.heatmapHour}>{hour}</th>
                 ))}
+                <th className={`${styles.heatmapHour} ${styles.heatmapLastMotionHeader}`}>Last motion</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ deviceId, label, countByHour }) => (
+              {rows.map(({ deviceId, label, countByHour, lastMotion }) => (
                 <tr key={deviceId} className={styles.heatmapRow}>
                   <th className={styles.heatmapRowLabel}>
                     <Anchor component={Link} to={`/device/${deviceId}`}>{label}</Anchor>
@@ -246,6 +247,9 @@ function MotionHeatmapCard({ data }: { data: SecurityInsightsApiResponse['motion
                       {count > 0 ? count : ''}
                     </td>
                   ))}
+                  <td className={styles.heatmapLastMotionCell}>
+                    {lastMotion ? `${dayjs(lastMotion).format('HH:mm')} ${humanDate(dayjs(lastMotion))}` : '-'}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -415,6 +415,8 @@ export interface SecurityInsightsApiResponse {
     label: string;
     // Always 24 entries, one motion count per hour of day (0-23).
     countByHour: number[];
+    // Independent of the selected range - the device's last motion detection full-stop.
+    lastMotion: string | null;
   }>;
   connectivityEvents: Array<{
     id: number;

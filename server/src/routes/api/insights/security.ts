@@ -40,11 +40,17 @@ export default async function (req: Request, res: Response) {
   ]);
 
   // Motion history, per device, hydrated with the recording (if the source device is a camera).
-  // Recordings are fetched in a single batched query rather than one-per-event.
-  const motionHistoryByDevice = await asyncMap(motionDevices, async (device) => ({
-    device,
-    history: await device.getMotionSensorCapability().getHasMotionHistory(selector)
-  }));
+  // Recordings are fetched in a single batched query rather than one-per-event. lastMotionEvent
+  // is the device's latest motion event full-stop, independent of the selected range - it powers
+  // "last motion detected" as a sanity check that the sensor is still reporting at all.
+  const motionHistoryByDevice = await asyncMap(motionDevices, async (device) => {
+    const [history, lastMotionEvent] = await Promise.all([
+      device.getMotionSensorCapability().getHasMotionHistory(selector),
+      device.getMotionSensorCapability().getHasMotionEvent()
+    ]);
+
+    return { device, history, lastMotionEvent };
+  });
 
   const recordingsByEventId = new Map(
     (await Recording.findAll({
@@ -199,8 +205,13 @@ export default async function (req: Request, res: Response) {
 
   // Motion-by-device-hour heatmap, aggregated across every day in the selected range. Seed
   // every motion sensor up front so it still gets a row even with zero motion in the range.
-  const motionByDeviceHour = new Map(motionDevices.map((device) =>
-    [device.id, { deviceId: device.id, label: device.name, countByHour: new Array(24).fill(0) }]
+  const motionByDeviceHour = new Map(motionHistoryByDevice.map(({ device, lastMotionEvent }) =>
+    [device.id, {
+      deviceId: device.id,
+      label: device.name,
+      countByHour: new Array(24).fill(0),
+      lastMotion: lastMotionEvent?.start.toISOString() ?? null
+    }]
   ));
 
   for (const event of motionEvents) {

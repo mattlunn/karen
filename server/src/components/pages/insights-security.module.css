@@ -45,8 +45,24 @@
 }
 
 .heatmapRow:nth-child(even) .heatmapRowLabel,
-.heatmapRow:nth-child(even) .heatmapCell {
+.heatmapRow:nth-child(even) .heatmapCell,
+.heatmapRow:nth-child(even) .heatmapLastMotionCell {
   background-color: var(--mantine-color-default-hover);
+}
+
+.heatmapLastMotionHeader {
+  text-align: left;
+  padding-left: 8px;
+}
+
+.heatmapLastMotionCell {
+  height: 22px;
+  padding: 2px 8px;
+  text-align: left;
+  font-size: 0.7em;
+  color: var(--mantine-color-dimmed);
+  white-space: nowrap;
+  border: 1px solid var(--mantine-color-default-border);
 }
 
 .kpiTile {
