@@ -53,7 +53,7 @@ async function extendOrCreateMotionEvent(device: Device, now: Dayjs): Promise<Bo
 }
 
 async function captureRecording(event: BooleanEvent, providerId: string, startOfRecording: Dayjs, endOfRecording: Dayjs) {
-  const existingRecording = await event.getRecording();
+  const existingRecording = await Recording.findByEventId(event.id);
   let attempts = 10;
   let cameraRecording;
 

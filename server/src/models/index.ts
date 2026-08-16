@@ -46,7 +46,6 @@ armingFactory(instance);
 
 Recording.belongsTo(Event);
 Stay.belongsTo(User);
-Event.hasOne(Recording);
 Device.hasMany(Event);
 Event.belongsTo(Device);
 Room.hasMany(Device);

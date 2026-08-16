@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Device, Arming, Op } from '../../../models';
+import { Device, Arming, Recording, Op } from '../../../models';
 import { SecurityInsightsApiResponse } from '../../../api/types';
 import { Capability } from '../../../models/capabilities';
 import { HistorySelector } from '../../../models/capabilities/helpers';
@@ -40,25 +40,28 @@ export default async function (req: Request, res: Response) {
   ]);
 
   // Motion history, per device, hydrated with the recording (if the source device is a camera).
-  const motionEventLists = await asyncMap(motionDevices, async (device) => {
-    const history = await device.getMotionSensorCapability().getHasMotionHistory(selector);
+  // Recordings are fetched in a single batched query rather than one-per-event.
+  const motionHistoryByDevice = await asyncMap(motionDevices, async (device) => ({
+    device,
+    history: await device.getMotionSensorCapability().getHasMotionHistory(selector)
+  }));
 
-    return asyncMap(history, async (event) => {
-      const recording = await event.getRecording();
+  const recordingsByEventId = new Map(
+    (await Recording.findAll({
+      where: { eventId: { [Op.in]: motionHistoryByDevice.flatMap(({ history }) => history.map((event) => event.id)) } }
+    })).map((recording) => [recording.eventId, recording])
+  );
 
-      return {
-        id: event.id,
-        deviceId: device.id,
-        deviceName: device.name,
-        roomId: (device.roomId as number | null) ?? null,
-        start: event.start.toISOString(),
-        end: event.end?.toISOString() ?? null,
-        recordingId: recording?.id ?? null
-      };
-    });
-  });
-
-  const motionEvents = motionEventLists.flat();
+  const motionEvents = motionHistoryByDevice.flatMap(({ device, history }) =>
+    history.map((event) => ({
+      id: event.id,
+      deviceId: device.id,
+      deviceName: device.name,
+      start: event.start.toISOString(),
+      end: event.end?.toISOString() ?? null,
+      recordingId: recordingsByEventId.get(event.id)?.id ?? null
+    }))
+  );
 
   // Boolean capability history only stores "on" segments (start/end pairs) - unpack each into
   // a "locked"/"unlocked" (or "open"/"closed") pair of timeline points, mirroring the way

@@ -1,5 +1,4 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, HasOneGetAssociationMixin, CreationOptional } from 'sequelize';
-import { Recording } from './recording';
 import { Device } from './device';
 
 export class Event extends Model<InferAttributes<Event>, InferCreationAttributes<Event>> {
@@ -14,7 +13,6 @@ export class Event extends Model<InferAttributes<Event>, InferCreationAttributes
   declare public createdAt: CreationOptional<Date>;
   declare public updatedAt: CreationOptional<Date>;
 
-  declare getRecording: HasOneGetAssociationMixin<Recording>;
   declare getDevice: HasOneGetAssociationMixin<Device>;
 
   // Cache: Map<deviceId, Map<type, Event | null>>
@@ -169,10 +167,6 @@ export class BooleanEvent {
   getDevice() {
     return this.event.getDevice();
   }
-
-  getRecording() {
-    return this.event.getRecording();
-  }
 }
 
 export class NumericEvent {
@@ -198,10 +192,6 @@ export class NumericEvent {
   getDevice() {
     return this.event.getDevice();
   }
-
-  getRecording() {
-    return this.event.getRecording();
-  }
 }
 
 export class StringEvent {
@@ -226,9 +216,5 @@ export class StringEvent {
 
   getDevice() {
     return this.event.getDevice();
-  }
-
-  getRecording() {
-    return this.event.getRecording();
   }
 }
