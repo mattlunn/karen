@@ -215,6 +215,10 @@ export default async function (req: Request, res: Response) {
   ));
 
   for (const event of motionEvents) {
+    if (new Date(event.start) < selector.since) {
+      continue;
+    }
+
     const hour = dayjs(event.start).hour();
     motionByDeviceHour.get(event.deviceId)!.countByHour[hour] += 1;
   }
