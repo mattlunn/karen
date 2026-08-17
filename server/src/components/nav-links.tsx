@@ -11,9 +11,9 @@ const navLinks = [
 ];
 
 const insightsLinks = [
-  { label: 'Heating', to: '/insights/heating' },
-  { label: 'Energy', to: '/insights/energy' },
   { label: 'Bins', to: '/insights/bins' },
+  { label: 'Energy', to: '/insights/energy' },
+  { label: 'Heating', to: '/insights/heating' },
   { label: 'Security', to: '/insights/security' },
 ];
 

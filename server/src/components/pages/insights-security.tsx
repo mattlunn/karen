@@ -472,12 +472,10 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
             <Menu.Dropdown>
               {ALL_KINDS.map((kind) => (
                 <Menu.Item key={kind} onClick={() => toggleKind(kind)}>
-                  <Checkbox
-                    readOnly
-                    size="xs"
-                    label={KIND_LABELS[kind]}
-                    checked={selectedKinds === null || selectedKinds.has(kind)}
-                  />
+                  <Group gap="xs" wrap="nowrap">
+                    <Checkbox.Indicator size="xs" checked={selectedKinds === null || selectedKinds.has(kind)} />
+                    <Text size="xs">{KIND_LABELS[kind]}</Text>
+                  </Group>
                 </Menu.Item>
               ))}
             </Menu.Dropdown>
@@ -490,12 +488,10 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
             <Menu.Dropdown>
               {deviceOptions.map(([id, name]) => (
                 <Menu.Item key={id} onClick={() => toggleDevice(id)}>
-                  <Checkbox
-                    readOnly
-                    size="xs"
-                    label={name}
-                    checked={selectedDevices === null || selectedDevices.has(id)}
-                  />
+                  <Group gap="xs" wrap="nowrap">
+                    <Checkbox.Indicator size="xs" checked={selectedDevices === null || selectedDevices.has(id)} />
+                    <Text size="xs">{name}</Text>
+                  </Group>
                 </Menu.Item>
               ))}
             </Menu.Dropdown>
