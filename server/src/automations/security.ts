@@ -27,26 +27,23 @@ async function turnOnAllTheLights() {
   }
 }
 
-async function notifyAbsentUsersOfEvent(event: BooleanEvent) {
+async function notifyAbsentUsersOfEvent(message: string) {
   const usersWithNumber = await User.getAbsentUsersWithMobileNumber();
-  const device = await event.getDevice();
-  const message = `Motion was detected by the ${device.name} at ${dayjs(event.start).format('HH:mm:ss')}`;
 
   for (const user of usersWithNumber) {
     callWithKarenMessage(user, message);
   }
 }
 
-async function notifyNightModeAlexa(name: string, event: BooleanEvent) {
+async function notifyNightModeAlexa(name: string, message: string) {
   const alexa = await Device.findByNameOrError(name);
-  const device = await event.getDevice();
-  const message = [
+  const audio = [
     '<audio src="soundbank://soundlibrary/alarms/back_up_beeps/back_up_beeps_09"/>',
-    `Motion was detected by the ${device.name} at ${dayjs(event.start).format('HH:mm:ss')}`
+    message
   ];
 
   for (let i=0;i<3;i++) {
-    if (await successAsBoolean(alexa.getSpeakerCapability().emitSound([...message, ...message]))) {
+    if (await successAsBoolean(alexa.getSpeakerCapability().emitSound([...audio, ...audio]))) {
       await sleep(8000);
     }
   }
@@ -110,7 +107,7 @@ export default async function ({
   silencing_windows: silencingWindows = [],
   alarm_duration_minutes: alarmDurationMinutes
 }: SecurityAutomationConfiguration) {
-  DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:security:motion-detected', async (event) => {
+  async function handleTrigger(event: BooleanEvent, describeTrigger: (deviceName: string) => string) {
     const [
       arming,
       device
@@ -128,7 +125,9 @@ export default async function ({
         return;
       }
 
-      // First motion within a configured silencing window: record it and notify once so we're not
+      const description = describeTrigger(device.name);
+
+      // First trigger within a configured silencing window: record it and notify once so we're not
       // blind to it, but stay silent until the window ends.
       const silencingWindow = findActiveSilencingWindow(silencingWindows, event.start);
 
@@ -143,7 +142,7 @@ export default async function ({
         });
 
         bus.emit(NOTIFICATION_TO_ALL, {
-          message: `🔕 Motion detected by the ${device.name} at ${dayjs(event.start).format('HH:mm:ss')}. Further alerts will be suppressed until ${dayjs(suppressFurtherAlertsUntil).format('HH:mm')}.`
+          message: `🔕 ${description}. Further alerts will be suppressed until ${dayjs(suppressFurtherAlertsUntil).format('HH:mm')}.`
         });
 
         return;
@@ -156,14 +155,22 @@ export default async function ({
         triggeringDeviceId: device.id
       });
 
-      notifyAbsentUsersOfEvent(event);
+      notifyAbsentUsersOfEvent(description);
       turnOnAllTheLights();
 
       if (arming.mode === ArmingMode.NIGHT) {
-        notifyNightModeAlexa(nightModeAlexa, event);
+        notifyNightModeAlexa(nightModeAlexa, description);
       } else {
         soundTheAlarm(alarmAlexa, activation);
       }
     }
+  }
+
+  DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:security:motion-detected', (event) => {
+    return handleTrigger(event, (deviceName) => `Motion was detected by the ${deviceName} at ${dayjs(event.start).format('HH:mm:ss')}`);
+  }));
+
+  DeviceCapabilityEvents.onContactSensorIsOpenStart(createBackgroundTransaction('automations:security:contact-sensor-opened', (event) => {
+    return handleTrigger(event, (deviceName) => `The ${deviceName} was opened at ${dayjs(event.start).format('HH:mm:ss')}`);
   }));
 }
