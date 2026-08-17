@@ -101,6 +101,9 @@ declare namespace _default {
     const secret: string;
     const access_token: string;
   }
+  export namespace raildata {
+    const api_key: string;
+  }
   export namespace octopus {
     const api_key: string;
     const account_number: string;

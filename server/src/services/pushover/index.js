@@ -1,7 +1,7 @@
 import Push from 'pushover-notifications';
 import config from '../../config';
 import logger from '../../logger';
-import bus, { NOTIFICATION_TO_ADMINS, NOTIFICATION_TO_ALL } from '../../bus';
+import bus, { NOTIFICATION_TO_ADMINS, NOTIFICATION_TO_ALL, NOTIFICATION_TO_USER } from '../../bus';
 import { User } from '../../models';
  
 const push = new Push({
@@ -39,6 +39,17 @@ bus.on(NOTIFICATION_TO_ADMINS, (e) => {
 
 bus.on(NOTIFICATION_TO_ALL, async (e) => {
   const users = await User.getThoseWithPushoverToken();
-  
+
   sendNotificationToUsers(users.map(x => x.pushoverToken), e);
+});
+
+bus.on(NOTIFICATION_TO_USER, async ({ userHandle, ...event }) => {
+  const [user] = await User.findByHandles([userHandle]);
+
+  if (!user?.pushoverToken) {
+    logger.warn(`No pushoverToken for user handle "${userHandle}"; notification dropped`);
+    return;
+  }
+
+  sendNotificationToUsers([user.pushoverToken], event);
 });
