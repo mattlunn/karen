@@ -529,3 +529,123 @@ describe('setStringProperty', () => {
     });
   });
 });
+
+describe('capability instances', () => {
+  let mockDevice: { id: number; getLatestEvent: jest.Mock };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockDevice = {
+      id: 1,
+      getLatestEvent: jest.fn(),
+    };
+  });
+
+  it('reads the event series for the requested instance', async () => {
+    mockDevice.getLatestEvent.mockResolvedValue(null);
+    (Event.create as jest.Mock).mockResolvedValue({ id: 1 });
+
+    await setBooleanProperty(
+      mockDevice as unknown as Device,
+      'motion',
+      true,
+      false,
+      new Date('2024-01-15T00:00:00Z'),
+      undefined,
+      'zone1'
+    );
+
+    expect(mockDevice.getLatestEvent).toHaveBeenCalledWith('motion', 'zone1');
+  });
+
+  it('stamps the instance onto newly created events', async () => {
+    mockDevice.getLatestEvent.mockResolvedValue(null);
+    (Event.create as jest.Mock).mockResolvedValue({ id: 1 });
+
+    await setBooleanProperty(
+      mockDevice as unknown as Device,
+      'motion',
+      true,
+      false,
+      new Date('2024-01-15T00:00:00Z'),
+      undefined,
+      'zone1'
+    );
+
+    expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'motion',
+      instanceId: 'zone1',
+    }));
+  });
+
+  it('stamps the instance onto momentary events too', async () => {
+    mockDevice.getLatestEvent.mockResolvedValue(null);
+    (Event.create as jest.Mock).mockResolvedValue({ id: 1 });
+
+    await setBooleanProperty(
+      mockDevice as unknown as Device,
+      'pressed',
+      true,
+      true,
+      new Date('2024-01-15T00:00:00Z'),
+      undefined,
+      'button2'
+    );
+
+    expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+      instanceId: 'button2',
+    }));
+  });
+
+  it('defaults to the singleton instance, so existing capabilities are unaffected', async () => {
+    mockDevice.getLatestEvent.mockResolvedValue(null);
+    (Event.create as jest.Mock).mockResolvedValue({ id: 1 });
+
+    await setNumericProperty(
+      mockDevice as unknown as Device,
+      'temperature',
+      21,
+      false,
+      new Date('2024-01-15T00:00:00Z')
+    );
+
+    expect(mockDevice.getLatestEvent).toHaveBeenCalledWith('temperature', null);
+    expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+      instanceId: null,
+    }));
+  });
+
+  it('keeps instances of the same property independent', async () => {
+    // zone0 is already occupied; zone1 has never reported. Setting zone1 must
+    // not see zone0's open event, and must create its own.
+    const zone0Event = {
+      start: new Date('2024-01-15T00:00:00Z'),
+      value: 1,
+      end: null,
+      lastReported: new Date('2024-01-15T00:00:00Z'),
+      save: jest.fn().mockResolvedValue(undefined),
+      destroy: jest.fn().mockResolvedValue(undefined),
+    };
+
+    mockDevice.getLatestEvent.mockImplementation(async (_type: string, instanceId: string | null) =>
+      instanceId === 'zone0' ? zone0Event : null
+    );
+    (Event.create as jest.Mock).mockResolvedValue({ id: 9 });
+
+    await setBooleanProperty(
+      mockDevice as unknown as Device,
+      'motion',
+      true,
+      false,
+      new Date('2024-01-16T00:00:00Z'),
+      undefined,
+      'zone1'
+    );
+
+    expect(zone0Event.save).not.toHaveBeenCalled();
+    expect(zone0Event.end).toBeNull();
+    expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+      instanceId: 'zone1',
+    }));
+  });
+});

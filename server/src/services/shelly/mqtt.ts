@@ -111,6 +111,27 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
   // taken by the gateway device itself. So each BLU child stores its pairing
   // in meta (`gatewayProviderId` + `sensors: { [sensorId]: property }`) and we
   // look it up by that pair.
+  // The Presence Gen4 publishes one status topic per configured zone. Each zone
+  // is an instance of this device's MOTION_SENSOR capability (zones are regions
+  // of one sensor's field of view, not separate hardware), so the zone id from
+  // the topic addresses the instance directly.
+  if (subtopic.startsWith('status/presencezone:')) {
+    const zoneId = `zone${subtopic.slice('status/presencezone:'.length)}`;
+    const data = JSON.parse(payload);
+
+    if (capabilities.includes('MOTION_SENSOR')) {
+      const isOccupied = data.occupied ?? data.state;
+
+      if (typeof isOccupied === 'undefined') {
+        logger.warn(`Shelly presence zone ${zoneId} on ${mqttId} reported no recognised occupancy field: ${payload}`);
+      } else {
+        await device.getMotionSensorCapability(zoneId).setHasMotionState(Boolean(isOccupied));
+      }
+    }
+
+    return;
+  }
+
   if (subtopic.startsWith('status/bthomesensor:')) {
     const sensorId = subtopic.slice('status/bthomesensor:'.length);
     const data = JSON.parse(payload);

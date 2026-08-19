@@ -1,4 +1,5 @@
-import { Device } from '../../models';
+import { Device, CapabilityInstance } from '../../models';
+import { Capability } from '../../models/capabilities';
 import { publishCommand } from './mqtt';
 
 const TOPIC_PREFIX = 'shellies';
@@ -21,9 +22,24 @@ Device.registerProvider('shelly', {
       case 'SBDW-002C':    // Shelly BLU Door/Window (via BLE gateway)
         return ['CONTACT_SENSOR', 'BATTERY_LEVEL_INDICATOR'];
 
+      case 'S4PR-001XE16EU': // Shelly Presence Gen4 (mmWave, multi-zone)
+        return ['MOTION_SENSOR', 'CONNECTIVITY'];
+
       default:
         throw new Error(`Cannot infer capabilities for device ${device.id} (${device.model})`);
     }
+  },
+
+  // The Presence Gen4 reports occupancy separately per configured zone. Zones
+  // are regions of one sensor's field of view rather than separate hardware,
+  // so they're instances of MOTION_SENSOR on this device, not child devices.
+  // CONNECTIVITY stays singleton - it belongs to the unit as a whole.
+  getCapabilityInstances(device: Device, capability: Capability): CapabilityInstance[] {
+    if (capability === 'MOTION_SENSOR' && Array.isArray(device.meta.zones)) {
+      return (device.meta.zones as { id: string; name: string }[]).map(({ id, name }) => ({ id, name }));
+    }
+
+    return [{ id: null, name: null }];
   },
 
   provideLightCapability() {

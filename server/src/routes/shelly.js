@@ -95,4 +95,43 @@ router.get('/install-blu', async (req, res) => {
   res.sendStatus(201).end();
 });
 
+// Records the zone layout for a Presence sensor that's already been installed
+// via /install-wifi. Zones are regions of one sensor's field of view rather
+// than separate hardware, so they're stored as instances of this device's
+// MOTION_SENSOR capability rather than as child devices.
+//
+// `zones` is a comma-separated list of `<zoneId>:<name>` pairs, e.g.
+//   ?ip=192.168.1.50&zones=zone0:Sofa,zone1:Desk
+router.get('/install-presence-zones', async (req, res) => {
+  const { ip, zones } = req.query;
+
+  if (!ip || !zones) {
+    return res.end('Pass ip and zones (e.g. zone0:Sofa,zone1:Desk) in query string');
+  }
+
+  const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
+  const mqttId = await client.getMqttId();
+  const device = await Device.findByProviderId('shelly', mqttId);
+
+  if (!device) {
+    return res.status(404).end(`No device found for ${mqttId}. Run /install-wifi for ${ip} first.`);
+  }
+
+  const parsed = zones.split(',').map((zone) => {
+    const [id, ...name] = zone.split(':');
+
+    return { id: id.trim(), name: name.join(':').trim() };
+  });
+
+  if (parsed.some(({ id, name }) => !id || !name)) {
+    return res.status(400).end('Each zone must be <zoneId>:<name>, e.g. zone0:Sofa');
+  }
+
+  device.meta.zones = parsed;
+
+  await device.save();
+
+  res.sendStatus(201).end();
+});
+
 export default router;

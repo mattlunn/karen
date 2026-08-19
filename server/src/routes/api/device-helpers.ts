@@ -1,5 +1,5 @@
 import { Device, NumericEvent, BooleanEvent, StringEvent } from '../../models';
-import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
+import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse, RestDeviceResponse, CapabilityApiResponse, CapabilityApiResponseBase } from '../../api/types';
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
 
@@ -60,7 +60,7 @@ export function mapStringState(eventPromise: Promise<StringEvent | null>, device
   });
 }
 
-export async function getCapabilityData(device: Device, capability: string): Promise<CapabilityApiResponse> {
+export async function getCapabilityData(device: Device, capability: string, instanceId: string | null = null): Promise<CapabilityApiResponseBase> {
   switch (capability) {
     case 'CAMERA': {
       const now = new Date().toISOString();
@@ -126,7 +126,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'MOTION_SENSOR': {
-      const sensor = device.getMotionSensorCapability();
+      const sensor = device.getMotionSensorCapability(instanceId);
       return awaitPromises({
         type: 'MOTION_SENSOR' as const,
         hasMotion: mapBooleanState(sensor.getHasMotionEvent(), device)
@@ -317,7 +317,11 @@ function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fall
 export async function mapDeviceToResponse(device: Device): Promise<RestDeviceResponse> {
   const capabilities = device.getCapabilities();
   const capabilityData = await Promise.all(
-    capabilities.map(cap => getCapabilityData(device, cap))
+    capabilities.flatMap(cap => device.getCapabilityInstances(cap).map(async (instance) => ({
+      ...await getCapabilityData(device, cap, instance.id),
+      instanceId: instance.id,
+      instanceName: instance.name
+    })))
   );
 
   const lastSeen = getLastSeenFromCapabilities(capabilityData, device.createdAt);
