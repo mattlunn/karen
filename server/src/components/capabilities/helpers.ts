@@ -27,7 +27,14 @@ export function getDeviceMetrics(device: RestDeviceResponse): CapabilityMetric[]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metrics = (config.getCapabilityMetrics as any)(capability, device) as CapabilityMetric[];
     if (metrics.length > 0) {
-      capabilitiesWithMetrics.push({ priority: config.priority, metrics });
+      // A device can expose several instances of one capability (e.g. one
+      // presence sensor reporting occupancy per zone). Qualify the titles so
+      // the resulting cards are distinguishable from each other.
+      const labelled = capability.instanceName
+        ? metrics.map((metric) => ({ ...metric, title: `${capability.instanceName} · ${metric.title}` }))
+        : metrics;
+
+      capabilitiesWithMetrics.push({ priority: config.priority, metrics: labelled });
     }
   }
 
@@ -60,7 +67,13 @@ export function getDeviceGraphs(device: RestDeviceResponse): GraphConfig[] {
     if (capability.type === null) continue;
     const config = registry[capability.type];
     if (config.getGraphs) {
-      graphs.push(...config.getGraphs());
+      // Graph ids are fixed per capability type, so they'd collide across
+      // instances of the same capability - qualify them by instance.
+      graphs.push(...config.getGraphs().map((graph) => capability.instanceId === null ? graph : {
+        ...graph,
+        id: `${graph.id}:${capability.instanceId}`,
+        title: capability.instanceName ? `${capability.instanceName} · ${graph.title}` : graph.title
+      }));
     }
   }
 

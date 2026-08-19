@@ -5,7 +5,7 @@ export interface ApiErrorResponse {
 // Device API response - current status values with timestamps.
 // State responses always carry an envelope (anchored to device.createdAt when
 // no observation has happened yet) but `value` is null until first observation.
-export type CapabilityApiResponse = {
+export type CapabilityApiResponseBase = {
   type: 'LIGHT';
   brightness: NumericStateApiResponse;
   isOn: BooleanStateApiResponse;
@@ -104,6 +104,18 @@ export type CapabilityApiResponse = {
 } | {
   type: null;
 };
+
+// A device can expose several instances of one capability (e.g. a presence
+// sensor reporting occupancy per zone), so `capabilities` may contain more
+// than one entry of the same `type`, distinguished by `instanceId`. A null
+// instanceId is the singleton instance - the device itself.
+export type CapabilityInstanceMeta = {
+  instanceId: string | null;
+  instanceName: string | null;
+};
+
+// Intersecting distributes over the union, so narrowing on `type` still works.
+export type CapabilityApiResponse = CapabilityApiResponseBase & CapabilityInstanceMeta;
 
 // Current-state envelopes (live device data). `value` is null until the
 // integration reports an observation; envelope timestamps are still present
