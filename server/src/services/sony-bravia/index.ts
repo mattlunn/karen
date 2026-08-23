@@ -72,6 +72,7 @@ Device.registerProvider('sony-bravia', {
     return {
       async setIsOn(device: Device, isOn: boolean) {
         await clientFor(device).setIsOn(isOn);
+        await device.getSwitchCapability().setIsOnState(isOn);
       },
     };
   },
