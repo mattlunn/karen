@@ -214,6 +214,7 @@ export type DeviceTimelineEventApiResponse = {
   type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline' | 'switch-on';
   timestamp: string;
   value?: string;
+  instanceName?: string | null;
 } | {
   type: 'contact-opened';
   timestamp: string;
