@@ -25,6 +25,7 @@ import { createBackgroundTransaction } from './helpers/newrelic';
 require('./services/synology');
 require('./services/unifi');
 require('./services/tplink');
+require('./services/tuya');
 require('./services/tado');
 require('./services/alexa');
 require('./services/zwave');
@@ -64,7 +65,8 @@ app.use('/vehicle', vehicleRoutes);
 app.use('/version', versionRoutes);
 app.use('/', express.static(__dirname + '/static'));
 
-app.use((req, res) => res.sendFile(__dirname + '/static/index.html', {
+app.use((req, res) => res.sendFile('index.html', {
+  root: __dirname + '/static',
   maxAge: dayjs.duration(1, 'year').asMilliseconds()
 }));
 

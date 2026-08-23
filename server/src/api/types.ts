@@ -211,13 +211,17 @@ export type HistoryApiResponse = {
 
 // Device Timeline API response types (/api/device/:id/timeline)
 export type DeviceTimelineEventApiResponse = {
-  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline';
+  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline' | 'switch-on';
   timestamp: string;
   value?: string;
 } | {
   type: 'contact-opened';
   timestamp: string;
   durationSeconds: number | null;
+} | {
+  type: 'switch-off';
+  timestamp: string;
+  durationSeconds: number;
 };
 
 export type DeviceTimelineApiResponse = {

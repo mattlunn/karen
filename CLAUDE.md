@@ -80,6 +80,11 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 ### Coding Style
 
 - **Always use curly braces for `if` statements**, even single-line bodies. Never write `if (x) doSomething();`.
+- **Blank line after a declaration group, and around blocks.** After the last `const`/`let` in a contiguous group of declarations, add a blank line before the next non-declaration statement (a call, `if`, `for`, `return`, etc.). Likewise, surround `if`/`for`/`while`/`try` blocks with a blank line before (if preceded by other statements) and after (if followed by other statements) — see `routes/api/device/timeline.ts`'s `SWITCH` case for a clean example. Exceptions, applied consistently across the codebase:
+  - No blank line when the declaration is immediately consumed by the very next statement (e.g. `const capability = device.getFooCapability(); somePromise.push(...)`, or `const x = foo(); return x;`).
+  - Consecutive short, related declarations can be grouped without blank lines between them — just add the one blank line before the next *distinct* statement.
+  - No leading blank line for the first statement right after an opening `{`, and none right before a closing `}` — including a guard clause that's the first line of a function.
+  - Trivial one- or two-statement bodies don't need any separating blank lines (nothing to separate).
 
 ### REST API Type System
 
@@ -281,3 +286,16 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 4. Run `npm run migrate`
 5. Run `npm run dev` (watch) and `npm run start:dev` (server) in separate terminals
 6. Use ngrok for public endpoint: `https://karen-dev.ngrok.io`
+
+## New worktree setup
+
+Spawned worktrees are clean checkouts — `server/src/config.json` is gitignored, so it never carries over automatically, and worktrees may be created by tooling (e.g. Claude Remote Control) with no interactive setup step. Before running or testing anything, from the worktree root:
+
+```bash
+if [ -f /opt/karen/config.json ]; then
+  ln -s /opt/karen/config.json server/src/config.json
+else
+  echo "No shared config.json at /opt/karen/config.json — follow 'Local Development Setup' above to create server/src/config.json manually."
+fi
+cd server/src && npm install && npm run codegen
+```
