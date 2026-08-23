@@ -53,6 +53,7 @@ Device.registerProvider('tuya', {
     return {
       async setIsOn(device: Device, isOn: boolean) {
         await withConnection(device, client => client.set({ dps: SWITCH_DPS, set: isOn }));
+        await device.getSwitchCapability().setIsOnState(isOn);
       },
     };
   },

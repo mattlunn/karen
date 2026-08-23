@@ -47,7 +47,12 @@ Device.registerProvider('tplink', {
       },
 
       async setIsOn(device: Device, isOn: boolean) {
-        await getTpLinkDeviceFromDevice(device).then(x => x?.setPowerState(isOn));
+        const tpLinkDevice = await getTpLinkDeviceFromDevice(device);
+
+        if (tpLinkDevice) {
+          await tpLinkDevice.setPowerState(isOn);
+          await device.getLightCapability().setIsOnState(isOn);
+        }
       }
     };
   },
