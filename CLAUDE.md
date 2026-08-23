@@ -299,5 +299,3 @@ else
 fi
 cd server/src && npm install && npm run codegen
 ```
-
-On hosts with a shared `/opt/karen/config.json` (symlinked above), do not edit `server/src/config.json` directly — it's a single file shared by every worktree on that host plus the live host config, so editing it affects all of them. On hosts without that file, `server/src/config.json` is a private per-checkout file as set up in "Local Development Setup" and is fine to edit normally.
