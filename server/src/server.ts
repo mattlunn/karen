@@ -25,6 +25,7 @@ import { createBackgroundTransaction } from './helpers/newrelic';
 require('./services/synology');
 require('./services/unifi');
 require('./services/tplink');
+require('./services/tuya');
 require('./services/tado');
 require('./services/alexa');
 require('./services/zwave');
