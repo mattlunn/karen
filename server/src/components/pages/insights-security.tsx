@@ -427,45 +427,48 @@ function buildTimelineEvents(data: SecurityInsightsApiResponse): MergedEvent[] {
   return events;
 }
 
+// A "sensor" in the filter UI is either a plain device (most events) or one zone of a
+// multi-instance device (a Presence sensor's motion events) - merged into one list since from
+// a user's perspective a zone reads as its own sensor, not a sub-filter of its parent device.
+function sensorKeyOf(event: MergedEvent): string | null {
+  return event.zoneKey ?? (event.deviceId !== null ? `device:${event.deviceId}` : null);
+}
+
+function sensorNameOf(event: MergedEvent): string | null {
+  return event.zoneKey !== null && event.zoneName !== null && event.deviceName !== null
+    ? `${event.deviceName} · ${event.zoneName}`
+    : event.deviceName;
+}
+
 function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
   const allEvents = useMemo(() => buildTimelineEvents(data), [data]);
   const [selectedKinds, setSelectedKinds] = useState<Set<TimelineEventKind> | null>(null);
-  const [selectedDevices, setSelectedDevices] = useState<Set<number> | null>(null);
-  const [selectedZones, setSelectedZones] = useState<Set<string> | null>(null);
+  const [selectedSensors, setSelectedSensors] = useState<Set<string> | null>(null);
 
-  const deviceOptions = useMemo(() => {
-    const map = new Map<number, string>();
-
-    for (const event of allEvents) {
-      if (event.deviceId !== null && event.deviceName !== null) {
-        map.set(event.deviceId, event.deviceName);
-      }
-    }
-
-    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
-  }, [allEvents]);
-
-  const zoneOptions = useMemo(() => {
+  const sensorOptions = useMemo(() => {
     const map = new Map<string, string>();
 
     for (const event of allEvents) {
-      if (event.zoneKey !== null && event.zoneName !== null) {
-        map.set(event.zoneKey, event.zoneName);
+      const key = sensorKeyOf(event);
+      const name = sensorNameOf(event);
+
+      if (key !== null && name !== null) {
+        map.set(key, name);
       }
     }
 
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [allEvents]);
 
-  const filtered = allEvents.filter((event) =>
-    (selectedKinds === null || selectedKinds.has(event.kind))
-    && (selectedDevices === null || event.deviceId === null || selectedDevices.has(event.deviceId))
-    && (selectedZones === null || event.zoneKey === null || selectedZones.has(event.zoneKey))
-  );
+  const filtered = allEvents.filter((event) => {
+    const sensorKey = sensorKeyOf(event);
+
+    return (selectedKinds === null || selectedKinds.has(event.kind))
+      && (selectedSensors === null || sensorKey === null || selectedSensors.has(sensorKey));
+  });
 
   const selectedKindCount = selectedKinds === null ? ALL_KINDS.length : selectedKinds.size;
-  const selectedDeviceCount = selectedDevices === null ? deviceOptions.length : selectedDevices.size;
-  const selectedZoneCount = selectedZones === null ? zoneOptions.length : selectedZones.size;
+  const selectedSensorCount = selectedSensors === null ? sensorOptions.length : selectedSensors.size;
 
   function toggleKind(kind: TimelineEventKind) {
     setSelectedKinds((prev) => {
@@ -481,23 +484,9 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
     });
   }
 
-  function toggleDevice(id: number) {
-    setSelectedDevices((prev) => {
-      const next = new Set(prev ?? deviceOptions.map(([deviceId]) => deviceId));
-
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-
-      return next;
-    });
-  }
-
-  function toggleZone(key: string) {
-    setSelectedZones((prev) => {
-      const next = new Set(prev ?? zoneOptions.map(([zoneKey]) => zoneKey));
+  function toggleSensor(key: string) {
+    setSelectedSensors((prev) => {
+      const next = new Set(prev ?? sensorOptions.map(([sensorKey]) => sensorKey));
 
       if (next.has(key)) {
         next.delete(key);
@@ -533,37 +522,19 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
 
           <Menu closeOnItemClick={false} shadow="md">
             <Menu.Target>
-              <Button variant="default" size="xs">{selectedDeviceCount}/{deviceOptions.length} devices</Button>
+              <Button variant="default" size="xs">{selectedSensorCount}/{sensorOptions.length} sensors</Button>
             </Menu.Target>
             <Menu.Dropdown>
-              {deviceOptions.map(([id, name]) => (
-                <Menu.Item key={id} onClick={() => toggleDevice(id)}>
+              {sensorOptions.map(([key, name]) => (
+                <Menu.Item key={key} onClick={() => toggleSensor(key)}>
                   <Group gap="xs" wrap="nowrap">
-                    <Checkbox.Indicator size="xs" checked={selectedDevices === null || selectedDevices.has(id)} />
+                    <Checkbox.Indicator size="xs" checked={selectedSensors === null || selectedSensors.has(key)} />
                     <Text size="xs">{name}</Text>
                   </Group>
                 </Menu.Item>
               ))}
             </Menu.Dropdown>
           </Menu>
-
-          {zoneOptions.length > 0 && (
-            <Menu closeOnItemClick={false} shadow="md">
-              <Menu.Target>
-                <Button variant="default" size="xs">{selectedZoneCount}/{zoneOptions.length} zones</Button>
-              </Menu.Target>
-              <Menu.Dropdown>
-                {zoneOptions.map(([key, name]) => (
-                  <Menu.Item key={key} onClick={() => toggleZone(key)}>
-                    <Group gap="xs" wrap="nowrap">
-                      <Checkbox.Indicator size="xs" checked={selectedZones === null || selectedZones.has(key)} />
-                      <Text size="xs">{name}</Text>
-                    </Group>
-                  </Menu.Item>
-                ))}
-              </Menu.Dropdown>
-            </Menu>
-          )}
         </Group>
       </Group>
 
