@@ -215,7 +215,7 @@ function MotionHeatmapCard({ data }: { data: SecurityInsightsApiResponse['motion
 
   return (
     <Card withBorder mt="lg" padding="lg">
-      <Title order={4} mb="md">Motion by device</Title>
+      <Title order={4} mb="md">Motion by zone</Title>
 
       {rows.length === 0 ? (
         <Text c="dimmed">No motion recorded in this range.</Text>
@@ -232,8 +232,8 @@ function MotionHeatmapCard({ data }: { data: SecurityInsightsApiResponse['motion
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ deviceId, label, countByHour, lastMotion }) => (
-                <tr key={deviceId} className={styles.heatmapRow}>
+              {rows.map(({ deviceId, instanceId, label, countByHour, lastMotion }) => (
+                <tr key={`${deviceId}:${instanceId ?? ''}`} className={styles.heatmapRow}>
                   <th className={styles.heatmapRowLabel}>
                     <Anchor component={Link} to={`/device/${deviceId}`}>{label}</Anchor>
                   </th>
@@ -278,6 +278,11 @@ interface MergedEvent {
   kind: TimelineEventKind;
   deviceId: number | null;
   deviceName: string | null;
+  // Set only for events tied to one instance of a multi-instance capability (e.g. a motion
+  // event from one zone of a Presence sensor). Composite with deviceId since instance ids are
+  // only unique within their own device.
+  zoneKey: string | null;
+  zoneName: string | null;
   item: TimelineItem;
 }
 
@@ -289,6 +294,8 @@ function buildTimelineEvents(data: SecurityInsightsApiResponse): MergedEvent[] {
       kind: 'arming',
       deviceId: null,
       deviceName: null,
+      zoneKey: null,
+      zoneName: null,
       item: {
         timestamp: arming.start,
         icon: faShieldHalved,
@@ -301,6 +308,8 @@ function buildTimelineEvents(data: SecurityInsightsApiResponse): MergedEvent[] {
         kind: 'arming',
         deviceId: null,
         deviceName: null,
+        zoneKey: null,
+        zoneName: null,
         item: {
           timestamp: arming.end,
           icon: faShieldHalved,
@@ -314,6 +323,8 @@ function buildTimelineEvents(data: SecurityInsightsApiResponse): MergedEvent[] {
         kind: 'activation',
         deviceId: activation.triggeringDevice.id,
         deviceName: activation.triggeringDevice.name,
+        zoneKey: null,
+        zoneName: null,
         item: {
           timestamp: activation.startedAt,
           icon: faBell,
@@ -329,10 +340,12 @@ function buildTimelineEvents(data: SecurityInsightsApiResponse): MergedEvent[] {
       kind: 'motion',
       deviceId: event.deviceId,
       deviceName: event.deviceName,
+      zoneKey: event.instanceId !== null ? `${event.deviceId}:${event.instanceId}` : null,
+      zoneName: event.instanceName,
       item: {
         timestamp: event.start,
         icon: faPersonWalking,
-        title: `Motion detected by ${event.deviceName}`,
+        title: `Motion detected by ${event.deviceName}${event.instanceName ? ` (${event.instanceName})` : ''}`,
         renderControls: event.recordingId !== null ? ({ togglePanel }) => [
           <a key="view" href="#" onClick={(e) => { e.preventDefault(); togglePanel('view'); }} className="card-link">view</a>,
           <a key="download" href={`/api/recording/${event.recordingId}?download=true`} className="card-link">download</a>,
@@ -349,6 +362,8 @@ function buildTimelineEvents(data: SecurityInsightsApiResponse): MergedEvent[] {
       kind: 'lock',
       deviceId: event.deviceId,
       deviceName: event.deviceName,
+      zoneKey: null,
+      zoneName: null,
       item: {
         timestamp: event.timestamp,
         icon: event.isLocked ? faDoorClosed : faDoorOpen,
@@ -362,6 +377,8 @@ function buildTimelineEvents(data: SecurityInsightsApiResponse): MergedEvent[] {
       kind: 'contact',
       deviceId: event.deviceId,
       deviceName: event.deviceName,
+      zoneKey: null,
+      zoneName: null,
       item: {
         timestamp: event.timestamp,
         icon: event.isOpen ? faDoorOpen : faDoorClosed,
@@ -375,6 +392,8 @@ function buildTimelineEvents(data: SecurityInsightsApiResponse): MergedEvent[] {
       kind: 'doorbell',
       deviceId: event.deviceId,
       deviceName: event.deviceName,
+      zoneKey: null,
+      zoneName: null,
       item: {
         timestamp: event.timestamp,
         icon: faBell,
@@ -394,6 +413,8 @@ function buildTimelineEvents(data: SecurityInsightsApiResponse): MergedEvent[] {
       kind: 'connectivity',
       deviceId: event.deviceId,
       deviceName: event.deviceName,
+      zoneKey: null,
+      zoneName: null,
       item: {
         timestamp: event.timestamp,
         icon: faSignal,
@@ -410,6 +431,7 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
   const allEvents = useMemo(() => buildTimelineEvents(data), [data]);
   const [selectedKinds, setSelectedKinds] = useState<Set<TimelineEventKind> | null>(null);
   const [selectedDevices, setSelectedDevices] = useState<Set<number> | null>(null);
+  const [selectedZones, setSelectedZones] = useState<Set<string> | null>(null);
 
   const deviceOptions = useMemo(() => {
     const map = new Map<number, string>();
@@ -423,13 +445,27 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [allEvents]);
 
+  const zoneOptions = useMemo(() => {
+    const map = new Map<string, string>();
+
+    for (const event of allEvents) {
+      if (event.zoneKey !== null && event.zoneName !== null) {
+        map.set(event.zoneKey, event.zoneName);
+      }
+    }
+
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [allEvents]);
+
   const filtered = allEvents.filter((event) =>
     (selectedKinds === null || selectedKinds.has(event.kind))
     && (selectedDevices === null || event.deviceId === null || selectedDevices.has(event.deviceId))
+    && (selectedZones === null || event.zoneKey === null || selectedZones.has(event.zoneKey))
   );
 
   const selectedKindCount = selectedKinds === null ? ALL_KINDS.length : selectedKinds.size;
   const selectedDeviceCount = selectedDevices === null ? deviceOptions.length : selectedDevices.size;
+  const selectedZoneCount = selectedZones === null ? zoneOptions.length : selectedZones.size;
 
   function toggleKind(kind: TimelineEventKind) {
     setSelectedKinds((prev) => {
@@ -453,6 +489,20 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
         next.delete(id);
       } else {
         next.add(id);
+      }
+
+      return next;
+    });
+  }
+
+  function toggleZone(key: string) {
+    setSelectedZones((prev) => {
+      const next = new Set(prev ?? zoneOptions.map(([zoneKey]) => zoneKey));
+
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
       }
 
       return next;
@@ -496,6 +546,24 @@ function TimelineCard({ data }: { data: SecurityInsightsApiResponse }) {
               ))}
             </Menu.Dropdown>
           </Menu>
+
+          {zoneOptions.length > 0 && (
+            <Menu closeOnItemClick={false} shadow="md">
+              <Menu.Target>
+                <Button variant="default" size="xs">{selectedZoneCount}/{zoneOptions.length} zones</Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                {zoneOptions.map(([key, name]) => (
+                  <Menu.Item key={key} onClick={() => toggleZone(key)}>
+                    <Group gap="xs" wrap="nowrap">
+                      <Checkbox.Indicator size="xs" checked={selectedZones === null || selectedZones.has(key)} />
+                      <Text size="xs">{name}</Text>
+                    </Group>
+                  </Menu.Item>
+                ))}
+              </Menu.Dropdown>
+            </Menu>
+          )}
         </Group>
       </Group>
 

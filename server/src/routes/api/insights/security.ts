@@ -39,30 +39,39 @@ export default async function (req: Request, res: Response) {
     })
   ]);
 
-  // Motion history, per device, hydrated with the recording (if the source device is a camera).
+  // Motion history, per (device, zone instance), hydrated with the recording (if the source
+  // device is a camera). A device with no getCapabilityInstances provider hook still yields
+  // its one singleton instance, so this covers ordinary single-zone motion sensors too.
   // Recordings are fetched in a single batched query rather than one-per-event. lastMotionEvent
-  // is the device's latest motion event full-stop, independent of the selected range - it powers
-  // "last motion detected" as a sanity check that the sensor is still reporting at all.
-  const motionHistoryByDevice = await asyncMap(motionDevices, async (device) => {
+  // is the instance's latest motion event full-stop, independent of the selected range - it
+  // powers "last motion detected" as a sanity check that the sensor is still reporting at all.
+  const motionInstances = motionDevices.flatMap((device) =>
+    device.getCapabilityInstances('MOTION_SENSOR').map((instance) => ({ device, instance }))
+  );
+
+  const motionHistoryByInstance = await asyncMap(motionInstances, async ({ device, instance }) => {
+    const sensor = device.getMotionSensorCapability(instance.id);
     const [history, lastMotionEvent] = await Promise.all([
-      device.getMotionSensorCapability().getHasMotionHistory(selector),
-      device.getMotionSensorCapability().getHasMotionEvent()
+      sensor.getHasMotionHistory(selector),
+      sensor.getHasMotionEvent()
     ]);
 
-    return { device, history, lastMotionEvent };
+    return { device, instance, history, lastMotionEvent };
   });
 
   const recordingsByEventId = new Map(
     (await Recording.findAll({
-      where: { eventId: { [Op.in]: motionHistoryByDevice.flatMap(({ history }) => history.map((event) => event.id)) } }
+      where: { eventId: { [Op.in]: motionHistoryByInstance.flatMap(({ history }) => history.map((event) => event.id)) } }
     })).map((recording) => [recording.eventId, recording])
   );
 
-  const motionEvents = motionHistoryByDevice.flatMap(({ device, history }) =>
+  const motionEvents = motionHistoryByInstance.flatMap(({ device, instance, history }) =>
     history.map((event) => ({
       id: event.id,
       deviceId: device.id,
       deviceName: device.name,
+      instanceId: instance.id,
+      instanceName: instance.name,
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
       recordingId: recordingsByEventId.get(event.id)?.id ?? null
@@ -203,12 +212,16 @@ export default async function (req: Request, res: Response) {
     };
   });
 
-  // Motion-by-device-hour heatmap, aggregated across every day in the selected range. Seed
-  // every motion sensor up front so it still gets a row even with zero motion in the range.
-  const motionByDeviceHour = new Map(motionHistoryByDevice.map(({ device, lastMotionEvent }) =>
-    [device.id, {
+  // Motion-by-zone heatmap, aggregated across every day in the selected range. Seed every
+  // motion sensor instance up front so it still gets a row even with zero motion in the range.
+  // Keyed by (deviceId, instanceId) since instance ids are only unique within one device.
+  const motionByDeviceHourKey = (deviceId: number, instanceId: string | null) => `${deviceId}:${instanceId ?? ''}`;
+
+  const motionByDeviceHour = new Map(motionHistoryByInstance.map(({ device, instance, lastMotionEvent }) =>
+    [motionByDeviceHourKey(device.id, instance.id), {
       deviceId: device.id,
-      label: device.name,
+      instanceId: instance.id,
+      label: instance.name ? `${device.name} · ${instance.name}` : device.name,
       countByHour: new Array(24).fill(0),
       lastMotion: lastMotionEvent?.start.toISOString() ?? null
     }]
@@ -220,7 +233,7 @@ export default async function (req: Request, res: Response) {
     }
 
     const hour = dayjs(event.start).hour();
-    motionByDeviceHour.get(event.deviceId)!.countByHour[hour] += 1;
+    motionByDeviceHour.get(motionByDeviceHourKey(event.deviceId, event.instanceId))!.countByHour[hour] += 1;
   }
 
   const response: SecurityInsightsApiResponse = {

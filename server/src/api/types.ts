@@ -402,6 +402,8 @@ export interface SecurityInsightsApiResponse {
     id: number;
     deviceId: number;
     deviceName: string;
+    instanceId: string | null;
+    instanceName: string | null;
     start: string;
     end: string | null;
     recordingId: number | null;
@@ -429,6 +431,7 @@ export interface SecurityInsightsApiResponse {
   }>;
   motionByDeviceHour: Array<{
     deviceId: number;
+    instanceId: string | null;
     label: string;
     // Always 24 entries, one motion count per hour of day (0-23).
     countByHour: number[];
