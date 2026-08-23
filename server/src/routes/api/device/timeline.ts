@@ -132,8 +132,10 @@ export default async function (req: Request<{ id: string }>, res: Response, next
           switchCapability.getIsOnHistory(historySelector).then(history => {
             for (const event of history) {
               events.push({ type: 'switch-on', timestamp: event.start.toISOString() });
+
               if (event.end) {
                 const durationSeconds = Math.round((event.end.getTime() - event.start.getTime()) / 1000);
+
                 events.push({ type: 'switch-off', timestamp: event.end.toISOString(), durationSeconds });
               }
             }
