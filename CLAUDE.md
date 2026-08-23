@@ -80,6 +80,11 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 ### Coding Style
 
 - **Always use curly braces for `if` statements**, even single-line bodies. Never write `if (x) doSomething();`.
+- **Blank line after a declaration group, and around blocks.** After the last `const`/`let` in a contiguous group of declarations, add a blank line before the next non-declaration statement (a call, `if`, `for`, `return`, etc.). Likewise, surround `if`/`for`/`while`/`try` blocks with a blank line before (if preceded by other statements) and after (if followed by other statements) — see `routes/api/device/timeline.ts`'s `SWITCH` case for a clean example. Exceptions, applied consistently across the codebase:
+  - No blank line when the declaration is immediately consumed by the very next statement (e.g. `const capability = device.getFooCapability(); somePromise.push(...)`, or `const x = foo(); return x;`).
+  - Consecutive short, related declarations can be grouped without blank lines between them — just add the one blank line before the next *distinct* statement.
+  - No leading blank line for the first statement right after an opening `{`, and none right before a closing `}` — including a guard clause that's the first line of a function.
+  - Trivial one- or two-statement bodies don't need any separating blank lines (nothing to separate).
 
 ### REST API Type System
 
