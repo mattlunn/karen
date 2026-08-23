@@ -286,3 +286,16 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 4. Run `npm run migrate`
 5. Run `npm run dev` (watch) and `npm run start:dev` (server) in separate terminals
 6. Use ngrok for public endpoint: `https://karen-dev.ngrok.io`
+
+## New worktree setup
+
+Spawned worktrees are clean checkouts — `server/src/config.json` is gitignored, so it never carries over automatically, and worktrees may be created by tooling (e.g. Claude Remote Control) with no interactive setup step. Before running or testing anything, from the worktree root:
+
+```bash
+if [ -f /opt/karen/config.json ]; then
+  ln -s /opt/karen/config.json server/src/config.json
+else
+  echo "No shared config.json at /opt/karen/config.json — follow 'Local Development Setup' above to create server/src/config.json manually."
+fi
+cd server/src && npm install && npm run codegen
+```
