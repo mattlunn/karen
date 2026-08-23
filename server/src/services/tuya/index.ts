@@ -2,6 +2,7 @@ import TuyaDevice from 'tuyapi';
 import { Device } from '../../models';
 import config from '../../config';
 import sleep from '../../helpers/sleep';
+import logger from '../../logger';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 
@@ -84,11 +85,12 @@ nowAndSetInterval(createBackgroundTransaction('tuya:poll', async () => {
 
       await device.getSwitchCapability().setIsOnState(isOn);
       await device.getConnectivityCapability().setIsConnectedState(true);
-    } catch {
+    } catch (e) {
       // A poll failure while the device is off/unreachable is expected, not
-      // exceptional - setIsConnectedState(false) is the meaningful signal
-      // here, so don't also propagate the error and spam the background
-      // transaction with a failure on every single poll interval.
+      // exceptional, so don't rethrow and crash the poll loop - but log it
+      // so the actual connectivity failure reason is visible.
+      logger.error(e, `Failed to poll tuya device ${device.providerId}`);
+
       await device.getConnectivityCapability().setIsConnectedState(false);
     }
   }));
