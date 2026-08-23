@@ -22,7 +22,7 @@ Device.registerProvider('shelly', {
       case 'SBDW-002C':    // Shelly BLU Door/Window (via BLE gateway)
         return ['CONTACT_SENSOR', 'BATTERY_LEVEL_INDICATOR'];
 
-      case 'S4PR-001XE16EU': // Shelly Presence Gen4 (mmWave, multi-zone)
+      case 'S4SN-0U61X': // Shelly Presence Gen4 (mmWave, multi-zone)
         return ['MOTION_SENSOR', 'CONNECTIVITY'];
 
       default:
