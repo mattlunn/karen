@@ -30,9 +30,6 @@ Device.registerProvider('shelly', {
     }
   },
 
-  // The Presence Gen4 reports occupancy separately per configured zone. Zones
-  // are regions of one sensor's field of view rather than separate hardware,
-  // so they're instances of MOTION_SENSOR on this device, not child devices.
   getCapabilityInstances(device: Device, capability: Capability): CapabilityInstance[] {
     // For Shelly Presence Gen4.
     if (capability === 'MOTION_SENSOR' && Array.isArray(device.meta.zones)) {
