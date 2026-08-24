@@ -186,7 +186,7 @@ Device.registerProvider('providerName', {
 
 **Configuration-Driven Automations**: Automations are configured in `config/automations.json` (a top-level array of `{ name, parameters }`, sibling to `config/app.json` — see "Automations config" below) and dynamically loaded at startup by `automations/index.js`. Each automation module receives `parameters` and registers event handlers. Each automation exports a default function with a named `FooAutomationParameters` type for its config object (see `automations/bathroom.ts`). Required parameters have no defaults. `automations/index.js` also watches `config/automations.json` for changes and calls `process.exit(0)` when it changes — nodemon (dev) or the container's restart policy (prod) is what actually brings the process back up with the new config; there is no in-process hot-reload, since automation modules subscribe to events at load time with no teardown path.
 
-**Automations config**: `config/automations.json` holds no secrets (device names, timeouts, schedules only), unlike `config/app.json`. Unlike `config/app.json`, DEV and PROD deliberately do **not** share this file — `server/src/config/automations.json` in a worktree symlinks to DEV's own copy at `/opt/karen/config/automations.json` (see "New worktree setup") and is safe to experiment with freely. PROD's copy lives at a separate host path, bind-mounted into the PROD container; it is additionally mounted (read-write, but *not* symlinked into any worktree's `server/src/`) somewhere reachable from this devcontainer so it can be inspected or edited directly for live debugging/changes — editing it changes real production automation behaviour (door locks, heating, lights) after the next restart, so treat it accordingly. Both files are gitignored (not git-tracked), same as `config/app.json`.
+**Automations config**: `config/automations.json` holds no secrets (device names, timeouts, schedules only), unlike `config/app.json`. Unlike `config/app.json`, DEV and PROD deliberately do **not** share this file — each environment has its own copy, both gitignored (not git-tracked), same as `config/app.json`. See `CLAUDE.local.md` for this host's specific paths and how to reach PROD's copy for live debugging/changes — editing PROD's copy changes real production automation behaviour (door locks, heating, lights) after the next restart, so treat it accordingly.
 
 **Runtime mutable config**: For settings that need to persist across server restarts and be changeable at runtime (e.g. feature flags, seasonal overrides), add a field to `config/app.json` and use `saveConfig()` from `helpers/config.js` to write back to disk atomically. Do NOT create a new DB settings table — `saveConfig` is the established pattern already used for Tado/Alexa/SmartCar token persistence and costs zero infrastructure.
 
@@ -283,7 +283,7 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 ## Local Development Setup
 
 1. Clone this repo and `george` dependency
-2. Copy `config.json` from live, empty secrets, place in `./server/src/config/app.json`
+2. Copy `config/app.json` from live, empty secrets, place in `./server/src/config/app.json`
 3. Create MySQL database and update config
 4. Run `npm run migrate`
 5. Run `npm run dev` (watch) and `npm run start:dev` (server) in separate terminals
