@@ -40,8 +40,7 @@ export default async function (req: Request, res: Response) {
   ]);
 
   // Motion history, per (device, zone instance), hydrated with the recording (if the source
-  // device is a camera). A device with no getCapabilityInstances provider hook still yields
-  // its one singleton instance, so this covers ordinary single-zone motion sensors too.
+  // device is a camera).
   // Recordings are fetched in a single batched query rather than one-per-event. lastMotionEvent
   // is the instance's latest motion event full-stop, independent of the selected range - it
   // powers "last motion detected" as a sanity check that the sensor is still reporting at all.

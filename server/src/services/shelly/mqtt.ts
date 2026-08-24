@@ -120,11 +120,7 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
     const data = JSON.parse(payload);
 
     if (capabilities.includes('MOTION_SENSOR')) {
-      if (typeof data.value !== 'boolean') {
-        logger.warn(`Shelly presence zone ${zoneId} on ${mqttId} reported no recognised occupancy field: ${payload}`);
-      } else {
-        await device.getMotionSensorCapability(zoneId).setHasMotionState(data.value);
-      }
+      await device.getMotionSensorCapability(zoneId).setHasMotionState(data.value);
     }
 
     return;

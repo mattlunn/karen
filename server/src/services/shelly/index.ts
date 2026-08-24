@@ -35,6 +35,7 @@ Device.registerProvider('shelly', {
   // so they're instances of MOTION_SENSOR on this device, not child devices.
   // CONNECTIVITY stays singleton - it belongs to the unit as a whole.
   getCapabilityInstances(device: Device, capability: Capability): CapabilityInstance[] {
+    // For Shelly Presence Gen4.
     if (capability === 'MOTION_SENSOR' && Array.isArray(device.meta.zones)) {
       return (device.meta.zones as { id: string; name: string }[]).map(({ id, name }) => ({ id, name }));
     }
