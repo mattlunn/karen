@@ -1,6 +1,5 @@
 node_modules
-server/src/config/app.json
-server/src/config/automations.json
+server/src/config
 .env.prod
 .idea
 .DS_Store
