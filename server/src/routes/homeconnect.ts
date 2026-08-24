@@ -1,5 +1,5 @@
 import express from 'express';
-import config from '../config';
+import config from '../config/app';
 import { stringify} from 'querystring';
 import logger from '../logger';
 

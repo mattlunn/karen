@@ -1,5 +1,5 @@
 import dayjs, { Dayjs } from '../../dayjs';
-import config from '../../config';
+import config from '../../config/app';
 import logger from '../../logger';
 import { Event, BooleanEvent, Recording, Stay, Device, Op } from '../../models';
 import s3 from '../s3';

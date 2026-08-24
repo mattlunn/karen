@@ -2,7 +2,7 @@ import { Token, User } from '../models';
 import auth from '../middleware/auth';
 import { Router } from 'express';
 import dayjs from '../dayjs';
-import config from '../config';
+import config from '../config/app';
 import logger from '../logger';
 
 const router = Router();

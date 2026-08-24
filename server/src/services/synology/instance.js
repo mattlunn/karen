@@ -1,5 +1,5 @@
 import createSynologyInstance from './lib/';
-import config from '../../config.json';
+import config from '../../config/app.json';
 
 function synologyFactory() {
   return createSynologyInstance(

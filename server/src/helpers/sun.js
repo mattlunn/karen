@@ -1,5 +1,5 @@
 import { getTimes } from 'suncalc';
-import { location } from '../config';
+import { location } from '../config/app';
 import dayjs from '../dayjs';
 
 export default function(date) {

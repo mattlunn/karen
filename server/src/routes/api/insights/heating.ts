@@ -5,7 +5,7 @@ import { TimeRangeSelector } from '../../../models/capabilities/helpers';
 import { mapNumericHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
 import { awaitPromises } from '../../../helpers/promises';
 import { asyncMap } from '../../../helpers/array';
-import config from '../../../config';
+import automations from '../../../config/automations.json';
 
 function findEventAt(events: NumericEvent[], t: number): NumericEvent | null {
   // Events are ordered newest-first (DESC). Iterate that way so that if a stale
@@ -72,7 +72,7 @@ export default async function (req: Request, res: Response) {
 
   const heatpump = heatpumps[0].getHeatPumpCapability();
 
-  const heatingAutomation = config.automations.find((a) => a.name === 'heating');
+  const heatingAutomation = automations.find((a) => a.name === 'heating');
   const switchOnThreshold = heatingAutomation?.parameters?.temperatureDeltaSwitchOnThreshold;
 
   res.json(await awaitPromises({

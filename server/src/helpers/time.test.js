@@ -1,4 +1,4 @@
-jest.mock('../config', () => ({}), { virtual: true });
+jest.mock('../config/app', () => ({}), { virtual: true });
 
 import { isWithinTime } from './time';
 import getSunriseAndSunset from './sun';

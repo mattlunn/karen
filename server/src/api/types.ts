@@ -184,6 +184,7 @@ export type HistoryLineApiResponse = {
   label: string;
   yAxisID?: string;
   borderDash?: number[];
+  period?: 'day' | 'month';
 };
 
 export type HistoryModeDetailApiResponse = {
@@ -201,6 +202,7 @@ export type HistoryBarApiResponse = {
   data: HistoryDetailsApiResponse<NumericEventApiResponse>;
   label: string;
   yAxisID?: string;
+  period?: 'day' | 'month';
 };
 
 export type HistoryApiResponse = {

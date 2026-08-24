@@ -1,6 +1,6 @@
 import bus, { NOTIFICATION_TO_ALL } from '../bus';
 import { Device } from '../models';
-import config from '../config';
+import config from '../config/app';
 import dayjs from '../dayjs';
 import logger from '../logger';
 import setIntervalForTime from '../helpers/set-interval-for-time';

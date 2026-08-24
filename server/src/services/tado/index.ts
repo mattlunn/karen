@@ -1,7 +1,7 @@
 import { Device } from '../../models';
 import { ScheduledChange } from '../../models/capabilities';
 import TadoClient, { TadoClientError, ZoneOverlayResponse, ZoneState, ZoneTimetableBlock, ZonesState, exchangeRefreshTokenForAccessToken } from './client';
-import config from '../../config';
+import config from '../../config/app';
 import { saveConfig } from '../../helpers/config';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import dayjs from '../../dayjs';

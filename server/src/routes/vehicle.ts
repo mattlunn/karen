@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
-import config from '../config';
+import config from '../config/app';
 import { Device } from '../models';
 import logger from '../logger';
 import { saveConfig } from '../helpers/config';
@@ -56,7 +56,7 @@ smartcarRouter.get('/callback', async (req, res) => {
 
     res.send(`
       <h1>SmartCar Authorization Successful!</h1>
-      <p>User and vehicle have been saved to config.json</p>
+      <p>User and vehicle have been saved to config/app.json</p>
       <p>You can close this window.</p>
     `);
   } catch (error) {

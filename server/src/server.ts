@@ -15,7 +15,7 @@ import versionRoutes from './routes/version';
 import auth from './middleware/auth';
 import buildVersion from './middleware/build-version';
 import { Device } from './models';
-import config from './config';
+import config from './config/app';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import compression from 'compression';
