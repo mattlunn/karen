@@ -1,6 +1,6 @@
 import TuyaDevice from 'tuyapi';
 import { Device } from '../../models';
-import config from '../../config';
+import config from '../../config/app';
 import sleep from '../../helpers/sleep';
 import logger from '../../logger';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';

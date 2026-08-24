@@ -1,6 +1,6 @@
 import { Device } from '../../models';
 import { ElectricVehicleCapability, NextChargeSchedule, ManualChargeSchedule } from '../../models/capabilities';
-import config from '../../config';
+import config from '../../config/app';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';

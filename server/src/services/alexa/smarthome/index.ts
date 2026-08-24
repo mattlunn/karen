@@ -1,4 +1,4 @@
-import config from '../../../config';
+import config from '../../../config/app';
 import logger from '../../../logger';
 import { Device } from '../../../models';
 import { makeEventsRequest } from './client';

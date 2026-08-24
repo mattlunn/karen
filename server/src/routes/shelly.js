@@ -1,5 +1,5 @@
 import express from 'express';
-import config from '../config';
+import config from '../config/app';
 import { Device } from '../models';
 import DeviceClient from '../services/shelly/client/device';
 

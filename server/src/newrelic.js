@@ -1,4 +1,4 @@
-const { newrelic } = require('./config');
+const { newrelic } = require('./config/app');
 
 /**
  * New Relic agent configuration.

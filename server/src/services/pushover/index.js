@@ -1,5 +1,5 @@
 import Push from 'pushover-notifications';
-import config from '../../config';
+import config from '../../config/app';
 import logger from '../../logger';
 import bus, { NOTIFICATION_TO_ADMINS, NOTIFICATION_TO_ALL, NOTIFICATION_TO_USER } from '../../bus';
 import { User } from '../../models';

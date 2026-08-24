@@ -1,7 +1,7 @@
 import { Umzug, SequelizeStorage } from 'umzug';
 import Sequelize from 'sequelize';
 import path from 'path';
-import config from '../config';
+import config from '../config/app';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 

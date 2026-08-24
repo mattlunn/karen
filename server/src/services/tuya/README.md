@@ -3,7 +3,7 @@
 Controls devices built on the Tuya platform (e.g. white-labelled devices from
 brands like Mus Flame) purely over the local network via `tuyapi` — no cloud
 dependency at runtime. Follows the same shape as the `tplink`/`sony-bravia`
-providers: devices are defined in `config.json`, not auto-discovered.
+providers: devices are defined in `config/app.json`, not auto-discovered.
 
 ## Adding a new device
 
@@ -74,7 +74,7 @@ the device exposes.
 - Or run `python3 -m tinytuya scan` from a machine on the same LAN — it
   reports the version alongside the IP for every device it finds.
 
-### 6. Add the device to `config.json`
+### 6. Add the device to `config/app.json`
 
 ```json
 "tuya": {

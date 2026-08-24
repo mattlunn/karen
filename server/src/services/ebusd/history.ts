@@ -3,7 +3,7 @@ import { NumericEvent, StringEvent } from '../../models/event';
 import { HeatPumpMode, HeatPumpCapability } from '../../models/capabilities';
 import { filterClampAndSortHistory } from '../../helpers/history';
 import { calculateWattHours } from '../../helpers/energy';
-import config from '../../config';
+import config from '../../config/app';
 import { Device } from '../../models';
 import logger from '../../logger';
 

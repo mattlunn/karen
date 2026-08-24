@@ -10,10 +10,6 @@ declare namespace _default {
     let access_token: string;
     let refresh_token: string;
   }
-  export const automations: {
-    name: string;
-    parameters?: Record<string, unknown>;
-  }[];
   export namespace s3 {
     const access_key_id: string;
     const secret_access_key: string;

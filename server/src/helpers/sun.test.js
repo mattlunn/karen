@@ -1,6 +1,6 @@
 import getSunriseAndSunset from './sun';
 
-jest.mock('../config', () => ({
+jest.mock('../config/app', () => ({
   location: {
     latitude: 51.50101,
     longitude: -0.14159

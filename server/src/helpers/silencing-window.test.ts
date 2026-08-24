@@ -1,4 +1,4 @@
-jest.mock('../config', () => ({}), { virtual: true });
+jest.mock('../config/app', () => ({}), { virtual: true });
 
 import dayjs from '../dayjs';
 import { findActiveSilencingWindow, getSilencingWindowEndsAt, SilencingWindow } from './silencing-window';
