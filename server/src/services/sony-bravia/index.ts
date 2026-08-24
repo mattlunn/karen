@@ -1,6 +1,6 @@
 import { Device } from '../../models';
 import { TelevisionSource } from '../../models/capabilities';
-import config from '../../config';
+import config from '../../config/app';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import BraviaClient from './client';

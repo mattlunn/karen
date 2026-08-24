@@ -1,4 +1,4 @@
-import config from '../../config';
+import config from '../../config/app';
 import logger from '../../logger';
 import type { SmartcarSignalsResponse, SmartcarConnectionsResponse } from './types';
 

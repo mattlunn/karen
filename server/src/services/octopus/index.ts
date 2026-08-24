@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import config from '../../config';
+import config from '../../config/app';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import type { Capability } from '../../models/capabilities';
