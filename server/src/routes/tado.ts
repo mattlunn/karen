@@ -1,5 +1,5 @@
 import express from 'express';
-import config from '../config';
+import config from '../config/app';
 import { saveConfig } from '../helpers/config';
 import { stringify } from 'querystring';
 import sleep from '../helpers/sleep';

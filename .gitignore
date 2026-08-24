@@ -1,5 +1,5 @@
 node_modules
-config.json
+server/src/config/
 .env.prod
 .idea
 .DS_Store

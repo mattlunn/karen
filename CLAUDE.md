@@ -61,7 +61,7 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 - `models/` - Sequelize ORM models (Device, User, Room, Event, etc.)
 - `models/capabilities/` - Device capability system (Light, Lock, Thermostat, etc.)
 - `services/` - Integration services for each IoT platform (alexa/, tado/, shelly/, etc.)
-- `automations/` - Rule-based automation modules loaded from config.json
+- `automations/` - Rule-based automation modules loaded from config/automations.json
 - `routes/` - Express route handlers for REST endpoints and webhooks
 - `components/` - React components (pages/, modals/, capability-graphs/)
 - `helpers/` - Utility functions (date, time, sun calculations, presence)
@@ -184,9 +184,11 @@ Device.registerProvider('providerName', {
 
 **Event-Driven Updates**: Device changes emit events via `DeviceCapabilityEvents`, which trigger SSE (Server-Sent Events) for real-time UI updates.
 
-**Configuration-Driven Automations**: Automations are configured in `config.json` and dynamically loaded at startup. Each automation module receives parameters and registers event handlers. Each automation exports a default function with a named `FooAutomationParameters` type for its config object (see `automations/bathroom.ts`). Required parameters have no defaults.
+**Configuration-Driven Automations**: Automations are configured in `config/automations.json` (a top-level array of `{ name, parameters }`, sibling to `config/app.json` — see "Automations config" below) and dynamically loaded at startup by `automations/index.js`. Each automation module receives `parameters` and registers event handlers. Each automation exports a default function with a named `FooAutomationParameters` type for its config object (see `automations/bathroom.ts`). Required parameters have no defaults. `automations/index.js` also watches `config/automations.json` for changes and calls `process.exit(0)` when it changes — nodemon (dev) or the container's restart policy (prod) is what actually brings the process back up with the new config; there is no in-process hot-reload, since automation modules subscribe to events at load time with no teardown path.
 
-**Runtime mutable config**: For settings that need to persist across server restarts and be changeable at runtime (e.g. feature flags, seasonal overrides), add a field to `config.json` and use `saveConfig()` from `helpers/config.js` to write back to disk atomically. Do NOT create a new DB settings table — `saveConfig` is the established pattern already used for Tado/Alexa/SmartCar token persistence and costs zero infrastructure.
+**Automations config**: `config/automations.json` holds no secrets (device names, timeouts, schedules only), unlike `config/app.json`. Unlike `config/app.json`, DEV and PROD deliberately do **not** share this file — `server/src/config/automations.json` in a worktree symlinks to DEV's own copy at `/opt/karen/config/automations.json` (see "New worktree setup") and is safe to experiment with freely. PROD's copy lives at a separate host path, bind-mounted into the PROD container; it is additionally mounted (read-write, but *not* symlinked into any worktree's `server/src/`) somewhere reachable from this devcontainer so it can be inspected or edited directly for live debugging/changes — editing it changes real production automation behaviour (door locks, heating, lights) after the next restart, so treat it accordingly. Both files are gitignored (not git-tracked), same as `config/app.json`.
+
+**Runtime mutable config**: For settings that need to persist across server restarts and be changeable at runtime (e.g. feature flags, seasonal overrides), add a field to `config/app.json` and use `saveConfig()` from `helpers/config.js` to write back to disk atomically. Do NOT create a new DB settings table — `saveConfig` is the established pattern already used for Tado/Alexa/SmartCar token persistence and costs zero infrastructure.
 
 **Capability UI Registry**: UI configuration for device capabilities is centralized in `/components/capabilities/`. When adding a new capability type, only update `registry.tsx`:
 
@@ -281,7 +283,7 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 ## Local Development Setup
 
 1. Clone this repo and `george` dependency
-2. Copy `config.json` from live, empty secrets, place in `./server/src/config.json`
+2. Copy `config.json` from live, empty secrets, place in `./server/src/config/app.json`
 3. Create MySQL database and update config
 4. Run `npm run migrate`
 5. Run `npm run dev` (watch) and `npm run start:dev` (server) in separate terminals
@@ -289,13 +291,21 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 
 ## New worktree setup
 
-Spawned worktrees are clean checkouts — `server/src/config.json` is gitignored, so it never carries over automatically, and worktrees may be created by tooling (e.g. Claude Remote Control) with no interactive setup step. Before running or testing anything, from the worktree root:
+Spawned worktrees are clean checkouts — `server/src/config/` (holding `app.json` and `automations.json`) is gitignored, so it never carries over automatically, and worktrees may be created by tooling (e.g. Claude Remote Control) with no interactive setup step. Before running or testing anything, from the worktree root:
 
 ```bash
-if [ -f /opt/karen/config.json ]; then
-  ln -s /opt/karen/config.json server/src/config.json
+mkdir -p server/src/config
+
+if [ -f /opt/karen/config/app.json ]; then
+  ln -s /opt/karen/config/app.json server/src/config/app.json
 else
-  echo "No shared config.json at /opt/karen/config.json — follow 'Local Development Setup' above to create server/src/config.json manually."
+  echo "No shared config/app.json at /opt/karen/config/app.json — follow 'Local Development Setup' above to create server/src/config/app.json manually."
+fi
+
+if [ -f /opt/karen/config/automations.json ]; then
+  ln -s /opt/karen/config/automations.json server/src/config/automations.json
+else
+  echo "No shared automations.json at /opt/karen/config/automations.json — see 'Automations config' below."
 fi
 cd server/src && npm install && npm run codegen
 ```
