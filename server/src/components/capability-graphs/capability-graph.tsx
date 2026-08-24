@@ -69,6 +69,15 @@ function mapNumericDataToDataset(numericEventHistory: HistoryDetailsApiResponse<
   }, []);
 }
 
+function mapNumericDataToBarDataset(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse>) {
+  const sortedEvents = filterClampAndSortHistory(numericEventHistory.history, numericEventHistory.since, numericEventHistory.until, false);
+
+  return sortedEvents.map(curr => ({
+    x: curr.start,
+    y: curr.value
+  }));
+}
+
 export type CapabilityGraphProps = {
   lines: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
@@ -151,7 +160,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   const { min, max } = minMax;
   const modesOnly = props.lines.length === 0;
 
-  const datasets: ChartDataset<"line", { x: string; y: number; }[]>[] = props.lines.map(x => ({
+  const datasets: (ChartDataset<"line", { x: string; y: number; }[]> | ChartDataset<"bar", { x: string; y: number; }[]>)[] = props.lines.map(x => ({
     type: 'line',
     data: mapNumericDataToDataset(x.data),
     label: x.label,
@@ -228,15 +237,11 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
   if (props.bar) {
     datasets.push({
-      type: 'line',
-      fill: 'start',
-      data: mapNumericDataToDataset(props.bar.data),
+      type: 'bar',
+      data: mapNumericDataToBarDataset(props.bar.data),
       label: props.bar.label,
       yAxisID: props.bar.yAxisID || 'y',
-      pointHitRadius: 10,
-      pointRadius: 0,
-      borderWidth: 1,
-      stepped: true
+      borderWidth: 1
     });
   }
 
