@@ -69,18 +69,47 @@ function mapNumericDataToDataset(numericEventHistory: HistoryDetailsApiResponse<
   }, []);
 }
 
+// For periodic aggregates (daily/monthly totals etc.) rather than a continuously-held state:
+// one point per bucket (at the bucket's start, matching the axis tick), so a line interpolates
+// a trend between buckets instead of plotting a plateau across the whole bucket that jumps at
+// the boundary.
+//
+// setNumericProperty collapses consecutive buckets that share the same value into a single
+// event spanning all of them (e.g. four zero-usage days become one row from day 1 to day 5).
+// When `period` is given, that span is unrolled back into one point per bucket, so e.g. a bar
+// chart still shows four separate zero bars instead of one that silently covers 4 days.
+function mapNumericDataToAggregateDataset(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse>, period?: 'day' | 'month') {
+  const sortedEvents = filterClampAndSortHistory(numericEventHistory.history, numericEventHistory.since, numericEventHistory.until, false);
+
+  return sortedEvents.reduce((acc: ({ x: string, y: number })[], curr) => {
+    // Still the current/in-progress bucket - there's only one point to plot.
+    if (!period || !curr.end) {
+      acc.push({ x: curr.start, y: curr.value });
+      return acc;
+    }
+
+    for (let bucket = dayjs(curr.start); bucket.isBefore(curr.end); bucket = bucket.add(1, period)) {
+      acc.push({ x: bucket.toISOString(), y: curr.value });
+    }
+
+    return acc;
+  }, []);
+}
+
 export type CapabilityGraphProps = {
   lines: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
     yAxisID?: string,
-    borderDash?: number[]
+    borderDash?: number[],
+    period?: 'day' | 'month'
   }[]
 
   bar?: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
-    yAxisID?: string
+    yAxisID?: string,
+    period?: 'day' | 'month'
   }
 
   zones?: {
@@ -151,11 +180,12 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   const { min, max } = minMax;
   const modesOnly = props.lines.length === 0;
 
-  const datasets: ChartDataset<"line", { x: string; y: number; }[]>[] = props.lines.map(x => ({
+  const datasets: (ChartDataset<"line", { x: string; y: number; }[]> | ChartDataset<"bar", { x: string; y: number; }[]>)[] = props.lines.map(x => ({
     type: 'line',
-    data: mapNumericDataToDataset(x.data),
+    data: x.period ? mapNumericDataToAggregateDataset(x.data, x.period) : mapNumericDataToDataset(x.data),
     label: x.label,
     yAxisID: x.yAxisID || 'y',
+    ...(x.period ? { tension: 0.3 } : {}),
     ...(x.borderDash ? { borderDash: x.borderDash } : {})
   }));
 
@@ -228,15 +258,11 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
   if (props.bar) {
     datasets.push({
-      type: 'line',
-      fill: 'start',
-      data: mapNumericDataToDataset(props.bar.data),
+      type: 'bar',
+      data: mapNumericDataToAggregateDataset(props.bar.data, props.bar.period),
       label: props.bar.label,
       yAxisID: props.bar.yAxisID || 'y',
-      pointHitRadius: 10,
-      pointRadius: 0,
-      borderWidth: 1,
-      stepped: true
+      borderWidth: 1
     });
   }
 

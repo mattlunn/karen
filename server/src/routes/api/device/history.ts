@@ -16,6 +16,7 @@ export type HistoryLineResponse = {
   data: HistoryDetailsApiResponse<NumericEventApiResponse>;
   label: string;
   yAxisID?: string;
+  period?: 'day' | 'month';
 };
 
 export type HistoryModeDetail = {
@@ -33,6 +34,7 @@ export type HistoryBarResponse = {
   data: HistoryDetailsApiResponse<NumericEventApiResponse>;
   label: string;
   yAxisID?: string;
+  period?: 'day' | 'month';
 };
 
 export type HistoryResponse = {
@@ -195,12 +197,12 @@ const historyFetchers = new Map<string, HistoryFetcher>([
 
     return awaitPromises({
       bar: mapNumericHistoryToResponse((hs) => heatPump.getDayCoPHistory(hs), selector)
-        .then(data => ({ data, label: 'CoP', yAxisID: 'yCoP' })),
+        .then(data => ({ data, label: 'CoP', yAxisID: 'yCoP', period: 'day' as const })),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => heatPump.getDayPowerHistory(hs), selector)
-          .then(data => ({ data, label: 'Power (kWh)', yAxisID: 'yEnergy' })),
+          .then(data => ({ data, label: 'Power (kWh)', yAxisID: 'yEnergy', period: 'day' as const })),
         mapNumericHistoryToResponse((hs) => heatPump.getDayYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'Yield (kWh)', yAxisID: 'yEnergy' }))
+          .then(data => ({ data, label: 'Yield (kWh)', yAxisID: 'yEnergy', period: 'day' as const }))
       ])
     });
   }],
@@ -211,12 +213,12 @@ const historyFetchers = new Map<string, HistoryFetcher>([
 
     return awaitPromises({
       bar: mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCoPHistory(hs), selector)
-        .then(data => ({ data, label: 'Heating CoP', yAxisID: 'yCoP' })),
+        .then(data => ({ data, label: 'Heating CoP', yAxisID: 'yCoP', period: 'day' as const })),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingPowerHistory(hs), selector)
-          .then(data => ({ data, label: 'Heating Power (kWh)', yAxisID: 'yEnergy' })),
+          .then(data => ({ data, label: 'Heating Power (kWh)', yAxisID: 'yEnergy', period: 'day' as const })),
         mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'Heating Yield (kWh)', yAxisID: 'yEnergy' }))
+          .then(data => ({ data, label: 'Heating Yield (kWh)', yAxisID: 'yEnergy', period: 'day' as const }))
       ])
     });
   }],
@@ -227,12 +229,12 @@ const historyFetchers = new Map<string, HistoryFetcher>([
 
     return awaitPromises({
       bar: mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCoPHistory(hs), selector)
-        .then(data => ({ data, label: 'DHW CoP', yAxisID: 'yCoP' })),
+        .then(data => ({ data, label: 'DHW CoP', yAxisID: 'yCoP', period: 'day' as const })),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => heatPump.getDayDHWPowerHistory(hs), selector)
-          .then(data => ({ data, label: 'DHW Power (kWh)', yAxisID: 'yEnergy' })),
+          .then(data => ({ data, label: 'DHW Power (kWh)', yAxisID: 'yEnergy', period: 'day' as const })),
         mapNumericHistoryToResponse((hs) => heatPump.getDayDHWYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'DHW Yield (kWh)', yAxisID: 'yEnergy' }))
+          .then(data => ({ data, label: 'DHW Yield (kWh)', yAxisID: 'yEnergy', period: 'day' as const }))
       ])
     });
   }],
@@ -316,10 +318,10 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     return awaitPromises({
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => ev.getMonthlyEfficiencyHistory(hs), selector)
-          .then(data => ({ data, label: 'Efficiency (mi/kWh)', yAxisID: 'yEfficiency' }))
+          .then(data => ({ data, label: 'Efficiency (mi/kWh)', yAxisID: 'yEfficiency', period: 'month' as const }))
       ]),
       bar: mapNumericHistoryToResponse((hs) => ev.getMonthlyMileageHistory(hs), selector)
-        .then(data => ({ data, label: 'Monthly Mileage (mi)', yAxisID: 'y' }))
+        .then(data => ({ data, label: 'Monthly Mileage (mi)', yAxisID: 'y', period: 'month' as const }))
     });
   }],
 
@@ -343,10 +345,10 @@ const historyFetchers = new Map<string, HistoryFetcher>([
 
     return awaitPromises({
       bar: mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector)
-        .then(data => ({ data, label: 'Energy (kWh)', yAxisID: 'yEnergy' })),
+        .then(data => ({ data, label: 'Energy (kWh)', yAxisID: 'yEnergy', period: 'day' as const })),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
-          .then(data => ({ data, label: 'Cost (£)', yAxisID: 'yCost' }))
+          .then(data => ({ data, label: 'Cost (£)', yAxisID: 'yCost', period: 'day' as const }))
       ])
     });
   }],
