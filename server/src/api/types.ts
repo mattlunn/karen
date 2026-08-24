@@ -29,6 +29,7 @@ export type CapabilityApiResponse = {
   type: 'MOTION_SENSOR';
   hasMotion: BooleanStateApiResponse;
   sensitivity: NumericStateApiResponse;
+  pendingSensitivity: number | null;
 } | {
   type: 'HEAT_PUMP';
   mode: EnumStateApiResponse;

@@ -82,7 +82,10 @@ deviceHandlers.set('Fibargroup FGMS001', [
   },
   {
     propertyKey: 'Configuration.1',
-    propertyMapper(device: Device, value: number) {
+    async propertyMapper(device: Device, value: number) {
+      device.meta.pendingSensitivity = undefined;
+      await device.save();
+
       return device.getMotionSensorCapability().setSensitivityState(zwaveToSensitivity(value));
     }
   }
@@ -311,17 +314,32 @@ Device.registerProvider('zwave', {
   provideMotionSensorCapability() {
     return {
       async setSensitivity(device: Device, sensitivity: number) {
+        device.meta.pendingSensitivity = sensitivity;
+        await device.save();
+
         const { makeRequest } = await getClient();
 
-        await makeRequest('node.set_value', {
-          nodeId: Number(device.providerId),
-          valueId: {
-            commandClass: 112,
-            endpoint: 0,
-            property: 1,
-          },
-          value: sensitivityToZwave(sensitivity)
-        });
+        // FGMS001 is battery-powered and sleeps between check-ins; if it's asleep,
+        // this command is queued and it's unconfirmed how long the underlying
+        // promise takes to settle. Don't let the caller (the API request) hang on
+        // that - confirmation arrives later via the Configuration.1 propertyMapper
+        // once zwave-js's cache actually reflects the change, whenever that is.
+        const result = await Promise.race([
+          makeRequest('node.set_value', {
+            nodeId: Number(device.providerId),
+            valueId: {
+              commandClass: 112,
+              endpoint: 0,
+              property: 1,
+            },
+            value: sensitivityToZwave(sensitivity)
+          }).then(() => 'sent' as const),
+          sleep(5000).then(() => 'timeout' as const)
+        ]);
+
+        if (result === 'timeout') {
+          logger.warn(`Timed out waiting for Z-Wave to confirm the sensitivity change was sent to device ${device.id}; it may still be queued for delivery`);
+        }
       }
     };
   },
@@ -428,26 +446,50 @@ Device.registerProvider('zwave', {
         if (typeof deviceCapabilities === 'undefined') {
           logger.warn(`ZWave does not know how to handle a device of type "${deviceKey}" (Device Id ${deviceId})`);
         } else {
-          let knownDevice = await Device.findByProviderId('zwave', deviceId);
+          try {
+            let knownDevice = await Device.findByProviderId('zwave', deviceId);
 
-          if (!knownDevice) {
-            knownDevice = await Device.create({
-              provider: 'zwave',
-              providerId: deviceId,
-              name: node.name || `${deviceKey} (${deviceId})`
-            });
+            if (!knownDevice) {
+              knownDevice = await Device.create({
+                provider: 'zwave',
+                providerId: deviceId,
+                name: node.name || `${deviceKey} (${deviceId})`
+              });
+            }
+
+            knownDevice.manufacturer = manufacturer;
+            knownDevice.model = model;
+
+            await knownDevice.save();
+
+            const isDead = node.status === ZWAVE_NODE_STATUS_DEAD;
+            const lastSeen = node.statistics?.lastSeen ? new Date(node.statistics.lastSeen) : null;
+            const isStale = lastSeen !== null && (Date.now() - lastSeen.getTime()) > CONNECTIVITY_STALE_AFTER_MS;
+
+            await knownDevice.getConnectivityCapability().setIsConnectedState(!isDead && !isStale);
+
+            if (knownDevice.getCapabilities().includes('MOTION_SENSOR')) {
+              const sensitivityEvent = await knownDevice.getMotionSensorCapability().getSensitivityEvent();
+
+              if (sensitivityEvent === null) {
+                const sensitivityValue = node.values?.find((v: any) => v.commandClass === 112 && v.property === 1);
+
+                if (typeof sensitivityValue?.value === 'number') {
+                  await knownDevice.getMotionSensorCapability().setSensitivityState(
+                    zwaveToSensitivity(sensitivityValue.value),
+                    knownDevice.createdAt
+                  );
+
+                  logger.info(`Initialized sensitivity for zwave motion sensor device ${knownDevice.id}`);
+                }
+              }
+            }
+          } catch (e) {
+            // Don't let a single misbehaving node (e.g. a stale DB row) abort
+            // sync for every node that follows it in iteration order.
+            newrelic.noticeError(e as Error);
+            logger.error(e, `Failed to synchronize zwave device ${deviceId}`);
           }
-
-          knownDevice.manufacturer = manufacturer;
-          knownDevice.model = model;
-
-          await knownDevice.save();
-
-          const isDead = node.status === ZWAVE_NODE_STATUS_DEAD;
-          const lastSeen = node.statistics?.lastSeen ? new Date(node.statistics.lastSeen) : null;
-          const isStale = lastSeen !== null && (Date.now() - lastSeen.getTime()) > CONNECTIVITY_STALE_AFTER_MS;
-
-          await knownDevice.getConnectivityCapability().setIsConnectedState(!isDead && !isStale);
         }
       }
     }

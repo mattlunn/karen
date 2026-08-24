@@ -644,11 +644,14 @@ export const registry: CapabilityUIRegistry = {
         iconHighlighted: (e) => e.value,
         iconColor: '#04A7F4',
       }),
-      createCapability(cap.sensitivity, {
+      {
         icon: faGauge,
         title: 'Sensitivity',
         value: <NumericControl deviceId={device.id} selectedValue={cap.sensitivity.value ?? 0} min={0} max={100} increment={5} formatLabel={(i) => `${i}%`} onClick={(value) => updateMotionSensor(device.id, { sensitivity: value })} />,
-      }),
+        ...(cap.pendingSensitivity !== null
+          ? { footer: `pending ${cap.pendingSensitivity}% on next sync` }
+          : { since: cap.sensitivity.start, lastReported: cap.sensitivity.lastReported }),
+      },
     ],
   },
 
