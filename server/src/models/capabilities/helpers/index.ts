@@ -13,31 +13,31 @@ export type HistorySelector = TimeRangeSelector & {
   limit?: number;
 };
 
-export async function getBooleanProperty(device: Device, propertyName: string, instanceId: string | null = null): Promise<boolean> {
+export async function getBooleanProperty(device: Device, propertyName: string, instanceId: string | null): Promise<boolean> {
   const latestEvent = await device.getLatestEvent(propertyName, instanceId);
   return !!latestEvent && !latestEvent.end;
 }
 
-export async function getLatestBooleanEvent(device: Device, propertyName: string, instanceId: string | null = null): Promise<BooleanEvent | null> {
+export async function getLatestBooleanEvent(device: Device, propertyName: string, instanceId: string | null): Promise<BooleanEvent | null> {
   const event = await device.getLatestEvent(propertyName, instanceId);
   return event ? new BooleanEvent(event) : null;
 }
 
-export async function getLatestNumericEvent(device: Device, propertyName: string, instanceId: string | null = null): Promise<NumericEvent | null> {
+export async function getLatestNumericEvent(device: Device, propertyName: string, instanceId: string | null): Promise<NumericEvent | null> {
   const event = await device.getLatestEvent(propertyName, instanceId);
   return event ? new NumericEvent(event) : null;
 }
 
-export async function getLatestStringEvent(device: Device, propertyName: string, instanceId: string | null = null): Promise<StringEvent | null> {
+export async function getLatestStringEvent(device: Device, propertyName: string, instanceId: string | null): Promise<StringEvent | null> {
   const event = await device.getLatestEvent(propertyName, instanceId);
   return event ? new StringEvent(event) : null;
 }
 
-export async function getStringProperty(device: Device, propertyName: string, defaultValue = '', instanceId: string | null = null): Promise<string> {
+export async function getStringProperty(device: Device, propertyName: string, instanceId: string | null, defaultValue = ''): Promise<string> {
   return (await device.getLatestEvent(propertyName, instanceId))?.stringValue ?? defaultValue;
 }
 
-export async function setBooleanProperty(device: Device, propertyName: string, propertyValue: boolean, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp, instanceId: string | null = null): Promise<Event | null> {
+export async function setBooleanProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: boolean, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
   const lastEvent = await device.getLatestEvent(propertyName, instanceId);
 
   // Reject historic inserts - use reset script instead
@@ -110,11 +110,11 @@ export async function setBooleanProperty(device: Device, propertyName: string, p
   }
 }
 
-export async function getNumericProperty(device: Device, propertyName: string, defaultValue = 0, instanceId: string | null = null): Promise<number> {
+export async function getNumericProperty(device: Device, propertyName: string, instanceId: string | null, defaultValue = 0): Promise<number> {
   return (await device.getLatestEvent(propertyName, instanceId))?.value ?? defaultValue;
 }
 
-export async function setNumericProperty(device: Device, propertyName: string, propertyValue: number, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp, instanceId: string | null = null): Promise<Event | null> {
+export async function setNumericProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: number, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
   const lastEvent = await device.getLatestEvent(propertyName, instanceId);
 
   // Reject historic inserts - use reset script instead
@@ -170,7 +170,7 @@ export async function setNumericProperty(device: Device, propertyName: string, p
   }
 }
 
-export async function setStringProperty(device: Device, propertyName: string, propertyValue: string, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp, instanceId: string | null = null): Promise<Event | null> {
+export async function setStringProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: string, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
   const lastEvent = await device.getLatestEvent(propertyName, instanceId);
 
   // Reject historic inserts - use reset script instead
@@ -225,7 +225,7 @@ export async function setStringProperty(device: Device, propertyName: string, pr
   }
 }
 
-async function getEventsInRange(device: Device, propertyName: string, selector: HistorySelector, instanceId: string | null = null): Promise<Event[]> {
+async function getEventsInRange(device: Device, propertyName: string, instanceId: string | null, selector: HistorySelector): Promise<Event[]> {
   let valueWhere: Record<string, unknown> = {};
 
   if (selector.value) {
@@ -269,24 +269,24 @@ async function getEventsInRange(device: Device, propertyName: string, selector: 
   });
 }
 
-export async function getPropertyHistory<T extends (BooleanEvent | NumericEvent)>(device: Device, propertyName: string, timeRangeSelector: HistorySelector, eventMapper: (event: Event) => T, instanceId: string | null = null): Promise<T[]> {
+export async function getPropertyHistory<T extends (BooleanEvent | NumericEvent)>(device: Device, propertyName: string, instanceId: string | null, timeRangeSelector: HistorySelector, eventMapper: (event: Event) => T): Promise<T[]> {
   // Returns all events where:
   // - start is after since and before until, OR
   // - start is before since, and end is null or past since
-  const events = await getEventsInRange(device, propertyName, timeRangeSelector, instanceId);
+  const events = await getEventsInRange(device, propertyName, instanceId, timeRangeSelector);
 
   return events.map((event) => eventMapper(event));
 }
 
-export async function getBooleanPropertyHistory(device: Device, propertyName: string, timeRangeSelector: HistorySelector, instanceId: string | null = null): Promise<BooleanEvent[]> {
-  return getPropertyHistory(device, propertyName, timeRangeSelector, (event) => new BooleanEvent(event), instanceId);
+export async function getBooleanPropertyHistory(device: Device, propertyName: string, instanceId: string | null, timeRangeSelector: HistorySelector): Promise<BooleanEvent[]> {
+  return getPropertyHistory(device, propertyName, instanceId, timeRangeSelector, (event) => new BooleanEvent(event));
 }
 
-export async function getNumericPropertyHistory(device: Device, propertyName: string, timeRangeSelector: HistorySelector, instanceId: string | null = null): Promise<NumericEvent[]> {
-  return getPropertyHistory(device, propertyName, timeRangeSelector, (event) => new NumericEvent(event), instanceId);
+export async function getNumericPropertyHistory(device: Device, propertyName: string, instanceId: string | null, timeRangeSelector: HistorySelector): Promise<NumericEvent[]> {
+  return getPropertyHistory(device, propertyName, instanceId, timeRangeSelector, (event) => new NumericEvent(event));
 }
 
-export async function getStringPropertyHistory(device: Device, propertyName: string, timeRangeSelector: HistorySelector, instanceId: string | null = null): Promise<StringEvent[]> {
-  const events = await getEventsInRange(device, propertyName, timeRangeSelector, instanceId);
+export async function getStringPropertyHistory(device: Device, propertyName: string, instanceId: string | null, timeRangeSelector: HistorySelector): Promise<StringEvent[]> {
+  const events = await getEventsInRange(device, propertyName, instanceId, timeRangeSelector);
   return events.map((event) => new StringEvent(event));
 }
