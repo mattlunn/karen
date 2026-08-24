@@ -75,6 +75,16 @@ export default class Gen2PlusDeviceClient {
     return await this._request(`/rpc/PLUGUK_UI.SetConfig?config={"leds":{"mode":"${mode}"}}`);
   }
 
+  // Returns this Presence sensor's configured zones straight off the device, so callers don't
+  // have to ask a human to know/type the zone ids and names set up in the Shelly app.
+  async getPresenceZones() {
+    const { components } = await this._request('/rpc/Shelly.GetComponents');
+
+    return components
+      .filter((component) => component.key.startsWith('presencezone:'))
+      .map((component) => ({ id: `zone${component.config.id}`, name: component.config.name }));
+  }
+
   // Returns the `{ [localSensorId]: property }` mapping for a BTHome (BLU) device
   // already paired to this gateway, restricted to object types Karen understands.
   async getBTHomeSensorsFor(mac) {
