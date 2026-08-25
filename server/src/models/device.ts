@@ -47,7 +47,6 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare metaStringified: CreationOptional<string>;
 
   #metaParsed: Record<string, unknown>;
-  #capabilityCache: Map<string, unknown> = new Map();
 
   declare getEvents: HasManyGetAssociationsMixin<{ start: Date; }>;
 
@@ -63,107 +62,92 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     return this.#metaParsed;
   }
 
-  // Keyed by capability *and* instance, since a device can expose several
-  // instances of one capability (e.g. a presence sensor reporting per zone).
-  // A null instanceId addresses the singleton instance - the device itself.
-  #getCapabilityOrThrow<T>(cacheKey: string, instanceId: string | null, handler: () => T): T {
-    // TODO: Should check that the provider can provide this capability at this point???
-
-    const key = `${cacheKey} ${instanceId ?? ''}`;
-
-    if (!this.#capabilityCache.has(key)) {
-      this.#capabilityCache.set(key, handler());
-    }
-
-    return this.#capabilityCache.get(key) as T;
-  }
-
   getConnectivityCapability(instanceId: string | null = null): ConnectivityCapability {
-    return this.#getCapabilityOrThrow('Connectivity', instanceId, () => new ConnectivityCapability(this, instanceId));
+    return new ConnectivityCapability(this, instanceId);
   }
 
   getBatteryLowIndicatorCapability(instanceId: string | null = null): BatteryLowIndicatorCapability {
-    return this.#getCapabilityOrThrow('BatteryLowIndicator', instanceId, () => new BatteryLowIndicatorCapability(this, instanceId));
+    return new BatteryLowIndicatorCapability(this, instanceId);
   }
 
   getBatteryLevelIndicatorCapability(instanceId: string | null = null): BatteryLevelIndicatorCapability {
-    return this.#getCapabilityOrThrow('BatteryLevelIndicator', instanceId, () => new BatteryLevelIndicatorCapability(this, instanceId));
+    return new BatteryLevelIndicatorCapability(this, instanceId);
   }
 
   getLockCapability(instanceId: string | null = null): LockCapability {
-    return this.#getCapabilityOrThrow('Lock', instanceId, () => new LockCapability(this, instanceId));
+    return new LockCapability(this, instanceId);
   }
 
   getLightCapability(instanceId: string | null = null): LightCapability {
-    return this.#getCapabilityOrThrow('Light', instanceId, () => new LightCapability(this, instanceId));
+    return new LightCapability(this, instanceId);
   }
 
   getThermostatCapability(instanceId: string | null = null): ThermostatCapability {
-    return this.#getCapabilityOrThrow('Thermostat', instanceId, () => new ThermostatCapability(this, instanceId));
+    return new ThermostatCapability(this, instanceId);
   }
 
   getMotionSensorCapability(instanceId: string | null = null): MotionSensorCapability {
-    return this.#getCapabilityOrThrow('MotionSensor', instanceId, () => new MotionSensorCapability(this, instanceId));
+    return new MotionSensorCapability(this, instanceId);
   }
 
   getTemperatureSensorCapability(instanceId: string | null = null): TemperatureSensorCapability {
-    return this.#getCapabilityOrThrow('TemperatureSensor', instanceId, () => new TemperatureSensorCapability(this, instanceId));
+    return new TemperatureSensorCapability(this, instanceId);
   }
 
   getHeatPumpCapability(instanceId: string | null = null): HeatPumpCapability {
-    return this.#getCapabilityOrThrow('HeatPump', instanceId, () => new HeatPumpCapability(this, instanceId));
+    return new HeatPumpCapability(this, instanceId);
   }
 
   getLightSensorCapability(instanceId: string | null = null): LightSensorCapability {
-    return this.#getCapabilityOrThrow('LightSensor', instanceId, () => new LightSensorCapability(this, instanceId));
+    return new LightSensorCapability(this, instanceId);
   }
 
   getHumiditySensorCapability(instanceId: string | null = null): HumiditySensorCapability {
-    return this.#getCapabilityOrThrow('HumiditySensor', instanceId, () => new HumiditySensorCapability(this, instanceId));
+    return new HumiditySensorCapability(this, instanceId);
   }
 
   getSpeakerCapability(instanceId: string | null = null): SpeakerCapability {
-    return this.#getCapabilityOrThrow('Speaker', instanceId, () => new SpeakerCapability(this, instanceId));
+    return new SpeakerCapability(this, instanceId);
   }
 
   getSwitchCapability(instanceId: string | null = null): SwitchCapability {
-    return this.#getCapabilityOrThrow('Switch', instanceId, () => new SwitchCapability(this, instanceId));
+    return new SwitchCapability(this, instanceId);
   }
 
   getTelevisionCapability(instanceId: string | null = null): TelevisionCapability {
-    return this.#getCapabilityOrThrow('Television', instanceId, () => new TelevisionCapability(this, instanceId));
+    return new TelevisionCapability(this, instanceId);
   }
 
   getElectricVehicleCapability(instanceId: string | null = null): ElectricVehicleCapability {
-    return this.#getCapabilityOrThrow('ElectricVehicle', instanceId, () => new ElectricVehicleCapability(this, instanceId));
+    return new ElectricVehicleCapability(this, instanceId);
   }
 
   getBinCollectionCapability(instanceId: string | null = null): BinCollectionCapability {
-    return this.#getCapabilityOrThrow('BinCollection', instanceId, () => new BinCollectionCapability(this, instanceId));
+    return new BinCollectionCapability(this, instanceId);
   }
 
   getButtonCapability(instanceId: string | null = null): ButtonCapability {
-    return this.#getCapabilityOrThrow('Button', instanceId, () => new ButtonCapability(this, instanceId));
+    return new ButtonCapability(this, instanceId);
   }
 
   getDoorbellCapability(instanceId: string | null = null): DoorbellCapability {
-    return this.#getCapabilityOrThrow('Doorbell', instanceId, () => new DoorbellCapability(this, instanceId));
+    return new DoorbellCapability(this, instanceId);
   }
 
   getAlarmSensorCapability(instanceId: string | null = null): AlarmSensorCapability {
-    return this.#getCapabilityOrThrow('AlarmSensor', instanceId, () => new AlarmSensorCapability(this, instanceId));
+    return new AlarmSensorCapability(this, instanceId);
   }
 
   getContactSensorCapability(instanceId: string | null = null): ContactSensorCapability {
-    return this.#getCapabilityOrThrow('ContactSensor', instanceId, () => new ContactSensorCapability(this, instanceId));
+    return new ContactSensorCapability(this, instanceId);
   }
 
   getEnergyMonitorCapability(instanceId: string | null = null): EnergyMonitorCapability {
-    return this.#getCapabilityOrThrow('EnergyMonitor', instanceId, () => new EnergyMonitorCapability(this, instanceId));
+    return new EnergyMonitorCapability(this, instanceId);
   }
 
   getEnergyCostCapability(instanceId: string | null = null): EnergyCostCapability {
-    return this.#getCapabilityOrThrow('EnergyCost', instanceId, () => new EnergyCostCapability(this, instanceId));
+    return new EnergyCostCapability(this, instanceId);
   }
 
   getCapabilities(): Capability[] {
