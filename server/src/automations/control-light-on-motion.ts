@@ -8,16 +8,19 @@ const offDelays = new Map();
 // Guards against two sensors' events racing each other to decide the same light's state.
 // Every read leading up to the decision is side-effect-free, so it's fine for a
 // soon-to-be-superseded invocation to run them all - it just must not act on what it finds
-// if a newer event for the same light has shown up in the meantime, since that newer
-// invocation's reads are strictly more up to date (its own sensor's write can't land before
-// it's invoked, and any earlier invocation's triggering write already landed before this one
-// started). Whichever invocation is still "latest" when it reaches the check is guaranteed to
-// have seen every write that triggered an earlier, now-abandoned invocation for this light.
+// if a newer invocation for the same light has shown up in the meantime, since that newer
+// invocation is guaranteed to have started after every write that triggered an earlier,
+// now-abandoned invocation for this light (that write is what caused the earlier invocation
+// in the first place).
 //
-// Keyed on the event's own end (or start, if still ongoing) Date object - compared by
-// reference below, not value, so two events can never collide even if their timestamps
-// happen to land in the same millisecond.
-const latestInvocationForLight = new Map<string, Date>();
+// This is a pure "am I still the last one to have claimed this light" identity check, not a
+// time comparison - deliberately not the event's own timestamp value. A capability's
+// stateTimestamp is captured before its DB write, not after, so a slow write can leave an
+// earlier-starting event with a smaller timestamp than a later-starting one that resolved
+// faster - comparing by value would then make the more-informed (later-invoked) handler
+// defer to the staler one. A Symbol per invocation sidesteps that: it carries no time
+// semantics to misuse, and is unique by construction.
+const latestInvocationForLight = new Map<string, symbol>();
 
 type ControlLightOnMotionParameters = {
   sensors: { name: string; zone?: string | null }[];
@@ -53,7 +56,7 @@ export default function ({ sensors, lightName, between = [{ start: '00:00', end:
           return;
         }
 
-        const myInvocation = event.end || event.start;
+        const myInvocation = Symbol();
         latestInvocationForLight.set(lightName, myInvocation);
 
         const sensor = await event.getDevice();
