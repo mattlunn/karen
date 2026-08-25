@@ -4,12 +4,11 @@ import dayjs from '../dayjs';
 // dayjs' add()/set() operate on the fixed UTC offset already baked into an already-normalized
 // target, rather than re-deriving the correct Europe/London offset for the resulting date - so
 // naively adding a day can land an hour off (or even roll onto the wrong calendar date,
-// depending on the direction) across a DST transition. Advance the calendar date in pure UTC
-// terms instead - immune to DST, since it never touches local time at all - and re-normalize
-// the time fresh via normalizeTime, the same way normalizeTime resolves a date/time pair for
-// any other date.
+// depending on the direction) across a DST transition. Advance the calendar date in UTC (where
+// day/month/year arithmetic is unambiguous - no DST there) and re-normalize the time fresh via
+// normalizeTime, the same way normalizeTime resolves a date/time pair for any other date.
 function advanceByOneDay(target, time) {
-  const tomorrow = new Date(Date.UTC(target.year(), target.month(), target.date() + 1));
+  const tomorrow = dayjs.utc(target.format('YYYY-MM-DD')).add(1, 'day').toDate();
 
   return normalizeTime(time, tomorrow);
 }
