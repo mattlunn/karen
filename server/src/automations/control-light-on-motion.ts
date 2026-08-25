@@ -5,6 +5,17 @@ import { createBackgroundTransaction } from '../helpers/newrelic';
 
 const offDelays = new Map();
 
+// Guards against two sensors' events racing each other to decide the same light's state.
+// Every read leading up to the decision is side-effect-free, so it's fine for a
+// soon-to-be-superseded invocation to run them all - it just must not act on what it finds
+// if a newer event for the same light has shown up in the meantime, since that newer
+// invocation's reads are strictly more up to date (its own sensor's write can't land before
+// it's invoked, and any earlier invocation's triggering write already landed before this one
+// started). Whichever invocation is still "latest" when it reaches the check is guaranteed to
+// have seen every write that triggered an earlier, now-abandoned invocation for this light.
+let invocationCounter = 0;
+const latestInvocationForLight = new Map<string, number>();
+
 type ControlLightOnMotionParameters = {
   sensors: { name: string; zone?: string | null }[];
   lightName: string;
@@ -39,6 +50,9 @@ export default function ({ sensors, lightName, between = [{ start: '00:00', end:
           return;
         }
 
+        const myInvocation = ++invocationCounter;
+        latestInvocationForLight.set(lightName, myInvocation);
+
         const sensor = await event.getDevice();
 
         for (const { start, end, illuminance = null, brightness = 100 } of between) {
@@ -47,6 +61,11 @@ export default function ({ sensors, lightName, between = [{ start: '00:00', end:
             const lightIsOn = await light.getLightCapability().getIsOn();
             const belowIlluminanceThreshold = lightIsOn || illuminance === null || await sensor.getLightSensorCapability().getIlluminance() < illuminance;
             const lightDesiredOn = await isAnySensorOccupied() && belowIlluminanceThreshold;
+
+            if (latestInvocationForLight.get(lightName) !== myInvocation) {
+              // A newer event for this light arrived while we were reading - defer to it.
+              return;
+            }
 
             clearTimeout(offDelays.get(lightName));
 
