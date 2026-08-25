@@ -99,6 +99,7 @@
     "start:dev-inspect": "NODE_OPTIONS='--unhandled-rejections=warn' nodemon --inspect ../dist ../dist/server.js | npx pino-pretty",
     "start:dev-inspect-brk": "NODE_OPTIONS='--unhandled-rejections=warn' nodemon --inspect-brk ../dist ../dist/server.js | npx pino-pretty",
     "create-user": "tsx scripts/create-user.js",
+    "install-shelly": "tsx scripts/install-shelly.js",
     "migrate": "tsx scripts/migrate.js",
     "reset-daily-metrics": "tsx scripts/reset-daily-metrics.js",
     "export-prod-to-dev": "tsx scripts/export-prod-to-dev.js",

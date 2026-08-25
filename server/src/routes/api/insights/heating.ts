@@ -5,7 +5,14 @@ import { TimeRangeSelector } from '../../../models/capabilities/helpers';
 import { mapNumericHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
 import { awaitPromises } from '../../../helpers/promises';
 import { asyncMap } from '../../../helpers/array';
-import automations from '../../../config/automations.json';
+import automationsConfig from '../../../config/automations.json';
+
+// TS infers automations.json's element type as a literal union of whatever automations
+// this environment's real (gitignored) file happens to contain, so looking up one that
+// isn't configured here - like 'heating', which isn't in every environment's config -
+// wouldn't type-check against that inferred union. Widen back to the ambient contract
+// (config/automations.d.ts) so this lookup type-checks regardless of local config content.
+const automations = automationsConfig as { name: string; parameters?: Record<string, unknown> }[];
 
 function findEventAt(events: NumericEvent[], t: number): NumericEvent | null {
   // Events are ordered newest-first (DESC). Iterate that way so that if a stale
