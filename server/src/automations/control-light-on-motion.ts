@@ -13,8 +13,11 @@ const offDelays = new Map();
 // it's invoked, and any earlier invocation's triggering write already landed before this one
 // started). Whichever invocation is still "latest" when it reaches the check is guaranteed to
 // have seen every write that triggered an earlier, now-abandoned invocation for this light.
-let invocationCounter = 0;
-const latestInvocationForLight = new Map<string, number>();
+//
+// Keyed on the event's own end (or start, if still ongoing) Date object - compared by
+// reference below, not value, so two events can never collide even if their timestamps
+// happen to land in the same millisecond.
+const latestInvocationForLight = new Map<string, Date>();
 
 type ControlLightOnMotionParameters = {
   sensors: { name: string; zone?: string | null }[];
@@ -50,7 +53,7 @@ export default function ({ sensors, lightName, between = [{ start: '00:00', end:
           return;
         }
 
-        const myInvocation = ++invocationCounter;
+        const myInvocation = event.end || event.start;
         latestInvocationForLight.set(lightName, myInvocation);
 
         const sensor = await event.getDevice();
