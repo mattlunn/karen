@@ -1,27 +1,24 @@
 import { normalizeTime } from './time';
 import dayjs from '../dayjs';
 
-// A timer can fire exactly on its target instant (or a millisecond early), in which case
-// isBefore(now) is false and rescheduling for "today" would produce a ~0ms timeout - re-firing
-// func() a second time for the occurrence we just handled. Treat anything under this threshold
-// as already elapsed so we always roll over to tomorrow instead.
-const MINIMUM_DELAY_MS = 1000;
-
 export default function(func, time) {
-  function getMillisecondsToNextOccurenceOf(time) {
-    const now = dayjs();
-    const todaysOccurence = normalizeTime(time);
-    const nextOccurence = todaysOccurence.diff(now) < MINIMUM_DELAY_MS
-      ? normalizeTime(time, dayjs(now).startOf('day').add(1, 'd'))
-      : todaysOccurence;
+  // Only the very first occurrence needs to be resolved against "now" - if today's time has
+  // already passed, start from tomorrow instead. Every occurrence after that is simply the
+  // previous target plus a day, so it's always in the future by construction - never recomputed
+  // against "now", which is what let a timer firing exactly on its target instant reschedule
+  // itself with a ~0ms delay and double-fire.
+  let target = normalizeTime(time);
 
-    return nextOccurence.valueOf() - now.valueOf();
+  if (target.isBefore(dayjs())) {
+    target = target.add(1, 'day');
   }
 
-  (function setNextTimeout() {
+  (function scheduleNext() {
     setTimeout(() => {
-      setNextTimeout();
+      target = target.add(1, 'day');
+
+      scheduleNext();
       func();
-    }, getMillisecondsToNextOccurenceOf(time));
+    }, target.diff(dayjs()));
   }());
 }
