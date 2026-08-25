@@ -5,13 +5,12 @@ import { createBackgroundTransaction } from '../helpers/newrelic';
 
 const offDelays = new Map();
 
-// Guards against two sensors' events racing each other to decide the same light's state.
-// Every read leading up to the decision is side-effect-free, so it's fine for a
-// soon-to-be-superseded invocation to run them all - it just must not act on what it finds
-// if a newer invocation for the same light has shown up in the meantime, since that newer
-// invocation is guaranteed to have started after every write that triggered an earlier,
-// now-abandoned invocation for this light (that write is what caused the earlier invocation
-// in the first place).
+// Two sensors in the same group can each fire a motion-changed event around the same time
+// (e.g. one motion-end and one motion-start). Every read leading up to the decision is
+// side-effect-free, so it's fine for both invocations to run them - but only the one invoked
+// last should act, since it's guaranteed to have started after every write that triggered
+// the other invocation for this light (that write is what caused the other invocation in the
+// first place), so its reads already account for both events.
 //
 // This is a pure "am I still the last one to have claimed this light" identity check, not a
 // time comparison - deliberately not the event's own timestamp value. A capability's
@@ -37,8 +36,8 @@ type ControlLightOnMotionParameters = {
 export default function ({ sensors, lightName, between = [{ start: '00:00', end: '00:00 + 1d' }], offDelaySeconds = 0 }: ControlLightOnMotionParameters) {
   // A group of sensors shares one light and one off-timer (keyed by lightName), so - like
   // multiple zones of one presence sensor - re-read every sensor's current state on any change
-  // rather than trust the one event that fired, or two sensors changing near-simultaneously
-  // could race each other's idea of whether the group is still occupied.
+  // rather than trust only the event that fired, so two sensors changing at once (e.g. one
+  // motion-end and one motion-start) are both accounted for in the same decision.
   async function isAnySensorOccupied(): Promise<boolean> {
     const states = await Promise.all(sensors.map(async ({ name, zone = null }) => {
       const device = await Device.findByNameOrError(name);
