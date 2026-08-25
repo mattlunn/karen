@@ -46,6 +46,7 @@ function dayjs(input?: DateInput, format?: string): Dayjs {
 dayjs.duration = dayjsLib.duration;
 dayjs.tz = dayjsLib.tz;
 dayjs.unix = dayjsLib.unix;
+dayjs.utc = dayjsLib.utc;
 
 export default dayjs;
 export { Dayjs };
