@@ -13,7 +13,6 @@ import { BuildVersionProvider } from './components/build-version-context';
 import AppLayout from './components/app-layout';
 import ErrorBoundary from './components/error-boundary';
 import Home from './components/pages/home';
-import Timeline from './components/pages/timeline';
 import Devices from './components/pages/devices';
 import Device from './components/pages/device';
 import Login from './components/pages/login';
@@ -56,7 +55,6 @@ const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { path: '/', element: <Home /> },
-      { path: '/timeline', element: <Timeline /> },
       { path: '/insights/heating', element: <HeatingInsights /> },
       { path: '/insights/energy', element: <EnergyInsights /> },
       { path: '/device/:id', element: <Device /> },

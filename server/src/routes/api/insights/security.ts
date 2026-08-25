@@ -70,8 +70,7 @@ export default async function (req: Request, res: Response) {
   );
 
   // Boolean capability history only stores "on" segments (start/end pairs) - unpack each into
-  // a "locked"/"unlocked" (or "open"/"closed") pair of timeline points, mirroring the way
-  // routes/api/timeline.ts turns light 'on' events into light-on/light-off pairs.
+  // a "locked"/"unlocked" (or "open"/"closed") pair of timeline points.
   const lockEventLists = await asyncMap(lockDevices, async (device) => {
     const history = await device.getLockCapability().getIsLockedHistory(selector);
     const entries: SecurityInsightsApiResponse['lockEvents'] = [];

@@ -343,21 +343,6 @@ export type UserResponse = {
   until: number | null
 });
 
-// Timeline Feed API response types (/api/timeline)
-export type TimelineFeedEvent =
-  | { type: 'motion'; id: number; timestamp: number; deviceId: number; deviceName: string; recordingId: number | null; }
-  | { type: 'arrival'; id: number; timestamp: number; userId: string; }
-  | { type: 'departure'; id: number; timestamp: number; userId: string; }
-  | { type: 'light-on'; id: number; timestamp: number; deviceId: number; deviceName: string; }
-  | { type: 'light-off'; id: number; timestamp: number; deviceId: number; deviceName: string; duration: number; }
-  | { type: 'alarm-arming'; id: number; timestamp: number; mode: AlarmMode; }
-  | { type: 'doorbell-ring'; id: number; timestamp: number; };
-
-export interface TimelineFeedApiResponse {
-  events: TimelineFeedEvent[];
-  hasMore: boolean;
-}
-
 // /api/insights/heating endpoint
 export interface HeatingInsightsApiResponse {
   lines: (HistoryLineApiResponse & { deviceName: string })[];
