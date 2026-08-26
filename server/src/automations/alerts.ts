@@ -1,5 +1,8 @@
+import { z } from 'zod';
 import bus, { NOTIFICATION_TO_ADMINS } from '../bus';
 import { DeviceCapabilityEvents } from '../models/capabilities';
+
+export const parameters = z.strictObject({}).nullish();
 
 export default function () {
   DeviceCapabilityEvents.onHeatPumpSystemPressureChanged((event) => {

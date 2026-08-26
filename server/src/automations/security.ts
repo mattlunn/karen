@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { Device, Arming, User, AlarmActivation, BooleanEvent } from '../models';
 import { callWithKarenMessage } from '../services/twilio';
 import bus, { NOTIFICATION_TO_ALL } from '../bus';
@@ -6,18 +7,18 @@ import sleep from '../helpers/sleep';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
 import { DeviceCapabilityEvents } from '../models/capabilities';
-import { findActiveSilencingWindow, getSilencingWindowEndsAt, SilencingWindow } from '../helpers/silencing-window';
+import { findActiveSilencingWindow, getSilencingWindowEndsAt, silencingWindow } from '../helpers/silencing-window';
 
 const successAsBoolean = (promise: Promise<void>) => promise.then(() => true, () => false);
 
-type SecurityAutomationConfiguration = {
-  night_mode_alexa: string;
-  alarm_alexa: string;
-  night_excluded_devices: string[];
-  excluded_devices: string[];
-  silencing_windows: SilencingWindow[];
-  alarm_duration_minutes: number;
-};
+export const parameters = z.object({
+  night_mode_alexa: z.string(),
+  alarm_alexa: z.string(),
+  night_excluded_devices: z.array(z.string()).default([]),
+  excluded_devices: z.array(z.string()).default([]),
+  silencing_windows: z.array(silencingWindow).default([]),
+  alarm_duration_minutes: z.number().positive()
+});
 
 async function turnOnAllTheLights() {
   const lights = await Device.findByCapability('LIGHT');
@@ -102,18 +103,11 @@ function isExcludedDevice(mode: ArmingMode, deviceName: string, excludedDevices:
 export default async function ({
   night_mode_alexa: nightModeAlexa,
   alarm_alexa: alarmAlexa,
-  night_excluded_devices: nightExcludedDevices = [],
-  excluded_devices: excludedDevices = [],
-  silencing_windows: silencingWindows = [],
+  night_excluded_devices: nightExcludedDevices,
+  excluded_devices: excludedDevices,
+  silencing_windows: silencingWindows,
   alarm_duration_minutes: alarmDurationMinutes
-}: SecurityAutomationConfiguration) {
-  // config/automations.json is plain JSON, so SecurityAutomationConfiguration buys us nothing at
-  // runtime. Check the parameter here instead: a missing one used to surface as an "Invalid date"
-  // insert failure at the moment the alarm was needed, silently swallowing the alert.
-  if (typeof alarmDurationMinutes !== 'number' || !Number.isFinite(alarmDurationMinutes)) {
-    throw new Error(`security: alarm_duration_minutes must be a number, but got ${JSON.stringify(alarmDurationMinutes)}`);
-  }
-
+}: z.infer<typeof parameters>) {
   async function handleTrigger(event: BooleanEvent, describeTrigger: (deviceName: string) => string) {
     const [
       arming,

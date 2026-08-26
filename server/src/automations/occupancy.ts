@@ -1,12 +1,13 @@
+import { z } from 'zod';
 import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, NOTIFICATION_TO_ADMINS } from '../bus';
 import { Device, Arming, Stay } from '../models';
 import { joinWithAnd, pluralise } from '../helpers/array';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
 
-type OccupanyAutomationConfiguration = {
-  timeout_for_last_user_leaves_tasks_to_execute: number
-};
+export const parameters = z.object({
+  timeout_for_last_user_leaves_tasks_to_execute: z.number().nonnegative()
+});
 
 async function turnOffLights() {
   const lights = await Device.findByCapability('LIGHT');
@@ -35,7 +36,7 @@ function promiseOrAbort<T>(promise: Promise<T>, abortSignal: AbortSignal): Promi
   ]);
 }
  
-export default function (config: OccupanyAutomationConfiguration) {
+export default function (config: z.infer<typeof parameters>) {
   bus.on(LAST_USER_LEAVES, createBackgroundTransaction('automations:occupancy:last-user-leaves', async (stay) => {
     const abortController = new AbortController();
 

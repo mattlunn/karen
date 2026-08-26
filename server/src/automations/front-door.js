@@ -1,6 +1,11 @@
+import { z } from 'zod';
 import bus, { STAY_START, NOTIFICATION_TO_ADMINS } from '../bus';
 import { Device } from '../models';
 import { createBackgroundTransaction } from '../helpers/newrelic';
+
+export const parameters = z.object({
+  doorLockName: z.string()
+});
 
 export default function ({ doorLockName }) {
   bus.on(STAY_START, createBackgroundTransaction('automations:front-door:stay-start', async (stay) => {

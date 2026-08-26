@@ -1,26 +1,31 @@
+import { z } from 'zod';
+import { timeString } from './schema';
 import bus, { NOTIFICATION_TO_USER } from '../bus';
 import dayjs from '../dayjs';
 import logger from '../logger';
 import setIntervalForTime from '../helpers/set-interval-for-time';
 import { getServiceStatus, ServiceStatus } from '../services/raildata/client';
 
-type TrainAlert = {
-  user: string;
-  day: string;
-  departureTime: string;
-  from: string;
-  to: string;
-};
-
-export type TrainStatusAutomationParameters = {
-  startCheckingAt: number;
-  checkInterval: number;
-  alerts: TrainAlert[];
-};
-
 const DAY_NAMES = new Set([
   'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
 ]);
+
+const trainAlert = z.object({
+  user: z.string(),
+  // Matched case-insensitively against the day name, so accept whatever casing the config uses.
+  day: z.string().refine((day) => DAY_NAMES.has(day.toLowerCase()), 'must be a day of the week'),
+  departureTime: timeString,
+  from: z.string(),
+  to: z.string()
+});
+
+type TrainAlert = z.infer<typeof trainAlert>;
+
+export const parameters = z.object({
+  startCheckingAt: z.number().nonnegative(),
+  checkInterval: z.number().positive(),
+  alerts: z.array(trainAlert)
+});
 
 const TRAFFIC_LIGHT: Record<ServiceStatus['kind'], string> = {
   'on-time': '🟢',
@@ -86,12 +91,8 @@ function runAlert(alert: TrainAlert, checkInterval: number) {
   runCheck(true).then(scheduleNext);
 }
 
-export default function ({ startCheckingAt, checkInterval, alerts }: TrainStatusAutomationParameters) {
+export default function ({ startCheckingAt, checkInterval, alerts }: z.infer<typeof parameters>) {
   for (const alert of alerts) {
-    if (!DAY_NAMES.has(alert.day.toLowerCase())) {
-      throw new Error(`train-status: invalid day "${alert.day}"`);
-    }
-
     setIntervalForTime(() => {
       runAlert(alert, checkInterval);
     }, `${alert.departureTime} - ${startCheckingAt}m`);

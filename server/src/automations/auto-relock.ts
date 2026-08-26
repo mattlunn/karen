@@ -1,22 +1,23 @@
+import { z } from 'zod';
 import bus, { NOTIFICATION_TO_ADMINS } from '../bus';
 import { BooleanEvent, Device } from '../models';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 
-type AutoRelockParameters = {
-  locks: {
-    lockName: string;
-    delaySeconds: number;
-    doorSensorName: string;
-  }[];
-};
+export const parameters = z.object({
+  locks: z.array(z.object({
+    lockName: z.string(),
+    delaySeconds: z.number().nonnegative(),
+    doorSensorName: z.string()
+  }))
+});
 
 type PendingRelock = {
   timeout: ReturnType<typeof setTimeout>;
   controller: AbortController;
 };
 
-export default function ({ locks }: AutoRelockParameters) {
+export default function ({ locks }: z.infer<typeof parameters>) {
   for (const { lockName, delaySeconds, doorSensorName } of locks) {
     let pending: PendingRelock | undefined;
 

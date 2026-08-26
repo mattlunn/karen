@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import bus, { NOTIFICATION_TO_ADMINS, FIRST_USER_HOME, LAST_USER_LEAVES, STAY_START, STAY_END } from '../bus';
 import { Device, Stay } from '../models';
 import { setDHWMode, getDHWMode } from '../services/ebusd';
@@ -6,11 +7,11 @@ import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
 import nowAndSetInterval from '../helpers/now-and-set-interval';
 
-type HeatingWarmupParameters = {
-  checkIntervalMinutes: number;
-  minWarmUpRatePerHour: number;
-  enableDHWControl: boolean;
-};
+export const parameters = z.object({
+  checkIntervalMinutes: z.number().positive(),
+  minWarmUpRatePerHour: z.number().positive(),
+  enableDHWControl: z.boolean().default(true)
+});
 
 type WarmupState = Date | null;
 
@@ -23,8 +24,8 @@ export function getPreWarmStartTime(): WarmupState {
 export default function ({
   checkIntervalMinutes,
   minWarmUpRatePerHour,
-  enableDHWControl = true
-}: HeatingWarmupParameters) {
+  enableDHWControl
+}: z.infer<typeof parameters>) {
   async function calculateWarmupStartTime(device: Device, nextTarget: number, targetTime: Date): Promise<Dayjs | null>{
     const [currentTemp, currentTarget] = await Promise.all([
       device.getThermostatCapability().getCurrentTemperature(),

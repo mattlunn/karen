@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import bus, { FIRST_USER_HOME } from '../bus';
 import { Device, Stay } from '../models';
 import { createBackgroundTransaction } from '../helpers/newrelic';
@@ -14,15 +15,15 @@ const greetings: ((name: string) => string)[] = [
   (name) => `<voice name="Geraint"><amazon:emotion name="excited" intensity="high">Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch ${name}</amazon:emotion></voice>. That's G, saying hello!`
 ];
 
-type GreetingAutomationParameters = {
-  alexa_name: string;
-  greeting_window_minutes?: number;
-};
+export const parameters = z.object({
+  alexa_name: z.string(),
+  greeting_window_minutes: z.number().positive().default(10)
+});
 
 export default async function ({
   alexa_name: alexaName,
-  greeting_window_minutes: greetingWindowMinutes = 10,
-}: GreetingAutomationParameters) {
+  greeting_window_minutes: greetingWindowMinutes,
+}: z.infer<typeof parameters>) {
   let unannouncedStay: Stay | null = null;
 
   DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:greeting', async (event) => {

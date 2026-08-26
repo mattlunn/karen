@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { timeString } from './schema';
 import bus, { NOTIFICATION_TO_ALL } from '../bus';
 import { Device } from '../models';
 import config from '../config/app';
@@ -6,11 +8,11 @@ import logger from '../logger';
 import setIntervalForTime from '../helpers/set-interval-for-time';
 import { joinWithAnd, pluralise } from '../helpers/array';
 
-type BinCollectionAutomationParameters = {
-  reminderTime: string;
-};
+export const parameters = z.object({
+  reminderTime: timeString
+});
 
-export default function ({ reminderTime }: BinCollectionAutomationParameters) {
+export default function ({ reminderTime }: z.infer<typeof parameters>) {
   setIntervalForTime(async () => {
     try {
       const devices = await Device.findByCapability('BIN_COLLECTION');

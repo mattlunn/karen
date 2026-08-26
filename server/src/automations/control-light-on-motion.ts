@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { timeRange } from './schema';
 import { BooleanEvent, Device } from '../models';
 import { isWithinTime } from '../helpers/time';
 import { DeviceCapabilityEvents } from '../models/capabilities';
@@ -21,19 +23,20 @@ const offDelays = new Map();
 // semantics to misuse, and is unique by construction.
 const latestInvocationForLight = new Map<string, symbol>();
 
-type ControlLightOnMotionParameters = {
-  sensors: { name: string; zone?: string | null }[];
-  lightName: string;
-  offDelaySeconds: number;
-  between: ({
-    start: string;
-    end: string;
-    illuminance?: number;
-    brightness?: number;
-  })[]
-};
+export const parameters = z.object({
+  sensors: z.array(z.object({
+    name: z.string(),
+    zone: z.string().nullish()
+  })),
+  lightName: z.string(),
+  offDelaySeconds: z.number().nonnegative().default(0),
+  between: z.array(timeRange.extend({
+    illuminance: z.number().optional(),
+    brightness: z.number().min(0).max(100).optional()
+  })).default([{ start: '00:00', end: '00:00 + 1d' }])
+});
 
-export default function ({ sensors, lightName, between = [{ start: '00:00', end: '00:00 + 1d' }], offDelaySeconds = 0 }: ControlLightOnMotionParameters) {
+export default function ({ sensors, lightName, between, offDelaySeconds }: z.infer<typeof parameters>) {
   // A group of sensors shares one light and one off-timer (keyed by lightName), so - like
   // multiple zones of one presence sensor - re-read every sensor's current state on any change
   // rather than trust only the event that fired, so two sensors changing at once (e.g. one

@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { timeString } from './schema';
 import bus, { FIRST_USER_HOME } from '../bus';
 import { Device, Stay, BooleanEvent } from '../models';
 import { isWithinTime } from '../helpers/time';
@@ -14,15 +16,15 @@ import logger from '../logger';
 // Gets turned on at certain time, or when someone comes home.
 // Gets turned off when Karen turns off all the lights, or at fixed time.
 
-type ChristmasTreeAutomationParameters = {
-  switchNames: string[];
-  morningStart: string;
-  morningEnd: string;
-  eveningStart: string;
-  eveningEnd: string;
-};
+export const parameters = z.object({
+  switchNames: z.array(z.string()),
+  morningStart: timeString,
+  morningEnd: timeString,
+  eveningStart: timeString,
+  eveningEnd: timeString
+});
 
-export default function ({ switchNames, morningStart, morningEnd, eveningStart, eveningEnd }: ChristmasTreeAutomationParameters) {
+export default function ({ switchNames, morningStart, morningEnd, eveningStart, eveningEnd }: z.infer<typeof parameters>) {
   async function setDevicesOnStatus(onStatus: boolean) {
     return Promise.all(switchNames.map(async (switchName) => {
       const device = await Device.findByName(switchName);

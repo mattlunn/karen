@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { timeRange } from './schema';
 import { BooleanEvent, Device, NumericEvent } from '../models';
 import { isWithinTime } from '../helpers/time';
 import { DeviceCapabilityEvents } from '../models/capabilities';
@@ -12,20 +14,18 @@ let timeoutToTurnOff: undefined | ReturnType<typeof setTimeout> = undefined;
 //   Otherwise if new value > max, turn light on
 //   Otherwise if new value < max, turn light off
 
-type BathroomAutomationParameters = {
-  motionSensorNames: string[],
-  humiditySensorName: string,
-  lightName: string,
-  maximumHumidity: number,
-  offDelaySeconds?: number,
-  between?: {
-    start: string,
-    end: string,
-    brightness: number
-  }[]
-};
+export const parameters = z.object({
+  motionSensorNames: z.array(z.string()),
+  humiditySensorName: z.string(),
+  lightName: z.string(),
+  maximumHumidity: z.number(),
+  offDelaySeconds: z.number().nonnegative().default(0),
+  between: z.array(timeRange.extend({
+    brightness: z.number().min(0).max(100)
+  })).default([{ start: '00:00', end: '23:59', brightness: 100 }])
+});
 
-export default function ({ motionSensorNames, humiditySensorName, lightName, maximumHumidity, offDelaySeconds = 0, between = [{ start: '00:00', end: '23:59', brightness: 100 }] }: BathroomAutomationParameters) {
+export default function ({ motionSensorNames, humiditySensorName, lightName, maximumHumidity, offDelaySeconds, between }: z.infer<typeof parameters>) {
   async function isSomeoneInRoom() {
     const sensors = await Device.findAll({ where: { name: motionSensorNames }});
     const sensorMotions = await Promise.all(sensors.map(sensor => sensor.getMotionSensorCapability().getHasMotion()));
