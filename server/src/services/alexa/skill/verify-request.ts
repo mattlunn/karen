@@ -149,8 +149,11 @@ export function assertTimestampIsFresh(timestamp: string | undefined, now: Date)
 }
 
 export function assertApplicationIdMatches(applicationId: string | undefined, expected: string): void {
+  // Neither value goes in the message. Our own applicationId is not a secret, but it is not rotatable
+  // either, so there is no reason to copy it into the logs of whatever ships them off the box; and
+  // echoing an attacker's guess back alongside "wrong" is a slow way to leak which guesses were close.
   if (applicationId !== expected) {
-    throw new AlexaVerificationError(`Request is for application "${applicationId}", not "${expected}"`);
+    throw new AlexaVerificationError('Request is for another skill');
   }
 }
 
