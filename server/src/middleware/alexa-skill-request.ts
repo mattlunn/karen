@@ -1,40 +1,27 @@
 import { RequestHandler } from 'express';
 import config from '../config/app';
 import logger from '../logger';
-import { verifyAlexaSkillRequest, AlexaVerificationError } from '../services/alexa/skill/verify-request';
 
-// Nothing about the body is trustworthy until it has been verified, so it is read as if every part
-// of it might be missing rather than as an AlexaSkillRequestBody.
+// Nothing about the body is trustworthy until it has been checked, so it is read as if every part of
+// it might be missing rather than as an AlexaSkillRequestBody.
 interface UnverifiedBody {
   context?: { System?: { application?: { applicationId?: string } } };
-  request?: { timestamp?: string };
 }
 
 /**
- * Replaces middleware/auth for the custom skill endpoint. Alexa sends no bearer token and no
- * cookies, so auth would reject every genuine request; see services/alexa/skill/verify-request.
+ * Alexa sends a custom skill no Authorization header and no cookies — an account-linking token, if
+ * there is one, arrives in the body — so middleware/auth rejects every genuine request. The skill's
+ * applicationId is the shared secret for this endpoint instead.
  */
-const alexaSkillRequest: RequestHandler = async (req, res, next) => {
+const alexaSkillRequest: RequestHandler = (req, res, next) => {
   const body = req.body as UnverifiedBody | undefined;
 
-  try {
-    await verifyAlexaSkillRequest({
-      certChainUrl: req.header('SignatureCertChainUrl'),
-      signature: req.header('Signature-256'),
-      rawBody: req.rawBody,
-      applicationId: body?.context?.System?.application?.applicationId,
-      timestamp: body?.request?.timestamp,
-      expectedApplicationId: config.alexa.id
-    });
-  } catch (e) {
-    if (e instanceof AlexaVerificationError) {
-      logger.warn({ err: e }, 'Rejecting an unverified Alexa skill request');
-      res.status(401).end();
-
-      return;
-    }
-
-    next(e);
+  // Neither applicationId goes in the log line. Ours is not rotatable, so there is no reason to copy
+  // it into the logs of whatever ships them off the box; and echoing a caller's guess back alongside
+  // "wrong" is a slow way to leak which guesses were close.
+  if (body?.context?.System?.application?.applicationId !== config.alexa.id) {
+    logger.warn('Rejecting an Alexa skill request sent for another skill');
+    res.status(401).end();
 
     return;
   }

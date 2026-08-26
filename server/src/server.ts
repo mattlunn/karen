@@ -47,13 +47,7 @@ const httpServer = createServer(app);
 app.set('trust proxy', config.trust_proxy);
 app.use(compression());
 app.use(express.urlencoded({ extended: false }));
-app.use(express.json({
-  // The Alexa custom skill signs the exact bytes it sends, which re-serialising the parsed body
-  // would not reproduce. See services/alexa/skill/verify-request.
-  verify: (req, res, buffer) => {
-    (req as express.Request).rawBody = buffer;
-  }
-}));
+app.use(express.json());
 app.use(express.text());
 app.use(cookieParser());
 app.use(buildVersion);

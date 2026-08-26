@@ -5,7 +5,6 @@ export interface AlexaIntent {
 
 export interface AlexaSkillRequest {
   type: string;
-  timestamp: string;
   // Absent on LaunchRequest and SessionEndedRequest, which Alexa can send to any skill.
   intent?: AlexaIntent;
 }
