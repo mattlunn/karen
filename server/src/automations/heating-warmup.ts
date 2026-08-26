@@ -10,7 +10,7 @@ import nowAndSetInterval from '../helpers/now-and-set-interval';
 export const parameters = z.object({
   checkIntervalMinutes: z.number().positive(),
   minWarmUpRatePerHour: z.number().positive(),
-  enableDHWControl: z.boolean().default(true)
+  enableDHWControl: z.boolean()
 });
 
 type WarmupState = Date | null;

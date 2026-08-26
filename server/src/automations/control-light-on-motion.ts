@@ -29,11 +29,11 @@ export const parameters = z.object({
     zone: z.string().nullish()
   })),
   lightName: z.string(),
-  offDelaySeconds: z.number().nonnegative().default(0),
+  offDelaySeconds: z.number().nonnegative(),
   between: z.array(timeRange.extend({
     illuminance: z.number().optional(),
-    brightness: z.number().min(0).max(100).optional()
-  })).default([{ start: '00:00', end: '00:00 + 1d' }])
+    brightness: z.number().min(0).max(100)
+  }))
 });
 
 export default function ({ sensors, lightName, between, offDelaySeconds }: z.infer<typeof parameters>) {
@@ -63,7 +63,7 @@ export default function ({ sensors, lightName, between, offDelaySeconds }: z.inf
 
         const sensor = await event.getDevice();
 
-        for (const { start, end, illuminance = null, brightness = 100 } of between) {
+        for (const { start, end, illuminance = null, brightness } of between) {
           if (isWithinTime(start, end)) {
             const light = await Device.findByNameOrError(lightName);
             const lightIsOn = await light.getLightCapability().getIsOn();

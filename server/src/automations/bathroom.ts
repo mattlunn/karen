@@ -19,10 +19,10 @@ export const parameters = z.object({
   humiditySensorName: z.string(),
   lightName: z.string(),
   maximumHumidity: z.number(),
-  offDelaySeconds: z.number().nonnegative().default(0),
+  offDelaySeconds: z.number().nonnegative(),
   between: z.array(timeRange.extend({
     brightness: z.number().min(0).max(100)
-  })).default([{ start: '00:00', end: '23:59', brightness: 100 }])
+  }))
 });
 
 export default function ({ motionSensorNames, humiditySensorName, lightName, maximumHumidity, offDelaySeconds, between }: z.infer<typeof parameters>) {

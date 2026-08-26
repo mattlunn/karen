@@ -14,9 +14,9 @@ const successAsBoolean = (promise: Promise<void>) => promise.then(() => true, ()
 export const parameters = z.object({
   night_mode_alexa: z.string(),
   alarm_alexa: z.string(),
-  night_excluded_devices: z.array(z.string()).default([]),
-  excluded_devices: z.array(z.string()).default([]),
-  silencing_windows: z.array(silencingWindow).default([]),
+  night_excluded_devices: z.array(z.string()),
+  excluded_devices: z.array(z.string()),
+  silencing_windows: z.array(silencingWindow),
   alarm_duration_minutes: z.number().positive()
 });
 

@@ -17,7 +17,7 @@ const greetings: ((name: string) => string)[] = [
 
 export const parameters = z.object({
   alexa_name: z.string(),
-  greeting_window_minutes: z.number().positive().default(10)
+  greeting_window_minutes: z.number().positive()
 });
 
 export default async function ({
