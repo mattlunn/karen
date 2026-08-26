@@ -1,6 +1,6 @@
-jest.mock('../config', () => ({}), { virtual: true });
+jest.mock('../config/app', () => ({}), { virtual: true });
 
-import { isWithinTime } from './time';
+import { isWithinTime, normalizeTime } from './time';
 import getSunriseAndSunset from './sun';
 import dayjs from '../dayjs';
 
@@ -36,5 +36,21 @@ describe('isWithinTime', () => {
     getSunriseAndSunset.mockImplementation(() => ({ sunrise: getTime(7, 30) }));
 
     expect(isWithinTime('06:00', 'sunrise', getTime(6, 30))).toBe(true);
+  });
+});
+
+describe('normalizeTime', () => {
+  // Regression coverage for a bug where normalizeTime('17:00', date) used dayjs' hour()/minute()
+  // setters, which don't recompute the Europe/London UTC offset for the resulting wall-clock
+  // time - only for the offset already baked into `date`. Normalizing "17:00" against a `date`
+  // on the opposite side of a DST transition from 17:00 itself silently produced a result an
+  // hour off from the real local 17:00.
+  it.each([
+    ['BST starts (GMT date, BST target)', '2026-03-29T00:00:00Z', '+01:00'],
+    ['BST ends (BST date, GMT target)', '2026-10-25T00:00:00Z', '+00:00'],
+  ])('resolves "17:00" to the correct Europe/London offset across %s', (_, dateIso, expectedOffset) => {
+    const result = normalizeTime('17:00', new Date(dateIso));
+
+    expect(result.format('HH:mmZ')).toBe(`17:00${expectedOffset}`);
   });
 });

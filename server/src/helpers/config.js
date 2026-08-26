@@ -1,6 +1,6 @@
 import { writeFileSync } from 'fs';
-import config from '../config';
+import config from '../config/app';
 
 export function saveConfig() {
-  writeFileSync(__dirname + '/../config.json', JSON.stringify(config, null, 2));
+  writeFileSync(__dirname + '/../config/app.json', JSON.stringify(config, null, 2));
 }

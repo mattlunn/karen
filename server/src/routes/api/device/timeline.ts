@@ -65,18 +65,21 @@ export default async function (req: Request<{ id: string }>, res: Response, next
       }
 
       case 'MOTION_SENSOR': {
-        const sensor = device.getMotionSensorCapability();
-        historyPromises.push(
-          mapBooleanHistory((hs) => sensor.getHasMotionHistory(hs), historySelector)
-            .then(history => {
-              for (const event of history) {
-                events.push({ type: 'motion-start', timestamp: event.start });
-                if (event.end) {
-                  events.push({ type: 'motion-end', timestamp: event.end });
+        for (const instance of device.getCapabilityInstances(capability)) {
+          const sensor = device.getMotionSensorCapability(instance.id);
+
+          historyPromises.push(
+            mapBooleanHistory((hs) => sensor.getHasMotionHistory(hs), historySelector)
+              .then(history => {
+                for (const event of history) {
+                  events.push({ type: 'motion-start', timestamp: event.start, instanceName: instance.name });
+                  if (event.end) {
+                    events.push({ type: 'motion-end', timestamp: event.end, instanceName: instance.name });
+                  }
                 }
-              }
-            })
-        );
+              })
+          );
+        }
         break;
       }
 

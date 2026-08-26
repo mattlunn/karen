@@ -3,7 +3,7 @@ import { Device } from '../../models';
 import { Capability } from '../../models/capabilities';
 import ZWaveClient from './lib/client';
 import logger from '../../logger';
-import config from '../../config';
+import config from '../../config/app';
 import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
 

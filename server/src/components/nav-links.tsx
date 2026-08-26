@@ -6,7 +6,6 @@ import styles from './nav-links.module.css';
 
 const navLinks = [
   { label: 'Home', to: '/' },
-  { label: 'Timeline', to: '/timeline' },
   { label: 'Devices', to: '/device' },
 ];
 

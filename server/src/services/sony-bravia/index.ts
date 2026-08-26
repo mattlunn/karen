@@ -1,6 +1,6 @@
 import { Device } from '../../models';
 import { TelevisionSource } from '../../models/capabilities';
-import config from '../../config';
+import config from '../../config/app';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import BraviaClient from './client';
@@ -45,7 +45,7 @@ function clientFor(device: Device): BraviaClient {
 // often doesn't match our config's canonical channel label (e.g. "BBC 1"
 // instead of "BBC ONE"). There's no general algorithm for this — it's a fixed
 // set of per-deployment quirks discovered by testing real voice commands — so
-// known variants are enumerated per-channel via config.json's `aliases`. Add
+// known variants are enumerated per-channel via config/app.json's `aliases`. Add
 // a new alias whenever testing turns up another phrasing Alexa uses.
 function findSource(device: Device, label: string): SonySource | undefined {
   const target = label.toLowerCase();

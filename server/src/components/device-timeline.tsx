@@ -19,9 +19,9 @@ function mapEventToTimelineItem(event: DeviceTimelineEventApiResponse): Timeline
     case 'light-off':
       return { icon: faLightbulb, title: 'Light turned off', timestamp: event.timestamp };
     case 'motion-start':
-      return { icon: faPersonWalking, title: 'Motion detected', timestamp: event.timestamp };
+      return { icon: faPersonWalking, title: event.instanceName ? `Motion detected (${event.instanceName})` : 'Motion detected', timestamp: event.timestamp };
     case 'motion-end':
-      return { icon: faPersonWalking, title: 'Motion ended', timestamp: event.timestamp };
+      return { icon: faPersonWalking, title: event.instanceName ? `Motion ended (${event.instanceName})` : 'Motion ended', timestamp: event.timestamp };
     case 'heatpump-mode':
       return { icon: faFireBurner, title: `Mode changed to ${event.value}`, timestamp: event.timestamp };
     case 'button-press':

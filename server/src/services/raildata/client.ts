@@ -1,4 +1,4 @@
-import config from '../../config';
+import config from '../../config/app';
 
 export type ServiceStatus =
   | { kind: 'on-time'; scheduled: string; platform: string | null }

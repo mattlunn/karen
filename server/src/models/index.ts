@@ -1,5 +1,5 @@
 import { Sequelize } from 'sequelize';
-import config from '../config';
+import config from '../config/app';
 import userFactory, { User } from './user';
 import stayFactory, { Stay } from './stay';
 import roomFactory, { Room } from './room';
@@ -27,6 +27,7 @@ const instance = new Sequelize(config.database.name, config.database.user, confi
 export const Token = tokenFactory(instance);
 
 export { Device } from './device';
+export type { CapabilityInstance } from './device';
 export { Event, BooleanEvent, NumericEvent, StringEvent } from './event';
 export { Recording } from './recording';
 export { User } from './user';

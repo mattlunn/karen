@@ -1,6 +1,6 @@
 import type { SmartcarSignalAttributes, SmartcarSuccessSignalAttributes } from './types';
 import { Device } from '../../models';
-import config from '../../config';
+import config from '../../config/app';
 import logger from '../../logger';
 
 const KM_TO_MILES = 0.621371;

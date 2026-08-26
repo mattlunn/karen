@@ -5,7 +5,7 @@ export interface ApiErrorResponse {
 // Device API response - current status values with timestamps.
 // State responses always carry an envelope (anchored to device.createdAt when
 // no observation has happened yet) but `value` is null until first observation.
-export type CapabilityApiResponse = {
+export type CapabilityApiResponseBase = {
   type: 'LIGHT';
   brightness: NumericStateApiResponse;
   isOn: BooleanStateApiResponse;
@@ -107,6 +107,18 @@ export type CapabilityApiResponse = {
   type: null;
 };
 
+// A device can expose several instances of one capability (e.g. a presence
+// sensor reporting occupancy per zone), so `capabilities` may contain more
+// than one entry of the same `type`, distinguished by `instanceId`. A null
+// instanceId is the singleton instance - the device itself.
+export type CapabilityInstanceMeta = {
+  instanceId: string | null;
+  instanceName: string | null;
+};
+
+// Intersecting distributes over the union, so narrowing on `type` still works.
+export type CapabilityApiResponse = CapabilityApiResponseBase & CapabilityInstanceMeta;
+
 // Current-state envelopes (live device data). `value` is null until the
 // integration reports an observation; envelope timestamps are still present
 // (anchored to device.createdAt when no observation exists).
@@ -206,6 +218,7 @@ export type DeviceTimelineEventApiResponse = {
   type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline' | 'switch-on';
   timestamp: string;
   value?: string;
+  instanceName?: string | null;
 } | {
   type: 'contact-opened';
   timestamp: string;
@@ -350,21 +363,6 @@ export type UserResponse = {
   until: number | null
 });
 
-// Timeline Feed API response types (/api/timeline)
-export type TimelineFeedEvent =
-  | { type: 'motion'; id: number; timestamp: number; deviceId: number; deviceName: string; recordingId: number | null; }
-  | { type: 'arrival'; id: number; timestamp: number; userId: string; }
-  | { type: 'departure'; id: number; timestamp: number; userId: string; }
-  | { type: 'light-on'; id: number; timestamp: number; deviceId: number; deviceName: string; }
-  | { type: 'light-off'; id: number; timestamp: number; deviceId: number; deviceName: string; duration: number; }
-  | { type: 'alarm-arming'; id: number; timestamp: number; mode: AlarmMode; }
-  | { type: 'doorbell-ring'; id: number; timestamp: number; };
-
-export interface TimelineFeedApiResponse {
-  events: TimelineFeedEvent[];
-  hasMore: boolean;
-}
-
 // /api/insights/heating endpoint
 export interface HeatingInsightsApiResponse {
   lines: (HistoryLineApiResponse & { deviceName: string })[];
@@ -398,6 +396,8 @@ export interface SecurityInsightsApiResponse {
     id: number;
     deviceId: number;
     deviceName: string;
+    instanceId: string | null;
+    instanceName: string | null;
     start: string;
     end: string | null;
     recordingId: number | null;
@@ -425,6 +425,7 @@ export interface SecurityInsightsApiResponse {
   }>;
   motionByDeviceHour: Array<{
     deviceId: number;
+    instanceId: string | null;
     label: string;
     // Always 24 entries, one motion count per hour of day (0-23).
     countByHour: number[];

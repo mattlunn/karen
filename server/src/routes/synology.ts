@@ -1,6 +1,6 @@
 import express from 'express';
 import dayjs from '../dayjs';
-import config from '../config';
+import config from '../config/app';
 import { onMotionDetected, onDoorbellRing, onConnectivityChanged } from '../services/synology';
 
 const router = express.Router();

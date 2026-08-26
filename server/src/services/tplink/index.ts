@@ -1,6 +1,6 @@
 import { Bulb, Client, Plug } from 'tplink-smarthome-api';
 import { Device } from '../../models';
-import config from '../../config';
+import config from '../../config/app';
 import sleep from '../../helpers/sleep';
 import newrelic from 'newrelic';
 import logger from '../../logger';
