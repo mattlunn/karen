@@ -1,5 +1,6 @@
 import express from 'express';
 import newrelic from 'newrelic';
+import config from '../config/app';
 import auth from '../middleware/auth';
 import alexaSkillRequest from '../middleware/alexa-skill-request';
 import logger from '../logger';
@@ -50,7 +51,7 @@ router.post('/smarthome', auth, async (req, res) => {
   }
 });
 
-router.post('/skill', alexaSkillRequest, async (req, res) => {
+router.post('/skill', alexaSkillRequest(config.alexa.id), async (req, res) => {
   const body = req.body as AlexaSkillRequestBody;
   const intent = body.request.intent;
 
