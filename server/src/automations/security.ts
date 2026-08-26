@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { Device, Arming, User, AlarmActivation, BooleanEvent } from '../models';
 import { callWithKarenMessage } from '../services/twilio';
 import bus, { NOTIFICATION_TO_ALL } from '../bus';
@@ -7,17 +8,28 @@ import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { findActiveSilencingWindow, getSilencingWindowEndsAt, SilencingWindow } from '../helpers/silencing-window';
+import { timeString } from './schema';
 
 const successAsBoolean = (promise: Promise<void>) => promise.then(() => true, () => false);
 
-type SecurityAutomationConfiguration = {
-  night_mode_alexa: string;
-  alarm_alexa: string;
-  night_excluded_devices: string[];
-  excluded_devices: string[];
-  silencing_windows: SilencingWindow[];
-  alarm_duration_minutes: number;
-};
+// `satisfies` keeps the schema and the helper's SilencingWindow type in step without
+// deriving one from the other, so zod stays confined to the automations folder.
+const silencingWindow = z.object({
+  name: z.string(),
+  anchor_date: z.iso.date(),          // e.g. "2026-06-17" (a Wednesday)
+  interval_weeks: z.int().positive(), // e.g. 2 for every other week
+  start: timeString,                  // e.g. "08:00" (also supports "sunrise"/"sunset")
+  end: timeString                     // e.g. "12:00"
+}) satisfies z.ZodType<SilencingWindow>;
+
+export const parameters = z.object({
+  night_mode_alexa: z.string(),
+  alarm_alexa: z.string(),
+  night_excluded_devices: z.array(z.string()),
+  excluded_devices: z.array(z.string()),
+  silencing_windows: z.array(silencingWindow),
+  alarm_duration_minutes: z.number().positive()
+});
 
 async function turnOnAllTheLights() {
   const lights = await Device.findByCapability('LIGHT');
@@ -102,11 +114,11 @@ function isExcludedDevice(mode: ArmingMode, deviceName: string, excludedDevices:
 export default async function ({
   night_mode_alexa: nightModeAlexa,
   alarm_alexa: alarmAlexa,
-  night_excluded_devices: nightExcludedDevices = [],
-  excluded_devices: excludedDevices = [],
-  silencing_windows: silencingWindows = [],
+  night_excluded_devices: nightExcludedDevices,
+  excluded_devices: excludedDevices,
+  silencing_windows: silencingWindows,
   alarm_duration_minutes: alarmDurationMinutes
-}: SecurityAutomationConfiguration) {
+}: z.infer<typeof parameters>) {
   async function handleTrigger(event: BooleanEvent, describeTrigger: (deviceName: string) => string) {
     const [
       arming,
