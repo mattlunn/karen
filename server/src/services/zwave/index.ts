@@ -18,7 +18,7 @@ function sensitivityToZwave(sensitivity: number): number {
 }
 
 const deviceCapabilitiesMap = new Map<string, Capability[]>([
-  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
+  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'MOTION_SENSOR_SENSITIVITY', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
   ['Fibargroup FGD212', ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY']],
   ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
   ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
@@ -86,7 +86,7 @@ deviceHandlers.set('Fibargroup FGMS001', [
       device.meta.pendingSensitivity = undefined;
       await device.save();
 
-      return device.getMotionSensorCapability().setSensitivityState(zwaveToSensitivity(value));
+      return device.getMotionSensorSensitivityCapability().setSensitivityState(zwaveToSensitivity(value));
     }
   }
 ]);
@@ -311,7 +311,7 @@ Device.registerProvider('zwave', {
     };
   },
 
-  provideMotionSensorCapability() {
+  provideMotionSensorSensitivityCapability() {
     return {
       async setSensitivity(device: Device, sensitivity: number) {
         device.meta.pendingSensitivity = sensitivity;
@@ -468,14 +468,14 @@ Device.registerProvider('zwave', {
 
             await knownDevice.getConnectivityCapability().setIsConnectedState(!isDead && !isStale);
 
-            if (knownDevice.getCapabilities().includes('MOTION_SENSOR')) {
-              const sensitivityEvent = await knownDevice.getMotionSensorCapability().getSensitivityEvent();
+            if (knownDevice.getCapabilities().includes('MOTION_SENSOR_SENSITIVITY')) {
+              const sensitivityEvent = await knownDevice.getMotionSensorSensitivityCapability().getSensitivityEvent();
 
               if (sensitivityEvent === null) {
                 const sensitivityValue = node.values?.find((v: any) => v.commandClass === 112 && v.property === 1);
 
                 if (typeof sensitivityValue?.value === 'number') {
-                  await knownDevice.getMotionSensorCapability().setSensitivityState(
+                  await knownDevice.getMotionSensorSensitivityCapability().setSensitivityState(
                     zwaveToSensitivity(sensitivityValue.value),
                     knownDevice.createdAt
                   );

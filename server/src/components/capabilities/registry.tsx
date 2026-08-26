@@ -636,7 +636,7 @@ export const registry: CapabilityUIRegistry = {
 
   MOTION_SENSOR: {
     priority: 50,
-    getCapabilityMetrics: (cap, device) => [
+    getCapabilityMetrics: (cap) => [
       createCapability(cap.hasMotion, {
         icon: faPersonWalking,
         title: 'Motion',
@@ -644,6 +644,12 @@ export const registry: CapabilityUIRegistry = {
         iconHighlighted: (e) => e.value,
         iconColor: '#04A7F4',
       }),
+    ],
+  },
+
+  MOTION_SENSOR_SENSITIVITY: {
+    priority: 51,
+    getCapabilityMetrics: (cap, device) => [
       {
         icon: faGauge,
         title: 'Sensitivity',

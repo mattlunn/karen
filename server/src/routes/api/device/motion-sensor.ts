@@ -13,9 +13,9 @@ router.put<Record<string, never>, DeviceApiResponse | ApiErrorResponse, MotionSe
     return;
   }
 
-  const motionSensor = device.getMotionSensorCapability();
+  const motionSensor = device.getMotionSensorSensitivityCapability();
   if (!motionSensor) {
-    res.status(400).json({ error: 'Device does not have motion sensor capability' });
+    res.status(400).json({ error: 'Device does not have motion sensor sensitivity capability' });
     return;
   }
 

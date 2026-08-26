@@ -28,6 +28,8 @@ export type CapabilityApiResponseBase = {
 } | {
   type: 'MOTION_SENSOR';
   hasMotion: BooleanStateApiResponse;
+} | {
+  type: 'MOTION_SENSOR_SENSITIVITY';
   sensitivity: NumericStateApiResponse;
   pendingSensitivity: number | null;
 } | {
