@@ -58,7 +58,8 @@ async function GoingOut(intent: GoingOutIntent) {
     outputSpeech: {
       type: 'PlainText',
       text: `Karen said she's missing you already`
-    }
+    },
+    shouldEndSession: true
   };
 }
 
@@ -88,7 +89,11 @@ async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
 
   if (!message) {
     logger.error(`"${deviceName}" asked for messages, but there was none.`);
-    return;
+
+    // Returning nothing sends `{ version: '1.0' }` with no `response` key, since JSON.stringify
+    // drops an undefined value. Alexa rejects that as malformed and reads out "There was a problem
+    // with the requested skill's response", so say nothing and end the session instead.
+    return { shouldEndSession: true };
   }
 
   messages.delete(deviceName);
@@ -97,7 +102,8 @@ async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
     outputSpeech: {
       type: 'SSML',
       ssml: `<speak>${message}</speak>`
-    }
+    },
+    shouldEndSession: true
   };
 }
 

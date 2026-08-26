@@ -1,6 +1,7 @@
 import express from 'express';
 import newrelic from 'newrelic';
 import auth from '../middleware/auth';
+import alexaSkillRequest from '../middleware/alexa-skill-request';
 import logger from '../logger';
 import { smarthomeHandlers, AlexaRequestWithEndpoint, AlexaInvalidValueError } from '../services/alexa/smarthome';
 import { intentHandlers } from '../services/alexa/skill';
@@ -49,20 +50,30 @@ router.post('/smarthome', auth, async (req, res) => {
   }
 });
 
-router.post('/skill', auth, async (req, res) => {
+router.post('/skill', alexaSkillRequest, async (req, res) => {
   const body = req.body as AlexaSkillRequestBody;
-  const handler = intentHandlers[body.request.intent.name];
+  const intent = body.request.intent;
 
   newrelic.addCustomAttributes({
-    'alexa.intent': body.request.intent.name,
+    'alexa.requestType': body.request.type,
+    ...(intent !== undefined && { 'alexa.intent': intent.name }),
   });
 
-  if (!handler) {
-    res.status(404).send('No handler setup to handle ' + body.request.intent.name);
+  // Alexa sends LaunchRequest and SessionEndedRequest to any skill, neither of which carries an
+  // intent. Reading .name off them used to throw, which Alexa reads out as an error.
+  if (intent === undefined) {
+    res.status(200).json({ version: '1.0', response: { shouldEndSession: true } });
     return;
   }
 
-  const response = await handler(body.request.intent);
+  const handler = intentHandlers[intent.name];
+
+  if (!handler) {
+    res.status(404).send('No handler setup to handle ' + intent.name);
+    return;
+  }
+
+  const response = await handler(intent);
   res.status(200).json({ version: '1.0', response });
 });
 
