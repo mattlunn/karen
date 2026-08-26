@@ -107,6 +107,13 @@ export default async function ({
   silencing_windows: silencingWindows = [],
   alarm_duration_minutes: alarmDurationMinutes
 }: SecurityAutomationConfiguration) {
+  // config/automations.json is plain JSON, so SecurityAutomationConfiguration buys us nothing at
+  // runtime. Check the parameter here instead: a missing one used to surface as an "Invalid date"
+  // insert failure at the moment the alarm was needed, silently swallowing the alert.
+  if (typeof alarmDurationMinutes !== 'number' || !Number.isFinite(alarmDurationMinutes)) {
+    throw new Error(`security: alarm_duration_minutes must be a number, but got ${JSON.stringify(alarmDurationMinutes)}`);
+  }
+
   async function handleTrigger(event: BooleanEvent, describeTrigger: (deviceName: string) => string) {
     const [
       arming,
