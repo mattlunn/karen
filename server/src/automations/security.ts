@@ -7,9 +7,20 @@ import sleep from '../helpers/sleep';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
 import { DeviceCapabilityEvents } from '../models/capabilities';
-import { findActiveSilencingWindow, getSilencingWindowEndsAt, silencingWindow } from '../helpers/silencing-window';
+import { findActiveSilencingWindow, getSilencingWindowEndsAt, SilencingWindow } from '../helpers/silencing-window';
+import { timeString } from './schema';
 
 const successAsBoolean = (promise: Promise<void>) => promise.then(() => true, () => false);
+
+// `satisfies` keeps the schema and the helper's SilencingWindow type in step without
+// deriving one from the other, so zod stays confined to the automations folder.
+const silencingWindow = z.object({
+  name: z.string(),
+  anchor_date: z.iso.date(),          // e.g. "2026-06-17" (a Wednesday)
+  interval_weeks: z.int().positive(), // e.g. 2 for every other week
+  start: timeString,                  // e.g. "08:00" (also supports "sunrise"/"sunset")
+  end: timeString                     // e.g. "12:00"
+}) satisfies z.ZodType<SilencingWindow>;
 
 export const parameters = z.object({
   night_mode_alexa: z.string(),
