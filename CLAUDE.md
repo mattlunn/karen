@@ -85,6 +85,10 @@ npm run codegen          # Generate TypeScript from GraphQL schema
   - Consecutive short, related declarations can be grouped without blank lines between them — just add the one blank line before the next *distinct* statement.
   - No leading blank line for the first statement right after an opening `{`, and none right before a closing `}` — including a guard clause that's the first line of a function.
   - Trivial one- or two-statement bodies don't need any separating blank lines (nothing to separate).
+- **Comment sparingly.** Only add a comment where the logic or its purpose isn't clear from the code itself — an external constraint, a non-obvious edge case, a reason for doing something the unexpected way. Don't restate what the code plainly says.
+- **Write comments in the present tense, describing the code as it stands.** A comment explains the current behaviour to whoever reads it next; it isn't a changelog, and git history already records what changed and why. Drop clauses about what the code "used to" do, what a previous version got wrong, or what a change fixed. For example:
+  - Good: `// Alexa sends LaunchRequest and SessionEndedRequest to any skill, neither of which carries an intent.`
+  - Bad: `// Alexa sends LaunchRequest and SessionEndedRequest to any skill, neither of which carries an intent. Reading .name off them used to throw, which Alexa reads out as an error.`
 
 ### REST API Type System
 

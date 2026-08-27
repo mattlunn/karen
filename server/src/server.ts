@@ -63,10 +63,18 @@ app.use('/vehicle', vehicleRoutes);
 app.use('/version', versionRoutes);
 app.use('/', express.static(__dirname + '/static'));
 
-app.use((req, res) => res.sendFile('index.html', {
-  root: __dirname + '/static',
-  maxAge: dayjs.duration(1, 'year').asMilliseconds()
-}));
+app.use((req, res) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.sendStatus(404);
+
+    return;
+  }
+
+  res.sendFile('index.html', {
+    root: __dirname + '/static',
+    maxAge: dayjs.duration(1, 'year').asMilliseconds()
+  });
+});
 
 httpServer.listen(config.port, () => {
   logger.info(`Listening on ${config.port}`);

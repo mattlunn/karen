@@ -12,7 +12,7 @@ const greetings: ((name: string) => string)[] = [
   (name) => `<voice name="Carla"><lang xml:lang="it-IT">Ciao ${name}</lang></voice>. That's how Italian's say hi!`,
   (name) => `<voice name="Camila"><lang xml:lang="pt-BR">Olá ${name}</lang></voice>. That's how the Portugese say hi!`,
   (name) => `<voice name="Lucia"><lang xml:lang="es-ES">Hola ${name}</lang></voice>. That's how the Spanish say hi!`,
-  (name) => `<voice name="Geraint"><amazon:emotion name="excited" intensity="high">Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch ${name}</amazon:emotion></voice>. That's G, saying hello!`
+  (name) => `<voice name="Geraint">Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch ${name}</voice>. <amazon:emotion name="excited" intensity="high">That's G, saying hello!</amazon:emotion>`
 ];
 
 export const parameters = z.object({
@@ -42,7 +42,7 @@ export default async function ({
         stay.getUser()
       ]);
 
-      device.getSpeakerCapability().emitSound(greetings[Math.floor(Math.random() * greetings.length)](user.handle));
+      await device.getSpeakerCapability().emitSound(greetings[Math.floor(Math.random() * greetings.length)](user.handle));
     }
   }));
 
