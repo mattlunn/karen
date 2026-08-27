@@ -63,10 +63,6 @@ app.use('/vehicle', vehicleRoutes);
 app.use('/version', versionRoutes);
 app.use('/', express.static(__dirname + '/static'));
 
-// The SPA is served for any unmatched path so that client-side routes survive a hard refresh. That
-// only makes sense for a page load — answering a POST to a mistyped endpoint with 200 and a page of
-// HTML hides the mistake from whatever sent it, which is how a stale Alexa endpoint URL went
-// unnoticed for months.
 app.use((req, res) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.sendStatus(404);

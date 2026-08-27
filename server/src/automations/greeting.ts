@@ -11,7 +11,6 @@ const greetings: ((name: string) => string)[] = [
   (name) => `<voice name="Carla"><lang xml:lang="it-IT">Ciao ${name}</lang></voice>. That's how Italian's say hi!`,
   (name) => `<voice name="Camila"><lang xml:lang="pt-BR">Olá ${name}</lang></voice>. That's how the Portugese say hi!`,
   (name) => `<voice name="Lucia"><lang xml:lang="es-ES">Hola ${name}</lang></voice>. That's how the Spanish say hi!`,
-  // amazon:emotion cannot be applied to a <voice>, so the two tags cover separate phrases here.
   (name) => `<voice name="Geraint">Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch ${name}</voice>. <amazon:emotion name="excited" intensity="high">That's G, saying hello!</amazon:emotion>`
 ];
 
@@ -42,13 +41,7 @@ export default async function ({
         stay.getUser()
       ]);
 
-      // emitSound only settles once Alexa collects the message, so this has to be awaited — left
-      // floating, a failure to speak surfaces as a bare unhandled rejection with no context.
-      try {
-        await device.getSpeakerCapability().emitSound(greetings[Math.floor(Math.random() * greetings.length)](user.handle));
-      } catch (e) {
-        logger.error({ err: e, stayId: stay.id, device: device.name }, 'Failed to speak the greeting');
-      }
+      await device.getSpeakerCapability().emitSound(greetings[Math.floor(Math.random() * greetings.length)](user.handle));
     }
   }));
 

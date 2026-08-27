@@ -2,7 +2,6 @@ import express from 'express';
 import newrelic from 'newrelic';
 import config from '../config/app';
 import auth from '../middleware/auth';
-import alexaSkillRequest from '../middleware/alexa-skill-request';
 import logger from '../logger';
 import { smarthomeHandlers, AlexaRequestWithEndpoint, AlexaInvalidValueError } from '../services/alexa/smarthome';
 import { intentHandlers } from '../services/alexa/skill';
@@ -51,8 +50,14 @@ router.post('/smarthome', auth, async (req, res) => {
   }
 });
 
-router.post('/skill', alexaSkillRequest(config.alexa.id), async (req, res) => {
+router.post('/skill', async (req, res) => {
   const body = req.body as AlexaSkillRequestBody;
+
+  if (body.context?.System?.application?.applicationId !== config.alexa.id) {
+    res.status(401).end();
+    return;
+  }
+
   const intent = body.request.intent;
 
   newrelic.addCustomAttributes({
