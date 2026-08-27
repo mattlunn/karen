@@ -90,9 +90,8 @@ async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
   if (!message) {
     logger.error(`"${deviceName}" asked for messages, but there was none.`);
 
-    // Returning nothing sends `{ version: '1.0' }` with no `response` key, since JSON.stringify
-    // drops an undefined value. Alexa rejects that as malformed and reads out "There was a problem
-    // with the requested skill's response", so say nothing and end the session instead.
+    // Alexa rejects a response with no `response` key as malformed, so end the session silently
+    // rather than returning nothing.
     return { shouldEndSession: true };
   }
 

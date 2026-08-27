@@ -65,8 +65,7 @@ router.post('/skill', async (req, res) => {
     ...(intent !== undefined && { 'alexa.intent': intent.name }),
   });
 
-  // Alexa sends LaunchRequest and SessionEndedRequest to any skill, neither of which carries an
-  // intent. Reading .name off them used to throw, which Alexa reads out as an error.
+  // Alexa sends LaunchRequest and SessionEndedRequest to any skill, neither of which carries an intent.
   if (intent === undefined) {
     res.status(200).json({ version: '1.0', response: { shouldEndSession: true } });
     return;
