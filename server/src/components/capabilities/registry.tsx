@@ -41,7 +41,7 @@ import {
   faSterlingSign,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
-import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, SwitchUpdateRequest, TelevisionUpdateRequest } from '../../api/types';
+import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, SwitchUpdateRequest, TelevisionUpdateRequest, MotionSensorUpdateRequest } from '../../api/types';
 import ThermostatModal from '../modals/thermostat-modal';
 import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import ChargeLimitModal from '../modals/charge-limit-modal';
@@ -66,6 +66,16 @@ async function updateLight(deviceId: number, data: LightUpdateRequest): Promise<
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error('Failed to update light');
+  return res.json();
+}
+
+async function updateMotionSensor(deviceId: number, data: MotionSensorUpdateRequest): Promise<DeviceApiResponse> {
+  const res = await fetch(`/api/device/${deviceId}/motion-sensor`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update motion sensor');
   return res.json();
 }
 
@@ -634,6 +644,20 @@ export const registry: CapabilityUIRegistry = {
         iconHighlighted: (e) => e.value,
         iconColor: '#04A7F4',
       }),
+    ],
+  },
+
+  MOTION_SENSOR_SENSITIVITY: {
+    priority: 51,
+    getCapabilityMetrics: (cap, device) => [
+      {
+        icon: faGauge,
+        title: 'Sensitivity',
+        value: <NumericControl deviceId={device.id} selectedValue={cap.sensitivity.value ?? 0} min={0} max={100} increment={5} formatLabel={(i) => `${i}%`} onClick={(value) => updateMotionSensor(device.id, { sensitivity: value })} />,
+        ...(cap.pendingSensitivity !== null
+          ? { footer: `pending ${cap.pendingSensitivity}% on next sync` }
+          : { since: cap.sensitivity.start, lastReported: cap.sensitivity.lastReported }),
+      },
     ],
   },
 

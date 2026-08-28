@@ -133,6 +133,15 @@ export async function getCapabilityData(device: Device, capability: string, inst
       });
     }
 
+    case 'MOTION_SENSOR_SENSITIVITY': {
+      const sensor = device.getMotionSensorSensitivityCapability(instanceId);
+      return awaitPromises({
+        type: 'MOTION_SENSOR_SENSITIVITY' as const,
+        sensitivity: mapNumericState(sensor.getSensitivityEvent(), device),
+        pendingSensitivity: sensor.getPendingSensitivity()
+      });
+    }
+
     case 'TEMPERATURE_SENSOR': {
       const sensor = device.getTemperatureSensorCapability(instanceId);
       return awaitPromises({

@@ -252,6 +252,18 @@
     }
   ]
 }, {
+  "name": "MotionSensorSensitivity",
+  "capabilityModelClassName": "MotionSensorSensitivityBase",
+  "capabilityProviderClassName": "ProviderMotionSensorSensitivityCapabilityBase",
+  "properties": [
+    {
+      "name": "Sensitivity",
+      "isWriteable": true,
+      "type": "number",
+      "eventName": "sensitivity"
+    }
+  ]
+}, {
   "name": "Switch",
   "properties": [
     {

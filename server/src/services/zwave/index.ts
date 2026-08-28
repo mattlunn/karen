@@ -7,8 +7,18 @@ import config from '../../config/app';
 import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
 
+// Z-Wave Fibaro FGMS001: lower value = more sensitive (range 8-255, default 15)
+// App model: higher value = more sensitive (range 0-100)
+function zwaveToSensitivity(zwaveValue: number): number {
+  return Math.round((255 - zwaveValue) / (255 - 8) * 100);
+}
+
+function sensitivityToZwave(sensitivity: number): number {
+  return Math.round(255 - sensitivity / 100 * (255 - 8));
+}
+
 const deviceCapabilitiesMap = new Map<string, Capability[]>([
-  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
+  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'MOTION_SENSOR_SENSITIVITY', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
   ['Fibargroup FGD212', ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY']],
   ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
   ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
@@ -68,6 +78,15 @@ deviceHandlers.set('Fibargroup FGMS001', [
     propertyKey: 'Battery.level',
     propertyMapper(device: Device, value: number) {
       return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
+    }
+  },
+  {
+    propertyKey: 'Configuration.1',
+    async propertyMapper(device: Device, value: number) {
+      device.meta.pendingSensitivity = undefined;
+      await device.save();
+
+      return device.getMotionSensorSensitivityCapability().setSensitivityState(zwaveToSensitivity(value));
     }
   }
 ]);
@@ -292,6 +311,43 @@ Device.registerProvider('zwave', {
     };
   },
 
+  provideMotionSensorSensitivityCapability() {
+    return {
+      getPendingSensitivity(device: Device) {
+        return (device.meta.pendingSensitivity as number | undefined) ?? null;
+      },
+
+      async setSensitivity(device: Device, sensitivity: number) {
+        device.meta.pendingSensitivity = sensitivity;
+        await device.save();
+
+        const { makeRequest } = await getClient();
+
+        // FGMS001 is battery-powered and sleeps between check-ins; if it's asleep,
+        // this command is queued and it's unconfirmed how long the underlying
+        // promise takes to settle. Don't let the caller (the API request) hang on
+        // that - confirmation arrives later via the Configuration.1 propertyMapper
+        // once zwave-js's cache actually reflects the change, whenever that is.
+        const result = await Promise.race([
+          makeRequest('node.set_value', {
+            nodeId: Number(device.providerId),
+            valueId: {
+              commandClass: 112,
+              endpoint: 0,
+              property: 1,
+            },
+            value: sensitivityToZwave(sensitivity)
+          }).then(() => 'sent' as const),
+          sleep(5000).then(() => 'timeout' as const)
+        ]);
+
+        if (result === 'timeout') {
+          logger.warn(`Timed out waiting for Z-Wave to confirm the sensitivity change was sent to device ${device.id}; it may still be queued for delivery`);
+        }
+      }
+    };
+  },
+
   provideLockCapability() {
     return {
       async setIsLocked(device: Device, isLocked: boolean): Promise<void> {
@@ -394,26 +450,50 @@ Device.registerProvider('zwave', {
         if (typeof deviceCapabilities === 'undefined') {
           logger.warn(`ZWave does not know how to handle a device of type "${deviceKey}" (Device Id ${deviceId})`);
         } else {
-          let knownDevice = await Device.findByProviderId('zwave', deviceId);
+          try {
+            let knownDevice = await Device.findByProviderId('zwave', deviceId);
 
-          if (!knownDevice) {
-            knownDevice = await Device.create({
-              provider: 'zwave',
-              providerId: deviceId,
-              name: node.name || `${deviceKey} (${deviceId})`
-            });
+            if (!knownDevice) {
+              knownDevice = await Device.create({
+                provider: 'zwave',
+                providerId: deviceId,
+                name: node.name || `${deviceKey} (${deviceId})`
+              });
+            }
+
+            knownDevice.manufacturer = manufacturer;
+            knownDevice.model = model;
+
+            await knownDevice.save();
+
+            const isDead = node.status === ZWAVE_NODE_STATUS_DEAD;
+            const lastSeen = node.statistics?.lastSeen ? new Date(node.statistics.lastSeen) : null;
+            const isStale = lastSeen !== null && (Date.now() - lastSeen.getTime()) > CONNECTIVITY_STALE_AFTER_MS;
+
+            await knownDevice.getConnectivityCapability().setIsConnectedState(!isDead && !isStale);
+
+            if (knownDevice.getCapabilities().includes('MOTION_SENSOR_SENSITIVITY')) {
+              const sensitivityEvent = await knownDevice.getMotionSensorSensitivityCapability().getSensitivityEvent();
+
+              if (sensitivityEvent === null) {
+                const sensitivityValue = node.values?.find((v: any) => v.commandClass === 112 && v.property === 1);
+
+                if (typeof sensitivityValue?.value === 'number') {
+                  await knownDevice.getMotionSensorSensitivityCapability().setSensitivityState(
+                    zwaveToSensitivity(sensitivityValue.value),
+                    knownDevice.createdAt
+                  );
+
+                  logger.info(`Initialized sensitivity for zwave motion sensor device ${knownDevice.id}`);
+                }
+              }
+            }
+          } catch (e) {
+            // Don't let a single misbehaving node (e.g. a stale DB row) abort
+            // sync for every node that follows it in iteration order.
+            newrelic.noticeError(e as Error);
+            logger.error(e, `Failed to synchronize zwave device ${deviceId}`);
           }
-
-          knownDevice.manufacturer = manufacturer;
-          knownDevice.model = model;
-
-          await knownDevice.save();
-
-          const isDead = node.status === ZWAVE_NODE_STATUS_DEAD;
-          const lastSeen = node.statistics?.lastSeen ? new Date(node.statistics.lastSeen) : null;
-          const isStale = lastSeen !== null && (Date.now() - lastSeen.getTime()) > CONNECTIVITY_STALE_AFTER_MS;
-
-          await knownDevice.getConnectivityCapability().setIsConnectedState(!isDead && !isStale);
         }
       }
     }
