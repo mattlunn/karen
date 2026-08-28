@@ -169,6 +169,24 @@ Device.registerProvider('providerName', {
 
 **`device.meta` vs `capabilities.json`**: Use `device.meta` only for provider-specific runtime data that stays within that provider's own code (e.g. Shelly's hardware `generation`, Vehicle's `chargeSchedule`). If a property needs to be accessible to automations or the API in a provider-agnostic way — even if it's static config rather than a live sensor reading — add it to `capabilities.json` instead. Custom capability subclass methods (like `getNextScheduledChange`) are for provider-specific *behaviours* that can't be meaningfully generalised across providers, not for properties.
 
+**Never read or write `device.meta` outside `services/<provider>/`.** `meta` is that provider's private storage; its shape is an implementation detail nothing else may depend on. This specifically includes `models/capabilities/*` — a custom capability subclass must **not** reach into `meta`, even to expose a value the provider stores there. Nor may `routes/`, `automations/`, or `components/`.
+
+To expose provider-specific state through a capability, delegate to the provider instead (this is what `capabilityProviderClassName` exists for):
+
+1. Set `"capabilityProviderClassName": "ProviderFooCapabilityBase"` in `capabilities.json` and run `npm run codegen`.
+2. Declare the extended interface in `models/capabilities/index.ts`: `export interface ProviderFooCapability extends ProviderFooCapabilityBase { getBar(device: Device): Bar; }`.
+3. In the capability subclass, delegate — never touch `meta`:
+   ```typescript
+   getBar(): Bar {
+     return Device.getProviderCapabilities(this.device.provider)
+       .provideFooCapability!()
+       .getBar(this.device);
+   }
+   ```
+4. Each provider implements `getBar` in its own `services/<provider>/index.ts`, where reading `device.meta` is fine — and different providers may answer differently, or not store it in `meta` at all.
+
+See `ElectricVehicleCapability.getNextChargeSchedule` (`models/capabilities/electric-vehicle.ts`) and `TelevisionCapability.getAvailableSources` (`models/capabilities/television.ts`) for the established pattern.
+
 **Available Capabilities**: Light, Lock, Thermostat, Switch, Camera, Speaker, BatteryLevelIndicator, BatteryLowIndicator, HeatPump, HumiditySensor, TemperatureSensor, LightSensor, MotionSensor, ElectricVehicle, BinCollection.
 
 **Custom Capability Subclasses**: For capabilities that need methods beyond codegen'd event properties, set `"capabilityModelClassName": "FooBase"` in `capabilities.json` so codegen generates a base class (e.g. `FooBaseCapability`), then create a custom subclass `FooCapability` extending it (e.g. `models/capabilities/bin-collection.ts`). Export the custom class from `models/capabilities/index.ts`.

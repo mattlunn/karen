@@ -254,6 +254,7 @@
 }, {
   "name": "MotionSensorSensitivity",
   "capabilityModelClassName": "MotionSensorSensitivityBase",
+  "capabilityProviderClassName": "ProviderMotionSensorSensitivityCapabilityBase",
   "properties": [
     {
       "name": "Sensitivity",

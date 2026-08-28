@@ -1,5 +1,5 @@
 import { Device } from '../';
-import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase } from './capabilities.gen';
+import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase, ProviderMotionSensorSensitivityCapabilityBase } from './capabilities.gen';
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
@@ -37,6 +37,15 @@ export interface ManualChargeSchedule {
 export interface ProviderElectricVehicleCapability extends ProviderElectricVehicleCapabilityBase {
   getNextChargeSchedule(device: Device): NextChargeSchedule | null;
   setManualChargeSchedule(device: Device, schedule: ManualChargeSchedule | null): Promise<void>;
+}
+
+export interface ProviderMotionSensorSensitivityCapability extends ProviderMotionSensorSensitivityCapabilityBase {
+  // A sensitivity written but not yet confirmed by the device, or null when there
+  // isn't one. Where that's tracked (and whether a provider has a pending state at
+  // all) is the provider's own business - e.g. Z-Wave nodes sleep, so a write sits
+  // unconfirmed until the device next checks in, whereas mains-powered devices
+  // confirm synchronously and never report one.
+  getPendingSensitivity(device: Device): number | null;
 }
 
 export interface TelevisionSource {

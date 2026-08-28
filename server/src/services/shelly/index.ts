@@ -82,14 +82,18 @@ Device.registerProvider('shelly', {
 
   provideMotionSensorSensitivityCapability() {
     return {
+      // Presence Gen4 is WiFi/mains-powered rather than a sleeping battery node, so
+      // a write is confirmed by its RPC response before setSensitivity even returns.
+      // There's never an unconfirmed write to report.
+      getPendingSensitivity() {
+        return null;
+      },
+
       async setSensitivity(device: Device, sensitivity: number) {
         await sendRpcRequest(device.providerId, 'Presence.SetConfig', {
           config: { sensor: { snr: sensitivityToSnr(sensitivity) } }
         });
 
-        // Presence Gen4 is WiFi/mains-powered, not a sleeping battery node, so the
-        // RPC response above is the confirmation - no async status topic to wait on,
-        // and no pendingSensitivity bookkeeping needed for that (unlike Z-Wave).
         await device.getMotionSensorSensitivityCapability().setSensitivityState(sensitivity);
       }
     };

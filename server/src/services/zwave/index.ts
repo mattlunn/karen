@@ -313,6 +313,10 @@ Device.registerProvider('zwave', {
 
   provideMotionSensorSensitivityCapability() {
     return {
+      getPendingSensitivity(device: Device) {
+        return (device.meta.pendingSensitivity as number | undefined) ?? null;
+      },
+
       async setSensitivity(device: Device, sensitivity: number) {
         device.meta.pendingSensitivity = sensitivity;
         await device.save();
