@@ -1,7 +1,7 @@
 import { Device, CapabilityInstance } from '../../models';
 import { Capability } from '../../models/capabilities';
 import logger from '../../logger';
-import { publishCommand, sendRpcRequest } from './mqtt';
+import { publishCommand, getSensorSnr, setSensorSnr } from './mqtt';
 
 const TOPIC_PREFIX = 'shellies';
 
@@ -90,9 +90,7 @@ Device.registerProvider('shelly', {
       },
 
       async setSensitivity(device: Device, sensitivity: number) {
-        await sendRpcRequest(device.providerId, 'Presence.SetConfig', {
-          config: { sensor: { snr: sensitivityToSnr(sensitivity) } }
-        });
+        await setSensorSnr(device.providerId, sensitivityToSnr(sensitivity));
 
         await device.getMotionSensorSensitivityCapability().setSensitivityState(sensitivity);
       }
@@ -108,19 +106,18 @@ Device.registerProvider('shelly', {
           continue;
         }
 
-        const sensitivityEvent = await device.getMotionSensorSensitivityCapability().getSensitivityEvent();
-
-        if (sensitivityEvent !== null) {
-          continue;
-        }
-
-        const result = await sendRpcRequest(device.providerId, 'Shelly.GetConfig') as { presence?: { sensor?: { snr?: number } } };
-        const snr = result.presence?.sensor?.snr;
+        // Read every sync rather than only when unset: nothing pushes presence
+        // config changes to us (the device's status topics only carry zone
+        // occupancy), so polling is the only way a change made on the device
+        // itself flows back into Karen.
+        const snr = await getSensorSnr(device.providerId);
 
         if (typeof snr === 'number') {
-          await device.getMotionSensorSensitivityCapability().setSensitivityState(snrToSensitivity(snr), device.createdAt);
+          const event = await device.getMotionSensorSensitivityCapability().setSensitivityState(snrToSensitivity(snr));
 
-          logger.info(`Initialized sensitivity for shelly motion sensor device ${device.id}`);
+          if (event !== null) {
+            logger.info(`Sensitivity for shelly motion sensor device ${device.id} is now ${event.value}%`);
+          }
         }
       } catch (e) {
         // Don't let one misbehaving device (unreachable, unknown model, etc.)

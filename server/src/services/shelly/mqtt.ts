@@ -196,8 +196,8 @@ export function publishCommand(topic: string, payload: string): Promise<void> {
 
 // Gen2+ JSON-RPC request/response over MQTT: publish a request to the device's
 // `/rpc` topic and wait for its reply on our own `${RPC_SRC}/rpc` topic,
-// correlated by request id.
-export function sendRpcRequest(deviceId: string, method: string, params?: object): Promise<unknown> {
+// correlated by request id. Kept private - callers use the named helpers below.
+function sendRpcRequest(deviceId: string, method: string, params?: object): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const id = nextRpcRequestId++;
 
@@ -226,6 +226,18 @@ export function sendRpcRequest(deviceId: string, method: string, params?: object
       }
     });
   });
+}
+
+// The Presence sensor's SNR threshold: the minimum signal-over-noise required
+// to count as a detection. Lower is more sensitive; range 10-100.
+export async function getSensorSnr(deviceId: string): Promise<number | undefined> {
+  const config = await sendRpcRequest(deviceId, 'Shelly.GetConfig') as { presence?: { sensor?: { snr?: number } } };
+
+  return config.presence?.sensor?.snr;
+}
+
+export async function setSensorSnr(deviceId: string, snr: number): Promise<void> {
+  await sendRpcRequest(deviceId, 'Presence.SetConfig', { config: { sensor: { snr } } });
 }
 
 getClient();
