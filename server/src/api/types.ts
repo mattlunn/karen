@@ -366,9 +366,21 @@ export interface HeatingInsightsApiResponse {
   heatPump: { id: number; name: string };
 }
 
-// /api/insights/energy/usage and /api/insights/energy/cost endpoints
-export type EnergyInsightsSeriesApiResponse = {
-  series: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
+// Both energy insights endpoints stack `series` (LIGHT-capable devices summed
+// into one "Lights" entry, then one entry per remaining metered device, all
+// bucket-aligned so they can be stacked) beneath a standalone line for the
+// whole-house Electricity Meter, which already includes everything else.
+
+// /api/insights/energy/usage endpoint.
+export type EnergyUsageInsightsApiResponse = {
+  series: HistoryLineApiResponse[];
+  demand: HistoryLineApiResponse | null;
+};
+
+// /api/insights/energy/cost endpoint.
+export type EnergyCostInsightsApiResponse = {
+  series: HistoryLineApiResponse[];
+  total: HistoryLineApiResponse | null;
 };
 
 // /api/insights/security endpoint

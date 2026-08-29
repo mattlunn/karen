@@ -102,7 +102,9 @@ export type CapabilityGraphProps = {
     label: string,
     yAxisID?: string,
     borderDash?: number[],
-    period?: 'day' | 'month'
+    period?: 'day' | 'month',
+    fill?: boolean | string,
+    stack?: string
   }[]
 
   bar?: {
@@ -199,7 +201,9 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     label: x.label,
     yAxisID: x.yAxisID || 'y',
     ...(x.period ? { tension: 0.3 } : {}),
-    ...(x.borderDash ? { borderDash: x.borderDash } : {})
+    ...(x.borderDash ? { borderDash: x.borderDash } : {}),
+    ...(x.fill !== undefined ? { fill: x.fill, pointRadius: 0 } : {}),
+    ...(x.stack !== undefined ? { stack: x.stack } : {})
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
@@ -269,7 +273,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     maintainAspectRatio: false
   };
 
-  if (props.stacked) {
+  if (props.stacked && props.bars) {
     chartOptions.scales.x.stacked = true;
   }
 

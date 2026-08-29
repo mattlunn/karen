@@ -52,7 +52,11 @@ function UsageGraph() {
         <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
       ) : (
         <CapabilityGraph
-          lines={data.series.map(line => ({ ...line, yAxisID: 'yPower' }))}
+          lines={[
+            ...data.series.map(line => ({ ...line, yAxisID: 'yPower', fill: 'stack', stack: 'usage' })),
+            ...(data.demand ? [{ ...data.demand, yAxisID: 'yPower' }] : [])
+          ]}
+          stacked
           yAxis={yAxisPower}
         />
       )}
@@ -80,7 +84,7 @@ function CostGraph() {
         <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
       ) : (
         <CapabilityGraph
-          lines={[]}
+          lines={data.total ? [{ ...data.total, yAxisID: 'yCost', period: 'day' as const }] : []}
           bars={data.series.map(series => ({ data: series.data, label: series.label, yAxisID: 'yCost', period: 'day' as const }))}
           stacked
           timeUnit="day"
