@@ -84,7 +84,7 @@ function CostGraph() {
         <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
       ) : (
         <CapabilityGraph
-          lines={data.total ? [{ ...data.total, yAxisID: 'yCost', period: 'day' as const }] : []}
+          lines={[]}
           bars={data.series.map(series => ({ data: series.data, label: series.label, yAxisID: 'yCost', period: 'day' as const }))}
           stacked
           timeUnit="day"

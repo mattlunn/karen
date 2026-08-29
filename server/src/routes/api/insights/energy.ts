@@ -141,13 +141,24 @@ export async function costHandler(req: Request, res: Response) {
     mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100)
   );
 
-  const aligned = alignToBuckets(histories, boundaries);
+  const series = groupLights(monitored, alignToBuckets(histories, boundaries));
 
-  res.json({
-    series: groupLights(monitored, aligned),
-    total: meter === null ? null : {
-      data: await mapNumericHistoryToResponse((hs) => meter.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100),
-      label: 'Total'
-    }
-  } satisfies EnergyCostInsightsApiResponse);
+  if (meter !== null) {
+    const meterHistory = await mapNumericHistoryToResponse((hs) => meter.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100);
+    const [meterTotal] = alignToBuckets([meterHistory], boundaries);
+
+    series.push({
+      data: {
+        since: meterTotal.since,
+        until: meterTotal.until,
+        history: meterTotal.history.map((event, i) => ({
+          ...event,
+          value: Math.max(0, event.value - series.reduce((sum, other) => sum + other.data.history[i].value, 0))
+        }))
+      },
+      label: 'Other'
+    });
+  }
+
+  res.json({ series } satisfies EnergyCostInsightsApiResponse);
 }
