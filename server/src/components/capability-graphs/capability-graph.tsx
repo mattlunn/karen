@@ -112,6 +112,15 @@ export type CapabilityGraphProps = {
     period?: 'day' | 'month'
   }
 
+  bars?: {
+    data: HistoryDetailsApiResponse<NumericEventApiResponse>,
+    label: string,
+    yAxisID?: string,
+    period?: 'day' | 'month'
+  }[]
+
+  stacked?: boolean
+
   zones?: {
     min?: number;
     max?: number;
@@ -158,6 +167,10 @@ function getMinMax(props: CapabilityGraphProps): { min: string; max: string } | 
     return { min: props.bar.data.since, max: props.bar.data.until };
   }
 
+  if (props.bars && props.bars.length > 0) {
+    return { min: props.bars[0].data.since, max: props.bars[0].data.until };
+  }
+
   if (props.modes) {
     return { min: props.modes.data.since, max: props.modes.data.until };
   }
@@ -178,7 +191,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }
 
   const { min, max } = minMax;
-  const modesOnly = props.lines.length === 0;
+  const modesOnly = props.lines.length === 0 && !props.bar && !props.bars?.length;
 
   const datasets: (ChartDataset<"line", { x: string; y: number; }[]> | ChartDataset<"bar", { x: string; y: number; }[]>)[] = props.lines.map(x => ({
     type: 'line',
@@ -256,6 +269,10 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     maintainAspectRatio: false
   };
 
+  if (props.stacked) {
+    chartOptions.scales.x.stacked = true;
+  }
+
   if (props.bar) {
     datasets.push({
       type: 'bar',
@@ -264,6 +281,19 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       yAxisID: props.bar.yAxisID || 'y',
       borderWidth: 1
     });
+  }
+
+  if (props.bars) {
+    for (const bar of props.bars) {
+      datasets.push({
+        type: 'bar',
+        data: mapNumericDataToAggregateDataset(bar.data, bar.period),
+        label: bar.label,
+        yAxisID: bar.yAxisID || 'y',
+        borderWidth: 1,
+        ...(props.stacked ? { stack: 'stack' } : {})
+      });
+    }
   }
 
   if (props.modes) {
@@ -322,6 +352,10 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       if (modesOnly) {
         scaleConfig.ticks = { color: 'transparent' };
         scaleConfig.grid = { display: false };
+      }
+
+      if (props.stacked) {
+        scaleConfig.stacked = true;
       }
 
       chartOptions.scales[axisId] = scaleConfig;
