@@ -366,21 +366,13 @@ export interface HeatingInsightsApiResponse {
   heatPump: { id: number; name: string };
 }
 
-// Both energy insights endpoints stack `series`: LIGHT-capable devices summed
-// into one "Lights" entry, then one entry per remaining metered device, all
-// bucket-aligned so they can be stacked. The whole-house Electricity Meter
-// already includes everything, so usage keeps it out of the stack as a
-// standalone `demand` line, while cost folds the unmetered remainder
-// (meter total - sub-metered) into the stack as a final "Other" entry.
-
-// /api/insights/energy/usage endpoint.
-export type EnergyUsageInsightsApiResponse = {
-  series: HistoryLineApiResponse[];
-  demand: HistoryLineApiResponse | null;
-};
-
-// /api/insights/energy/cost endpoint.
-export type EnergyCostInsightsApiResponse = {
+// /api/insights/energy/usage and /api/insights/energy/cost endpoints. `series`
+// stacks LIGHT-capable devices summed into one "Lights" entry, then one entry
+// per remaining metered device, all bucket-aligned so they can be stacked -
+// followed by a final "Other" entry folding in the unmetered remainder (the
+// whole-house Electricity Meter's total minus everything else, floored at
+// zero), since the meter already includes everything the other entries do.
+export type EnergyInsightsSeriesApiResponse = {
   series: HistoryLineApiResponse[];
 };
 

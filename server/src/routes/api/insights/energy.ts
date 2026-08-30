@@ -1,6 +1,6 @@
 import { Device } from '../../../models';
 import { Request, Response } from 'express';
-import { EnergyCostInsightsApiResponse, EnergyUsageInsightsApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../../api/types';
+import { EnergyInsightsSeriesApiResponse, HistoryDetailsApiResponse, HistoryLineApiResponse, NumericEventApiResponse } from '../../../api/types';
 import { mapNumericHistoryToResponse } from '../history-helpers';
 import { asyncMap } from '../../../helpers/array';
 import { filterClampAndSortHistory } from '../../../helpers/history';
@@ -107,6 +107,37 @@ async function splitMeterFromMonitored() {
   return { meter, monitored: devices.filter((device) => device !== meter) };
 }
 
+// Fetches each monitored device's history, groups lights, then appends a final
+// "Other" entry - the meter's total minus everything else, floored at zero -
+// so the whole stack sums to what the meter actually reads.
+async function buildSeriesWithOther(
+  monitored: Device[],
+  meter: Device | null,
+  boundaries: number[],
+  fetchHistory: (device: Device) => Promise<NumericHistory>
+): Promise<HistoryLineApiResponse[]> {
+  const histories = await asyncMap(monitored, fetchHistory);
+  const series = groupLights(monitored, alignToBuckets(histories, boundaries));
+
+  if (meter !== null) {
+    const [meterAligned] = alignToBuckets([await fetchHistory(meter)], boundaries);
+
+    series.push({
+      data: {
+        since: meterAligned.since,
+        until: meterAligned.until,
+        history: meterAligned.history.map((event, i) => ({
+          ...event,
+          value: Math.max(0, event.value - series.reduce((sum, other) => sum + other.data.history[i].value, 0))
+        }))
+      },
+      label: 'Other'
+    });
+  }
+
+  return series;
+}
+
 export async function usageHandler(req: Request, res: Response) {
   const selector = {
     since: new Date(req.query.since as string),
@@ -114,19 +145,12 @@ export async function usageHandler(req: Request, res: Response) {
   };
 
   const { meter, monitored } = await splitMeterFromMonitored();
-  const histories = await asyncMap(monitored, (device) =>
+  const boundaries = fixedBoundaries(selector.since, selector.until);
+  const series = await buildSeriesWithOther(monitored, meter, boundaries, (device) =>
     mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getCurrentPowerHistory(hs), selector)
   );
 
-  const aligned = alignToBuckets(histories, fixedBoundaries(selector.since, selector.until));
-
-  res.json({
-    series: groupLights(monitored, aligned),
-    demand: meter === null ? null : {
-      data: await mapNumericHistoryToResponse((hs) => meter.getEnergyMonitorCapability().getCurrentPowerHistory(hs), selector),
-      label: 'Demand'
-    }
-  } satisfies EnergyUsageInsightsApiResponse);
+  res.json({ series } satisfies EnergyInsightsSeriesApiResponse);
 }
 
 export async function costHandler(req: Request, res: Response) {
@@ -137,28 +161,9 @@ export async function costHandler(req: Request, res: Response) {
 
   const { meter, monitored } = await splitMeterFromMonitored();
   const boundaries = dailyBoundaries(selector.since, selector.until);
-  const histories = await asyncMap(monitored, (device) =>
+  const series = await buildSeriesWithOther(monitored, meter, boundaries, (device) =>
     mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100)
   );
 
-  const series = groupLights(monitored, alignToBuckets(histories, boundaries));
-
-  if (meter !== null) {
-    const meterHistory = await mapNumericHistoryToResponse((hs) => meter.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100);
-    const [meterTotal] = alignToBuckets([meterHistory], boundaries);
-
-    series.push({
-      data: {
-        since: meterTotal.since,
-        until: meterTotal.until,
-        history: meterTotal.history.map((event, i) => ({
-          ...event,
-          value: Math.max(0, event.value - series.reduce((sum, other) => sum + other.data.history[i].value, 0))
-        }))
-      },
-      label: 'Other'
-    });
-  }
-
-  res.json({ series } satisfies EnergyCostInsightsApiResponse);
+  res.json({ series } satisfies EnergyInsightsSeriesApiResponse);
 }

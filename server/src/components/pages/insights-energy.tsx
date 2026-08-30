@@ -52,10 +52,7 @@ function UsageGraph() {
         <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
       ) : (
         <CapabilityGraph
-          lines={[
-            ...data.series.map(line => ({ ...line, yAxisID: 'yPower', fill: 'stack', stack: 'usage' })),
-            ...(data.demand ? [{ ...data.demand, yAxisID: 'yPower' }] : [])
-          ]}
+          lines={data.series.map(line => ({ ...line, yAxisID: 'yPower', fill: 'stack', stack: 'usage', hatched: line.label === 'Other' }))}
           stacked
           yAxis={yAxisPower}
         />
