@@ -269,7 +269,8 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     ...(x.period ? { tension: 0.3 } : {}),
     ...(x.borderDash ? { borderDash: x.borderDash } : {}),
     ...(x.fill !== undefined ? { fill: x.fill, pointRadius: 0 } : {}),
-    ...(x.stack !== undefined ? { stack: x.stack } : {})
+    ...(x.stack !== undefined ? { stack: x.stack } : {}),
+    ...(x.hatched ? { borderWidth: 1 } : {})
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
