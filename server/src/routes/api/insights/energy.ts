@@ -83,9 +83,9 @@ function sumAlignedHistories(histories: NumericHistory[]): NumericHistory {
 
 // Splits the monitored devices' aligned histories into a single summed "Lights"
 // series (every LIGHT-capable device) plus one series per remaining device.
-function groupLights(devices: Device[], aligned: NumericHistory[]): { data: NumericHistory; label: string }[] {
+function groupLights(devices: Device[], aligned: NumericHistory[]): HistoryLineApiResponse[] {
   const lights: NumericHistory[] = [];
-  const rest: { data: NumericHistory; label: string }[] = [];
+  const rest: HistoryLineApiResponse[] = [];
 
   devices.forEach((device, i) => {
     if (device.getCapabilities().includes('LIGHT')) {
@@ -131,7 +131,8 @@ async function buildSeriesWithOther(
           value: Math.max(0, event.value - series.reduce((sum, other) => sum + other.data.history[i].value, 0))
         }))
       },
-      label: 'Other'
+      label: 'Other',
+      role: 'residual'
     });
   }
 

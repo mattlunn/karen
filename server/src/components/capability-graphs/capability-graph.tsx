@@ -159,22 +159,15 @@ export type CapabilityGraphProps = {
     period?: 'day' | 'month',
     fill?: boolean | string,
     stack?: string,
-    hatched?: boolean
+    role?: 'residual'
   }[]
-
-  bar?: {
-    data: HistoryDetailsApiResponse<NumericEventApiResponse>,
-    label: string,
-    yAxisID?: string,
-    period?: 'day' | 'month'
-  }
 
   bars?: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
     yAxisID?: string,
     period?: 'day' | 'month',
-    hatched?: boolean
+    role?: 'residual'
   }[]
 
   stacked?: boolean
@@ -201,8 +194,6 @@ export type CapabilityGraphProps = {
     suggestedMax?: number,
   }>
 
-  yMin?: number
-  yMax?: number
   timeUnit?: TimeUnit
   height?: string
 };
@@ -219,10 +210,6 @@ function getMinMax(props: CapabilityGraphProps): { min: string; max: string } | 
     }
 
     return { min, max };
-  }
-
-  if (props.bar) {
-    return { min: props.bar.data.since, max: props.bar.data.until };
   }
 
   if (props.bars && props.bars.length > 0) {
@@ -249,14 +236,14 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }
 
   const { min, max } = minMax;
-  const modesOnly = props.lines.length === 0 && !props.bar && !props.bars?.length;
+  const modesOnly = props.lines.length === 0 && !props.bars?.length;
 
   // Indexes into `datasets` (built up below, alongside `datasets` itself) that
   // should render with the diagonal hatch pattern rather than a solid color.
   const hatchedIndexes: number[] = [];
 
   props.lines.forEach((line, i) => {
-    if (line.hatched) {
+    if (line.role === 'residual') {
       hatchedIndexes.push(i);
     }
   });
@@ -270,7 +257,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     ...(x.borderDash ? { borderDash: x.borderDash } : {}),
     ...(x.fill !== undefined ? { fill: x.fill, pointRadius: 0 } : {}),
     ...(x.stack !== undefined ? { stack: x.stack } : {}),
-    ...(x.hatched ? { borderWidth: 0 } : {})
+    ...(x.role === 'residual' ? { borderWidth: 0 } : {})
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
@@ -344,19 +331,9 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     chartOptions.scales.x.stacked = true;
   }
 
-  if (props.bar) {
-    datasets.push({
-      type: 'bar',
-      data: mapNumericDataToAggregateDataset(props.bar.data, props.bar.period),
-      label: props.bar.label,
-      yAxisID: props.bar.yAxisID || 'y',
-      borderWidth: 1
-    });
-  }
-
   if (props.bars) {
     for (const bar of props.bars) {
-      if (bar.hatched) {
+      if (bar.role === 'residual') {
         hatchedIndexes.push(datasets.length);
       }
 
@@ -365,7 +342,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         data: mapNumericDataToAggregateDataset(bar.data, bar.period),
         label: bar.label,
         yAxisID: bar.yAxisID || 'y',
-        borderWidth: bar.hatched ? 0 : 1,
+        borderWidth: bar.role === 'residual' ? 0 : 1,
         ...(props.stacked ? { stack: 'stack' } : {})
       });
     }
@@ -456,14 +433,6 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     chartOptions.plugins.legend = {
       ...chartOptions.plugins.legend,
       labels: { filter: (item: any) => item.text !== '' }
-    };
-  }
-
-  if (props.yMin || props.yMax) {
-    chartOptions.scales.y = {
-      type: 'linear',
-      min: props.yMin,
-      max: props.yMax,
     };
   }
 

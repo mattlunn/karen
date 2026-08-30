@@ -185,6 +185,7 @@ export type HistoryLineApiResponse = {
   yAxisID?: string;
   borderDash?: number[];
   period?: 'day' | 'month';
+  role?: 'residual';
 };
 
 export type HistoryModeDetailApiResponse = {
@@ -208,7 +209,7 @@ export type HistoryBarApiResponse = {
 export type HistoryApiResponse = {
   lines: HistoryLineApiResponse[];
   modes?: HistoryModesApiResponse;
-  bar?: HistoryBarApiResponse;
+  bars?: HistoryBarApiResponse[];
 };
 
 // Device Timeline API response types (/api/device/:id/timeline)

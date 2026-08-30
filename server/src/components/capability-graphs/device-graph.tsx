@@ -83,14 +83,16 @@ export function DeviceGraph({
     return null;
   }
 
+  const mergedYAxis = (yMin === undefined && yMax === undefined)
+    ? yAxis
+    : { ...yAxis, y: { ...yAxis?.y, min: yMin, max: yMax } };
+
   const graphProps: CapabilityGraphProps = {
     lines: data.lines,
     modes: data.modes,
-    bar: data.bar,
+    bars: data.bars,
     zones,
-    yMin,
-    yMax,
-    yAxis,
+    yAxis: mergedYAxis,
     timeUnit
   };
 
