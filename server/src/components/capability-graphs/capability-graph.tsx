@@ -270,7 +270,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     ...(x.borderDash ? { borderDash: x.borderDash } : {}),
     ...(x.fill !== undefined ? { fill: x.fill, pointRadius: 0 } : {}),
     ...(x.stack !== undefined ? { stack: x.stack } : {}),
-    ...(x.hatched ? { borderWidth: 1 } : {})
+    ...(x.hatched ? { borderWidth: 0 } : {})
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
