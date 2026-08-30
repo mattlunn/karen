@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import bus, { NOTIFICATION_TO_ADMINS, FIRST_USER_HOME, LAST_USER_LEAVES, STAY_START, STAY_END } from '../bus';
 import { Device, Stay } from '../models';
-import { setDHWMode, getDHWMode } from '../services/ebusd';
+import { setDHWMode, getDHWStatus } from '../services/ebusd/dhw';
 import dayjs, { Dayjs } from '../dayjs';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
@@ -10,7 +10,7 @@ import nowAndSetInterval from '../helpers/now-and-set-interval';
 export const parameters = z.object({
   checkIntervalMinutes: z.number().positive(),
   minWarmUpRatePerHour: z.number().positive(),
-  enableDHWControl: z.boolean()
+  dhwAutoLeadTimeHours: z.number().positive()
 });
 
 type WarmupState = Date | null;
@@ -24,7 +24,7 @@ export function getPreWarmStartTime(): WarmupState {
 export default function ({
   checkIntervalMinutes,
   minWarmUpRatePerHour,
-  enableDHWControl
+  dhwAutoLeadTimeHours
 }: z.infer<typeof parameters>) {
   async function calculateWarmupStartTime(device: Device, nextTarget: number, targetTime: Date): Promise<Dayjs | null>{
     const [currentTemp, currentTarget] = await Promise.all([
@@ -69,9 +69,8 @@ export default function ({
   }
 
   async function checkAwayWarmup(
-    etaTime: Date,
-    enableDHWControl: boolean
-  ): Promise<void> {    
+    etaTime: Date
+  ): Promise<void> {
     const setTargetTemperatureActors = [];
     let earliestWarmup: Dayjs | null = null;
 
@@ -99,20 +98,24 @@ export default function ({
     currentWarmupState = earliestWarmup?.toDate() ?? null;
     logger.info(`Calculated warmup start time ${currentWarmupState?.toISOString() ?? 'N/A'}`);
 
+    // Hand DHW to the price-aware scheduler a day ahead of the ETA so it can
+    // place the cylinder charge in the cheapest block before arrival. This is a
+    // day-ahead decision, so it's gated independently of the thermostat warmup
+    // below (an hours-ahead calculation that would otherwise return early).
+    if (dayjs(etaTime).diff(dayjs(), 'hour') <= dhwAutoLeadTimeHours) {
+      const { mode } = await getDHWStatus();
+
+      if (mode === 'OFF') {
+        await setDHWMode('AUTO');
+      }
+    }
+
     if (earliestWarmup === null || earliestWarmup.isAfter(dayjs())) {
       return;
     }
 
     for (const setTargetTemperature of setTargetTemperatureActors) {
       await setTargetTemperature();
-    }
-
-    if (enableDHWControl) {
-      const dhwIsOn = await getDHWMode();
-
-      if (!dhwIsOn) {
-        await setDHWMode(true);
-      }
     }
 
     bus.emit(NOTIFICATION_TO_ADMINS, {
@@ -128,7 +131,7 @@ export default function ({
     if (isSomeoneHome) {
       await checkAtHomeWarmup();
     } else if (nextEta) {
-      await checkAwayWarmup(nextEta.eta, enableDHWControl);
+      await checkAwayWarmup(nextEta.eta);
     }
   });
 

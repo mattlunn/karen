@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Box, Group, Title } from '@mantine/core';
-import { useEnergyCostInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
+import { useEnergyCostInsights, useEnergyScheduleInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
 import { DateRangeProvider, DateRangeSelector, getPresetRange } from '../date-range';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
@@ -15,6 +15,13 @@ const yAxisPower = {
 
 const yAxisCost = {
   yCost: {
+    position: 'left' as const,
+    min: 0
+  }
+};
+
+const yAxisRate = {
+  yRate: {
     position: 'left' as const,
     min: 0
   }
@@ -88,12 +95,42 @@ function CostGraph() {
   );
 }
 
+function ScheduleGraph() {
+  const { preset, setPreset, range, setRange, params } = useLocalRange('next24hours');
+  const { data, isPending, isError } = useEnergyScheduleInsights(params);
+
+  return (
+    <>
+      <Group justify="space-between" mt="lg">
+        <Title order={4}>Price &amp; run windows</Title>
+        <DateRangeSelector
+          preset={preset}
+          range={range}
+          onPresetChange={setPreset}
+          onRangeChange={setRange}
+        />
+      </Group>
+
+      {isPending ? <PageLoader /> : isError ? (
+        <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
+      ) : (
+        <CapabilityGraph
+          lines={data.lines}
+          modes={data.modes}
+          yAxis={yAxisRate}
+        />
+      )}
+    </>
+  );
+}
+
 export default function EnergyInsights() {
   return (
     <>
       <Title order={2}>Energy</Title>
 
       <DateRangeProvider>
+        <ScheduleGraph />
         <UsageGraph />
         <CostGraph />
       </DateRangeProvider>

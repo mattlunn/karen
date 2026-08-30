@@ -33,6 +33,8 @@ export type CapabilityApiResponseBase = {
   mode: EnumStateApiResponse;
   compressorModulation: NumericStateApiResponse;
   dhwTemperature: NumericStateApiResponse;
+  dhwIsBoosting: BooleanStateApiResponse;
+  dhwMaxChargeTime: NumericStateApiResponse;
   outsideTemperature: NumericStateApiResponse;
   actualFlowTemperature: NumericStateApiResponse;
   returnTemperature: NumericStateApiResponse;
@@ -99,7 +101,6 @@ export type CapabilityApiResponseBase = {
   dayCost: NumericStateApiResponse;
 } | {
   type: 'ENERGY_COST';
-  unitRate: NumericStateApiResponse;
   standingCharge: NumericStateApiResponse;
 } | {
   type: null;
@@ -237,7 +238,15 @@ export type DeviceTimelineApiResponse = {
 export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';
 export type UserStatus = 'HOME' | 'AWAY';
 export type CentralHeatingMode = 'ON' | 'OFF' | 'SETBACK';
-export type DHWHeatingMode = 'ON' | 'OFF';
+export type DHWHeatingMode = 'OFF' | 'AUTO';
+
+export interface DHWStatus {
+  mode: DHWHeatingMode;
+  isOn: boolean;
+  isBoosting: boolean;
+  cylinderTemperature: number;
+  schedule: { start: string; end: string; averagePence: number } | null;
+}
 
 // /api/devices endpoint
 export interface HomeRoom {
@@ -326,11 +335,12 @@ export interface AlarmUpdateRequest {
 export interface HeatingUpdateRequest {
   centralHeating?: CentralHeatingMode;
   dhw?: DHWHeatingMode;
+  dhwBoost?: boolean;
 }
 
 export interface HeatingStatusResponse {
   centralHeating: CentralHeatingMode | null;
-  dhw: DHWHeatingMode;
+  dhwStatus: DHWStatus;
   preWarmStartTime: string | null;
 }
 
@@ -370,6 +380,14 @@ export interface HeatingInsightsApiResponse {
 export type EnergyInsightsSeriesApiResponse = {
   series: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
 };
+
+// /api/insights/energy/schedule endpoint - unit rate as a line with EV and DHW
+// run windows (actual and planned) shaded beneath it. Each band is its own
+// mode series so overlapping EV/DHW windows render honestly.
+export interface EnergyScheduleApiResponse {
+  lines: HistoryLineApiResponse[];
+  modes: HistoryModesApiResponse[];
+}
 
 // /api/insights/security endpoint
 export interface SecurityInsightsApiResponse {

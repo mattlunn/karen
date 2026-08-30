@@ -36,6 +36,25 @@
       "eventName": "dhw_mode"
     },
     {
+      "name": "DHWIsBoosting",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "dhw_boosting"
+    },
+    {
+      "name": "DHWMaxChargeTime",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "dhw_max_charge_time"
+    },
+    {
+      "name": "HotWaterMode",
+      "isWriteable": false,
+      "type": "string",
+      "eventName": "hot_water_mode",
+      "enum": ["OFF", "AUTO"]
+    },
+    {
       "name": "CurrentPower",
       "isWriteable": false,
       "type": "number",

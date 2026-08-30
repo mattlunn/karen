@@ -107,6 +107,8 @@ export async function getCapabilityData(device: Device, capability: string, inst
         mode: mapStringState(heatPump.getModeEvent(), device),
         compressorModulation: mapNumericState(heatPump.getCompressorModulationEvent(), device),
         dhwTemperature: mapNumericState(heatPump.getDHWTemperatureEvent(), device),
+        dhwIsBoosting: mapBooleanState(heatPump.getDHWIsBoostingEvent(), device),
+        dhwMaxChargeTime: mapNumericState(heatPump.getDHWMaxChargeTimeEvent(), device),
         outsideTemperature: mapNumericState(heatPump.getOutsideTemperatureEvent(), device),
         actualFlowTemperature: mapNumericState(heatPump.getActualFlowTemperatureEvent(), device),
         returnTemperature: mapNumericState(heatPump.getReturnTemperatureEvent(), device),
@@ -290,7 +292,6 @@ export async function getCapabilityData(device: Device, capability: string, inst
       const energyCost = device.getEnergyCostCapability(instanceId);
       return awaitPromises({
         type: 'ENERGY_COST' as const,
-        unitRate: mapNumericState(energyCost.getUnitRateEvent(), device),
         standingCharge: mapNumericState(energyCost.getStandingChargeEvent(), device)
       });
     }

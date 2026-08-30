@@ -8,6 +8,7 @@ import { DateRangePreset, DateRange } from './types';
 
 const presetOptions = [
   { value: 'last6hours', label: 'Last 6 hours' },
+  { value: 'next24hours', label: 'Next 24 hours' },
   { value: 'today', label: 'Today' },
   { value: 'yesterday', label: 'Yesterday' },
   { value: 'lastMonth', label: 'Last month' },

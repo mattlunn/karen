@@ -122,12 +122,20 @@ export default class EbusClient {
 
   async getDHWIsOn(): Promise<boolean> {
     return this.#read({ value: 'HwcOpMode', circuit: 'ctlv3' }, (v) => {
-      if (v !== 'off' && v !== 'manual') {
-        throw new Error(`Expected "off" or "manual" but got "${v}"`);
+      if (v !== 'off' && v !== 'manual' && v !== 'time controlled') {
+        throw new Error(`Expected "off", "manual" or "time controlled" but got "${v}"`);
       }
 
       return v !== 'off';
     });
+  }
+
+  async getDHWIsBoosting(): Promise<boolean> {
+    return this.#read({ value: 'HwcSFMode', circuit: 'ctlv3' }, (v) => v === 'load');
+  }
+
+  async getDHWMaxChargeTime(): Promise<number> {
+    return this.#read({ value: 'HwcMaxChargeTime', circuit: 'ctlv3' }, toNumber);
   }
 
   async getCopHc(): Promise<number> {
@@ -138,7 +146,14 @@ export default class EbusClient {
     return this.#read({ value: 'CopHwc', circuit: 'hmu' }, toNumber);
   }
 
-  async setIsDHWOn(isOn: boolean) {
-    await this.#write('ctlv3', 'HwcOpMode', isOn ? 'manual' : 'off');
+  async setDHWOpMode(mode: 'off' | 'manual') {
+    await this.#write('ctlv3', 'HwcOpMode', mode);
+  }
+
+  // Vaillant "Sonderfunktion": `load` is the physical panel's one-time hot-water
+  // boost - it ignores the charge hysteresis, is bounded by HwcMaxChargeTime,
+  // and the controller reverts HwcSFMode to `auto` itself once done.
+  async setDHWSpecialFunction(mode: 'auto' | 'load') {
+    await this.#write('ctlv3', 'HwcSFMode', mode);
   }
 }

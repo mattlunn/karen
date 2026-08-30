@@ -19,7 +19,7 @@ import deviceTelevisionRouter from './device/television';
 import eventsRouter from './events';
 import insightsHeatingHandler from './insights/heating';
 import insightsSecurityHandler from './insights/security';
-import { usageHandler as insightsEnergyUsageHandler, costHandler as insightsEnergyCostHandler } from './insights/energy';
+import { usageHandler as insightsEnergyUsageHandler, costHandler as insightsEnergyCostHandler, scheduleHandler as insightsEnergyScheduleHandler } from './insights/energy';
 
 const router = express.Router();
 
@@ -41,6 +41,7 @@ router.get('/insights/heating', insightsHeatingHandler);
 router.get('/insights/security', insightsSecurityHandler);
 router.get('/insights/energy/usage', insightsEnergyUsageHandler);
 router.get('/insights/energy/cost', insightsEnergyCostHandler);
+router.get('/insights/energy/schedule', insightsEnergyScheduleHandler);
 
 router.get('/snapshot/:id', async (req, res) => {
   res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {

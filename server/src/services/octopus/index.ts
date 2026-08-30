@@ -7,6 +7,12 @@ import { getTariff, getUnitRates, getStandingCharges, getSmartMeterDeviceId, get
 
 const PROVIDER_ID = 'electricity-meter';
 
+// How far ahead of `now` to ask Octopus for unit rates / standing charges.
+// Agile's real horizon peaks at ~31h (the ~16:00 publish covers through 23:00
+// the following day), so 24 would truncate the most valuable part. `period_to`
+// is only an upper bound, so over-asking just returns whatever exists.
+const FORWARD_WINDOW_HOURS = 48;
+
 Device.registerProvider('octopus', {
   getCapabilities(): Capability[] {
     return ['ENERGY_MONITOR', 'ENERGY_COST'];
@@ -39,7 +45,7 @@ Device.registerProvider('octopus', {
 // device's creation when there is none) and applies each item.
 async function sync<T>(
   device: Device,
-  now: Date,
+  until: Date,
   getLatest: () => Promise<{ start: Date } | null>,
   fetchItems: (since: Date, until: Date) => Promise<T[]>,
   apply: (item: T) => Promise<unknown>
@@ -47,7 +53,7 @@ async function sync<T>(
   const latest = await getLatest();
   const since = latest?.start ?? device.createdAt;
 
-  for (const item of await fetchItems(since, now)) {
+  for (const item of await fetchItems(since, until)) {
     await apply(item);
   }
 }
@@ -56,24 +62,25 @@ async function sync<T>(
 // smart-meter telemetry poll below, since Octopus's half-hourly consumption
 // endpoint runs ~24h (or more) behind and shouldn't be presented as "current".
 async function pollRates(device: Device) {
-  const now = new Date();
+  const until = new Date(Date.now() + FORWARD_WINDOW_HOURS * 60 * 60 * 1000);
   const tariffCode = device.meta.tariffCode as string;
   const productCode = device.meta.productCode as string;
   const energyCost = device.getEnergyCostCapability();
 
-  // Unit rates / standing charges: Octopus publishes these slightly ahead of
-  // time, so this naturally records near-future rates too.
+  // Unit rates / standing charges: on Agile, Octopus publishes the next day's
+  // rates around 16:00, so fetching ahead of `now` records them as ordinary
+  // forward-dated events for the DHW / EV schedulers to plan against.
   await sync(
-    device, now,
+    device, until,
     () => energyCost.getUnitRateEvent(),
-    (since, until) => getUnitRates(tariffCode, productCode, since, until),
+    (since, to) => getUnitRates(tariffCode, productCode, since, to),
     (rate) => energyCost.setUnitRateState(rate.value, rate.start)
   );
 
   await sync(
-    device, now,
+    device, until,
     () => energyCost.getStandingChargeEvent(),
-    (since, until) => getStandingCharges(tariffCode, productCode, since, until),
+    (since, to) => getStandingCharges(tariffCode, productCode, since, to),
     (standingCharge) => energyCost.setStandingChargeState(standingCharge.value, standingCharge.start)
   );
 }

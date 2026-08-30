@@ -5,6 +5,7 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 import { storeRunningMetrics } from './history';
+import './dhw';
 
 const STATUSCODE_TO_MODE: Record<string, HeatPumpMode> = {
   'Heating': 'HEATING',
@@ -36,16 +37,6 @@ Device.registerProvider('ebusd', {
     await device.save();
   }
 });
-
-export async function setDHWMode(isOn: boolean) {
-  const client = new EbusClient(config.ebusd.host, config.ebusd.port);
-  await client.setIsDHWOn(isOn);
-}
-
-export async function getDHWMode(): Promise<boolean> {
-  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
-  return device.getHeatPumpCapability().getDHWIsOn();
-}
 
 nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
@@ -89,7 +80,9 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
 
       return heatPumpCapability.setModeState(mode);
     }),
-    updateState(() => client.getDHWIsOn(), (v) => heatPumpCapability.setDHWIsOnState(v))
+    updateState(() => client.getDHWIsOn(), (v) => heatPumpCapability.setDHWIsOnState(v)),
+    updateState(() => client.getDHWIsBoosting(), (v) => heatPumpCapability.setDHWIsBoostingState(v)),
+    updateState(() => client.getDHWMaxChargeTime(), (v) => heatPumpCapability.setDHWMaxChargeTimeState(v))
   ]);
 
   const anySucceeded = results.some(r => r.status === 'fulfilled');

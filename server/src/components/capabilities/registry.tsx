@@ -470,6 +470,18 @@ export const registry: CapabilityUIRegistry = {
         title: 'Hot Water Temperature',
         value: (e) => `${e.value.toFixed(1)}°C`,
       }),
+      createCapability(cap.dhwIsBoosting, {
+        icon: faFaucetDrip,
+        title: 'Hot Water Boost',
+        value: (e) => e.value ? 'Boosting' : 'Idle',
+        iconColor: '#04A7F4',
+        iconHighlighted: (e) => e.value,
+      }),
+      createCapability(cap.dhwMaxChargeTime, {
+        icon: faFaucet,
+        title: 'Hot Water Charge Time',
+        value: (e) => `${e.value} min`,
+      }),
       createCapability(cap.actualFlowTemperature, {
         icon: faThermometer4,
         title: 'Flow Temperature',
@@ -824,11 +836,6 @@ export const registry: CapabilityUIRegistry = {
   ENERGY_COST: {
     priority: 101,
     getCapabilityMetrics: (cap) => [
-      createCapability(cap.unitRate, {
-        icon: faSterlingSign,
-        title: 'Unit Rate',
-        value: (e) => `${e.value.toFixed(2)}p/kWh`,
-      }),
       createCapability(cap.standingCharge, {
         icon: faSterlingSign,
         title: 'Standing Charge',

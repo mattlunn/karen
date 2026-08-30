@@ -101,6 +101,11 @@ declare namespace _default {
     const port: number;
     const poll_interval_minutes: number;
     const min_mode_duration_minutes: number | undefined;
+    export namespace dhw {
+      const planning_horizon_hours: number;
+      const check_interval_minutes: number;
+      const no_plan_alert_hours: number;
+    }
   }
   export namespace homeconnect {
     const client_id: string;
@@ -137,6 +142,12 @@ declare namespace _default {
       anchor_date: string;
       interval_weeks: number;
     }[];
+    export namespace price_aware_charging {
+      const enabled: boolean;
+      const baseline_days: number;
+      const min_charge_block_minutes: number;
+      const planning_horizon_hours: number;
+    }
   }
   const bins: {
     overrides: {
