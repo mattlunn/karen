@@ -14,6 +14,7 @@ import {
   Colors,
   Filler,
   ChartDataset,
+  Plugin,
   Point
 } from 'chart.js';
 import AnnotationPlugin from 'chartjs-plugin-annotation';
@@ -37,6 +38,57 @@ export function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'da
 
 export type TimeUnit = 'minute' | 'hour' | 'day' | 'month';
 
+// Marks a bar as a computed residual/catch-all (e.g. "Other" = a total minus
+// everything else that's individually metered) rather than a real named
+// entity, so it reads as different in kind rather than just another color.
+const HATCH_COLOR = '#757575';
+
+function createDiagonalHatchPattern(color: string): CanvasPattern {
+  const size = 8;
+  const tile = document.createElement('canvas');
+
+  tile.width = size;
+  tile.height = size;
+
+  const ctx = tile.getContext('2d')!;
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+
+  // Three parallel diagonal strokes, offset by a tile-width either side, so the
+  // hatch lines stay continuous across tile boundaries once repeated.
+  for (const offset of [-size, 0, size]) {
+    ctx.beginPath();
+    ctx.moveTo(offset, size);
+    ctx.lineTo(offset + size, 0);
+    ctx.stroke();
+  }
+
+  return ctx.createPattern(tile, 'repeat')!;
+}
+
+// The `colors` plugin below is registered with forceOverride, so it
+// unconditionally overwrites any color already set on a dataset - including
+// this pattern - during its own `beforeLayout` hook. `afterLayout` runs after
+// every plugin's `beforeLayout` (so after `colors` has clobbered it) but
+// before Chart.js resolves each bar's final style and before the legend
+// rebuilds its labels on `afterUpdate` - so re-applying the pattern here is
+// what makes it stick on both the bars and the legend swatch.
+const hatchedBarPlugin: Plugin<'bar', { datasetIndexes: number[] }> = {
+  id: 'hatchedBar',
+  defaults: {
+    datasetIndexes: []
+  },
+  afterLayout(chart, _args, options) {
+    for (const index of options.datasetIndexes) {
+      const dataset = chart.data.datasets[index];
+
+      dataset.backgroundColor = createDiagonalHatchPattern(HATCH_COLOR);
+      dataset.borderColor = HATCH_COLOR;
+    }
+  }
+};
+
 ChartJS.register(
   LinearScale,
   CategoryScale,
@@ -50,7 +102,8 @@ ChartJS.register(
   TimeScale,
   Colors,
   Filler,
-  AnnotationPlugin
+  AnnotationPlugin,
+  hatchedBarPlugin
 );
 
 function mapNumericDataToDataset(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse | BooleanEventApiResponse | EnumEventApiResponse>) {
@@ -118,7 +171,8 @@ export type CapabilityGraphProps = {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
     yAxisID?: string,
-    period?: 'day' | 'month'
+    period?: 'day' | 'month',
+    hatched?: boolean
   }[]
 
   stacked?: boolean
@@ -288,16 +342,24 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }
 
   if (props.bars) {
+    const hatchedBarIndexes: number[] = [];
+
     for (const bar of props.bars) {
+      if (bar.hatched) {
+        hatchedBarIndexes.push(datasets.length);
+      }
+
       datasets.push({
         type: 'bar',
         data: mapNumericDataToAggregateDataset(bar.data, bar.period),
         label: bar.label,
         yAxisID: bar.yAxisID || 'y',
-        borderWidth: 1,
+        borderWidth: bar.hatched ? 0 : 1,
         ...(props.stacked ? { stack: 'stack' } : {})
       });
     }
+
+    chartOptions.plugins.hatchedBar = { datasetIndexes: hatchedBarIndexes };
   }
 
   if (props.modes) {

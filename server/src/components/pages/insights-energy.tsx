@@ -85,7 +85,7 @@ function CostGraph() {
       ) : (
         <CapabilityGraph
           lines={[]}
-          bars={data.series.map(series => ({ data: series.data, label: series.label, yAxisID: 'yCost', period: 'day' as const }))}
+          bars={data.series.map(series => ({ data: series.data, label: series.label, yAxisID: 'yCost', period: 'day' as const, hatched: series.label === 'Other' }))}
           stacked
           timeUnit="day"
           yAxis={yAxisCost}
