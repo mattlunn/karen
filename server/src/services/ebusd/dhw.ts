@@ -30,7 +30,6 @@ export function getPlannedDHWWindow(): DHWPlannedWindow | null {
   return currentPlan === null ? null : {
     start: currentPlan.start.toISOString(),
     end: currentPlan.end.toISOString(),
-    averagePence: currentPlan.averagePence,
   };
 }
 

@@ -14,7 +14,6 @@ export * from './capabilities.gen';
 export interface DHWPlannedWindow {
   start: string;
   end: string;
-  averagePence: number;
 }
 
 export interface ProviderHeatPumpCapability extends ProviderHeatPumpCapabilityBase {
