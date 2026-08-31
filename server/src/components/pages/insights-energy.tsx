@@ -121,6 +121,7 @@ function ScheduleGraph() {
           lines={data.lines}
           modes={data.modes}
           yAxis={yAxisRate}
+          timeUnit="hour"
         />
       )}
     </>

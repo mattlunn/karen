@@ -88,25 +88,30 @@ function blocksToModeData(
 }
 
 export async function scheduleHandler(req: Request, res: Response) {
-  const selector = {
-    since: new Date(req.query.since as string),
-    until: new Date(req.query.until as string),
-  };
-  // Actual (what ran) is history up to now; the planned bands cover now onwards.
-  const actualSelector = {
-    since: selector.since,
-    until: new Date(Math.min(Date.now(), selector.until.getTime())),
-  };
+  const now = new Date();
+  const since = new Date(req.query.since as string);
 
   const [costDevice] = await Device.findByCapability('ENERGY_COST');
   const [evDevice] = await Device.findByCapability('ELECTRIC_VEHICLE');
   const [heatPumpDevice] = await Device.findByCapability('HEAT_PUMP');
 
+  const energyCost = costDevice.getEnergyCostCapability();
+
+  // The view ends where the published prices do (the whole point of the graph)
+  // - not at a fixed +24h. Fetch generously (Agile's horizon peaks at ~31h).
+  const latestRate = await energyCost.getUnitRateEvent();
+  const until = latestRate
+    ? new Date(Math.max(now.getTime(), latestRate.start.getTime() + 30 * 60 * 1000))
+    : now;
+  const rateSelector = { since, until: dayjs(now).add(48, 'hour').toDate() };
+  // Actual (what ran) is history up to now; planned bands cover now onwards.
+  const actualSelector = { since, until: now };
+
+  const rateData = await mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), rateSelector);
+  rateData.until = until.toISOString();
+
   const lines: HistoryLineApiResponse[] = [{
-    data: await mapNumericHistoryToResponse(
-      (hs) => costDevice.getEnergyCostCapability().getUnitRateHistory(hs),
-      selector
-    ),
+    data: rateData,
     label: 'Unit rate (p/kWh)',
     yAxisID: 'yRate',
   }];
@@ -122,7 +127,7 @@ export async function scheduleHandler(req: Request, res: Response) {
     });
 
     modes.push({
-      data: blocksToModeData(ev.getPlannedChargeBlocks(), selector.since, selector.until),
+      data: blocksToModeData(ev.getPlannedChargeBlocks(), since, until),
       details: [{ value: true, label: 'EV charging (planned)', fillColor: EV_PLANNED_COLOR }],
     });
   }
@@ -138,7 +143,7 @@ export async function scheduleHandler(req: Request, res: Response) {
     });
 
     modes.push({
-      data: blocksToModeData(dhwWindow ? [dhwWindow] : [], selector.since, selector.until),
+      data: blocksToModeData(dhwWindow ? [dhwWindow] : [], since, until),
       details: [{ value: true, label: 'Hot water (planned)', fillColor: DHW_PLANNED_COLOR }],
     });
   }

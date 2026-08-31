@@ -194,7 +194,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
-  const tickStepSize = (timeUnit === 'day' || timeUnit === 'month') ? 1 : 15;
+  const tickStepSize = timeUnit === 'day' || timeUnit === 'month' ? 1 : timeUnit === 'hour' ? 2 : 15;
 
   // TODO: Fixme any
   const chartOptions: any = {
