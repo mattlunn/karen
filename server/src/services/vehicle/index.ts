@@ -208,13 +208,6 @@ async function getBaselinePence(now: Date): Promise<number | null> {
   return medianPence(toPriceSlots(events, since, now));
 }
 
-async function getCurrentRatePence(): Promise<number | null> {
-  const energyCost = await getEnergyCostCapability();
-  const event = energyCost === null ? null : await energyCost.getUnitRateEvent();
-
-  return event?.value ?? null;
-}
-
 function computeHoursNeeded(percentageNeeded: number): number {
   const chargeRatePercentPerHour = (config.smartcar.charge_power_watts / 1000) / config.smartcar.battery_capacity_kwh * 100;
 
@@ -334,18 +327,9 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
   const minBlock = config.smartcar.charge_min_block_minutes;
   const slots = await getForwardPriceSlots(now.toDate(), horizon);
 
-  let blocks: Block[];
-
-  if (slots.length === 0) {
-    // No forward prices: decide slot by slot off the current rate.
-    const rate = await getCurrentRatePence();
-
-    blocks = rate !== null && rate < baseline
-      ? [{ start: now.toDate(), end: now.add(30, 'minute').toDate() }]
-      : [];
-  } else {
-    blocks = planOpportunisticCharge(slots, now.toDate(), baseline, minBlock);
-  }
+  // No forward prices -> planOpportunisticCharge yields no blocks -> stay off,
+  // pending the admin acting on the Octopus alert.
+  const blocks = planOpportunisticCharge(slots, now.toDate(), baseline, minBlock);
 
   currentPlannedBlocks = blocks;
   await applyChargeBlocks(ev, now, blocks, defaultLimit);
