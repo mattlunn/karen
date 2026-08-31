@@ -4,7 +4,7 @@ import {
   selectCheapestSlots,
   medianPence,
   groupIntoBlocks,
-  coversWholeWindow,
+  haveForecastThrough,
   PriceSlot,
 } from './prices';
 
@@ -175,27 +175,44 @@ describe('groupIntoBlocks', () => {
   });
 });
 
-describe('coversWholeWindow', () => {
-  it('is true when slots contiguously span the window', () => {
-    expect(coversWholeWindow(slots(0, [1, 1, 1, 1]), at(0), at(120))).toBe(true);
+describe('haveForecastThrough', () => {
+  // A contiguous run of `count` closed half-hour rate events from `startMin`.
+  function closedRates(startMin: number, count: number) {
+    return Array.from({ length: count }, (_, i) => ({
+      start: at(startMin + i * 30),
+      end: at(startMin + (i + 1) * 30),
+      value: 10,
+    }));
+  }
+
+  it('is false when there are no events', () => {
+    expect(haveForecastThrough([], at(120))).toBe(false);
   });
 
-  it('is false when the tail is missing', () => {
-    expect(coversWholeWindow(slots(0, [1, 1]), at(0), at(240))).toBe(false);
+  it('is true when the forecast reaches past the window end', () => {
+    expect(haveForecastThrough(closedRates(0, 6), at(120))).toBe(true);
   });
 
-  it('is false when there is an internal gap before the window end', () => {
-    const s = [...slots(0, [1, 1]), ...slots(120, [1, 1])];
-
-    expect(coversWholeWindow(s, at(0), at(180))).toBe(false);
+  it('is true for a mid-slot (wall-clock) window end the forecast runs past', () => {
+    // `until` lands 10 minutes into the last slot.
+    expect(haveForecastThrough(closedRates(0, 4), at(100))).toBe(true);
   });
 
-  it('tolerates a sub-slot partial at the near edge', () => {
-    // First slot starts 10 minutes after `since`.
-    expect(coversWholeWindow(slots(10, [1, 1, 1, 1]), at(0), at(130))).toBe(true);
+  it('is false when the newest closed event ends before the window end', () => {
+    expect(haveForecastThrough(closedRates(0, 2), at(120))).toBe(false);
   });
 
-  it('is false for no slots', () => {
-    expect(coversWholeWindow([], at(0), at(120))).toBe(false);
+  it('is false while the frontier event is still open inside the window', () => {
+    const events = [...closedRates(0, 2), { start: at(60), end: null, value: 10 }];
+
+    expect(haveForecastThrough(events, at(120))).toBe(false);
+  });
+
+  it('treats a lone open event as a flat tariff', () => {
+    expect(haveForecastThrough([{ start: at(-1000), end: null, value: 25 }], at(180))).toBe(true);
+  });
+
+  it('does not depend on event order', () => {
+    expect(haveForecastThrough([...closedRates(0, 6)].reverse(), at(120))).toBe(true);
   });
 });

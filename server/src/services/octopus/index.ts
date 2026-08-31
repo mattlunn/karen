@@ -6,7 +6,7 @@ import setIntervalForTime from '../../helpers/set-interval-for-time';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
-import { toPriceSlots, coversWholeWindow } from '../../helpers/prices';
+import { haveForecastThrough } from '../../helpers/prices';
 import type { Capability } from '../../models/capabilities';
 import { getTariff, getUnitRates, getStandingCharges, getSmartMeterDeviceId, getTelemetry } from './client';
 
@@ -99,7 +99,7 @@ async function checkForwardPricesAvailable() {
   const until = dayjs(now).add(24, 'hour').toDate();
   const events = await device.getEnergyCostCapability().getUnitRateHistory({ since: now, until });
 
-  if (coversWholeWindow(toPriceSlots(events, now, until), now, until)) {
+  if (haveForecastThrough(events, until)) {
     return;
   }
 
