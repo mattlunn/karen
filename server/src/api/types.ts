@@ -33,6 +33,8 @@ export type CapabilityApiResponseBase = {
   mode: EnumStateApiResponse;
   compressorModulation: NumericStateApiResponse;
   dhwTemperature: NumericStateApiResponse;
+  dhwBoost: BooleanStateApiResponse;
+  dhwMaxChargeTime: NumericStateApiResponse;
   outsideTemperature: NumericStateApiResponse;
   actualFlowTemperature: NumericStateApiResponse;
   returnTemperature: NumericStateApiResponse;
@@ -74,7 +76,7 @@ export type CapabilityApiResponseBase = {
   isCableConnected: BooleanStateApiResponse;
   chargeLimit: NumericStateApiResponse;
   odometer: NumericStateApiResponse;
-  chargeSchedule: { targetPercentage: number; targetTime: string; calculatedStartTime: string | null } | null;
+  chargeSchedule: { targetPercentage: number; targetTime: string } | null;
 } | {
   type: 'ALARM_SENSOR';
   isTriggered: BooleanStateApiResponse;
@@ -99,7 +101,6 @@ export type CapabilityApiResponseBase = {
   dayCost: NumericStateApiResponse;
 } | {
   type: 'ENERGY_COST';
-  unitRate: NumericStateApiResponse;
   standingCharge: NumericStateApiResponse;
 } | {
   type: null;
@@ -207,7 +208,7 @@ export type HistoryBarApiResponse = {
 
 export type HistoryApiResponse = {
   lines: HistoryLineApiResponse[];
-  modes?: HistoryModesApiResponse;
+  modes?: HistoryModesApiResponse[];
   bars?: HistoryBarApiResponse[];
 };
 
@@ -237,7 +238,13 @@ export type DeviceTimelineApiResponse = {
 export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';
 export type UserStatus = 'HOME' | 'AWAY';
 export type CentralHeatingMode = 'ON' | 'OFF' | 'SETBACK';
-export type DHWHeatingMode = 'ON' | 'OFF';
+export type DHWHeatingMode = 'OFF' | 'AUTO';
+
+export interface DHWStatus {
+  mode: DHWHeatingMode;
+  isBoosting: boolean;
+  schedule: { start: string; end: string; averagePence: number } | null;
+}
 
 // /api/devices endpoint
 export interface HomeRoom {
@@ -326,11 +333,12 @@ export interface AlarmUpdateRequest {
 export interface HeatingUpdateRequest {
   centralHeating?: CentralHeatingMode;
   dhw?: DHWHeatingMode;
+  dhwBoost?: boolean;
 }
 
 export interface HeatingStatusResponse {
   centralHeating: CentralHeatingMode | null;
-  dhw: DHWHeatingMode;
+  dhwStatus: DHWStatus;
   preWarmStartTime: string | null;
 }
 
@@ -359,7 +367,7 @@ export type UserResponse = {
 // /api/insights/heating endpoint
 export interface HeatingInsightsApiResponse {
   lines: (HistoryLineApiResponse & { deviceName: string })[];
-  modes: HistoryModesApiResponse;
+  modes: HistoryModesApiResponse[];
   temperatures: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltas: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltaSwitchOnThreshold: number | null;
@@ -380,6 +388,14 @@ export type EnergyCostInsightsApiResponse = {
   series: HistoryLineApiResponse[];
   total: HistoryLineApiResponse;
 };
+
+// /api/insights/energy/schedule endpoint - unit rate as a line with EV and DHW
+// run windows (actual and planned) shaded beneath it. Each band is its own
+// mode series so overlapping EV/DHW windows render honestly.
+export interface EnergyScheduleApiResponse {
+  lines: HistoryLineApiResponse[];
+  modes: HistoryModesApiResponse[];
+}
 
 // /api/insights/security endpoint
 export interface SecurityInsightsApiResponse {

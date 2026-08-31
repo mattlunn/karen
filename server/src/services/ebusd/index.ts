@@ -1,10 +1,11 @@
 import { Device } from '../../models';
-import { HeatPumpMode } from '../../models/capabilities';
+import { HeatPumpMode, HeatPumpDHWMode } from '../../models/capabilities';
 import config from '../../config/app';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 import { storeRunningMetrics } from './history';
+import { setDHWMode, setDHWBoost, getPlannedDHWWindow } from './dhw';
 
 const STATUSCODE_TO_MODE: Record<string, HeatPumpMode> = {
   'Heating': 'HEATING',
@@ -17,6 +18,14 @@ const STATUSCODE_TO_MODE: Record<string, HeatPumpMode> = {
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
     return ['HEAT_PUMP', 'ENERGY_MONITOR', 'CONNECTIVITY'];
+  },
+
+  provideHeatPumpCapability() {
+    return {
+      setDHWMode: (_device: Device, mode: HeatPumpDHWMode) => setDHWMode(mode),
+      setDHWBoost: (_device: Device, on: boolean) => setDHWBoost(on),
+      getPlannedDHWWindow: () => getPlannedDHWWindow(),
+    };
   },
 
   async synchronize() {
@@ -36,16 +45,6 @@ Device.registerProvider('ebusd', {
     await device.save();
   }
 });
-
-export async function setDHWMode(isOn: boolean) {
-  const client = new EbusClient(config.ebusd.host, config.ebusd.port);
-  await client.setIsDHWOn(isOn);
-}
-
-export async function getDHWMode(): Promise<boolean> {
-  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
-  return device.getHeatPumpCapability().getDHWIsOn();
-}
 
 nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
@@ -89,7 +88,9 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
 
       return heatPumpCapability.setModeState(mode);
     }),
-    updateState(() => client.getDHWIsOn(), (v) => heatPumpCapability.setDHWIsOnState(v))
+    updateState(() => client.getDHWIsOn(), (v) => heatPumpCapability.setDHWIsOnState(v)),
+    updateState(() => client.getDHWIsBoosting(), (v) => heatPumpCapability.setDHWBoostState(v)),
+    updateState(() => client.getDHWMaxChargeTime(), (v) => heatPumpCapability.setDHWMaxChargeTimeState(v))
   ]);
 
   const anySucceeded = results.some(r => r.status === 'fulfilled');

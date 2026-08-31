@@ -1,14 +1,25 @@
 import { Device } from '../';
-import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase } from './capabilities.gen';
+import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase, ProviderHeatPumpCapabilityBase } from './capabilities.gen';
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
 export { SpeakerCapability } from './speaker';
 export { ThermostatCapability } from './thermostat';
 export { ElectricVehicleCapability } from './electric-vehicle';
+export { HeatPumpCapability } from './heat-pump';
 export { TelevisionCapability } from './television';
 export { BinCollectionCapability } from './bin-collection';
 export * from './capabilities.gen';
+
+export interface DHWPlannedWindow {
+  start: string;
+  end: string;
+  averagePence: number;
+}
+
+export interface ProviderHeatPumpCapability extends ProviderHeatPumpCapabilityBase {
+  getPlannedDHWWindow(device: Device): DHWPlannedWindow | null;
+}
 
 export type ScheduledChange = {
   timestamp: Date;
@@ -22,20 +33,15 @@ export interface ProviderThermostatCapability extends ProviderThermostatCapabili
   getWarmupRate(device: Device): Promise<number>;
 }
 
-export interface NextChargeSchedule {
-  targetPercentage: number;
-  targetTime: string;
-  calculatedStartTime: string | null;
-}
-
-export interface ManualChargeSchedule {
+export interface ChargeSchedule {
   targetPercentage: number;
   targetTime: string;
 }
 
 export interface ProviderElectricVehicleCapability extends ProviderElectricVehicleCapabilityBase {
-  getNextChargeSchedule(device: Device): NextChargeSchedule | null;
-  setManualChargeSchedule(device: Device, schedule: ManualChargeSchedule | null): Promise<void>;
+  getNextChargeSchedule(device: Device): ChargeSchedule | null;
+  setManualChargeSchedule(device: Device, schedule: ChargeSchedule | null): Promise<void>;
+  getPlannedChargeBlocks(device: Device): { start: string; end: string }[];
 }
 
 export interface TelevisionSource {

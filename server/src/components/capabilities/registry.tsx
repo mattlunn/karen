@@ -328,11 +328,6 @@ export const registry: CapabilityUIRegistry = {
         value: cap.chargeSchedule
           ? `${cap.chargeSchedule.targetPercentage}% by ${dayjs(cap.chargeSchedule.targetTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.targetTime))}`
           : 'No schedule',
-        footer: cap.chargeSchedule
-          ? cap.chargeSchedule.calculatedStartTime
-            ? `starts ${dayjs(cap.chargeSchedule.calculatedStartTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.calculatedStartTime))}`
-            : 'start TBC'
-          : undefined,
         iconColor: '#3498db',
         iconHighlighted: !!cap.chargeSchedule,
         onIconClick: ({ openModal, closeModal }) => {
@@ -469,6 +464,18 @@ export const registry: CapabilityUIRegistry = {
         icon: faFaucetDrip,
         title: 'Hot Water Temperature',
         value: (e) => `${e.value.toFixed(1)}°C`,
+      }),
+      createCapability(cap.dhwBoost, {
+        icon: faFaucetDrip,
+        title: 'Hot Water Boost',
+        value: (e) => e.value ? 'Boosting' : 'Idle',
+        iconColor: '#04A7F4',
+        iconHighlighted: (e) => e.value,
+      }),
+      createCapability(cap.dhwMaxChargeTime, {
+        icon: faFaucet,
+        title: 'Hot Water Charge Time',
+        value: (e) => `${e.value} min`,
       }),
       createCapability(cap.actualFlowTemperature, {
         icon: faThermometer4,
@@ -824,11 +831,6 @@ export const registry: CapabilityUIRegistry = {
   ENERGY_COST: {
     priority: 101,
     getCapabilityMetrics: (cap) => [
-      createCapability(cap.unitRate, {
-        icon: faSterlingSign,
-        title: 'Unit Rate',
-        value: (e) => `${e.value.toFixed(2)}p/kWh`,
-      }),
       createCapability(cap.standingCharge, {
         icon: faSterlingSign,
         title: 'Standing Charge',
@@ -836,7 +838,7 @@ export const registry: CapabilityUIRegistry = {
       }),
     ],
     getGraphs: () => [
-      { id: 'energy-unit-rate', title: 'Unit Rate (p/kWh)', yMin: 0 },
+      { id: 'energy-unit-rate', title: 'Unit Rate (p/kWh)', suggestedYMin: 0 },
     ],
   },
 

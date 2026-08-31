@@ -13,6 +13,7 @@ type DeviceGraphProps = {
   zones?: CapabilityGraphProps['zones'];
   yMin?: number;
   yMax?: number;
+  suggestedYMin?: number;
   yAxis?: CapabilityGraphProps['yAxis'];
   overridePageDateRange?: DateRangePreset;
   overridePageDateRangeStart?: string;
@@ -41,6 +42,7 @@ export function DeviceGraph({
   zones,
   yMin,
   yMax,
+  suggestedYMin,
   yAxis,
   overridePageDateRange,
   overridePageDateRangeStart,
@@ -83,9 +85,9 @@ export function DeviceGraph({
     return null;
   }
 
-  const mergedYAxis = (yMin === undefined && yMax === undefined)
+  const mergedYAxis = (yMin === undefined && yMax === undefined && suggestedYMin === undefined)
     ? yAxis
-    : { ...yAxis, y: { ...yAxis?.y, min: yMin, max: yMax } };
+    : { ...yAxis, y: { ...yAxis?.y, min: yMin, max: yMax, suggestedMin: suggestedYMin } };
 
   const graphProps: CapabilityGraphProps = {
     lines: data.lines,

@@ -101,6 +101,9 @@ declare namespace _default {
     const port: number;
     const poll_interval_minutes: number;
     const min_mode_duration_minutes: number | undefined;
+    const dhw_plan_mode: 'readonly' | 'readwrite' | undefined;
+    const dhw_planning_horizon_hours: number;
+    const dhw_check_interval_minutes: number;
   }
   export namespace homeconnect {
     const client_id: string;
@@ -116,6 +119,7 @@ declare namespace _default {
     const account_number: string;
     const poll_rates_interval_minutes: number;
     const poll_current_power_interval_minutes: number;
+    const forward_prices_expected_by_hour: number;
     const mpan: string;
     const serial_number: string;
   }
@@ -127,6 +131,7 @@ declare namespace _default {
     let vehicle_id: string;
     const application_management_token: string;
     const secret: string;
+    const charge_plan_mode: 'readonly' | 'readwrite' | undefined;
     const default_charge_limit: number;
     const charge_power_watts: number;
     const battery_capacity_kwh: number;
@@ -137,6 +142,10 @@ declare namespace _default {
       anchor_date: string;
       interval_weeks: number;
     }[];
+    const charge_median_rate_days: number;
+    const charge_min_block_minutes: number;
+    const charge_planning_horizon_hours: number;
+    const charge_deadline_engage_fraction: number;
   }
   const bins: {
     overrides: {

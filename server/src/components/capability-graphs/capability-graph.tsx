@@ -95,6 +95,15 @@ function mapNumericDataToAggregateDataset(numericEventHistory: HistoryDetailsApi
   }, []);
 }
 
+export type ModeSeries = {
+  data: HistoryDetailsApiResponse<EnumEventApiResponse | BooleanEventApiResponse>,
+  details: {
+    value: string | true;
+    label: string;
+    fillColor?: string
+  }[]
+};
+
 export type CapabilityGraphProps = {
   lines: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
@@ -119,19 +128,13 @@ export type CapabilityGraphProps = {
     color: string;
   }[]
 
-  modes?: {
-    data: HistoryDetailsApiResponse<EnumEventApiResponse | BooleanEventApiResponse>,
-    details: {
-      value: string | true;
-      label: string;
-      fillColor?: string
-    }[]
-  }
+  modes?: ModeSeries[]
 
   yAxis?: Record<string, {
     position?: 'left' | 'right',
     max?: number,
     min?: number,
+    suggestedMin?: number,
     suggestedMax?: number,
   }>
 
@@ -157,8 +160,10 @@ function getMinMax(props: CapabilityGraphProps): { min: string; max: string } | 
     return { min: props.bars[0].data.since, max: props.bars[0].data.until };
   }
 
-  if (props.modes) {
-    return { min: props.modes.data.since, max: props.modes.data.until };
+  const modeSeries = props.modes ?? [];
+
+  if (modeSeries.length > 0) {
+    return { min: modeSeries[0].data.since, max: modeSeries[0].data.until };
   }
 
   return null;
@@ -189,7 +194,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
-  const tickStepSize = (timeUnit === 'day' || timeUnit === 'month') ? 1 : 15;
+  const tickStepSize = timeUnit === 'day' || timeUnit === 'month' ? 1 : timeUnit === 'hour' ? 2 : 15;
 
   // TODO: Fixme any
   const chartOptions: any = {
@@ -272,12 +277,14 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     }
   }
 
-  if (props.modes) {
-    const sortedEvents = filterClampAndSortHistory(props.modes.data.history, props.modes.data.since, props.modes.data.until, true);
+  const modeSeries = props.modes ?? [];
 
-    for (let i=0;i<props.modes.details.length;i++) {
-      const mode = props.modes.details[i];
-      const axisName = `yMode${i}`;
+  modeSeries.forEach((series, seriesIndex) => {
+    const sortedEvents = filterClampAndSortHistory(series.data.history, series.data.since, series.data.until, true);
+
+    for (let i = 0; i < series.details.length; i++) {
+      const mode = series.details[i];
+      const axisName = `yMode${seriesIndex}_${i}`;
 
       datasets.push({
         type: 'line',
@@ -316,7 +323,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         display: false
       };
     }
-  }
+  });
 
   if (props.yAxis) {
     for (const [axisId, axisDetails] of Object.entries(props.yAxis)) {

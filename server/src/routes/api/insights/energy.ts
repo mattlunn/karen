@@ -1,7 +1,16 @@
 import { Device } from '../../../models';
 import { Request, Response } from 'express';
-import { EnergyCostInsightsApiResponse, EnergyUsageInsightsApiResponse, HistoryDetailsApiResponse, HistoryLineApiResponse, NumericEventApiResponse } from '../../../api/types';
-import { mapNumericHistoryToResponse } from '../history-helpers';
+import {
+  EnergyCostInsightsApiResponse,
+  EnergyUsageInsightsApiResponse,
+  EnergyScheduleApiResponse,
+  HistoryDetailsApiResponse,
+  HistoryLineApiResponse,
+  HistoryModesApiResponse,
+  BooleanEventApiResponse,
+  NumericEventApiResponse,
+} from '../../../api/types';
+import { mapNumericHistoryToResponse, mapBooleanHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
 import { asyncMap } from '../../../helpers/array';
 import { filterClampAndSortHistory } from '../../../helpers/history';
 import dayjs from '../../../dayjs';
@@ -59,6 +68,87 @@ function mergeSum(maps: Map<string, number>[]): Map<string, number> {
   }
 
   return merged;
+}
+
+const EV_ACTUAL_COLOR = 'rgba(46, 204, 113, 0.35)';
+const EV_PLANNED_COLOR = 'rgba(46, 204, 113, 0.15)';
+const DHW_ACTUAL_COLOR = 'rgba(52, 152, 219, 0.35)';
+const DHW_PLANNED_COLOR = 'rgba(52, 152, 219, 0.15)';
+
+function blocksToModeData(
+  blocks: { start: string; end: string }[],
+  since: Date,
+  until: Date
+): HistoryDetailsApiResponse<BooleanEventApiResponse> {
+  return {
+    since: since.toISOString(),
+    until: until.toISOString(),
+    history: blocks.map(b => ({ start: b.start, end: b.end, lastReported: b.end, value: true })),
+  };
+}
+
+export async function scheduleHandler(req: Request, res: Response) {
+  const now = new Date();
+  const since = new Date(req.query.since as string);
+
+  const [costDevice] = await Device.findByCapability('ENERGY_COST');
+  const [evDevice] = await Device.findByCapability('ELECTRIC_VEHICLE');
+  const [heatPumpDevice] = await Device.findByCapability('HEAT_PUMP');
+
+  const energyCost = costDevice.getEnergyCostCapability();
+
+  // The view ends where the published prices do (the whole point of the graph)
+  // - not at a fixed +24h. Fetch generously (Agile's horizon peaks at ~31h).
+  const latestRate = await energyCost.getUnitRateEvent();
+  const until = latestRate
+    ? new Date(Math.max(now.getTime(), latestRate.start.getTime() + 30 * 60 * 1000))
+    : now;
+  const rateSelector = { since, until: dayjs(now).add(48, 'hour').toDate() };
+  // Actual (what ran) is history up to now; planned bands cover now onwards.
+  const actualSelector = { since, until: now };
+
+  const rateData = await mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), rateSelector);
+  rateData.until = until.toISOString();
+
+  const lines: HistoryLineApiResponse[] = [{
+    data: rateData,
+    label: 'Unit rate (p/kWh)',
+    yAxisID: 'yRate',
+  }];
+
+  const modes: HistoryModesApiResponse[] = [];
+
+  if (evDevice) {
+    const ev = evDevice.getElectricVehicleCapability();
+
+    modes.push({
+      data: await mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), actualSelector),
+      details: [{ value: true, label: 'EV charging', fillColor: EV_ACTUAL_COLOR }],
+    });
+
+    modes.push({
+      data: blocksToModeData(ev.getPlannedChargeBlocks(), since, until),
+      details: [{ value: true, label: 'EV charging (planned)', fillColor: EV_PLANNED_COLOR }],
+    });
+  }
+
+  if (heatPumpDevice) {
+    const heatPump = heatPumpDevice.getHeatPumpCapability();
+    const dhwWindow = heatPump.getPlannedDHWWindow();
+
+    // "actually heating water", not "circuit permitted" (which can sit on for days).
+    modes.push({
+      data: await mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), actualSelector),
+      details: [{ value: 'DHW', label: 'Hot water', fillColor: DHW_ACTUAL_COLOR }],
+    });
+
+    modes.push({
+      data: blocksToModeData(dhwWindow ? [dhwWindow] : [], since, until),
+      details: [{ value: true, label: 'Hot water (planned)', fillColor: DHW_PLANNED_COLOR }],
+    });
+  }
+
+  res.json({ lines, modes } satisfies EnergyScheduleApiResponse);
 }
 
 export async function usageHandler(req: Request, res: Response) {

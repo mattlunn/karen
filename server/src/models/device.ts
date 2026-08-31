@@ -10,6 +10,7 @@ import {
   ProviderSwitchCapability,
   ProviderTelevisionCapability,
   ProviderElectricVehicleCapability,
+  ProviderHeatPumpCapability,
 
   LightSensorCapability,
   HumiditySensorCapability,
@@ -305,6 +306,7 @@ type ProviderHandler = {
   provideTelevisionCapability?(): ProviderTelevisionCapability;
   provideSpeakerCapability?(): ProviderSpeakerCapability;
   provideElectricVehicleCapability?(): ProviderElectricVehicleCapability;
+  provideHeatPumpCapability?(): ProviderHeatPumpCapability;
 
   getCapabilities(device: Device): Capability[];
 
