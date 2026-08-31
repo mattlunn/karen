@@ -41,6 +41,8 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare provider: string;
   declare providerId: string;
   declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+  declare deletedAt: CreationOptional<Date | null>;
   declare name: CreationOptional<string>;
   declare manufacturer: CreationOptional<string>;
   declare model: CreationOptional<string>;
@@ -330,8 +332,18 @@ export default function (sequelize: Sequelize) {
     },
 
     createdAt: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE(3),
       allowNull: false
+    },
+
+    updatedAt: {
+      type: DataTypes.DATE(3),
+      allowNull: false
+    },
+
+    deletedAt: {
+      type: DataTypes.DATE(3),
+      allowNull: true
     },
 
     name: {

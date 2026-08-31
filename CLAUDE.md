@@ -76,6 +76,7 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 
 - **Component files**: Use hyphenated lowercase names (e.g., `date-range-context.tsx`, not `DateRangeContext.tsx`)
 - **Database tables vs columns**: Table names are `snake_case` and pluralised (e.g. `alarm_activations`, `armings`, `events`); column names are `camelCase` (e.g. `armingId`, `startedAt`, `suppressFurtherAlertsUntil`, `lastReported`). Sequelize models map camelCase attributes straight to camelCase columns — the codebase does **not** use `underscored: true`. Follow both when adding migrations or model fields.
+- **Datetime columns are millisecond precision**: every datetime column in the schema is `DATETIME(3)`, and every model attribute that maps to one is declared `DataTypes.DATE(3)` (`Sequelize.DATE(3)` in the `.js` models), including `createdAt` / `updatedAt` / `deletedAt`. Never add a bare `DataTypes.DATE` / migration `Sequelize.DATE` — on the mysql dialect a bare `DATE` rounds a JS `Date` to whole seconds on write and drops the fractional part from `WHERE`-clause literals, so range queries built from `new Date()` truncate their bounds and disagree with the millisecond-precision JS comparisons run against the rows they return. New columns: `DATETIME(3)` in the migration, `DataTypes.DATE(3)` on the attribute.
 
 ### Coding Style
 

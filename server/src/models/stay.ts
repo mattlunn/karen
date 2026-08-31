@@ -130,11 +130,11 @@ export default function (sequelize: Sequelize) {
       unique: true
     },
     eta: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE(3),
       allowNull: true
     },
     arrival: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE(3),
       allowNull: true
     },
     arrivalTrigger: {
@@ -142,14 +142,14 @@ export default function (sequelize: Sequelize) {
       allowNull: true
     },
     departure: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE(3),
       allowNull: true
     },
     createdAt: {
-      type: DataTypes.DATE
+      type: DataTypes.DATE(3)
     },
     updatedAt: {
-      type: DataTypes.DATE
+      type: DataTypes.DATE(3)
     },
     userId: {
       type: DataTypes.INTEGER,
