@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import { ElectricVehicleCapability, NextChargeSchedule, ManualChargeSchedule } from '../../models/capabilities';
+import { ElectricVehicleCapability, ChargeSchedule } from '../../models/capabilities';
 import config from '../../config/app';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
@@ -97,8 +97,8 @@ Device.registerProvider('vehicle', {
         }
       },
 
-      getNextChargeSchedule(device: Device): NextChargeSchedule | null {
-        const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
+      getNextChargeSchedule(device: Device): ChargeSchedule | null {
+        const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
 
         if (stored) {
           return stored;
@@ -113,11 +113,11 @@ Device.registerProvider('vehicle', {
         return { targetPercentage: next.targetPercentage, targetTime: next.targetTime.toISOString() };
       },
 
-      async setManualChargeSchedule(device: Device, schedule: ManualChargeSchedule | null) {
+      async setManualChargeSchedule(device: Device, schedule: ChargeSchedule | null) {
         device.meta.chargeSchedule = schedule ? {
           targetPercentage: schedule.targetPercentage,
           targetTime: schedule.targetTime,
-        } satisfies NextChargeSchedule : undefined;
+        } satisfies ChargeSchedule : undefined;
         device.meta.chargeWindow = undefined;
 
         await device.save();
@@ -133,7 +133,7 @@ Device.registerProvider('vehicle', {
 });
 
 async function clearNextChargeIfExpired(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
-  const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
+  const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
 
   if (!stored || !now.isAfter(dayjs(stored.targetTime))) {
     return;
@@ -162,14 +162,14 @@ async function chooseNextCharge(device: Device, now: Dayjs) {
   device.meta.chargeSchedule = {
     targetPercentage: next.targetPercentage,
     targetTime: next.targetTime.toISOString(),
-  } satisfies NextChargeSchedule;
+  } satisfies ChargeSchedule;
 }
 
 // Gated on the live charge limit so the SmartCar API and the notification
 // fire exactly once per occurrence — re-firing only happens if the limit
 // is reset (e.g. the next occurrence rolls in).
 async function startChargingAndNotifyUsers(device: Device, ev: ElectricVehicleCapability, now: Dayjs, blocks: Block[]) {
-  const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
+  const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
 
   if (!stored || blocks.length === 0) {
     return;
@@ -271,10 +271,10 @@ function computeHoursNeeded(percentageNeeded: number): number {
 // startCharge / stopCharge are only observable via the charge-ischarging
 // webhook, so each transition is commanded once, retried once after a grace
 // period, then escalated to an admin alert.
-// plan_mode=readonly (non-prod against the shared physical car): the schedulers
+// charge_plan_mode=readonly (non-prod against the shared physical car): the schedulers
 // still plan and populate the UI / insights, they just don't command the car.
 function isReadOnly(): boolean {
-  return config.smartcar.plan_mode === 'readonly';
+  return config.smartcar.charge_plan_mode === 'readonly';
 }
 
 async function applyChargeLimit(ev: ElectricVehicleCapability, limit: number) {
@@ -373,7 +373,7 @@ async function planDeadlineWindowIfNeeded(device: Device, now: Dayjs, hoursNeede
 }
 
 // `hoursNeeded` here already includes charge_start_buffer_hours.
-async function runDeadlineMode(device: Device, ev: ElectricVehicleCapability, now: Dayjs, stored: NextChargeSchedule, hoursNeeded: number) {
+async function runDeadlineMode(device: Device, ev: ElectricVehicleCapability, now: Dayjs, stored: ChargeSchedule, hoursNeeded: number) {
   const deadline = dayjs(stored.targetTime);
 
   await planDeadlineWindowIfNeeded(device, now, hoursNeeded, deadline);
@@ -454,7 +454,7 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
 // deadline`. That scales with how much charge is actually needed: an 80%->100%
 // top-up engages far later than a 15%->100% charge with the same deadline.
 async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
-  const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
+  const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
 
   if (stored) {
     const bufferHours = config.smartcar.charge_start_buffer_hours ?? 0;

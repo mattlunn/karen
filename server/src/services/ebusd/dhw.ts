@@ -107,7 +107,7 @@ function markNoPlan(now: Date) {
 // The single writer of HwcOpMode. Resolves the desired state in priority order
 // and issues one ebusd write, only when it differs from the controller.
 //
-// plan_mode=readonly lets a non-prod instance run this loop against the shared
+// dhw_plan_mode=readonly lets a non-prod instance run this loop against the shared
 // physical heat pump without writing to it - it still resolves the plan (so the
 // UI / insights reflect what it *would* do), it just doesn't touch HwcOpMode.
 async function reconcile(): Promise<void> {
@@ -139,7 +139,7 @@ async function reconcile(): Promise<void> {
   }
 
   if (await heatPump.getDHWIsOn() !== shouldBeOn) {
-    if (config.ebusd.plan_mode === 'readonly') {
+    if (config.ebusd.dhw_plan_mode === 'readonly') {
       logger.info(`DHW: [readonly] would set HwcOpMode ${shouldBeOn ? 'manual' : 'off'}`);
     } else {
       await client.setDHWOpMode(shouldBeOn ? 'manual' : 'off');

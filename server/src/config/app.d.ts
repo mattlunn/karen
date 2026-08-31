@@ -101,9 +101,7 @@ declare namespace _default {
     const port: number;
     const poll_interval_minutes: number;
     const min_mode_duration_minutes: number | undefined;
-    // 'readonly' runs the DHW scheduler without writing to the physical heat
-    // pump; absent/anything else = 'readwrite'.
-    const plan_mode: 'readonly' | 'readwrite' | undefined;
+    const dhw_plan_mode: 'readonly' | 'readwrite' | undefined;
     const dhw_planning_horizon_hours: number;
     const dhw_check_interval_minutes: number;
     const dhw_no_plan_alert_hours: number;
@@ -133,9 +131,7 @@ declare namespace _default {
     let vehicle_id: string;
     const application_management_token: string;
     const secret: string;
-    // 'readonly' runs the charge scheduler without commanding the physical car;
-    // absent/anything else = 'readwrite'.
-    const plan_mode: 'readonly' | 'readwrite' | undefined;
+    const charge_plan_mode: 'readonly' | 'readwrite' | undefined;
     const default_charge_limit: number;
     const charge_power_watts: number;
     const battery_capacity_kwh: number;
@@ -146,13 +142,9 @@ declare namespace _default {
       anchor_date: string;
       interval_weeks: number;
     }[];
-    // Trailing days of unit rates whose median defines "cheap" for BAU charging.
     const charge_median_rate_days: number;
     const charge_min_block_minutes: number;
-    // How far ahead to look at prices when planning charge blocks.
     const charge_planning_horizon_hours: number;
-    // Switch from BAU to deadline mode once charging would need this fraction
-    // (0-1) of the time still left before the deadline.
     const charge_deadline_engage_fraction: number;
   }
   const bins: {

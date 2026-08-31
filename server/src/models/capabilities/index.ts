@@ -33,19 +33,14 @@ export interface ProviderThermostatCapability extends ProviderThermostatCapabili
   getWarmupRate(device: Device): Promise<number>;
 }
 
-export interface NextChargeSchedule {
-  targetPercentage: number;
-  targetTime: string;
-}
-
-export interface ManualChargeSchedule {
+export interface ChargeSchedule {
   targetPercentage: number;
   targetTime: string;
 }
 
 export interface ProviderElectricVehicleCapability extends ProviderElectricVehicleCapabilityBase {
-  getNextChargeSchedule(device: Device): NextChargeSchedule | null;
-  setManualChargeSchedule(device: Device, schedule: ManualChargeSchedule | null): Promise<void>;
+  getNextChargeSchedule(device: Device): ChargeSchedule | null;
+  setManualChargeSchedule(device: Device, schedule: ChargeSchedule | null): Promise<void>;
   getPlannedChargeBlocks(device: Device): { start: string; end: string }[];
 }
 
