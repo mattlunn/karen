@@ -128,9 +128,6 @@ export type CapabilityGraphProps = {
     color: string;
   }[]
 
-  // Independent mode series. Bands within a single series are overlap-clamped;
-  // separate series can overlap (e.g. EV and DHW both hunting the same cheap
-  // half-hours), which is why a list of series is accepted.
   modes?: ModeSeries[]
 
   yAxis?: Record<string, {

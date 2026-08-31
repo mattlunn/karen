@@ -76,7 +76,7 @@ export type CapabilityApiResponseBase = {
   isCableConnected: BooleanStateApiResponse;
   chargeLimit: NumericStateApiResponse;
   odometer: NumericStateApiResponse;
-  chargeSchedule: { targetPercentage: number; targetTime: string; calculatedStartTime: string | null } | null;
+  chargeSchedule: { targetPercentage: number; targetTime: string } | null;
 } | {
   type: 'ALARM_SENSOR';
   isTriggered: BooleanStateApiResponse;

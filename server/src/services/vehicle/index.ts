@@ -97,11 +97,7 @@ Device.registerProvider('vehicle', {
         const stored = device.meta.chargeSchedule as StoredChargeSchedule | undefined;
 
         if (stored) {
-          return {
-            targetPercentage: stored.targetPercentage,
-            targetTime: stored.targetTime,
-            calculatedStartTime: stored.calculatedStartTime,
-          };
+          return { targetPercentage: stored.targetPercentage, targetTime: stored.targetTime };
         }
 
         const next = pickNextChargeSchedule(config.smartcar.charge_schedules ?? [], dayjs());
@@ -110,18 +106,13 @@ Device.registerProvider('vehicle', {
           return null;
         }
 
-        return {
-          targetPercentage: next.targetPercentage,
-          targetTime: next.targetTime.toISOString(),
-          calculatedStartTime: null,
-        };
+        return { targetPercentage: next.targetPercentage, targetTime: next.targetTime.toISOString() };
       },
 
       async setManualChargeSchedule(device: Device, schedule: ManualChargeSchedule | null) {
         device.meta.chargeSchedule = schedule ? {
           targetPercentage: schedule.targetPercentage,
           targetTime: schedule.targetTime,
-          calculatedStartTime: null,
         } satisfies NextChargeSchedule : undefined;
 
         await device.save();
@@ -165,23 +156,22 @@ async function chooseNextCharge(device: Device, now: Dayjs) {
   device.meta.chargeSchedule = {
     targetPercentage: next.targetPercentage,
     targetTime: next.targetTime.toISOString(),
-    calculatedStartTime: null,
   } satisfies NextChargeSchedule;
 }
 
 // Gated on the live charge limit so the SmartCar API and the notification
 // fire exactly once per occurrence — re-firing only happens if the limit
 // is reset (e.g. the next occurrence rolls in).
-async function startChargingAndNotifyUsers(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
+async function startChargingAndNotifyUsers(device: Device, ev: ElectricVehicleCapability, now: Dayjs, blocks: Block[]) {
   const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
 
-  if (!stored || !stored.calculatedStartTime) {
+  if (!stored || blocks.length === 0) {
     return;
   }
 
-  const startTime = dayjs(stored.calculatedStartTime);
+  const startTime = dayjs(blocks[0].start);
 
-  if (!now.isSameOrAfter(startTime)) {
+  if (now.isBefore(startTime)) {
     return;
   }
 
@@ -347,7 +337,6 @@ async function planDeadlineWindowIfNeeded(device: Device, now: Dayjs, hoursNeede
     ...stored,
     windowEnd: windowEnd.toISOString(),
     chargeBlocks: blocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
-    calculatedStartTime: blocks[0]?.start.toISOString() ?? null,
   } satisfies StoredChargeSchedule;
 
   await device.save();
@@ -374,7 +363,7 @@ async function runDeadlineMode(device: Device, ev: ElectricVehicleCapability, no
 
   currentPlannedBlocks = blocks;
 
-  await startChargingAndNotifyUsers(device, ev, now);
+  await startChargingAndNotifyUsers(device, ev, now, blocks);
   await applyChargeBlocks(ev, now, blocks);
 }
 
@@ -453,7 +442,6 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
       device.meta.chargeSchedule = {
         targetPercentage: stored.targetPercentage,
         targetTime: stored.targetTime,
-        calculatedStartTime: null,
       } satisfies StoredChargeSchedule;
 
       await device.save();

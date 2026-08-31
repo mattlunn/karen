@@ -328,11 +328,6 @@ export const registry: CapabilityUIRegistry = {
         value: cap.chargeSchedule
           ? `${cap.chargeSchedule.targetPercentage}% by ${dayjs(cap.chargeSchedule.targetTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.targetTime))}`
           : 'No schedule',
-        footer: cap.chargeSchedule
-          ? cap.chargeSchedule.calculatedStartTime
-            ? `starts ${dayjs(cap.chargeSchedule.calculatedStartTime).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.calculatedStartTime))}`
-            : 'start TBC'
-          : undefined,
         iconColor: '#3498db',
         iconHighlighted: !!cap.chargeSchedule,
         onIconClick: ({ openModal, closeModal }) => {

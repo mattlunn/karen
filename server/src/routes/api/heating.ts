@@ -95,11 +95,13 @@ router.put<Record<string, never>, HeatingStatusResponse | ApiErrorResponse, Heat
   }
 
   if (dhwBoost !== undefined) {
-    await (dhwBoost ? startBoost() : cancelBoost());
+    if (dhwBoost) {
+      await startBoost();
+    } else {
+      await cancelBoost();
+    }
   }
 
-  // Boost and mode changes run the reconcile tick synchronously, so the status
-  // returned here already reflects the new reality rather than stale poll data.
   res.status(200).json(await buildHeatingStatus());
 });
 
