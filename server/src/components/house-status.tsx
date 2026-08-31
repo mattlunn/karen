@@ -92,7 +92,7 @@ export default function HouseStatus() {
           ]}
         />
         <Button
-          variant={dhwStatus.isBoosting ? 'filled' : 'light'}
+          variant={dhwStatus.isBoosting ? 'filled' : 'default'}
           color="blue"
           disabled={heatingMutating}
           onClick={() => updateHeating({ dhwBoost: !dhwStatus.isBoosting })}

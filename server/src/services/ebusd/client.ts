@@ -51,7 +51,10 @@ export default class EbusClient {
   async #write(circuit: string, key: string, value = ''): Promise<string> {
     const result = await this.#command(`write -c ${circuit} ${key} ${value}`);
 
-    if (result !== value) {
+    // ebusd echoes the decoded value back for some messages and replies with the
+    // literal `done` for writes that have no slave read-back. Anything else
+    // (`ERR: ...`) is a real failure.
+    if (result !== value && result !== 'done') {
       throw new Error(`Unable to write '${value}' to ${key}. Result was ${result}`);
     }
 
