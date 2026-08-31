@@ -131,6 +131,29 @@ describe('planOpportunisticCharge', () => {
     expect(blocks[0].start).toEqual(at(10));
   });
 
+  it('picks a contiguous run when the cheapest slots alone are too fragmented', () => {
+    // The cheapest slots alternate with dearer ones, so no two are adjacent -
+    // picking them individually would leave nothing after the 60m min block.
+    const slots: PriceSlot[] = [];
+
+    for (let h = 0; h < 6; h += 0.5) {
+      slots.push({ start: at(h), end: at(h + 0.5), pence: h % 1 === 0 ? 5 : 9 });
+    }
+
+    const blocks = planOpportunisticCharge(slots, at(0), 20, 60, 1);
+
+    expect(blocks).toHaveLength(1);
+    expect(totalHours(blocks)).toBeCloseTo(1);
+  });
+
+  it('prefers the cheapest qualifying run over an earlier dearer one', () => {
+    const slots = [...run(0, 2, 8), ...run(2, 4, 5), ...run(4, 6, 8)];
+
+    const blocks = planOpportunisticCharge(slots, at(0), 20, 60, 1);
+
+    expect(blocks).toEqual([{ start: at(2), end: at(3) }]);
+  });
+
   it('charges nothing when no charge is needed', () => {
     expect(planOpportunisticCharge(run(0, 24, 5), at(0), 20, 60, 0)).toEqual([]);
   });

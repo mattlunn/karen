@@ -3,6 +3,7 @@ import {
   PriceSlot,
   SlotBlock,
   selectCheapestSlots,
+  findCheapestWindow,
   groupIntoBlocks,
 } from '../../helpers/prices';
 
@@ -83,6 +84,12 @@ export function planDeadlineCharge(
  * percentile of the next 24h means a uniformly cheap day charges freely while
  * an expensive day charges only in the dips; capping at what the car actually
  * needs then keeps it out of the dearer end of that set.
+ *
+ * Selection is by whole `minBlockMinutes` runs, not by individual slot, because
+ * `groupIntoBlocks` discards anything shorter: the cheapest slots are usually
+ * not adjacent, so picking them individually leaves a small top-up with nothing
+ * to charge through, on every tick until prices roll. Rounding up to whole
+ * blocks can overshoot `hoursNeeded`, which `applyChargeBlocks` bounds.
  */
 export function planOpportunisticCharge(
   slots: PriceSlot[],
@@ -98,7 +105,23 @@ export function planOpportunisticCharge(
   }
 
   const slotsNeeded = Math.ceil((hoursNeeded * 60) / slotMinutesOf(cheap));
-  const picked = selectCheapestSlots(cheap, slotsNeeded, cheap[0].start, cheap.at(-1)!.end);
+  const picked: PriceSlot[] = [];
+  let pool = cheap;
+
+  while (picked.length < slotsNeeded) {
+    const window = findCheapestWindow(pool, minBlockMinutes, pool[0].start, pool.at(-1)!.end);
+
+    if (window === null) {
+      break;
+    }
+
+    picked.push(...pool.filter(s => s.start >= window.start && s.end <= window.end));
+    pool = pool.filter(s => s.end <= window.start || s.start >= window.end);
+
+    if (pool.length === 0) {
+      break;
+    }
+  }
 
   return groupIntoBlocks(picked, minBlockMinutes);
 }
