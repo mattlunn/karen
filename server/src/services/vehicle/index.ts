@@ -324,11 +324,9 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
   const baseline = await getBaselinePence(now.toDate());
 
   if (baseline === null) {
-    // No price history at all: charge whenever it's plugged in.
-    const fallback: Block[] = [{ start: now.toDate(), end: now.add(1, 'day').toDate() }];
-
-    currentPlannedBlocks = fallback;
-    await applyChargeBlocks(ev, now, fallback, defaultLimit);
+    // No rate history to judge "cheap" against - stay off.
+    currentPlannedBlocks = [];
+    await applyChargeBlocks(ev, now, [], defaultLimit);
     return;
   }
 
