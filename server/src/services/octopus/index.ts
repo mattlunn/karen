@@ -1,5 +1,6 @@
 import { Device } from '../../models';
 import config from '../../config/app';
+import dayjs from '../../dayjs';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import type { Capability } from '../../models/capabilities';
@@ -62,7 +63,7 @@ async function sync<T>(
 // smart-meter telemetry poll below, since Octopus's half-hourly consumption
 // endpoint runs ~24h (or more) behind and shouldn't be presented as "current".
 async function pollRates(device: Device) {
-  const until = new Date(Date.now() + FORWARD_WINDOW_HOURS * 60 * 60 * 1000);
+  const until = dayjs().add(FORWARD_WINDOW_HOURS, 'hour').toDate();
   const tariffCode = device.meta.tariffCode as string;
   const productCode = device.meta.productCode as string;
   const energyCost = device.getEnergyCostCapability();

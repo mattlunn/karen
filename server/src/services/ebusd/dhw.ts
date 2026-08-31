@@ -1,6 +1,7 @@
 import { Device } from '../../models';
 import { HeatPumpCapability } from '../../models/capabilities';
 import config from '../../config/app';
+import dayjs from '../../dayjs';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
@@ -86,7 +87,7 @@ async function resolveAutoState(heatPump: HeatPumpCapability): Promise<boolean> 
   }
 
   const horizonHours = config.ebusd.dhw.planning_horizon_hours;
-  const until = new Date(now.getTime() + horizonHours * 60 * 60 * 1000);
+  const until = dayjs(now).add(horizonHours, 'hour').toDate();
 
   const energyCost = await getEnergyCostCapability();
   const events = await energyCost.getUnitRateHistory({ since: now, until });
@@ -123,9 +124,7 @@ function markNoPlan(now: Date) {
     noPlanSince = now;
   }
 
-  const alertAfterMs = config.ebusd.dhw.no_plan_alert_hours * 60 * 60 * 1000;
-
-  if (!noPlanAlertSent && now.getTime() - noPlanSince.getTime() >= alertAfterMs) {
+  if (!noPlanAlertSent && dayjs(now).diff(noPlanSince, 'hour', true) >= config.ebusd.dhw.no_plan_alert_hours) {
     noPlanAlertSent = true;
 
     bus.emit(NOTIFICATION_TO_ADMINS, {

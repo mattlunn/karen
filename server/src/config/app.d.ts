@@ -143,7 +143,6 @@ declare namespace _default {
       interval_weeks: number;
     }[];
     export namespace price_aware_charging {
-      const enabled: boolean;
       const baseline_days: number;
       const min_charge_block_minutes: number;
       const planning_horizon_hours: number;

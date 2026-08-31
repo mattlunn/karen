@@ -6,7 +6,7 @@ import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';
 import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
-import { pickNextChargeSchedule, buildScheduleNotification, buildChargingFailureNotification } from './schedule';
+import { pickNextChargeSchedule, buildScheduleNotification } from './schedule';
 import { planDeadlineCharge, planOpportunisticCharge, isWithinBlocks, Block } from './price-plan';
 import { toPriceSlots, medianPence } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
@@ -161,27 +161,6 @@ async function chooseNextCharge(device: Device, now: Dayjs) {
   } satisfies NextChargeSchedule;
 }
 
-async function recomputeStartTimeForNextCharge(device: Device, ev: ElectricVehicleCapability) {
-  const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
-
-  if (!stored) {
-    return;
-  }
-
-  const chargeRate = (config.smartcar.charge_power_watts / 1000) / config.smartcar.battery_capacity_kwh * 100;
-  const percentageNeeded = stored.targetPercentage - await ev.getChargePercentage();
-  const hoursNeeded = percentageNeeded / chargeRate;
-  const bufferHours = config.smartcar.charge_start_buffer_hours ?? 0;
-  const startTime = dayjs(stored.targetTime).subtract(hoursNeeded + bufferHours, 'hour');
-
-  device.meta.chargeSchedule = {
-    ...stored,
-    calculatedStartTime: startTime.toISOString(),
-  } satisfies NextChargeSchedule;
-
-  await device.save();
-}
-
 // Gated on the live charge limit so the SmartCar API and the notification
 // fire exactly once per occurrence — re-firing only happens if the limit
 // is reset (e.g. the next occurrence rolls in).
@@ -225,77 +204,8 @@ async function startChargingAndNotifyUsers(device: Device, ev: ElectricVehicleCa
   }
 }
 
-// We can't read the charge limit back from SmartCar, so we can't verify the car
-// actually accepted it. Instead we watch an in-progress scheduled charge and
-// alert if the car is plugged in but not charging. State is transient and
-// single-vehicle, so it lives in module variables (not device.meta), keyed to
-// the active occurrence's targetTime so it resets when a new occurrence rolls in.
-// We deliberately do not self-heal for now — we want to learn how often this
-// happens rather than have it silently fixed.
-let trackedTargetTime: string | null = null;
-let issueNotified = false;
-
-async function verifyChargingProgress(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
-  const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
-
-  if (!stored || !stored.calculatedStartTime) {
-    return;
-  }
-
-  // The alert fires at most once per scheduled occurrence. issueNotified records
-  // whether we've already alerted, and trackedTargetTime records which occurrence
-  // that flag applies to — so when a new occurrence rolls in (a different
-  // targetTime), we reset the flag and let the new one alert afresh.
-  if (trackedTargetTime !== stored.targetTime) {
-    trackedTargetTime = stored.targetTime;
-    issueNotified = false;
-  }
-
-  const startTime = dayjs(stored.calculatedStartTime);
-  const targetTime = dayjs(stored.targetTime);
-
-  // Only relevant once charging should be underway, until the target time has passed.
-  if (!now.isSameOrAfter(startTime) || now.isAfter(targetTime)) {
-    return;
-  }
-
-  const [isCableConnected, isCharging, chargePercentage] = await Promise.all([
-    ev.getIsCableConnected(),
-    ev.getIsCharging(),
-    ev.getChargePercentage(),
-  ]);
-
-  // Nothing to charge (or alert on) if the cable isn't connected — this alert is
-  // specifically about being plugged in but not charging. Treat a reconnect as a
-  // fresh start so a later failure can alert again.
-  if (!isCableConnected) {
-    issueNotified = false;
-    return;
-  }
-
-  const isHealthy = isCharging || chargePercentage >= stored.targetPercentage;
-
-  if (isHealthy) {
-    issueNotified = false;
-    return;
-  }
-
-  if (issueNotified) {
-    return;
-  }
-
-  logger.error('Charge schedule: car is plugged in but not charging when it should be');
-
-  bus.emit(NOTIFICATION_TO_ADMINS, {
-    message: buildChargingFailureNotification(stored.targetPercentage, targetTime),
-    priority: 1,
-  });
-
-  issueNotified = true;
-}
-
 // ---------------------------------------------------------------------------
-// Price-aware charging (config.smartcar.price_aware_charging.enabled)
+// Price-aware charging
 // ---------------------------------------------------------------------------
 
 // The blocks the scheduler is currently driving - deadline windows or BAU
@@ -326,7 +236,7 @@ async function getForwardPriceSlots(now: Date, hours: number) {
     return [];
   }
 
-  const until = new Date(now.getTime() + hours * 60 * 60 * 1000);
+  const until = dayjs(now).add(hours, 'hour').toDate();
   const events = await energyCost.getUnitRateHistory({ since: now, until });
 
   return toPriceSlots(events, now, until);
@@ -339,7 +249,7 @@ async function getBaselinePence(now: Date): Promise<number | null> {
     return null;
   }
 
-  const since = new Date(now.getTime() - config.smartcar.price_aware_charging.baseline_days * 24 * 60 * 60 * 1000);
+  const since = dayjs(now).subtract(config.smartcar.price_aware_charging.baseline_days, 'day').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until: now });
 
   return medianPence(toPriceSlots(events, since, now));
@@ -540,14 +450,7 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async (
 
   await clearNextChargeIfExpired(device, ev, now);
   await chooseNextCharge(device, now);
-
-  if (config.smartcar.price_aware_charging.enabled) {
-    await runPriceAwareCharging(device, ev, now);
-  } else {
-    await recomputeStartTimeForNextCharge(device, ev);
-    await startChargingAndNotifyUsers(device, ev, now);
-    await verifyChargingProgress(device, ev, now);
-  }
+  await runPriceAwareCharging(device, ev, now);
 }), 5 * 60 * 1000);
 
 nowAndSetIntervalForTime(createBackgroundTransaction('vehicle:monthly-mileage', async () => {

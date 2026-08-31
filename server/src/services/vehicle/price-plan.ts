@@ -1,3 +1,4 @@
+import dayjs from '../../dayjs';
 import {
   PriceSlot,
   SlotBlock,
@@ -14,14 +15,14 @@ export interface DeadlinePlan {
   blocks: Block[];
 }
 
-const MS_PER_HOUR = 60 * 60 * 1000;
-
 function slotMinutesOf(slots: PriceSlot[]): number {
-  return (slots[0].end.getTime() - slots[0].start.getTime()) / 60_000;
+  return dayjs(slots[0].end).diff(slots[0].start, 'minute', true);
 }
 
+// toPriceSlots returns slots in ascending, contiguous order, so the last slot's
+// end is the end of the published horizon.
 function endOfPublishedPrices(slots: PriceSlot[]): Date {
-  return slots.reduce((max, s) => (s.end.getTime() > max.getTime() ? s.end : max), slots[0].end);
+  return slots[slots.length - 1].end;
 }
 
 /**
@@ -45,7 +46,7 @@ export function planDeadlineCharge(
   deadline: Date,
   minBlockMinutes: number,
 ): DeadlinePlan {
-  const hoursToDeadline = (deadline.getTime() - now.getTime()) / MS_PER_HOUR;
+  const hoursToDeadline = dayjs(deadline).diff(now, 'hour', true);
 
   if (hoursNeeded <= 0) {
     return { windowEnd: deadline, blocks: [] };
@@ -59,8 +60,9 @@ export function planDeadlineCharge(
     return { windowEnd: now, blocks: [] };
   }
 
-  const windowEnd = new Date(Math.min(endOfPublishedPrices(slots).getTime(), deadline.getTime()));
-  const windowHours = (windowEnd.getTime() - now.getTime()) / MS_PER_HOUR;
+  const publishedEnd = endOfPublishedPrices(slots);
+  const windowEnd = publishedEnd < deadline ? publishedEnd : deadline;
+  const windowHours = dayjs(windowEnd).diff(now, 'hour', true);
 
   if (windowHours <= 0) {
     return { windowEnd, blocks: [] };
@@ -86,11 +88,11 @@ export function planOpportunisticCharge(
   baselinePence: number,
   minBlockMinutes: number,
 ): Block[] {
-  const cheap = slots.filter(s => s.end.getTime() > now.getTime() && s.pence < baselinePence);
+  const cheap = slots.filter(s => s.end > now && s.pence < baselinePence);
 
   return groupIntoBlocks(cheap, minBlockMinutes);
 }
 
 export function isWithinBlocks(blocks: Block[], now: Date): boolean {
-  return blocks.some(b => now.getTime() >= b.start.getTime() && now.getTime() < b.end.getTime());
+  return blocks.some(b => now >= b.start && now < b.end);
 }
