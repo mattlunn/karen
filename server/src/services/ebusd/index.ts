@@ -1,11 +1,11 @@
 import { Device } from '../../models';
-import { HeatPumpMode } from '../../models/capabilities';
+import { HeatPumpMode, HeatPumpHotWaterMode } from '../../models/capabilities';
 import config from '../../config/app';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 import { storeRunningMetrics } from './history';
-import './dhw';
+import { setDHWMode, setDHWBoost, getPlannedDHWWindow } from './dhw';
 
 const STATUSCODE_TO_MODE: Record<string, HeatPumpMode> = {
   'Heating': 'HEATING',
@@ -18,6 +18,14 @@ const STATUSCODE_TO_MODE: Record<string, HeatPumpMode> = {
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
     return ['HEAT_PUMP', 'ENERGY_MONITOR', 'CONNECTIVITY'];
+  },
+
+  provideHeatPumpCapability() {
+    return {
+      setDHWMode: (_device: Device, mode: HeatPumpHotWaterMode) => setDHWMode(mode),
+      setDHWBoost: (_device: Device, on: boolean) => setDHWBoost(on),
+      getPlannedDHWWindow: () => getPlannedDHWWindow(),
+    };
   },
 
   async synchronize() {

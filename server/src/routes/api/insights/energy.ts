@@ -14,7 +14,6 @@ import { mapNumericHistoryToResponse, mapBooleanHistoryToResponse } from '../his
 import { asyncMap } from '../../../helpers/array';
 import { filterClampAndSortHistory } from '../../../helpers/history';
 import dayjs from '../../../dayjs';
-import { getDHWStatus } from '../../../services/ebusd/dhw';
 
 type NumericHistory = HistoryDetailsApiResponse<NumericEventApiResponse>;
 
@@ -125,19 +124,18 @@ export async function scheduleHandler(req: Request, res: Response) {
 
   if (heatPumpDevice) {
     const heatPump = heatPumpDevice.getHeatPumpCapability();
+    const dhwWindow = heatPump.getPlannedDHWWindow();
 
     modes.push({
       data: await mapBooleanHistoryToResponse((hs) => heatPump.getDHWIsOnHistory(hs), selector),
       details: [{ value: true, label: 'Hot water', fillColor: DHW_ACTUAL_COLOR }],
     });
+
+    modes.push({
+      data: blocksToModeData(dhwWindow ? [dhwWindow] : [], selector.since, selector.until),
+      details: [{ value: true, label: 'Hot water (planned)', fillColor: DHW_PLANNED_COLOR }],
+    });
   }
-
-  const dhwSchedule = (await getDHWStatus().catch(() => null))?.schedule ?? null;
-
-  modes.push({
-    data: blocksToModeData(dhwSchedule ? [dhwSchedule] : [], selector.since, selector.until),
-    details: [{ value: true, label: 'Hot water (planned)', fillColor: DHW_PLANNED_COLOR }],
-  });
 
   res.json({ lines, modes } satisfies EnergyScheduleApiResponse);
 }

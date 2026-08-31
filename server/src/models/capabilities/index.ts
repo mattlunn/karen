@@ -1,14 +1,27 @@
 import { Device } from '../';
-import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase } from './capabilities.gen';
+import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase, HeatPumpHotWaterMode } from './capabilities.gen';
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
 export { SpeakerCapability } from './speaker';
 export { ThermostatCapability } from './thermostat';
 export { ElectricVehicleCapability } from './electric-vehicle';
+export { HeatPumpCapability } from './heat-pump';
 export { TelevisionCapability } from './television';
 export { BinCollectionCapability } from './bin-collection';
 export * from './capabilities.gen';
+
+export interface DHWPlannedWindow {
+  start: string;
+  end: string;
+  averagePence: number;
+}
+
+export interface ProviderHeatPumpCapability {
+  setDHWMode(device: Device, mode: HeatPumpHotWaterMode): Promise<void>;
+  setDHWBoost(device: Device, on: boolean): Promise<void>;
+  getPlannedDHWWindow(device: Device): DHWPlannedWindow | null;
+}
 
 export type ScheduledChange = {
   timestamp: Date;

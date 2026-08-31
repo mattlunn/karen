@@ -21,6 +21,7 @@
   ]
 },{
   "name": "HeatPump",
+  "capabilityModelClassName": "HeatPumpBase",
   "properties": [
     {
       "name": "Mode",

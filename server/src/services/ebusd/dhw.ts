@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import { HeatPumpCapability } from '../../models/capabilities';
+import { HeatPumpCapability, HeatPumpHotWaterMode, DHWPlannedWindow } from '../../models/capabilities';
 import config from '../../config/app';
 import dayjs from '../../dayjs';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
@@ -8,11 +8,6 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
 import EbusClient from './client';
 import { toPriceSlots, findCheapestWindow, coversWholeWindow, CheapestWindow } from '../../helpers/prices';
-import type { DHWStatus, DHWHeatingMode } from '../../api/types';
-
-export type DHWMode = DHWHeatingMode;
-
-export type { DHWStatus };
 
 // The current Auto plan: a single cheap block, written once and never revised
 // until it rolls over. Also tracks how long we've been unable to plan, so the
@@ -30,14 +25,12 @@ function clearNoPlanTracking() {
   noPlanAlertSent = false;
 }
 
-function normaliseMode(raw: string): DHWMode {
+function normaliseMode(raw: string): HeatPumpHotWaterMode {
   return raw === 'AUTO' ? 'AUTO' : 'OFF';
 }
 
-async function getHeatPump(): Promise<{ device: Device; heatPump: HeatPumpCapability }> {
-  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
-
-  return { device, heatPump: device.getHeatPumpCapability() };
+async function getHeatPumpCapability(): Promise<HeatPumpCapability> {
+  return (await Device.findByProviderIdOrError('ebusd', 'heatpump')).getHeatPumpCapability();
 }
 
 async function getEnergyCostCapability() {
@@ -50,21 +43,11 @@ async function getEnergyCostCapability() {
   return devices[0].getEnergyCostCapability();
 }
 
-export async function getDHWStatus(): Promise<DHWStatus> {
-  const { heatPump } = await getHeatPump();
-  const [mode, isBoosting] = await Promise.all([
-    heatPump.getHotWaterMode(),
-    heatPump.getDHWIsBoosting(),
-  ]);
-
-  return {
-    mode: normaliseMode(mode),
-    isBoosting,
-    schedule: currentPlan === null ? null : {
-      start: currentPlan.start.toISOString(),
-      end: currentPlan.end.toISOString(),
-      averagePence: currentPlan.averagePence,
-    },
+export function getPlannedDHWWindow(): DHWPlannedWindow | null {
+  return currentPlan === null ? null : {
+    start: currentPlan.start.toISOString(),
+    end: currentPlan.end.toISOString(),
+    averagePence: currentPlan.averagePence,
   };
 }
 
@@ -133,7 +116,7 @@ function markNoPlan(now: Date) {
 // and issues one ebusd write, only when it differs from the controller.
 async function reconcile(): Promise<void> {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
-  const { heatPump } = await getHeatPump();
+  const heatPump = await getHeatPumpCapability();
 
   const [mode, isBoosting] = await Promise.all([
     heatPump.getHotWaterMode().then(normaliseMode),
@@ -169,39 +152,32 @@ async function safeReconcile(): Promise<void> {
   }
 }
 
-export async function setDHWMode(mode: DHWMode): Promise<void> {
-  const { heatPump } = await getHeatPump();
-
-  await heatPump.setHotWaterModeState(mode);
+export async function setDHWMode(mode: HeatPumpHotWaterMode): Promise<void> {
+  await (await getHeatPumpCapability()).setHotWaterModeState(mode);
   await safeReconcile();
 }
 
-// Boost writes HwcSFMode = load - the same one-time cylinder charge the panel
-// button triggers. HwcOpMode is set to `manual` first so the circuit is
-// enabled even when the base mode is OFF. The controller owns completion (it
-// reverts HwcSFMode to `auto` at setpoint or when HwcMaxChargeTime expires),
-// so there's no target, timeout or persisted state here.
-export async function startBoost(): Promise<void> {
+// `on` writes HwcSFMode = load - the same one-time cylinder charge the panel
+// button triggers. HwcOpMode is forced to `manual` first so the circuit runs
+// even when the base mode is OFF. The controller owns completion (it reverts
+// HwcSFMode to `auto` at setpoint or when HwcMaxChargeTime expires), so there's
+// no target, timeout or persisted state; `off` just hands it back.
+export async function setDHWBoost(on: boolean): Promise<void> {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
-  const { heatPump } = await getHeatPump();
+  const heatPump = await getHeatPumpCapability();
 
-  await client.setDHWOpMode('manual');
-  await client.setDHWSpecialFunction('load');
+  if (on) {
+    await client.setDHWOpMode('manual');
+    await client.setDHWSpecialFunction('load');
 
-  await Promise.all([
-    heatPump.setDHWIsBoostingState(true),
-    heatPump.setDHWIsOnState(true),
-  ]);
-
-  await safeReconcile();
-}
-
-export async function cancelBoost(): Promise<void> {
-  const client = new EbusClient(config.ebusd.host, config.ebusd.port);
-  const { heatPump } = await getHeatPump();
-
-  await client.setDHWSpecialFunction('auto');
-  await heatPump.setDHWIsBoostingState(false);
+    await Promise.all([
+      heatPump.setDHWIsBoostingState(true),
+      heatPump.setDHWIsOnState(true),
+    ]);
+  } else {
+    await client.setDHWSpecialFunction('auto');
+    await heatPump.setDHWIsBoostingState(false);
+  }
 
   await safeReconcile();
 }

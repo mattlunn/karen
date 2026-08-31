@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import bus, { NOTIFICATION_TO_ADMINS, FIRST_USER_HOME, LAST_USER_LEAVES, STAY_START, STAY_END } from '../bus';
 import { Device, Stay } from '../models';
-import { setDHWMode, getDHWStatus } from '../services/ebusd/dhw';
 import dayjs, { Dayjs } from '../dayjs';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
@@ -103,10 +102,10 @@ export default function ({
     // day-ahead decision, so it's gated independently of the thermostat warmup
     // below (an hours-ahead calculation that would otherwise return early).
     if (dayjs(etaTime).diff(dayjs(), 'hour') <= dhwAutoLeadTimeHours) {
-      const { mode } = await getDHWStatus();
+      const heatPump = (await Device.findByCapability('HEAT_PUMP'))[0]?.getHeatPumpCapability();
 
-      if (mode === 'OFF') {
-        await setDHWMode('AUTO');
+      if (heatPump && await heatPump.getDHWMode() === 'OFF') {
+        await heatPump.setDHWMode('AUTO');
       }
     }
 

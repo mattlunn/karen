@@ -1,15 +1,23 @@
 import express from 'express';
 import { Device } from '../../models';
-import { getDHWStatus, setDHWMode, startBoost, cancelBoost } from '../../services/ebusd/dhw';
 import { getPreWarmStartTime } from '../../automations/heating-warmup';
 import { HeatingUpdateRequest, HeatingStatusResponse, CentralHeatingMode, ApiErrorResponse } from '../../api/types';
 
 const router = express.Router();
 
+async function getHeatPumpCapability() {
+  return (await Device.findByCapability('HEAT_PUMP'))[0].getHeatPumpCapability();
+}
+
 async function buildHeatingStatus(): Promise<HeatingStatusResponse> {
-  const [dhwStatus, thermostatDevices] = await Promise.all([
-    getDHWStatus(),
+  const [heatPump, thermostatDevices] = await Promise.all([
+    getHeatPumpCapability(),
     Device.findByCapability('THERMOSTAT')
+  ]);
+
+  const [dhwMode, dhwIsBoosting] = await Promise.all([
+    heatPump.getDHWMode(),
+    heatPump.getDHWIsBoosting()
   ]);
 
   const thermostatData = await Promise.all(
@@ -46,7 +54,11 @@ async function buildHeatingStatus(): Promise<HeatingStatusResponse> {
 
   return {
     centralHeating,
-    dhwStatus,
+    dhwStatus: {
+      mode: dhwMode,
+      isBoosting: dhwIsBoosting,
+      schedule: heatPump.getPlannedDHWWindow()
+    },
     preWarmStartTime: preWarmStartTime?.toISOString() ?? null
   };
 }
@@ -91,15 +103,11 @@ router.put<Record<string, never>, HeatingStatusResponse | ApiErrorResponse, Heat
       return;
     }
 
-    await setDHWMode(dhw);
+    await (await getHeatPumpCapability()).setDHWMode(dhw);
   }
 
   if (dhwBoost !== undefined) {
-    if (dhwBoost) {
-      await startBoost();
-    } else {
-      await cancelBoost();
-    }
+    await (await getHeatPumpCapability()).setDHWBoost(dhwBoost);
   }
 
   res.status(200).json(await buildHeatingStatus());
