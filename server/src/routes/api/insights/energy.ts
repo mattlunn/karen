@@ -15,7 +15,6 @@ import { asyncMap } from '../../../helpers/array';
 import { filterClampAndSortHistory } from '../../../helpers/history';
 import dayjs from '../../../dayjs';
 import { getDHWStatus } from '../../../services/ebusd/dhw';
-import { getPlannedChargeBlocks } from '../../../services/vehicle';
 
 type NumericHistory = HistoryDetailsApiResponse<NumericEventApiResponse>;
 
@@ -99,16 +98,14 @@ export async function scheduleHandler(req: Request, res: Response) {
   const [evDevice] = await Device.findByCapability('ELECTRIC_VEHICLE');
   const [heatPumpDevice] = await Device.findByCapability('HEAT_PUMP');
 
-  const lines: HistoryLineApiResponse[] = costDevice
-    ? [{
-      data: await mapNumericHistoryToResponse(
-        (hs) => costDevice.getEnergyCostCapability().getUnitRateHistory(hs),
-        selector
-      ),
-      label: 'Unit rate (p/kWh)',
-      yAxisID: 'yRate',
-    }]
-    : [];
+  const lines: HistoryLineApiResponse[] = [{
+    data: await mapNumericHistoryToResponse(
+      (hs) => costDevice.getEnergyCostCapability().getUnitRateHistory(hs),
+      selector
+    ),
+    label: 'Unit rate (p/kWh)',
+    yAxisID: 'yRate',
+  }];
 
   const modes: HistoryModesApiResponse[] = [];
 
@@ -119,12 +116,12 @@ export async function scheduleHandler(req: Request, res: Response) {
       data: await mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), selector),
       details: [{ value: true, label: 'EV charging', fillColor: EV_ACTUAL_COLOR }],
     });
-  }
 
-  modes.push({
-    data: blocksToModeData(getPlannedChargeBlocks(), selector.since, selector.until),
-    details: [{ value: true, label: 'EV charging (planned)', fillColor: EV_PLANNED_COLOR }],
-  });
+    modes.push({
+      data: blocksToModeData(ev.getPlannedChargeBlocks(), selector.since, selector.until),
+      details: [{ value: true, label: 'EV charging (planned)', fillColor: EV_PLANNED_COLOR }],
+    });
+  }
 
   if (heatPumpDevice) {
     const heatPump = heatPumpDevice.getHeatPumpCapability();

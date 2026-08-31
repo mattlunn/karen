@@ -97,9 +97,7 @@ export default function HouseStatus() {
           disabled={heatingMutating}
           onClick={() => updateHeating({ dhwBoost: !dhwStatus.isBoosting })}
         >
-          {dhwStatus.isBoosting
-            ? `Boosting (${Math.round(dhwStatus.cylinderTemperature)}°) · Cancel`
-            : 'Boost'}
+          {dhwStatus.isBoosting ? 'Boosting' : 'Boost'}
         </Button>
       </div>
 

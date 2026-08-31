@@ -242,9 +242,7 @@ export type DHWHeatingMode = 'OFF' | 'AUTO';
 
 export interface DHWStatus {
   mode: DHWHeatingMode;
-  isOn: boolean;
   isBoosting: boolean;
-  cylinderTemperature: number;
   schedule: { start: string; end: string; averagePence: number } | null;
 }
 

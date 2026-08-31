@@ -110,7 +110,7 @@ function HeatingDemandGraph() {
     <>
       <CapabilityGraph
         lines={[]}
-        modes={data.modes}
+        modes={[data.modes]}
         height="120px"
         yAxis={yAxisPercentage}
       />

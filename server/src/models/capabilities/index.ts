@@ -36,6 +36,7 @@ export interface ManualChargeSchedule {
 export interface ProviderElectricVehicleCapability extends ProviderElectricVehicleCapabilityBase {
   getNextChargeSchedule(device: Device): NextChargeSchedule | null;
   setManualChargeSchedule(device: Device, schedule: ManualChargeSchedule | null): Promise<void>;
+  getPlannedChargeBlocks(device: Device): { start: string; end: string }[];
 }
 
 export interface TelevisionSource {

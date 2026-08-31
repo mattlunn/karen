@@ -128,10 +128,10 @@ export type CapabilityGraphProps = {
     color: string;
   }[]
 
-  // One or more independent mode series. Bands within a single series are
-  // overlap-clamped; separate series can overlap (e.g. EV and DHW both hunting
-  // the same cheap half-hours), which is why several series are accepted.
-  modes?: ModeSeries | ModeSeries[]
+  // Independent mode series. Bands within a single series are overlap-clamped;
+  // separate series can overlap (e.g. EV and DHW both hunting the same cheap
+  // half-hours), which is why a list of series is accepted.
+  modes?: ModeSeries[]
 
   yAxis?: Record<string, {
     position?: 'left' | 'right',
@@ -162,7 +162,7 @@ function getMinMax(props: CapabilityGraphProps): { min: string; max: string } | 
     return { min: props.bars[0].data.since, max: props.bars[0].data.until };
   }
 
-  const modeSeries = props.modes === undefined ? [] : [props.modes].flat();
+  const modeSeries = props.modes ?? [];
 
   if (modeSeries.length > 0) {
     return { min: modeSeries[0].data.since, max: modeSeries[0].data.until };
@@ -279,7 +279,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     }
   }
 
-  const modeSeries = props.modes === undefined ? [] : [props.modes].flat();
+  const modeSeries = props.modes ?? [];
 
   modeSeries.forEach((series, seriesIndex) => {
     const sortedEvents = filterClampAndSortHistory(series.data.history, series.data.since, series.data.until, true);

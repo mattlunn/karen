@@ -52,18 +52,14 @@ async function getEnergyCostCapability() {
 
 export async function getDHWStatus(): Promise<DHWStatus> {
   const { heatPump } = await getHeatPump();
-  const [mode, isOn, isBoosting, cylinderTemperature] = await Promise.all([
+  const [mode, isBoosting] = await Promise.all([
     heatPump.getHotWaterMode(),
-    heatPump.getDHWIsOn(),
     heatPump.getDHWIsBoosting(),
-    heatPump.getDHWTemperature(),
   ]);
 
   return {
     mode: normaliseMode(mode),
-    isOn,
     isBoosting,
-    cylinderTemperature,
     schedule: currentPlan === null ? null : {
       start: currentPlan.start.toISOString(),
       end: currentPlan.end.toISOString(),

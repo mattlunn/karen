@@ -133,8 +133,8 @@ export default function EnergyInsights() {
       <Title order={2}>Energy</Title>
 
       <DateRangeProvider>
-        <ScheduleGraph />
         <UsageGraph />
+        <ScheduleGraph />
         <CostGraph />
       </DateRangeProvider>
     </>
