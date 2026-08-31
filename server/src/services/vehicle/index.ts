@@ -329,7 +329,10 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
 
   // No forward prices -> planOpportunisticCharge yields no blocks -> stay off,
   // pending the admin acting on the Octopus alert.
-  const blocks = planOpportunisticCharge(slots, now.toDate(), baseline, minBlock);
+  const blocks = planOpportunisticCharge(
+    slots, now.toDate(), baseline, minBlock,
+    computeHoursNeeded(defaultLimit - chargePercentage),
+  );
 
   currentPlannedBlocks = blocks;
   await applyChargeBlocks(ev, now, blocks, defaultLimit);
