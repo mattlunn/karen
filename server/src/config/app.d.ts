@@ -149,7 +149,11 @@ declare namespace _default {
     // Trailing days of unit rates whose median defines "cheap" for BAU charging.
     const charge_median_rate_days: number;
     const charge_min_block_minutes: number;
+    // How far ahead to look at prices when planning charge blocks.
     const charge_planning_horizon_hours: number;
+    // Switch from BAU to deadline mode once charging would need this fraction
+    // (0-1) of the time still left before the deadline.
+    const charge_deadline_engage_fraction: number;
   }
   const bins: {
     overrides: {

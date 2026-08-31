@@ -444,19 +444,20 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
 }
 
 // BAU is the default. A recurring charge schedule is nearly always set (just
-// weeks away), so deadline mode only takes over once the deadline is close
-// enough that BAU alone wouldn't reach the target in time - within the time
-// still needed to charge (from live SoC, plus the start buffer) plus one full
-// planning horizon of lead time for the window planner to place cheap slots.
+// weeks away), so deadline mode only takes over once charging would need to
+// occupy `charge_deadline_engage_fraction` of the time still left before the
+// deadline - `(hours to charge from live SoC + start buffer) / hours to
+// deadline`. That scales with how much charge is actually needed: an 80%->100%
+// top-up engages far later than a 15%->100% charge with the same deadline.
 async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
   const stored = device.meta.chargeSchedule as StoredChargeSchedule | undefined;
 
   if (stored) {
     const bufferHours = config.smartcar.charge_start_buffer_hours ?? 0;
     const hoursNeeded = computeHoursNeeded(stored.targetPercentage - await ev.getChargePercentage()) + bufferHours;
-    const engageWithinHours = hoursNeeded + config.smartcar.charge_planning_horizon_hours;
+    const hoursToDeadline = dayjs(stored.targetTime).diff(now, 'hour', true);
 
-    if (dayjs(stored.targetTime).diff(now, 'hour', true) <= engageWithinHours) {
+    if (hoursNeeded / hoursToDeadline >= config.smartcar.charge_deadline_engage_fraction) {
       await runDeadlineMode(device, ev, now, stored, hoursNeeded);
       return;
     }
