@@ -138,7 +138,7 @@ async function clearNextChargeIfExpired(device: Device, ev: ElectricVehicleCapab
 
   device.meta.chargeSchedule = undefined;
 
-  await ev.setChargeLimit(config.smartcar.default_charge_limit);
+  await applyChargeLimit(ev, config.smartcar.default_charge_limit);
   await device.save();
 }
 
@@ -176,6 +176,10 @@ async function startChargingAndNotifyUsers(device: Device, ev: ElectricVehicleCa
   }
 
   if (await ev.getChargeLimit() === stored.targetPercentage) {
+    return;
+  }
+
+  if (isReadOnly()) {
     return;
   }
 
@@ -261,8 +265,29 @@ function computeHoursNeeded(percentageNeeded: number): number {
 // startCharge / stopCharge are only observable via the charge-ischarging
 // webhook, so each transition is commanded once, retried once after a grace
 // period, then escalated to an admin alert.
+// plan_mode=readonly (non-prod against the shared physical car): the schedulers
+// still plan and populate the UI / insights, they just don't command the car.
+function isReadOnly(): boolean {
+  return config.smartcar.plan_mode === 'readonly';
+}
+
+async function applyChargeLimit(ev: ElectricVehicleCapability, limit: number) {
+  if (isReadOnly()) {
+    logger.info(`Price-aware charging: [readonly] would set charge limit ${limit}%`);
+    return;
+  }
+
+  await ev.setChargeLimit(limit);
+}
+
 async function applyChargeBlocks(ev: ElectricVehicleCapability, now: Dayjs, blocks: Block[]) {
   const desired = isWithinBlocks(blocks, now.toDate());
+
+  if (isReadOnly()) {
+    logger.info(`Price-aware charging: [readonly] would set isCharging=${desired}`);
+    return;
+  }
+
   const actual = await ev.getIsCharging();
 
   if (desired === actual) {
@@ -357,7 +382,7 @@ async function runDeadlineMode(device: Device, ev: ElectricVehicleCapability, no
     blocks = [{ start: now.toDate(), end: deadline.toDate() }];
 
     if (await ev.getChargeLimit() !== stored.targetPercentage) {
-      await ev.setChargeLimit(stored.targetPercentage);
+      await applyChargeLimit(ev, stored.targetPercentage);
     }
   }
 
@@ -383,7 +408,7 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
   }
 
   if ((chargeLimitEvent?.value ?? null) !== defaultLimit) {
-    await ev.setChargeLimit(defaultLimit);
+    await applyChargeLimit(ev, defaultLimit);
   }
 
   const baseline = await getBaselinePence(now.toDate());

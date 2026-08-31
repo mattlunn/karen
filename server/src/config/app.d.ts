@@ -101,6 +101,9 @@ declare namespace _default {
     const port: number;
     const poll_interval_minutes: number;
     const min_mode_duration_minutes: number | undefined;
+    // 'readonly' runs the DHW scheduler without writing to the physical heat
+    // pump; absent/anything else = 'readwrite'.
+    const plan_mode: 'readonly' | 'readwrite' | undefined;
     export namespace dhw {
       const planning_horizon_hours: number;
       const check_interval_minutes: number;
@@ -132,6 +135,9 @@ declare namespace _default {
     let vehicle_id: string;
     const application_management_token: string;
     const secret: string;
+    // 'readonly' runs the charge scheduler without commanding the physical car;
+    // absent/anything else = 'readwrite'.
+    const plan_mode: 'readonly' | 'readwrite' | undefined;
     const default_charge_limit: number;
     const charge_power_watts: number;
     const battery_capacity_kwh: number;

@@ -106,6 +106,10 @@ function markNoPlan(now: Date) {
 
 // The single writer of HwcOpMode. Resolves the desired state in priority order
 // and issues one ebusd write, only when it differs from the controller.
+//
+// plan_mode=readonly lets a non-prod instance run this loop against the shared
+// physical heat pump without writing to it - it still resolves the plan (so the
+// UI / insights reflect what it *would* do), it just doesn't touch HwcOpMode.
 async function reconcile(): Promise<void> {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
@@ -135,7 +139,11 @@ async function reconcile(): Promise<void> {
   }
 
   if (await heatPump.getDHWIsOn() !== shouldBeOn) {
-    await client.setDHWOpMode(shouldBeOn ? 'manual' : 'off');
+    if (config.ebusd.plan_mode === 'readonly') {
+      logger.info(`DHW: [readonly] would set HwcOpMode ${shouldBeOn ? 'manual' : 'off'}`);
+    } else {
+      await client.setDHWOpMode(shouldBeOn ? 'manual' : 'off');
+    }
   }
 }
 
