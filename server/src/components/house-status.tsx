@@ -101,15 +101,6 @@ export default function HouseStatus() {
         </Button>
       </div>
 
-      {dhwStatus.mode === 'AUTO' && dhwStatus.schedule && (
-        <div className={styles.preWarmTime}>
-          <Text><FontAwesomeIcon icon={faDroplet} /></Text>
-          <Text>
-            {`Next: ${dayjs(dhwStatus.schedule.start).format('HH:mm')}–${dayjs(dhwStatus.schedule.end).format('HH:mm')} · ${dhwStatus.schedule.averagePence.toFixed(1)}p/kWh`}
-          </Text>
-        </div>
-      )}
-
       {preWarmStartTime && (
         <div className={styles.preWarmTime}>
           <Text><FontAwesomeIcon icon={faTemperatureArrowUp} /></Text>

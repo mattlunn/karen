@@ -56,8 +56,7 @@ async function buildHeatingStatus(): Promise<HeatingStatusResponse> {
     centralHeating,
     dhwStatus: {
       mode: dhwMode,
-      isBoosting: dhwBoost,
-      schedule: heatPump.getPlannedDHWWindow()
+      isBoosting: dhwBoost
     },
     preWarmStartTime: preWarmStartTime?.toISOString() ?? null
   };
