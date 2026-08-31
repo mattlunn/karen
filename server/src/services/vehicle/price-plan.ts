@@ -3,6 +3,7 @@ import {
   PriceSlot,
   SlotBlock,
   selectCheapestSlots,
+  findCheapestWindow,
   groupIntoBlocks,
 } from '../../helpers/prices';
 
@@ -77,20 +78,52 @@ export function planDeadlineCharge(
 }
 
 /**
- * Business-as-usual charging: charge through every upcoming slot priced below
- * `baselinePence` (the trailing-median unit rate). Judging "cheap" against
- * recent history rather than a percentile of the next 24h means a uniformly
- * cheap day charges freely while an expensive day charges only in the dips.
+ * Business-as-usual charging: of the upcoming slots priced below
+ * `baselinePence` (the trailing-median unit rate), charge through the cheapest
+ * `hoursNeeded`-worth. Judging "cheap" against recent history rather than a
+ * percentile of the next 24h means a uniformly cheap day charges freely while
+ * an expensive day charges only in the dips; capping at what the car actually
+ * needs then keeps it out of the dearer end of that set.
+ *
+ * Selection is by whole `minBlockMinutes` runs, not by individual slot, because
+ * `groupIntoBlocks` discards anything shorter: the cheapest slots are usually
+ * not adjacent, so picking them individually leaves a small top-up with nothing
+ * to charge through, on every tick until prices roll. Rounding up to whole
+ * blocks can overshoot `hoursNeeded`, which `applyChargeBlocks` bounds.
  */
 export function planOpportunisticCharge(
   slots: PriceSlot[],
   now: Date,
   baselinePence: number,
   minBlockMinutes: number,
+  hoursNeeded: number,
 ): Block[] {
   const cheap = slots.filter(s => s.end > now && s.pence < baselinePence);
 
-  return groupIntoBlocks(cheap, minBlockMinutes);
+  if (cheap.length === 0 || hoursNeeded <= 0) {
+    return [];
+  }
+
+  const slotsNeeded = Math.ceil((hoursNeeded * 60) / slotMinutesOf(cheap));
+  const picked: PriceSlot[] = [];
+  let pool = cheap;
+
+  while (picked.length < slotsNeeded) {
+    const window = findCheapestWindow(pool, minBlockMinutes, pool[0].start, pool.at(-1)!.end);
+
+    if (window === null) {
+      break;
+    }
+
+    picked.push(...pool.filter(s => s.start >= window.start && s.end <= window.end));
+    pool = pool.filter(s => s.end <= window.start || s.start >= window.end);
+
+    if (pool.length === 0) {
+      break;
+    }
+  }
+
+  return groupIntoBlocks(picked, minBlockMinutes);
 }
 
 export function isWithinBlocks(blocks: Block[], now: Date): boolean {
