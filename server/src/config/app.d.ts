@@ -104,7 +104,6 @@ declare namespace _default {
     const dhw_plan_mode: 'readonly' | 'readwrite' | undefined;
     const dhw_planning_horizon_hours: number;
     const dhw_check_interval_minutes: number;
-    const dhw_no_plan_alert_hours: number;
   }
   export namespace homeconnect {
     const client_id: string;

@@ -349,24 +349,14 @@ async function planDeadlineWindowIfNeeded(device: Device, now: Dayjs, hoursNeede
   const minBlock = config.smartcar.charge_min_block_minutes;
   const slots = await getForwardPriceSlots(now.toDate(), horizon);
 
-  let windowEnd: Date;
-  let blocks: Block[];
-
-  if (slots.length === 0) {
-    // No forward prices: a deadline must never be missed, so charge
-    // continuously from `deadline - hoursNeeded`.
-    windowEnd = deadline.toDate();
-    blocks = [{ start: deadline.subtract(hoursNeeded, 'hour').toDate(), end: deadline.toDate() }];
-  } else {
-    const plan = planDeadlineCharge(slots, hoursNeeded, now.toDate(), deadline.toDate(), minBlock);
-
-    windowEnd = plan.windowEnd;
-    blocks = plan.blocks;
-  }
+  // With no forward prices this yields an empty plan; nothing charges until they
+  // arrive, and the deadline-beats-cost check in runDeadlineMode is the backstop
+  // if the deadline gets close first.
+  const plan = planDeadlineCharge(slots, hoursNeeded, now.toDate(), deadline.toDate(), minBlock);
 
   device.meta.chargeWindow = {
-    windowEnd: windowEnd.toISOString(),
-    chargeBlocks: blocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
+    windowEnd: plan.windowEnd.toISOString(),
+    chargeBlocks: plan.blocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
   } satisfies ChargeWindow;
 
   await device.save();

@@ -4,25 +4,16 @@ import config from '../../config/app';
 import dayjs from '../../dayjs';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
-import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
 import EbusClient from './client';
 import { toPriceSlots, findCheapestWindow, coversWholeWindow, CheapestWindow } from '../../helpers/prices';
 
 // The current Auto plan: a single cheap block, written once and never revised
-// until it rolls over. Also tracks how long we've been unable to plan, so the
-// admin alert fires once rather than on every plan-less tick.
+// until it rolls over.
 let currentPlan: CheapestWindow | null = null;
-let noPlanSince: Date | null = null;
-let noPlanAlertSent = false;
 
 function clearPlan() {
   currentPlan = null;
-}
-
-function clearNoPlanTracking() {
-  noPlanSince = null;
-  noPlanAlertSent = false;
 }
 
 async function getEnergyCostCapability() {
@@ -64,44 +55,28 @@ async function resolveAutoState(heatPump: HeatPumpCapability): Promise<boolean> 
   const events = await energyCost.getUnitRateHistory({ since: now, until });
   const slots = toPriceSlots(events, now, until);
 
+  // No full forward-price window yet - stay off. The octopus service raises the
+  // admin alert if Agile prices are genuinely overdue.
   if (!coversWholeWindow(slots, now, until)) {
-    markNoPlan(now);
     return false;
   }
 
   const blockMinutes = await heatPump.getDHWMaxChargeTime();
 
   if (blockMinutes <= 0) {
-    markNoPlan(now);
     return false;
   }
 
   const window = findCheapestWindow(slots, blockMinutes, now, until);
 
   if (window === null) {
-    markNoPlan(now);
     return false;
   }
 
   currentPlan = window;
-  clearNoPlanTracking();
   logger.info(`DHW: scheduled cheap block ${window.start.toISOString()} - ${window.end.toISOString()} @ ${window.averagePence.toFixed(2)}p/kWh`);
 
   return now >= window.start && now < window.end;
-}
-
-function markNoPlan(now: Date) {
-  if (noPlanSince === null) {
-    noPlanSince = now;
-  }
-
-  if (!noPlanAlertSent && dayjs(now).diff(noPlanSince, 'hour', true) >= config.ebusd.dhw_no_plan_alert_hours) {
-    noPlanAlertSent = true;
-
-    bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: `DHW cannot be scheduled for the next ${config.ebusd.dhw_planning_horizon_hours} hours. Use Boost if you need hot water.`,
-    });
-  }
 }
 
 // The single writer of HwcOpMode. Resolves the desired state in priority order
@@ -128,12 +103,10 @@ async function reconcile(): Promise<void> {
     shouldBeOn = true;
 
     clearPlan();
-    clearNoPlanTracking();
   } else if (mode === 'OFF') {
     shouldBeOn = false;
 
     clearPlan();
-    clearNoPlanTracking();
   } else {
     shouldBeOn = await resolveAutoState(heatPump);
   }

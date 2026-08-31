@@ -3,6 +3,8 @@ import config from '../../config/app';
 import dayjs from '../../dayjs';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
+import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
+import logger from '../../logger';
 import type { Capability } from '../../models/capabilities';
 import { getTariff, getUnitRates, getStandingCharges, getSmartMeterDeviceId, getTelemetry } from './client';
 
@@ -13,6 +15,12 @@ const PROVIDER_ID = 'electricity-meter';
 // the following day), so 24 would truncate the most valuable part. `period_to`
 // is only an upper bound, so over-asking just returns whatever exists.
 const FORWARD_WINDOW_HOURS = 48;
+
+// On Agile, tomorrow's rates publish ~16:00-19:00; well before this hour we
+// should hold prices reaching into tomorrow.
+const FORWARD_PRICES_EXPECTED_BY_HOUR = 21;
+
+let forwardPricesMissingAlertedFor: string | null = null;
 
 Device.registerProvider('octopus', {
   getCapabilities(): Capability[] {
@@ -84,6 +92,40 @@ async function pollRates(device: Device) {
     (since, to) => getStandingCharges(tariffCode, productCode, since, to),
     (standingCharge) => energyCost.setStandingChargeState(standingCharge.value, standingCharge.start)
   );
+
+  await checkForwardPricesAvailable(device);
+}
+
+// On a time-of-use tariff the schedulers can only plan when they hold prices
+// reaching into tomorrow. If those still haven't landed by the evening, alert
+// admins once for the day - the DHW / EV schedulers just sit off meanwhile.
+async function checkForwardPricesAvailable(device: Device) {
+  const productCode = device.meta.productCode as string | undefined;
+
+  if (!productCode?.toUpperCase().includes('AGILE')) {
+    return;
+  }
+
+  const now = dayjs();
+  const today = now.format('YYYY-MM-DD');
+  const latest = await device.getEnergyCostCapability().getUnitRateEvent();
+  const haveTomorrow = latest !== null && dayjs(latest.start).isSameOrAfter(now.add(1, 'day').startOf('day'));
+
+  if (haveTomorrow) {
+    forwardPricesMissingAlertedFor = null;
+    return;
+  }
+
+  if (now.hour() < FORWARD_PRICES_EXPECTED_BY_HOUR || forwardPricesMissingAlertedFor === today) {
+    return;
+  }
+
+  forwardPricesMissingAlertedFor = today;
+  logger.warn('Octopus: no forward Agile prices for tomorrow');
+
+  bus.emit(NOTIFICATION_TO_ADMINS, {
+    message: 'No Agile Octopus prices available yet. Devices relying on forecasting (e.g. DHW and EV) are impacted.',
+  });
 }
 
 // Home Mini telemetry: near-real-time (sub-minute) wattage readings, polled
