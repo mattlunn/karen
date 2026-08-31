@@ -99,7 +99,9 @@ function CostGraph() {
 }
 
 function ScheduleGraph() {
-  const { preset, setPreset, range, setRange, params } = useLocalRange('next24hours');
+  // Server clamps `until` to the end of published prices; start of today gives
+  // useful morning context ahead of it.
+  const { preset, setPreset, range, setRange, params } = useLocalRange('today');
   const { data, isPending, isError } = useEnergyScheduleInsights(params);
 
   return (

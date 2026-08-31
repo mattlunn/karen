@@ -10,8 +10,6 @@ export function getPresetRange(preset: DateRangePreset): DateRange {
   switch (preset) {
     case 'last6hours':
       return { since: now.subtract(6, 'hours'), until: now };
-    case 'next24hours':
-      return { since: now.subtract(6, 'hours'), until: now.add(24, 'hours') };
     case 'today':
       return { since: now.startOf('day'), until: now };
     case 'yesterday':
