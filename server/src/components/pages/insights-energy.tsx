@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Group, Title } from '@mantine/core';
 import { useEnergyCostInsights, useEnergyScheduleInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
 import { DateRangeProvider, DateRangeSelector, getPresetRange } from '../date-range';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
 import PageLoader from '../page-loader';
+import dayjs from '../../dayjs';
 
 const yAxisPower = {
   yPower: {
@@ -27,9 +28,9 @@ const yAxisRate = {
   }
 };
 
-function useLocalRange(defaultPreset: DateRangePreset) {
+function useLocalRange(defaultPreset: DateRangePreset, initialRange?: DateRange) {
   const [preset, setPreset] = useState<DateRangePreset>(defaultPreset);
-  const [range, setRange] = useState<DateRange>(() => getPresetRange(defaultPreset));
+  const [range, setRange] = useState<DateRange>(() => initialRange ?? getPresetRange(defaultPreset));
 
   const params = useMemo(() => ({
     since: range.since.toISOString(),
@@ -99,10 +100,21 @@ function CostGraph() {
 }
 
 function ScheduleGraph() {
-  // Server clamps `until` to the end of published prices; start of today gives
-  // useful morning context ahead of it.
-  const { preset, setPreset, range, setRange, params } = useLocalRange('today');
+  const { preset, setPreset, range, setRange, params } = useLocalRange('custom', {
+    since: dayjs().startOf('day'),
+    until: dayjs().endOf('day'),
+  });
   const { data, isPending, isError } = useEnergyScheduleInsights(params);
+
+  // The server ends the view at the last published price - reflect that in the
+  // Custom range's `until` so the selector matches what's shown.
+  const dataUntil = data?.lines[0]?.data.until;
+
+  useEffect(() => {
+    if (preset === 'custom' && dataUntil && dataUntil !== range.until.toISOString()) {
+      setRange({ since: range.since, until: dayjs(dataUntil) });
+    }
+  }, [dataUntil, preset, range.since, range.until, setRange]);
 
   return (
     <>
