@@ -39,7 +39,7 @@ export type HistoryBarResponse = {
 
 export type HistoryResponse = {
   lines: HistoryLineResponse[];
-  modes?: HistoryModesResponse;
+  modes?: HistoryModesResponse[];
   bars?: HistoryBarResponse[];
 };
 
@@ -73,7 +73,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), selector)
           .then(data => ({ data, label: 'Power' }))
       ]),
-      modes: mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), selector).then(data => ({
+      modes: mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), selector).then(data => [{
         data,
         details: [
           { value: 'HEATING', label: 'Heating' },
@@ -81,7 +81,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
           { value: 'FROST_PROTECTION', label: 'Frost Protection' },
           { value: 'DHW', label: 'Hot Water' }
         ]
-      }))
+      }])
     });
   }],
 
@@ -273,12 +273,12 @@ const historyFetchers = new Map<string, HistoryFetcher>([
           .then(data => ({ data, label: 'Brightness' }))
       ]),
       modes: mapBooleanHistoryToResponse((hs) => light.getIsOnHistory(hs), selector)
-        .then(data => ({
+        .then(data => [{
           data,
           details: [
             { value: true as const, label: 'On', fillColor: 'rgba(255, 165, 0, 0.3)' }
           ]
-        }))
+        }])
     });
   }],
 
@@ -294,12 +294,12 @@ const historyFetchers = new Map<string, HistoryFetcher>([
           .then(data => ({ data, label: 'Charge Limit' }))
       ]),
       modes: mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), selector)
-        .then(data => ({
+        .then(data => [{
           data,
           details: [
             { value: true as const, label: 'Charging', fillColor: 'rgba(46, 204, 113, 0.3)' }
           ]
-        }))
+        }])
     });
   }],
 
@@ -310,12 +310,12 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     return {
       lines: [],
       modes: await mapBooleanHistoryToResponse((hs) => sensor.getIsTriggeredHistory(hs), selector)
-        .then(data => ({
+        .then(data => [{
           data,
           details: [
             { value: true as const, label: 'Triggered', fillColor: 'rgba(231, 76, 60, 0.35)' }
           ]
-        }))
+        }])
     };
   }],
 

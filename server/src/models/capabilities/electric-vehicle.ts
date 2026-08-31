@@ -15,8 +15,6 @@ export class ElectricVehicleCapability extends ElectricVehicleBaseCapability {
       .setManualChargeSchedule(this.device, schedule);
   }
 
-  // The charge blocks the scheduler is currently driving (deadline windows or
-  // BAU opportunistic blocks), for surfacing the planned run windows in the UI.
   getPlannedChargeBlocks(): { start: string; end: string }[] {
     return Device.getProviderCapabilities(this.device.provider)
       .provideElectricVehicleCapability!()

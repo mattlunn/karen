@@ -109,7 +109,7 @@ export default async function (req: Request, res: Response) {
         { value: 'FROST_PROTECTION', label: 'Frost Protection' },
         { value: 'DHW', label: 'Hot Water' }
       ]
-    }),
+    }).then(m => [m]),
     temperatures: asyncMap(thermostats, async (device) => {
       const thermostat = device.getThermostatCapability();
       const [data, isPassive] = await Promise.all([

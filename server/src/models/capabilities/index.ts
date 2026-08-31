@@ -25,6 +25,9 @@ export interface ProviderThermostatCapability extends ProviderThermostatCapabili
 export interface NextChargeSchedule {
   targetPercentage: number;
   targetTime: string;
+  // Start of the first block in the committed charge plan (the plan can be
+  // several discontiguous cheap blocks). Null until deadline mode has planned
+  // a window - i.e. while the deadline is still far off and BAU is charging.
   calculatedStartTime: string | null;
 }
 

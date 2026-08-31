@@ -89,7 +89,7 @@ export function DeviceGraph({
 
   const graphProps: CapabilityGraphProps = {
     lines: data.lines,
-    modes: data.modes ? [data.modes] : undefined,
+    modes: data.modes,
     bars: data.bars,
     zones,
     yAxis: mergedYAxis,

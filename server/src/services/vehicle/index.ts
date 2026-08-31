@@ -24,10 +24,8 @@ interface StoredChargeSchedule extends NextChargeSchedule {
 
 const TRANSITION_GRACE_MINUTES = 10;
 
-// The charge blocks the scheduler is currently driving - deadline windows or
-// BAU opportunistic blocks. Transient module state (single vehicle), read back
-// via the ElectricVehicle capability so the energy-insights graph can shade the
-// planned run windows.
+// Transient (single-vehicle) module state; surfaced via the ElectricVehicle
+// capability's getPlannedChargeBlocks().
 let currentPlannedBlocks: Block[] = [];
 
 export async function synchronize() {

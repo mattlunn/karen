@@ -208,7 +208,7 @@ export type HistoryBarApiResponse = {
 
 export type HistoryApiResponse = {
   lines: HistoryLineApiResponse[];
-  modes?: HistoryModesApiResponse;
+  modes?: HistoryModesApiResponse[];
   bars?: HistoryBarApiResponse[];
 };
 
@@ -367,7 +367,7 @@ export type UserResponse = {
 // /api/insights/heating endpoint
 export interface HeatingInsightsApiResponse {
   lines: (HistoryLineApiResponse & { deviceName: string })[];
-  modes: HistoryModesApiResponse;
+  modes: HistoryModesApiResponse[];
   temperatures: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltas: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltaSwitchOnThreshold: number | null;
