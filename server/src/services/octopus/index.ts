@@ -2,9 +2,11 @@ import { Device } from '../../models';
 import config from '../../config/app';
 import dayjs from '../../dayjs';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import setIntervalForTime from '../../helpers/set-interval-for-time';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
+import { toPriceSlots, coversWholeWindow } from '../../helpers/prices';
 import type { Capability } from '../../models/capabilities';
 import { getTariff, getUnitRates, getStandingCharges, getSmartMeterDeviceId, getTelemetry } from './client';
 
@@ -15,12 +17,6 @@ const PROVIDER_ID = 'electricity-meter';
 // the following day), so 24 would truncate the most valuable part. `period_to`
 // is only an upper bound, so over-asking just returns whatever exists.
 const FORWARD_WINDOW_HOURS = 48;
-
-// On Agile, tomorrow's rates publish ~16:00-19:00; well before this hour we
-// should hold prices reaching into tomorrow.
-const FORWARD_PRICES_EXPECTED_BY_HOUR = 21;
-
-let forwardPricesMissingAlertedFor: string | null = null;
 
 Device.registerProvider('octopus', {
   getCapabilities(): Capability[] {
@@ -92,36 +88,22 @@ async function pollRates(device: Device) {
     (since, to) => getStandingCharges(tariffCode, productCode, since, to),
     (standingCharge) => energyCost.setStandingChargeState(standingCharge.value, standingCharge.start)
   );
-
-  await checkForwardPricesAvailable(device);
 }
 
-// On a time-of-use tariff the schedulers can only plan when they hold prices
-// reaching into tomorrow. If those still haven't landed by the evening, alert
-// admins once for the day - the DHW / EV schedulers just sit off meanwhile.
-async function checkForwardPricesAvailable(device: Device) {
-  const productCode = device.meta.productCode as string | undefined;
+// Checked once each evening: if we don't hold unit rates covering the next 24h
+// (on Agile, tomorrow's publish ~16:00-19:00), the DHW / EV schedulers can't
+// plan and just sit off - so tell admins.
+async function checkForwardPricesAvailable() {
+  const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
+  const now = new Date();
+  const until = dayjs(now).add(24, 'hour').toDate();
+  const events = await device.getEnergyCostCapability().getUnitRateHistory({ since: now, until });
 
-  if (!productCode?.toUpperCase().includes('AGILE')) {
+  if (coversWholeWindow(toPriceSlots(events, now, until), now, until)) {
     return;
   }
 
-  const now = dayjs();
-  const today = now.format('YYYY-MM-DD');
-  const latest = await device.getEnergyCostCapability().getUnitRateEvent();
-  const haveTomorrow = latest !== null && dayjs(latest.start).isSameOrAfter(now.add(1, 'day').startOf('day'));
-
-  if (haveTomorrow) {
-    forwardPricesMissingAlertedFor = null;
-    return;
-  }
-
-  if (now.hour() < FORWARD_PRICES_EXPECTED_BY_HOUR || forwardPricesMissingAlertedFor === today) {
-    return;
-  }
-
-  forwardPricesMissingAlertedFor = today;
-  logger.warn('Octopus: no forward Agile prices for tomorrow');
+  logger.warn('Octopus: no forward prices for the next 24h');
 
   bus.emit(NOTIFICATION_TO_ADMINS, {
     message: 'No Agile Octopus prices available yet. Devices relying on forecasting (e.g. DHW and EV) are impacted.',
@@ -163,3 +145,8 @@ nowAndSetInterval(createBackgroundTransaction('octopus:poll-current-power', asyn
 
   await pollCurrentPower(device);
 }), Math.max(config.octopus.poll_current_power_interval_minutes, 1) * 60 * 1000);
+
+setIntervalForTime(
+  createBackgroundTransaction('octopus:forward-price-check', checkForwardPricesAvailable),
+  `${String(config.octopus.forward_prices_expected_by_hour).padStart(2, '0')}:00`
+);

@@ -119,6 +119,7 @@ declare namespace _default {
     const account_number: string;
     const poll_rates_interval_minutes: number;
     const poll_current_power_interval_minutes: number;
+    const forward_prices_expected_by_hour: number;
     const mpan: string;
     const serial_number: string;
   }
