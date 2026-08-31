@@ -243,7 +243,6 @@ export type DHWHeatingMode = 'OFF' | 'AUTO';
 export interface DHWStatus {
   mode: DHWHeatingMode;
   isBoosting: boolean;
-  schedule: { start: string; end: string; averagePence: number } | null;
 }
 
 // /api/devices endpoint
