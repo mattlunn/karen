@@ -1,5 +1,3 @@
-import { filterClampAndSortHistory } from './history';
-
 export interface PriceSlot {
   start: Date;
   end: Date;
@@ -31,9 +29,11 @@ export interface SlotBlock {
  * half-hours into one longer event, so this re-expands them into individual
  * slots - which is what makes the count-based `selectCheapestSlots` correct.
  *
- * Open events are patched and the series clamped to the window by
- * `filterClampAndSortHistory`; a partial slot at the near edge (shorter than
- * `slotMinutes`) is dropped, so slots naturally realign to the half-hour.
+ * The series is contiguous by construction (Octopus writes forward-dated,
+ * back-to-back rates), so the only open event is the frontier: on a multi-rate
+ * series it is the latest half-hour fetched, worth one slot; a lone open event
+ * is a flat tariff spanning the whole window. A sub-slot partial at either edge
+ * is dropped, so slots stay aligned to the half-hour.
  */
 export function toPriceSlots(
   events: NumericEventLike[],
@@ -42,29 +42,18 @@ export function toPriceSlots(
   slotMinutes = 30
 ): PriceSlot[] {
   const slotMs = slotMinutes * 60 * 1000;
-  const prepared = events
-    .map(e => ({ start: e.start, end: e.end, value: e.value }))
-    .sort((a, b) => a.start.getTime() - b.start.getTime());
-
-  // A trailing open-ended event on a multi-rate (Agile) series is just the
-  // last half-hour fetched so far, not a rate that runs to `until` - cap it at
-  // one slot so no prices are fabricated past the published horizon. A lone
-  // open event is a flat tariff whose rate genuinely spans the whole window,
-  // so leave that for filterClampAndSortHistory to extend.
-  const last = prepared.at(-1);
-
-  if (prepared.length > 1 && last && last.end === null) {
-    last.end = new Date(last.start.getTime() + slotMs);
-  }
-
-  const clamped = filterClampAndSortHistory(prepared, since, until, false);
+  const sorted = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());
   const slots: PriceSlot[] = [];
 
-  for (const event of clamped) {
-    const windowEnd = Math.min(event.end!.getTime(), until.getTime());
-    let cursor = Math.max(event.start.getTime(), since.getTime());
+  for (const event of sorted) {
+    const end = event.end ?? (sorted.length === 1
+      ? until
+      : new Date(event.start.getTime() + slotMs));
 
-    while (cursor + slotMs <= windowEnd) {
+    let cursor = Math.max(event.start.getTime(), since.getTime());
+    const limit = Math.min(end.getTime(), until.getTime());
+
+    while (cursor + slotMs <= limit) {
       slots.push({ start: new Date(cursor), end: new Date(cursor + slotMs), pence: event.value });
       cursor += slotMs;
     }
@@ -189,31 +178,24 @@ export function groupIntoBlocks(slots: PriceSlot[], minBlockMinutes: number): Sl
 }
 
 /**
- * Whether the slot series contiguously covers `[since, until]` - the "do we
- * hold a full forecast for this window yet?" gate. Lenient at the near edge (a
- * sub-slot partial at `since` is unschedulable anyway); strict about the tail.
+ * Whether the unit-rate events reach `until` - the "is the forecast long enough
+ * to plan against?" gate. The series is contiguous by construction, so only the
+ * far end needs checking: the frontier event (latest start) is the newest
+ * published half-hour and stays open until the forecast extends past it. Once it
+ * does, the event straddling `until` is closed, with its end on the slot
+ * boundary at or after `until`.
  */
-export function coversWholeWindow(slots: PriceSlot[], since: Date, until: Date): boolean {
-  if (slots.length === 0) {
+export function haveForecastThrough(events: NumericEventLike[], until: Date): boolean {
+  if (events.length === 0) {
     return false;
   }
 
-  const sorted = [...slots].sort((a, b) => a.start.getTime() - b.start.getTime());
-  const slotMs = sorted[0].end.getTime() - sorted[0].start.getTime();
-
-  if (sorted[0].start.getTime() > since.getTime() + slotMs) {
-    return false;
+  // A lone open event is a flat tariff - one rate that runs indefinitely.
+  if (events.length === 1 && events[0].end === null) {
+    return true;
   }
 
-  let cursor = sorted[0].end.getTime();
+  const frontier = events.reduce((a, b) => (b.start.getTime() > a.start.getTime() ? b : a));
 
-  for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i].start.getTime() > cursor) {
-      break;
-    }
-
-    cursor = Math.max(cursor, sorted[i].end.getTime());
-  }
-
-  return cursor >= until.getTime();
+  return frontier.end !== null && frontier.end.getTime() >= until.getTime();
 }

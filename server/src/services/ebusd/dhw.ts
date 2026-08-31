@@ -6,7 +6,7 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import logger from '../../logger';
 import EbusClient from './client';
-import { toPriceSlots, findCheapestWindow, coversWholeWindow, CheapestWindow } from '../../helpers/prices';
+import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow } from '../../helpers/prices';
 
 // The current Auto plan: a single cheap block, written once and never revised
 // until it rolls over.
@@ -53,11 +53,10 @@ async function resolveAutoState(heatPump: HeatPumpCapability): Promise<boolean> 
 
   const energyCost = await getEnergyCostCapability();
   const events = await energyCost.getUnitRateHistory({ since: now, until });
-  const slots = toPriceSlots(events, now, until);
 
   // No full forward-price window yet - stay off. The octopus service raises the
   // admin alert if Agile prices are genuinely overdue.
-  if (!coversWholeWindow(slots, now, until)) {
+  if (!haveForecastThrough(events, until)) {
     return false;
   }
 
@@ -67,7 +66,7 @@ async function resolveAutoState(heatPump: HeatPumpCapability): Promise<boolean> 
     return false;
   }
 
-  const window = findCheapestWindow(slots, blockMinutes, now, until);
+  const window = findCheapestWindow(toPriceSlots(events, now, until), blockMinutes, now, until);
 
   if (window === null) {
     return false;
