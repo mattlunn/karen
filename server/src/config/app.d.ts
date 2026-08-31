@@ -104,11 +104,9 @@ declare namespace _default {
     // 'readonly' runs the DHW scheduler without writing to the physical heat
     // pump; absent/anything else = 'readwrite'.
     const plan_mode: 'readonly' | 'readwrite' | undefined;
-    export namespace dhw {
-      const planning_horizon_hours: number;
-      const check_interval_minutes: number;
-      const no_plan_alert_hours: number;
-    }
+    const dhw_planning_horizon_hours: number;
+    const dhw_check_interval_minutes: number;
+    const dhw_no_plan_alert_hours: number;
   }
   export namespace homeconnect {
     const client_id: string;
@@ -148,11 +146,10 @@ declare namespace _default {
       anchor_date: string;
       interval_weeks: number;
     }[];
-    export namespace price_aware_charging {
-      const baseline_days: number;
-      const min_charge_block_minutes: number;
-      const planning_horizon_hours: number;
-    }
+    // Trailing days of unit rates whose median defines "cheap" for BAU charging.
+    const charge_median_rate_days: number;
+    const charge_min_block_minutes: number;
+    const charge_planning_horizon_hours: number;
   }
   const bins: {
     overrides: {

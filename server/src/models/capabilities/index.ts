@@ -17,7 +17,6 @@ export interface DHWPlannedWindow {
   averagePence: number;
 }
 
-// setDHWMode / setDHWBoost come from the generated base (writeable properties).
 export interface ProviderHeatPumpCapability extends ProviderHeatPumpCapabilityBase {
   getPlannedDHWWindow(device: Device): DHWPlannedWindow | null;
 }

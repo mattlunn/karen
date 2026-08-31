@@ -242,7 +242,7 @@ async function getBaselinePence(now: Date): Promise<number | null> {
     return null;
   }
 
-  const since = dayjs(now).subtract(config.smartcar.price_aware_charging.baseline_days, 'day').toDate();
+  const since = dayjs(now).subtract(config.smartcar.charge_median_rate_days, 'day').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until: now });
 
   return medianPence(toPriceSlots(events, since, now));
@@ -339,8 +339,8 @@ async function planDeadlineWindowIfNeeded(device: Device, now: Dayjs, hoursNeede
     return;
   }
 
-  const horizon = config.smartcar.price_aware_charging.planning_horizon_hours;
-  const minBlock = config.smartcar.price_aware_charging.min_charge_block_minutes;
+  const horizon = config.smartcar.charge_planning_horizon_hours;
+  const minBlock = config.smartcar.charge_min_block_minutes;
   const slots = await getForwardPriceSlots(now.toDate(), horizon);
 
   let windowEnd: Date;
@@ -422,8 +422,8 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
     return;
   }
 
-  const horizon = config.smartcar.price_aware_charging.planning_horizon_hours;
-  const minBlock = config.smartcar.price_aware_charging.min_charge_block_minutes;
+  const horizon = config.smartcar.charge_planning_horizon_hours;
+  const minBlock = config.smartcar.charge_min_block_minutes;
   const slots = await getForwardPriceSlots(now.toDate(), horizon);
 
   let blocks: Block[];
@@ -454,7 +454,7 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
   if (stored) {
     const bufferHours = config.smartcar.charge_start_buffer_hours ?? 0;
     const hoursNeeded = computeHoursNeeded(stored.targetPercentage - await ev.getChargePercentage()) + bufferHours;
-    const engageWithinHours = hoursNeeded + config.smartcar.price_aware_charging.planning_horizon_hours;
+    const engageWithinHours = hoursNeeded + config.smartcar.charge_planning_horizon_hours;
 
     if (dayjs(stored.targetTime).diff(now, 'hour', true) <= engageWithinHours) {
       await runDeadlineMode(device, ev, now, stored, hoursNeeded);

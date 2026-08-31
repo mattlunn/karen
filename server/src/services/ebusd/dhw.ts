@@ -57,7 +57,7 @@ async function resolveAutoState(heatPump: HeatPumpCapability): Promise<boolean> 
     clearPlan();
   }
 
-  const horizonHours = config.ebusd.dhw.planning_horizon_hours;
+  const horizonHours = config.ebusd.dhw_planning_horizon_hours;
   const until = dayjs(now).add(horizonHours, 'hour').toDate();
 
   const energyCost = await getEnergyCostCapability();
@@ -95,11 +95,11 @@ function markNoPlan(now: Date) {
     noPlanSince = now;
   }
 
-  if (!noPlanAlertSent && dayjs(now).diff(noPlanSince, 'hour', true) >= config.ebusd.dhw.no_plan_alert_hours) {
+  if (!noPlanAlertSent && dayjs(now).diff(noPlanSince, 'hour', true) >= config.ebusd.dhw_no_plan_alert_hours) {
     noPlanAlertSent = true;
 
     bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: `DHW cannot be scheduled for the next ${config.ebusd.dhw.planning_horizon_hours} hours. Use Boost if you need hot water.`,
+      message: `DHW cannot be scheduled for the next ${config.ebusd.dhw_planning_horizon_hours} hours. Use Boost if you need hot water.`,
     });
   }
 }
@@ -182,5 +182,5 @@ export async function setDHWBoost(on: boolean): Promise<void> {
 
 nowAndSetInterval(
   createBackgroundTransaction('ebusd:dhw', reconcile),
-  Math.max(config.ebusd.dhw.check_interval_minutes, 1) * 60 * 1000
+  Math.max(config.ebusd.dhw_check_interval_minutes, 1) * 60 * 1000
 );
