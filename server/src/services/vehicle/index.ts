@@ -6,7 +6,7 @@ import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';
 import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
-import { pickNextChargeSchedule, buildScheduleNotification } from './schedule';
+import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
 import { planDeadlineCharge, planOpportunisticCharge, isWithinBlocks, Block } from './price-plan';
 import { toPriceSlots, medianPence } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
@@ -26,7 +26,9 @@ function getChargeWindow(device: Device): ChargeWindow | undefined {
   return device.meta.chargeWindow as ChargeWindow | undefined;
 }
 
-const TRANSITION_GRACE_MINUTES = 10;
+// A deadline block is active and we've commanded charging, but the car still
+// isn't charging after this long - raise one alert (cable / car-asleep).
+const NOT_CHARGING_ALERT_MINUTES = 15;
 
 // Transient (single-vehicle) module state; surfaced via the ElectricVehicle
 // capability's getPlannedChargeBlocks().
@@ -62,10 +64,11 @@ export async function synchronize() {
       }
     }
 
-    // We can't get the charge limit from SmartCar, so just one time force to 100
-    // so we are in-sync with what's set.
-    if (await ev.getChargeLimitEvent() === null) {
-      await client.setChargeLimit(100);
+    // The scheduler owns start/stop; the car's own limit is pinned at 100 so a
+    // start command always takes effect (and if Karen is down it charges to
+    // full rather than being stuck at a stale lower limit).
+    if ((await ev.getChargeLimitEvent())?.value !== 100) {
+      await ev.setChargeLimit(100);
     }
 
     await device.getConnectivityCapability().setIsConnectedState(true);
@@ -132,19 +135,18 @@ Device.registerProvider('vehicle', {
   synchronize,
 });
 
-async function clearNextChargeIfExpired(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
+async function clearNextChargeIfExpired(device: Device, now: Dayjs) {
   const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
 
   if (!stored || !now.isAfter(dayjs(stored.targetTime))) {
     return;
   }
 
-  logger.info('Charge schedule target time passed, resetting charge limit');
+  logger.info('Charge schedule target time passed');
 
   device.meta.chargeSchedule = undefined;
   device.meta.chargeWindow = undefined;
 
-  await applyChargeLimit(ev, config.smartcar.default_charge_limit);
   await device.save();
 }
 
@@ -165,62 +167,14 @@ async function chooseNextCharge(device: Device, now: Dayjs) {
   } satisfies ChargeSchedule;
 }
 
-// Gated on the live charge limit so the SmartCar API and the notification
-// fire exactly once per occurrence — re-firing only happens if the limit
-// is reset (e.g. the next occurrence rolls in).
-async function startChargingAndNotifyUsers(device: Device, ev: ElectricVehicleCapability, now: Dayjs, blocks: Block[]) {
-  const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
-
-  if (!stored || blocks.length === 0) {
-    return;
-  }
-
-  const startTime = dayjs(blocks[0].start);
-
-  if (now.isBefore(startTime)) {
-    return;
-  }
-
-  if (await ev.getChargeLimit() === stored.targetPercentage) {
-    return;
-  }
-
-  if (isReadOnly()) {
-    return;
-  }
-
-  const targetTime = dayjs(stored.targetTime);
-
-  logger.info(`Starting charge to reach ${stored.targetPercentage}% by ${targetTime.format('HH:mm')}`);
-
-  await ev.setChargeLimit(stored.targetPercentage);
-
-  const isCableConnected = await ev.getIsCableConnected();
-
-  if (isCableConnected) {
-    await ev.setIsCharging(true);
-
-    bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: buildScheduleNotification(stored.targetPercentage, startTime, targetTime, true),
-    });
-  } else {
-    logger.warn('Charge schedule: cable not connected, cannot start charging');
-
-    bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: buildScheduleNotification(stored.targetPercentage, startTime, targetTime, false),
-    });
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Price-aware charging
 // ---------------------------------------------------------------------------
 
-// Verification state for the last commanded start/stop transition.
-let commandedCharging: boolean | null = null;
-let commandedAt: Dayjs | null = null;
-let transitionRetried = false;
-let transitionIssueNotified = false;
+// A deadline block wants charging but the car isn't - since when, and have we
+// alerted for it. Reset once it charges (or leaves the block).
+let deadlineNotChargingSince: Dayjs | null = null;
+let deadlineAlertSent = false;
 
 async function getEnergyCostCapability() {
   const devices = await Device.findByCapability('ENERGY_COST');
@@ -267,72 +221,44 @@ function computeHoursNeeded(percentageNeeded: number): number {
   return Math.max(0, percentageNeeded) / chargeRatePercentPerHour;
 }
 
-// Applies the desired charging state for `now` and verifies it took effect.
-// startCharge / stopCharge are only observable via the charge-ischarging
-// webhook, so each transition is commanded once, retried once after a grace
-// period, then escalated to an admin alert.
-// charge_plan_mode=readonly (non-prod against the shared physical car): the schedulers
-// still plan and populate the UI / insights, they just don't command the car.
+// charge_plan_mode=readonly: a non-prod instance against the shared physical car
+// still plans and populates the UI / insights, it just doesn't command the car.
 function isReadOnly(): boolean {
   return config.smartcar.charge_plan_mode === 'readonly';
 }
 
-async function applyChargeLimit(ev: ElectricVehicleCapability, limit: number) {
-  if (isReadOnly()) {
-    logger.info(`Price-aware charging: [readonly] would set charge limit ${limit}%`);
-    return;
-  }
-
-  await ev.setChargeLimit(limit);
-}
-
-async function applyChargeBlocks(ev: ElectricVehicleCapability, now: Dayjs, blocks: Block[]) {
-  const desired = isWithinBlocks(blocks, now.toDate());
+// The scheduler owns start/stop; the car's own limit is pinned at 100 (see
+// synchronize), so a start command always takes effect and this is just:
+// charge while inside a block and below target, otherwise stop. Re-issued each
+// tick until the charge-ischarging webhook confirms it stuck. `deadline` is
+// passed only in deadline mode, to alert if a due charge never actually starts.
+async function applyChargeBlocks(ev: ElectricVehicleCapability, now: Dayjs, blocks: Block[], targetPercentage: number, deadline?: Dayjs) {
+  const [chargePercentage, isCharging] = await Promise.all([ev.getChargePercentage(), ev.getIsCharging()]);
+  const desired = isWithinBlocks(blocks, now.toDate()) && chargePercentage < targetPercentage;
 
   if (isReadOnly()) {
     logger.info(`Price-aware charging: [readonly] would set isCharging=${desired}`);
     return;
   }
 
-  const actual = await ev.getIsCharging();
-
-  if (desired === actual) {
-    commandedCharging = null;
-    commandedAt = null;
-    transitionRetried = false;
-    transitionIssueNotified = false;
-    return;
-  }
-
-  if (commandedCharging !== desired) {
-    logger.info(`Price-aware charging: commanding isCharging=${desired}`);
-
+  if (desired !== isCharging) {
+    logger.info(`Price-aware charging: setting isCharging=${desired}`);
     await ev.setIsCharging(desired);
-    commandedCharging = desired;
-    commandedAt = now;
-    transitionRetried = false;
-    transitionIssueNotified = false;
+  }
+
+  if (deadline === undefined || !(desired && !isCharging)) {
+    deadlineNotChargingSince = null;
+    deadlineAlertSent = false;
     return;
   }
 
-  if (commandedAt === null || now.diff(commandedAt, 'minute') < TRANSITION_GRACE_MINUTES) {
-    return;
-  }
+  deadlineNotChargingSince ??= now;
 
-  if (!transitionRetried) {
-    logger.warn(`Price-aware charging: isCharging=${actual} still disagrees with commanded ${desired}; retrying`);
-
-    await ev.setIsCharging(desired);
-    transitionRetried = true;
-    commandedAt = now;
-    return;
-  }
-
-  if (!transitionIssueNotified) {
-    transitionIssueNotified = true;
+  if (!deadlineAlertSent && now.diff(deadlineNotChargingSince, 'minute') >= NOT_CHARGING_ALERT_MINUTES) {
+    deadlineAlertSent = true;
 
     bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: `Car charging did not ${desired ? 'start' : 'stop'} as commanded. Check the cable is fully plugged in and the Kia app.`,
+      message: buildChargingFailureNotification(targetPercentage, deadline),
       priority: 1,
     });
   }
@@ -374,35 +300,25 @@ async function runDeadlineMode(device: Device, ev: ElectricVehicleCapability, no
   // while there was slack is still overridden if charging underdelivers.
   if (deadline.diff(now, 'hour', true) <= hoursNeeded) {
     blocks = [{ start: now.toDate(), end: deadline.toDate() }];
-
-    if (await ev.getChargeLimit() !== stored.targetPercentage) {
-      await applyChargeLimit(ev, stored.targetPercentage);
-    }
   }
 
   currentPlannedBlocks = blocks;
 
-  await startChargingAndNotifyUsers(device, ev, now, blocks);
-  await applyChargeBlocks(ev, now, blocks);
+  await applyChargeBlocks(ev, now, blocks, stored.targetPercentage, deadline);
 }
 
 async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
-  const [isCableConnected, chargePercentage, chargeLimitEvent] = await Promise.all([
+  const [isCableConnected, chargePercentage] = await Promise.all([
     ev.getIsCableConnected(),
     ev.getChargePercentage(),
-    ev.getChargeLimitEvent(),
   ]);
 
   const defaultLimit = config.smartcar.default_charge_limit;
 
   if (!isCableConnected || chargePercentage >= defaultLimit) {
     currentPlannedBlocks = [];
-    await applyChargeBlocks(ev, now, []);
+    await applyChargeBlocks(ev, now, [], defaultLimit);
     return;
-  }
-
-  if ((chargeLimitEvent?.value ?? null) !== defaultLimit) {
-    await applyChargeLimit(ev, defaultLimit);
   }
 
   const baseline = await getBaselinePence(now.toDate());
@@ -412,7 +328,7 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
     const fallback: Block[] = [{ start: now.toDate(), end: now.add(1, 'day').toDate() }];
 
     currentPlannedBlocks = fallback;
-    await applyChargeBlocks(ev, now, fallback);
+    await applyChargeBlocks(ev, now, fallback, defaultLimit);
     return;
   }
 
@@ -434,7 +350,7 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
   }
 
   currentPlannedBlocks = blocks;
-  await applyChargeBlocks(ev, now, blocks);
+  await applyChargeBlocks(ev, now, blocks, defaultLimit);
 }
 
 // BAU is the default. A recurring charge schedule is nearly always set (just
@@ -474,7 +390,7 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async (
   const ev = device.getElectricVehicleCapability();
   const now = dayjs();
 
-  await clearNextChargeIfExpired(device, ev, now);
+  await clearNextChargeIfExpired(device, now);
   await chooseNextCharge(device, now);
   await runPriceAwareCharging(device, ev, now);
 }), 5 * 60 * 1000);
