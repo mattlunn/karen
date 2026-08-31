@@ -185,7 +185,6 @@ export type HistoryLineApiResponse = {
   yAxisID?: string;
   borderDash?: number[];
   period?: 'day' | 'month';
-  role?: 'residual';
 };
 
 export type HistoryModeDetailApiResponse = {
@@ -367,14 +366,19 @@ export interface HeatingInsightsApiResponse {
   heatPump: { id: number; name: string };
 }
 
-// /api/insights/energy/usage and /api/insights/energy/cost endpoints. `series`
-// stacks LIGHT-capable devices summed into one "Lights" entry, then one entry
-// per remaining metered device, all bucket-aligned so they can be stacked -
-// followed by a final "Other" entry folding in the unmetered remainder (the
-// whole-house Electricity Meter's total minus everything else, floored at
-// zero), since the meter already includes everything the other entries do.
-export type EnergyInsightsSeriesApiResponse = {
+// /api/insights/energy/usage endpoint - one non-stacked instantaneous-power
+// line per ENERGY_MONITOR device (the whole-house meter included as-is).
+export type EnergyUsageInsightsApiResponse = {
   series: HistoryLineApiResponse[];
+};
+
+// /api/insights/energy/cost endpoint - per-day cost of each sub-metered device
+// (all LIGHT-capable devices summed into one "Lights" entry) as a stacked bar
+// breakdown, plus the whole-house meter's own daily total as a separate overlay
+// line. The gap between the stack and the line is the unmetered remainder.
+export type EnergyCostInsightsApiResponse = {
+  series: HistoryLineApiResponse[];
+  total: HistoryLineApiResponse | null;
 };
 
 // /api/insights/security endpoint

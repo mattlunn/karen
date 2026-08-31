@@ -13,9 +13,7 @@ import {
   TimeScale,
   Colors,
   Filler,
-  ChartDataset,
-  Plugin,
-  Point
+  ChartDataset
 } from 'chart.js';
 import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
@@ -38,58 +36,6 @@ export function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'da
 
 export type TimeUnit = 'minute' | 'hour' | 'day' | 'month';
 
-// Marks a bar or area segment as a computed residual/catch-all (e.g. "Other" =
-// a total minus everything else that's individually metered) rather than a
-// real named entity, so it reads as different in kind rather than just
-// another color.
-const HATCH_COLOR = '#757575';
-
-function createDiagonalHatchPattern(color: string): CanvasPattern {
-  const size = 8;
-  const tile = document.createElement('canvas');
-
-  tile.width = size;
-  tile.height = size;
-
-  const ctx = tile.getContext('2d')!;
-
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-
-  // Three parallel diagonal strokes, offset by a tile-width either side, so the
-  // hatch lines stay continuous across tile boundaries once repeated.
-  for (const offset of [-size, 0, size]) {
-    ctx.beginPath();
-    ctx.moveTo(offset, size);
-    ctx.lineTo(offset + size, 0);
-    ctx.stroke();
-  }
-
-  return ctx.createPattern(tile, 'repeat')!;
-}
-
-// The `colors` plugin below is registered with forceOverride, so it
-// unconditionally overwrites any color already set on a dataset - including
-// this pattern - during its own `beforeLayout` hook. `afterLayout` runs after
-// every plugin's `beforeLayout` (so after `colors` has clobbered it) but
-// before Chart.js resolves each dataset's final style and before the legend
-// rebuilds its labels on `afterUpdate` - so re-applying the pattern here is
-// what makes it stick on the bar/area fill and the legend swatch alike.
-const hatchedPlugin: Plugin<'line', { datasetIndexes: number[] }> = {
-  id: 'hatched',
-  defaults: {
-    datasetIndexes: []
-  },
-  afterLayout(chart, _args, options) {
-    for (const index of options.datasetIndexes) {
-      const dataset = chart.data.datasets[index];
-
-      dataset.backgroundColor = createDiagonalHatchPattern(HATCH_COLOR);
-      dataset.borderColor = HATCH_COLOR;
-    }
-  }
-};
-
 ChartJS.register(
   LinearScale,
   CategoryScale,
@@ -103,8 +49,7 @@ ChartJS.register(
   TimeScale,
   Colors,
   Filler,
-  AnnotationPlugin,
-  hatchedPlugin
+  AnnotationPlugin
 );
 
 function mapNumericDataToDataset(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse | BooleanEventApiResponse | EnumEventApiResponse>) {
@@ -156,18 +101,14 @@ export type CapabilityGraphProps = {
     label: string,
     yAxisID?: string,
     borderDash?: number[],
-    period?: 'day' | 'month',
-    fill?: boolean | string,
-    stack?: string,
-    role?: 'residual'
+    period?: 'day' | 'month'
   }[]
 
   bars?: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
     yAxisID?: string,
-    period?: 'day' | 'month',
-    role?: 'residual'
+    period?: 'day' | 'month'
   }[]
 
   stacked?: boolean
@@ -238,26 +179,13 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   const { min, max } = minMax;
   const modesOnly = props.lines.length === 0 && !props.bars?.length;
 
-  // Indexes into `datasets` (built up below, alongside `datasets` itself) that
-  // should render with the diagonal hatch pattern rather than a solid color.
-  const hatchedIndexes: number[] = [];
-
-  props.lines.forEach((line, i) => {
-    if (line.role === 'residual') {
-      hatchedIndexes.push(i);
-    }
-  });
-
   const datasets: (ChartDataset<"line", { x: string; y: number; }[]> | ChartDataset<"bar", { x: string; y: number; }[]>)[] = props.lines.map(x => ({
     type: 'line',
     data: x.period ? mapNumericDataToAggregateDataset(x.data, x.period) : mapNumericDataToDataset(x.data),
     label: x.label,
     yAxisID: x.yAxisID || 'y',
     ...(x.period ? { tension: 0.3 } : {}),
-    ...(x.borderDash ? { borderDash: x.borderDash } : {}),
-    ...(x.fill !== undefined ? { fill: x.fill, pointRadius: 0 } : {}),
-    ...(x.stack !== undefined ? { stack: x.stack } : {}),
-    ...(x.role === 'residual' ? { borderWidth: 0 } : {})
+    ...(x.borderDash ? { borderDash: x.borderDash } : {})
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
@@ -333,22 +261,16 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
   if (props.bars) {
     for (const bar of props.bars) {
-      if (bar.role === 'residual') {
-        hatchedIndexes.push(datasets.length);
-      }
-
       datasets.push({
         type: 'bar',
         data: mapNumericDataToAggregateDataset(bar.data, bar.period),
         label: bar.label,
         yAxisID: bar.yAxisID || 'y',
-        borderWidth: bar.role === 'residual' ? 0 : 1,
+        borderWidth: 1,
         ...(props.stacked ? { stack: 'stack' } : {})
       });
     }
   }
-
-  chartOptions.plugins.hatched = { datasetIndexes: hatchedIndexes };
 
   if (props.modes) {
     const sortedEvents = filterClampAndSortHistory(props.modes.data.history, props.modes.data.since, props.modes.data.until, true);

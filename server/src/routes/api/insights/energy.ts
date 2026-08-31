@@ -1,102 +1,12 @@
 import { Device } from '../../../models';
 import { Request, Response } from 'express';
-import { EnergyInsightsSeriesApiResponse, HistoryDetailsApiResponse, HistoryLineApiResponse, NumericEventApiResponse } from '../../../api/types';
+import { EnergyCostInsightsApiResponse, EnergyUsageInsightsApiResponse, HistoryDetailsApiResponse, HistoryLineApiResponse, NumericEventApiResponse } from '../../../api/types';
 import { mapNumericHistoryToResponse } from '../history-helpers';
 import { asyncMap } from '../../../helpers/array';
 import { filterClampAndSortHistory } from '../../../helpers/history';
 import dayjs from '../../../dayjs';
 
 type NumericHistory = HistoryDetailsApiResponse<NumericEventApiResponse>;
-
-// Chart.js stacks datasets by point index, so stacked series must all be sampled
-// at the same x values. Each device reports on its own schedule, so re-slice
-// every series onto one shared set of `boundaries`, each slice taking the value
-// of whichever event covers it (0 where the device has no reading).
-function alignToBuckets(histories: NumericHistory[], boundaries: number[]): NumericHistory[] {
-  return histories.map((history) => {
-    const events = filterClampAndSortHistory(history.history, history.since, history.until, true);
-    const aligned: NumericEventApiResponse[] = [];
-    let cursor = 0;
-
-    for (let i = 0; i < boundaries.length - 1; i++) {
-      const start = boundaries[i];
-      const end = boundaries[i + 1];
-
-      while (cursor < events.length && Date.parse(events[cursor].end ?? history.until) <= start) {
-        cursor++;
-      }
-
-      const covering = events[cursor];
-
-      aligned.push({
-        start: new Date(start).toISOString(),
-        end: new Date(end).toISOString(),
-        lastReported: new Date(end).toISOString(),
-        value: covering !== undefined && Date.parse(covering.start) < end ? covering.value : 0
-      });
-    }
-
-    return { since: history.since, until: history.until, history: aligned };
-  });
-}
-
-// ~250 evenly-spaced buckets across the range, rounded to whole minutes.
-function fixedBoundaries(since: Date, until: Date): number[] {
-  const step = Math.max(60_000, Math.ceil((until.getTime() - since.getTime()) / 250 / 60_000) * 60_000);
-  const boundaries: number[] = [];
-
-  for (let t = since.getTime(); t < until.getTime(); t += step) {
-    boundaries.push(t);
-  }
-
-  boundaries.push(until.getTime());
-
-  return boundaries;
-}
-
-// One bucket per calendar day (Europe/London), matching how DayCost events are keyed.
-function dailyBoundaries(since: Date, until: Date): number[] {
-  const boundaries: number[] = [];
-
-  for (let day = dayjs(since).startOf('day'); day.valueOf() < until.getTime(); day = day.add(1, 'day')) {
-    boundaries.push(day.valueOf());
-  }
-
-  boundaries.push(dayjs(boundaries[boundaries.length - 1] ?? since).add(1, 'day').valueOf());
-
-  return boundaries;
-}
-
-// Sums bucket-aligned histories element-wise into a single series.
-function sumAlignedHistories(histories: NumericHistory[]): NumericHistory {
-  const [first, ...rest] = histories;
-
-  return {
-    since: first.since,
-    until: first.until,
-    history: first.history.map((event, i) => ({
-      ...event,
-      value: rest.reduce((sum, other) => sum + other.history[i].value, event.value)
-    }))
-  };
-}
-
-// Splits the monitored devices' aligned histories into a single summed "Lights"
-// series (every LIGHT-capable device) plus one series per remaining device.
-function groupLights(devices: Device[], aligned: NumericHistory[]): HistoryLineApiResponse[] {
-  const lights: NumericHistory[] = [];
-  const rest: HistoryLineApiResponse[] = [];
-
-  devices.forEach((device, i) => {
-    if (device.getCapabilities().includes('LIGHT')) {
-      lights.push(aligned[i]);
-    } else {
-      rest.push({ data: aligned[i], label: device.name });
-    }
-  });
-
-  return lights.length > 0 ? [{ data: sumAlignedHistories(lights), label: 'Lights' }, ...rest] : rest;
-}
 
 // The one ENERGY_MONITOR device that also reports ENERGY_COST is the whole-house
 // smart meter; every other is an individually-metered load beneath it.
@@ -107,36 +17,48 @@ async function splitMeterFromMonitored() {
   return { meter, monitored: devices.filter((device) => device !== meter) };
 }
 
-// Fetches each monitored device's history, groups lights, then appends a final
-// "Other" entry - the meter's total minus everything else, floored at zero -
-// so the whole stack sums to what the meter actually reads.
-async function buildSeriesWithOther(
-  monitored: Device[],
-  meter: Device | null,
-  boundaries: number[],
-  fetchHistory: (device: Device) => Promise<NumericHistory>
-): Promise<HistoryLineApiResponse[]> {
-  const histories = await asyncMap(monitored, fetchHistory);
-  const series = groupLights(monitored, alignToBuckets(histories, boundaries));
+// DayCost events are keyed to Europe/London midnight, but setNumericProperty
+// collapses a run of equal-cost days into a single spanning event. Expand back
+// to one { day-start ISO -> cost } entry per calendar day the event covers.
+function bucketCostByDay(history: NumericHistory): Map<string, number> {
+  const events = filterClampAndSortHistory(history.history, history.since, history.until, true);
+  const byDay = new Map<string, number>();
 
-  if (meter !== null) {
-    const [meterAligned] = alignToBuckets([await fetchHistory(meter)], boundaries);
+  for (const event of events) {
+    const end = Date.parse(event.end ?? history.until);
 
-    series.push({
-      data: {
-        since: meterAligned.since,
-        until: meterAligned.until,
-        history: meterAligned.history.map((event, i) => ({
-          ...event,
-          value: Math.max(0, event.value - series.reduce((sum, other) => sum + other.data.history[i].value, 0))
-        }))
-      },
-      label: 'Other',
-      role: 'residual'
-    });
+    for (let day = dayjs(event.start).startOf('day'); day.valueOf() < end; day = day.add(1, 'day')) {
+      byDay.set(day.toISOString(), event.value);
+    }
   }
 
-  return series;
+  return byDay;
+}
+
+// Every calendar-day start (ISO) in the range. Each series carries a value for
+// every one of these - 0 where a device had no reading - so the stacked bars
+// line up on x and share a uniform width.
+function daysInRange(since: Date, until: Date): string[] {
+  const days: string[] = [];
+
+  for (let day = dayjs(since).startOf('day'); day.valueOf() < until.getTime(); day = day.add(1, 'day')) {
+    days.push(day.toISOString());
+  }
+
+  return days;
+}
+
+// Adds several { day -> value } maps together, day by day.
+function mergeSum(maps: Map<string, number>[]): Map<string, number> {
+  const merged = new Map<string, number>();
+
+  for (const map of maps) {
+    for (const [day, value] of map) {
+      merged.set(day, (merged.get(day) ?? 0) + value);
+    }
+  }
+
+  return merged;
 }
 
 export async function usageHandler(req: Request, res: Response) {
@@ -145,13 +67,14 @@ export async function usageHandler(req: Request, res: Response) {
     until: new Date(req.query.until as string)
   };
 
-  const { meter, monitored } = await splitMeterFromMonitored();
-  const boundaries = fixedBoundaries(selector.since, selector.until);
-  const series = await buildSeriesWithOther(monitored, meter, boundaries, (device) =>
-    mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getCurrentPowerHistory(hs), selector)
-  );
+  const devices = await Device.findByCapability('ENERGY_MONITOR');
 
-  res.json({ series } satisfies EnergyInsightsSeriesApiResponse);
+  const series = await asyncMap(devices, async (device) => ({
+    data: await mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getCurrentPowerHistory(hs), selector),
+    label: device.name
+  }));
+
+  res.json({ series } satisfies EnergyUsageInsightsApiResponse);
 }
 
 export async function costHandler(req: Request, res: Response) {
@@ -161,10 +84,44 @@ export async function costHandler(req: Request, res: Response) {
   };
 
   const { meter, monitored } = await splitMeterFromMonitored();
-  const boundaries = dailyBoundaries(selector.since, selector.until);
-  const series = await buildSeriesWithOther(monitored, meter, boundaries, (device) =>
-    mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100)
-  );
+  const days = daysInRange(selector.since, selector.until);
+  const since = selector.since.toISOString();
+  const until = selector.until.toISOString();
 
-  res.json({ series } satisfies EnergyInsightsSeriesApiResponse);
+  const toSeries = (label: string, byDay: Map<string, number>): HistoryLineApiResponse => ({
+    label,
+    data: {
+      since,
+      until,
+      history: days.map((day) => {
+        const end = dayjs(day).add(1, 'day').toISOString();
+        return { start: day, end, lastReported: end, value: byDay.get(day) ?? 0 };
+      })
+    }
+  });
+
+  const costByDay = (device: Device) =>
+    mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100)
+      .then(bucketCostByDay);
+
+  const buckets = await asyncMap(monitored, costByDay);
+
+  const lights: Map<string, number>[] = [];
+  const series: HistoryLineApiResponse[] = [];
+
+  monitored.forEach((device, i) => {
+    if (device.getCapabilities().includes('LIGHT')) {
+      lights.push(buckets[i]);
+    } else {
+      series.push(toSeries(device.name, buckets[i]));
+    }
+  });
+
+  if (lights.length > 0) {
+    series.unshift(toSeries('Lights', mergeSum(lights)));
+  }
+
+  const total = meter === null ? null : toSeries('Total', await costByDay(meter));
+
+  res.json({ series, total } satisfies EnergyCostInsightsApiResponse);
 }
