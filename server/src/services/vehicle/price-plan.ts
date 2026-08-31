@@ -98,8 +98,6 @@ export function planOpportunisticCharge(
   }
 
   const slotsNeeded = Math.ceil((hoursNeeded * 60) / slotMinutesOf(cheap));
-  // Bounded by `cheap` itself rather than `now`: selectCheapestSlots wants
-  // `start >= notBefore`, which would drop the slot already in progress.
   const picked = selectCheapestSlots(cheap, slotsNeeded, cheap[0].start, cheap.at(-1)!.end);
 
   return groupIntoBlocks(picked, minBlockMinutes);
