@@ -14,12 +14,16 @@ import logger from '../../logger';
 import nowAndSetIntervalForTime from '../../helpers/now-and-set-interval-for-time';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 
-// Persisted on device.meta.chargeSchedule. The three public fields feed the
-// existing UI (via getNextChargeSchedule); windowEnd / chargeBlocks are the
-// committed deadline-charge plan the scheduler reads back each tick.
-interface StoredChargeSchedule extends NextChargeSchedule {
-  windowEnd?: string;
-  chargeBlocks?: { start: string; end: string }[];
+// The committed deadline-charge plan, persisted on device.meta.chargeWindow
+// (separately from device.meta.chargeSchedule, which is just the target). Read
+// back each tick and not re-planned until `now` passes windowEnd.
+interface ChargeWindow {
+  windowEnd: string;
+  chargeBlocks: { start: string; end: string }[];
+}
+
+function getChargeWindow(device: Device): ChargeWindow | undefined {
+  return device.meta.chargeWindow as ChargeWindow | undefined;
 }
 
 const TRANSITION_GRACE_MINUTES = 10;
@@ -94,10 +98,10 @@ Device.registerProvider('vehicle', {
       },
 
       getNextChargeSchedule(device: Device): NextChargeSchedule | null {
-        const stored = device.meta.chargeSchedule as StoredChargeSchedule | undefined;
+        const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
 
         if (stored) {
-          return { targetPercentage: stored.targetPercentage, targetTime: stored.targetTime };
+          return stored;
         }
 
         const next = pickNextChargeSchedule(config.smartcar.charge_schedules ?? [], dayjs());
@@ -114,6 +118,7 @@ Device.registerProvider('vehicle', {
           targetPercentage: schedule.targetPercentage,
           targetTime: schedule.targetTime,
         } satisfies NextChargeSchedule : undefined;
+        device.meta.chargeWindow = undefined;
 
         await device.save();
       },
@@ -137,6 +142,7 @@ async function clearNextChargeIfExpired(device: Device, ev: ElectricVehicleCapab
   logger.info('Charge schedule target time passed, resetting charge limit');
 
   device.meta.chargeSchedule = undefined;
+  device.meta.chargeWindow = undefined;
 
   await applyChargeLimit(ev, config.smartcar.default_charge_limit);
   await device.save();
@@ -333,9 +339,9 @@ async function applyChargeBlocks(ev: ElectricVehicleCapability, now: Dayjs, bloc
 }
 
 async function planDeadlineWindowIfNeeded(device: Device, now: Dayjs, hoursNeeded: number, deadline: Dayjs) {
-  const stored = device.meta.chargeSchedule as StoredChargeSchedule;
+  const existing = getChargeWindow(device);
 
-  if (stored.windowEnd && now.isBefore(dayjs(stored.windowEnd))) {
+  if (existing && now.isBefore(dayjs(existing.windowEnd))) {
     return;
   }
 
@@ -358,23 +364,21 @@ async function planDeadlineWindowIfNeeded(device: Device, now: Dayjs, hoursNeede
     blocks = plan.blocks;
   }
 
-  device.meta.chargeSchedule = {
-    ...stored,
+  device.meta.chargeWindow = {
     windowEnd: windowEnd.toISOString(),
     chargeBlocks: blocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
-  } satisfies StoredChargeSchedule;
+  } satisfies ChargeWindow;
 
   await device.save();
 }
 
 // `hoursNeeded` here already includes charge_start_buffer_hours.
-async function runDeadlineMode(device: Device, ev: ElectricVehicleCapability, now: Dayjs, stored: StoredChargeSchedule, hoursNeeded: number) {
+async function runDeadlineMode(device: Device, ev: ElectricVehicleCapability, now: Dayjs, stored: NextChargeSchedule, hoursNeeded: number) {
   const deadline = dayjs(stored.targetTime);
 
   await planDeadlineWindowIfNeeded(device, now, hoursNeeded, deadline);
 
-  const refreshed = device.meta.chargeSchedule as StoredChargeSchedule;
-  let blocks: Block[] = (refreshed.chargeBlocks ?? []).map(b => ({ start: new Date(b.start), end: new Date(b.end) }));
+  let blocks: Block[] = (getChargeWindow(device)?.chargeBlocks ?? []).map(b => ({ start: new Date(b.start), end: new Date(b.end) }));
 
   // The deadline always beats cost - checked every tick, so a window committed
   // while there was slack is still overridden if charging underdelivers.
@@ -450,7 +454,7 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
 // deadline`. That scales with how much charge is actually needed: an 80%->100%
 // top-up engages far later than a 15%->100% charge with the same deadline.
 async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
-  const stored = device.meta.chargeSchedule as StoredChargeSchedule | undefined;
+  const stored = device.meta.chargeSchedule as NextChargeSchedule | undefined;
 
   if (stored) {
     const bufferHours = config.smartcar.charge_start_buffer_hours ?? 0;
@@ -462,14 +466,10 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
       return;
     }
 
-    // Deadline still far off: drop any committed window so deadline mode
+    // Deadline still far off: discard any committed window so deadline mode
     // re-plans fresh when it re-engages, then let BAU top the battery up.
-    if (stored.windowEnd !== undefined || stored.chargeBlocks !== undefined) {
-      device.meta.chargeSchedule = {
-        targetPercentage: stored.targetPercentage,
-        targetTime: stored.targetTime,
-      } satisfies StoredChargeSchedule;
-
+    if (getChargeWindow(device) !== undefined) {
+      device.meta.chargeWindow = undefined;
       await device.save();
     }
   }
