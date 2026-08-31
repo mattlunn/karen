@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import { HeatPumpMode, HeatPumpHotWaterMode } from '../../models/capabilities';
+import { HeatPumpMode, HeatPumpDHWMode } from '../../models/capabilities';
 import config from '../../config/app';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
@@ -22,7 +22,7 @@ Device.registerProvider('ebusd', {
 
   provideHeatPumpCapability() {
     return {
-      setDHWMode: (_device: Device, mode: HeatPumpHotWaterMode) => setDHWMode(mode),
+      setDHWMode: (_device: Device, mode: HeatPumpDHWMode) => setDHWMode(mode),
       setDHWBoost: (_device: Device, on: boolean) => setDHWBoost(on),
       getPlannedDHWWindow: () => getPlannedDHWWindow(),
     };
@@ -89,7 +89,7 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
       return heatPumpCapability.setModeState(mode);
     }),
     updateState(() => client.getDHWIsOn(), (v) => heatPumpCapability.setDHWIsOnState(v)),
-    updateState(() => client.getDHWIsBoosting(), (v) => heatPumpCapability.setDHWIsBoostingState(v)),
+    updateState(() => client.getDHWIsBoosting(), (v) => heatPumpCapability.setDHWBoostState(v)),
     updateState(() => client.getDHWMaxChargeTime(), (v) => heatPumpCapability.setDHWMaxChargeTimeState(v))
   ]);
 

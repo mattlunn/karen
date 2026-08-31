@@ -107,7 +107,7 @@ export async function getCapabilityData(device: Device, capability: string, inst
         mode: mapStringState(heatPump.getModeEvent(), device),
         compressorModulation: mapNumericState(heatPump.getCompressorModulationEvent(), device),
         dhwTemperature: mapNumericState(heatPump.getDHWTemperatureEvent(), device),
-        dhwIsBoosting: mapBooleanState(heatPump.getDHWIsBoostingEvent(), device),
+        dhwBoost: mapBooleanState(heatPump.getDHWBoostEvent(), device),
         dhwMaxChargeTime: mapNumericState(heatPump.getDHWMaxChargeTimeEvent(), device),
         outsideTemperature: mapNumericState(heatPump.getOutsideTemperatureEvent(), device),
         actualFlowTemperature: mapNumericState(heatPump.getActualFlowTemperatureEvent(), device),

@@ -22,6 +22,7 @@
 },{
   "name": "HeatPump",
   "capabilityModelClassName": "HeatPumpBase",
+  "capabilityProviderClassName": "ProviderHeatPumpCapabilityBase",
   "properties": [
     {
       "name": "Mode",
@@ -37,10 +38,10 @@
       "eventName": "dhw_mode"
     },
     {
-      "name": "DHWIsBoosting",
-      "isWriteable": false,
+      "name": "DHWBoost",
+      "isWriteable": true,
       "type": "boolean",
-      "eventName": "dhw_boosting"
+      "eventName": "dhw_boost"
     },
     {
       "name": "DHWMaxChargeTime",
@@ -49,10 +50,10 @@
       "eventName": "dhw_max_charge_time"
     },
     {
-      "name": "HotWaterMode",
-      "isWriteable": false,
+      "name": "DHWMode",
+      "isWriteable": true,
       "type": "string",
-      "eventName": "hot_water_mode",
+      "eventName": "dhw_control_mode",
       "enum": ["OFF", "AUTO"]
     },
     {

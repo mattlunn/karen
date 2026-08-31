@@ -15,9 +15,9 @@ async function buildHeatingStatus(): Promise<HeatingStatusResponse> {
     Device.findByCapability('THERMOSTAT')
   ]);
 
-  const [dhwMode, dhwIsBoosting] = await Promise.all([
+  const [dhwMode, dhwBoost] = await Promise.all([
     heatPump.getDHWMode(),
-    heatPump.getDHWIsBoosting()
+    heatPump.getDHWBoost()
   ]);
 
   const thermostatData = await Promise.all(
@@ -56,7 +56,7 @@ async function buildHeatingStatus(): Promise<HeatingStatusResponse> {
     centralHeating,
     dhwStatus: {
       mode: dhwMode,
-      isBoosting: dhwIsBoosting,
+      isBoosting: dhwBoost,
       schedule: heatPump.getPlannedDHWWindow()
     },
     preWarmStartTime: preWarmStartTime?.toISOString() ?? null

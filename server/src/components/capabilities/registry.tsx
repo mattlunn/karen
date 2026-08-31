@@ -465,7 +465,7 @@ export const registry: CapabilityUIRegistry = {
         title: 'Hot Water Temperature',
         value: (e) => `${e.value.toFixed(1)}°C`,
       }),
-      createCapability(cap.dhwIsBoosting, {
+      createCapability(cap.dhwBoost, {
         icon: faFaucetDrip,
         title: 'Hot Water Boost',
         value: (e) => e.value ? 'Boosting' : 'Idle',

@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import { HeatPumpCapability, HeatPumpHotWaterMode, DHWPlannedWindow } from '../../models/capabilities';
+import { HeatPumpCapability, HeatPumpDHWMode, DHWPlannedWindow } from '../../models/capabilities';
 import config from '../../config/app';
 import dayjs from '../../dayjs';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
@@ -23,10 +23,6 @@ function clearPlan() {
 function clearNoPlanTracking() {
   noPlanSince = null;
   noPlanAlertSent = false;
-}
-
-function normaliseMode(raw: string): HeatPumpHotWaterMode {
-  return raw === 'AUTO' ? 'AUTO' : 'OFF';
 }
 
 async function getHeatPumpCapability(): Promise<HeatPumpCapability> {
@@ -119,8 +115,8 @@ async function reconcile(): Promise<void> {
   const heatPump = await getHeatPumpCapability();
 
   const [mode, isBoosting] = await Promise.all([
-    heatPump.getHotWaterMode().then(normaliseMode),
-    heatPump.getDHWIsBoosting(),
+    heatPump.getDHWMode(),
+    heatPump.getDHWBoost(),
   ]);
 
   let shouldBeOn: boolean;
@@ -152,8 +148,8 @@ async function safeReconcile(): Promise<void> {
   }
 }
 
-export async function setDHWMode(mode: HeatPumpHotWaterMode): Promise<void> {
-  await (await getHeatPumpCapability()).setHotWaterModeState(mode);
+export async function setDHWMode(mode: HeatPumpDHWMode): Promise<void> {
+  await (await getHeatPumpCapability()).setDHWModeState(mode);
   await safeReconcile();
 }
 
@@ -171,12 +167,12 @@ export async function setDHWBoost(on: boolean): Promise<void> {
     await client.setDHWSpecialFunction('load');
 
     await Promise.all([
-      heatPump.setDHWIsBoostingState(true),
+      heatPump.setDHWBoostState(true),
       heatPump.setDHWIsOnState(true),
     ]);
   } else {
     await client.setDHWSpecialFunction('auto');
-    await heatPump.setDHWIsBoostingState(false);
+    await heatPump.setDHWBoostState(false);
   }
 
   await safeReconcile();

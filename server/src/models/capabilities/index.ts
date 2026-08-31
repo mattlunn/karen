@@ -1,5 +1,5 @@
 import { Device } from '../';
-import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase, HeatPumpHotWaterMode } from './capabilities.gen';
+import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase, ProviderHeatPumpCapabilityBase } from './capabilities.gen';
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
@@ -17,9 +17,8 @@ export interface DHWPlannedWindow {
   averagePence: number;
 }
 
-export interface ProviderHeatPumpCapability {
-  setDHWMode(device: Device, mode: HeatPumpHotWaterMode): Promise<void>;
-  setDHWBoost(device: Device, on: boolean): Promise<void>;
+// setDHWMode / setDHWBoost come from the generated base (writeable properties).
+export interface ProviderHeatPumpCapability extends ProviderHeatPumpCapabilityBase {
   getPlannedDHWWindow(device: Device): DHWPlannedWindow | null;
 }
 

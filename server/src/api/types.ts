@@ -33,7 +33,7 @@ export type CapabilityApiResponseBase = {
   mode: EnumStateApiResponse;
   compressorModulation: NumericStateApiResponse;
   dhwTemperature: NumericStateApiResponse;
-  dhwIsBoosting: BooleanStateApiResponse;
+  dhwBoost: BooleanStateApiResponse;
   dhwMaxChargeTime: NumericStateApiResponse;
   outsideTemperature: NumericStateApiResponse;
   actualFlowTemperature: NumericStateApiResponse;
