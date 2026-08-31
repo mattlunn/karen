@@ -838,7 +838,7 @@ export const registry: CapabilityUIRegistry = {
       }),
     ],
     getGraphs: () => [
-      { id: 'energy-unit-rate', title: 'Unit Rate (p/kWh)', yMin: 0 },
+      { id: 'energy-unit-rate', title: 'Unit Rate (p/kWh)', suggestedYMin: 0 },
     ],
   },
 

@@ -134,6 +134,7 @@ export type CapabilityGraphProps = {
     position?: 'left' | 'right',
     max?: number,
     min?: number,
+    suggestedMin?: number,
     suggestedMax?: number,
   }>
 

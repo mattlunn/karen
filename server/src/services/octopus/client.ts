@@ -194,22 +194,26 @@ export async function getUnitRates(tariffCode: string, productCode: string, sinc
   const url = `${BASE_URL}/v1/products/${productCode}/electricity-tariffs/${tariffCode}`
     + `/standard-unit-rates/?period_from=${since.toISOString()}&period_to=${until.toISOString()}&page_size=25000`;
 
-  return mapRates(await requestAllPages<RateResult>(url));
+  return mapRates(await requestAllPages<RateResult>(url), since);
 }
 
 export async function getStandingCharges(tariffCode: string, productCode: string, since: Date, until: Date): Promise<RateInterval[]> {
   const url = `${BASE_URL}/v1/products/${productCode}/electricity-tariffs/${tariffCode}`
     + `/standing-charges/?period_from=${since.toISOString()}&period_to=${until.toISOString()}&page_size=25000`;
 
-  return mapRates(await requestAllPages<RateResult>(url));
+  return mapRates(await requestAllPages<RateResult>(url), since);
 }
 
-function mapRates(results: RateResult[]): RateInterval[] {
+// The endpoints return the interval *covering* period_from, whose valid_from can
+// predate it (standing charges especially - one open-ended interval for years).
+// Drop anything at or before `since` so the caller only ever applies new items.
+function mapRates(results: RateResult[], since: Date): RateInterval[] {
   return results
     .map(r => ({
       start: new Date(r.valid_from),
       end: r.valid_to ? new Date(r.valid_to) : null,
       value: r.value_inc_vat
     }))
+    .filter(r => r.start.getTime() > since.getTime())
     .sort((a, b) => a.start.getTime() - b.start.getTime());
 }

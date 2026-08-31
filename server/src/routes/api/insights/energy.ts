@@ -10,7 +10,7 @@ import {
   BooleanEventApiResponse,
   NumericEventApiResponse,
 } from '../../../api/types';
-import { mapNumericHistoryToResponse, mapBooleanHistoryToResponse } from '../history-helpers';
+import { mapNumericHistoryToResponse, mapBooleanHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
 import { asyncMap } from '../../../helpers/array';
 import { filterClampAndSortHistory } from '../../../helpers/history';
 import dayjs from '../../../dayjs';
@@ -92,6 +92,11 @@ export async function scheduleHandler(req: Request, res: Response) {
     since: new Date(req.query.since as string),
     until: new Date(req.query.until as string),
   };
+  // Actual (what ran) is history up to now; the planned bands cover now onwards.
+  const actualSelector = {
+    since: selector.since,
+    until: new Date(Math.min(Date.now(), selector.until.getTime())),
+  };
 
   const [costDevice] = await Device.findByCapability('ENERGY_COST');
   const [evDevice] = await Device.findByCapability('ELECTRIC_VEHICLE');
@@ -112,7 +117,7 @@ export async function scheduleHandler(req: Request, res: Response) {
     const ev = evDevice.getElectricVehicleCapability();
 
     modes.push({
-      data: await mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), selector),
+      data: await mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), actualSelector),
       details: [{ value: true, label: 'EV charging', fillColor: EV_ACTUAL_COLOR }],
     });
 
@@ -126,9 +131,10 @@ export async function scheduleHandler(req: Request, res: Response) {
     const heatPump = heatPumpDevice.getHeatPumpCapability();
     const dhwWindow = heatPump.getPlannedDHWWindow();
 
+    // "actually heating water", not "circuit permitted" (which can sit on for days).
     modes.push({
-      data: await mapBooleanHistoryToResponse((hs) => heatPump.getDHWIsOnHistory(hs), selector),
-      details: [{ value: true, label: 'Hot water', fillColor: DHW_ACTUAL_COLOR }],
+      data: await mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), actualSelector),
+      details: [{ value: 'DHW', label: 'Hot water', fillColor: DHW_ACTUAL_COLOR }],
     });
 
     modes.push({

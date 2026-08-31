@@ -23,7 +23,7 @@ const yAxisCost = {
 const yAxisRate = {
   yRate: {
     position: 'left' as const,
-    min: 0
+    suggestedMin: 0
   }
 };
 
