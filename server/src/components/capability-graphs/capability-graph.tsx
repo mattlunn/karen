@@ -13,8 +13,7 @@ import {
   TimeScale,
   Colors,
   Filler,
-  ChartDataset,
-  Point
+  ChartDataset
 } from 'chart.js';
 import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
@@ -105,12 +104,14 @@ export type CapabilityGraphProps = {
     period?: 'day' | 'month'
   }[]
 
-  bar?: {
+  bars?: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
     yAxisID?: string,
     period?: 'day' | 'month'
-  }
+  }[]
+
+  stacked?: boolean
 
   zones?: {
     min?: number;
@@ -134,8 +135,6 @@ export type CapabilityGraphProps = {
     suggestedMax?: number,
   }>
 
-  yMin?: number
-  yMax?: number
   timeUnit?: TimeUnit
   height?: string
 };
@@ -154,8 +153,8 @@ function getMinMax(props: CapabilityGraphProps): { min: string; max: string } | 
     return { min, max };
   }
 
-  if (props.bar) {
-    return { min: props.bar.data.since, max: props.bar.data.until };
+  if (props.bars && props.bars.length > 0) {
+    return { min: props.bars[0].data.since, max: props.bars[0].data.until };
   }
 
   if (props.modes) {
@@ -178,7 +177,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }
 
   const { min, max } = minMax;
-  const modesOnly = props.lines.length === 0;
+  const modesOnly = props.lines.length === 0 && !props.bars?.length;
 
   const datasets: (ChartDataset<"line", { x: string; y: number; }[]> | ChartDataset<"bar", { x: string; y: number; }[]>)[] = props.lines.map(x => ({
     type: 'line',
@@ -256,14 +255,21 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     maintainAspectRatio: false
   };
 
-  if (props.bar) {
-    datasets.push({
-      type: 'bar',
-      data: mapNumericDataToAggregateDataset(props.bar.data, props.bar.period),
-      label: props.bar.label,
-      yAxisID: props.bar.yAxisID || 'y',
-      borderWidth: 1
-    });
+  if (props.stacked && props.bars) {
+    chartOptions.scales.x.stacked = true;
+  }
+
+  if (props.bars) {
+    for (const bar of props.bars) {
+      datasets.push({
+        type: 'bar',
+        data: mapNumericDataToAggregateDataset(bar.data, bar.period),
+        label: bar.label,
+        yAxisID: bar.yAxisID || 'y',
+        borderWidth: 1,
+        ...(props.stacked ? { stack: 'stack' } : {})
+      });
+    }
   }
 
   if (props.modes) {
@@ -324,6 +330,10 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         scaleConfig.grid = { display: false };
       }
 
+      if (props.stacked) {
+        scaleConfig.stacked = true;
+      }
+
       chartOptions.scales[axisId] = scaleConfig;
     }
   }
@@ -345,14 +355,6 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     chartOptions.plugins.legend = {
       ...chartOptions.plugins.legend,
       labels: { filter: (item: any) => item.text !== '' }
-    };
-  }
-
-  if (props.yMin || props.yMax) {
-    chartOptions.scales.y = {
-      type: 'linear',
-      min: props.yMin,
-      max: props.yMax,
     };
   }
 

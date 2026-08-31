@@ -208,7 +208,7 @@ export type HistoryBarApiResponse = {
 export type HistoryApiResponse = {
   lines: HistoryLineApiResponse[];
   modes?: HistoryModesApiResponse;
-  bar?: HistoryBarApiResponse;
+  bars?: HistoryBarApiResponse[];
 };
 
 // Device Timeline API response types (/api/device/:id/timeline)
@@ -366,9 +366,19 @@ export interface HeatingInsightsApiResponse {
   heatPump: { id: number; name: string };
 }
 
-// /api/insights/energy/usage and /api/insights/energy/cost endpoints
-export type EnergyInsightsSeriesApiResponse = {
-  series: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
+// /api/insights/energy/usage endpoint - one non-stacked instantaneous-power
+// line per ENERGY_MONITOR device (the whole-house meter included as-is).
+export type EnergyUsageInsightsApiResponse = {
+  series: HistoryLineApiResponse[];
+};
+
+// /api/insights/energy/cost endpoint - per-day cost of each sub-metered device
+// (all LIGHT-capable devices summed into one "Lights" entry) as a stacked bar
+// breakdown, plus the whole-house meter's own daily total as a separate overlay
+// line. The gap between the stack and the line is the unmetered remainder.
+export type EnergyCostInsightsApiResponse = {
+  series: HistoryLineApiResponse[];
+  total: HistoryLineApiResponse;
 };
 
 // /api/insights/security endpoint
