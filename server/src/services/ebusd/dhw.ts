@@ -25,10 +25,6 @@ function clearNoPlanTracking() {
   noPlanAlertSent = false;
 }
 
-async function getHeatPumpCapability(): Promise<HeatPumpCapability> {
-  return (await Device.findByProviderIdOrError('ebusd', 'heatpump')).getHeatPumpCapability();
-}
-
 async function getEnergyCostCapability() {
   const devices = await Device.findByCapability('ENERGY_COST');
 
@@ -112,7 +108,8 @@ function markNoPlan(now: Date) {
 // and issues one ebusd write, only when it differs from the controller.
 async function reconcile(): Promise<void> {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
-  const heatPump = await getHeatPumpCapability();
+  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
+  const heatPump = device.getHeatPumpCapability();
 
   const [mode, isBoosting] = await Promise.all([
     heatPump.getDHWMode(),
@@ -125,10 +122,12 @@ async function reconcile(): Promise<void> {
     // A one-time load is running: hold the circuit enabled and leave the
     // controller to revert HwcSFMode to `auto` itself when it's done.
     shouldBeOn = true;
+
     clearPlan();
     clearNoPlanTracking();
   } else if (mode === 'OFF') {
     shouldBeOn = false;
+
     clearPlan();
     clearNoPlanTracking();
   } else {
@@ -140,17 +139,11 @@ async function reconcile(): Promise<void> {
   }
 }
 
-async function safeReconcile(): Promise<void> {
-  try {
-    await reconcile();
-  } catch (e) {
-    logger.error(e, 'DHW: reconcile failed');
-  }
-}
-
 export async function setDHWMode(mode: HeatPumpDHWMode): Promise<void> {
-  await (await getHeatPumpCapability()).setDHWModeState(mode);
-  await safeReconcile();
+  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
+
+  await device.getHeatPumpCapability().setDHWModeState(mode);
+  await reconcile();
 }
 
 // `on` writes HwcSFMode = load - the same one-time cylinder charge the panel
@@ -160,7 +153,8 @@ export async function setDHWMode(mode: HeatPumpDHWMode): Promise<void> {
 // no target, timeout or persisted state; `off` just hands it back.
 export async function setDHWBoost(on: boolean): Promise<void> {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
-  const heatPump = await getHeatPumpCapability();
+  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
+  const heatPump = device.getHeatPumpCapability();
 
   if (on) {
     await client.setDHWOpMode('manual');
@@ -175,7 +169,7 @@ export async function setDHWBoost(on: boolean): Promise<void> {
     await heatPump.setDHWBoostState(false);
   }
 
-  await safeReconcile();
+  await reconcile();
 }
 
 nowAndSetInterval(
