@@ -378,7 +378,7 @@ export type EnergyUsageInsightsApiResponse = {
 // line. The gap between the stack and the line is the unmetered remainder.
 export type EnergyCostInsightsApiResponse = {
   series: HistoryLineApiResponse[];
-  total: HistoryLineApiResponse | null;
+  total: HistoryLineApiResponse;
 };
 
 // /api/insights/security endpoint

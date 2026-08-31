@@ -121,7 +121,7 @@ export async function costHandler(req: Request, res: Response) {
     series.unshift(toSeries('Lights', mergeSum(lights)));
   }
 
-  const total = meter === null ? null : toSeries('Total', await costByDay(meter));
+  const total = toSeries('Total', meter ? await costByDay(meter) : new Map());
 
   res.json({ series, total } satisfies EnergyCostInsightsApiResponse);
 }
