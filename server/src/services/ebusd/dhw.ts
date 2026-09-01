@@ -161,6 +161,10 @@ async function reconcile(): Promise<void> {
   }
 
   const readonly = config.ebusd.dhw_plan_mode === 'readonly';
+
+  // The plan's setpoint applies only while its block is live. Outside it - a
+  // block still ahead, a finished block, or a boost that cleared the plan -
+  // HwcTempDesired drops back to standard rather than sitting at plunge/legionella temp.
   const desiredTargetTemp = (shouldBeOn && currentPlan !== null)
     ? currentPlan.targetTemp
     : config.ebusd.dhw_standard_target_temp;
