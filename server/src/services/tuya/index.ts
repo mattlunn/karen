@@ -3,7 +3,7 @@ import { Device } from '../../models';
 import config from '../../config/app';
 import sleep from '../../helpers/sleep';
 import logger from '../../logger';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 
 // DP 1 ("switch") is the built-in heater, confirmed live against the real
@@ -77,7 +77,7 @@ Device.registerProvider('tuya', {
   }
 });
 
-nowAndSetInterval(createBackgroundTransaction('tuya:poll', async () => {
+nowAndSetCron(createBackgroundTransaction('tuya:poll', async () => {
   const devices = await Device.findByProvider('tuya');
 
   await Promise.all(devices.map(async device => {
@@ -95,4 +95,4 @@ nowAndSetInterval(createBackgroundTransaction('tuya:poll', async () => {
       await device.getConnectivityCapability().setIsConnectedState(false);
     }
   }));
-}), Math.max(config.tuya.poll_interval_seconds, 5) * 1000);
+}), config.tuya.poll_cron);

@@ -3,17 +3,17 @@ import { ScheduledChange } from '../../models/capabilities';
 import TadoClient, { TadoClientError, ZoneOverlayResponse, ZoneState, ZoneTimetableBlock, ZonesState, exchangeRefreshTokenForAccessToken } from './client';
 import config from '../../config/app';
 import { saveConfig } from '../../helpers/config';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
 import dayjs from '../../dayjs';
 import getTimetabledTemperature from './helpers/get-timetabled-temperature';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import logger from '../../logger';
-import setIntervalForTime from '../../helpers/set-interval-for-time';
+import setCron from '../../helpers/set-cron';
 
 const nextScheduledChangeCache = new Map<string, ZoneState['nextScheduleChange']>();
 const deviceTimetableCache = new Map<string, ZoneTimetableBlock[]>();
 
-setIntervalForTime(() => {
+setCron(() => {
   deviceTimetableCache.clear();
 
   for (const [key, value] of nextScheduledChangeCache) {
@@ -21,7 +21,7 @@ setIntervalForTime(() => {
       nextScheduledChangeCache.delete(key);
     }
   }
-}, '00:00');
+}, '0 0 * * *');
 
 const getAccessToken = (() => {
   let token: { accessToken: string, expiresAt: number } | null = null;
@@ -221,7 +221,7 @@ Device.registerProvider('tado', {
   }
 });
 
-nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
+nowAndSetCron(createBackgroundTransaction('tado:sync', async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);
   const devices = await Device.findByProvider('tado');
   const zonesState = await client.getZonesState();
@@ -246,4 +246,4 @@ nowAndSetInterval(createBackgroundTransaction('tado:sync', async () => {
       device.getConnectivityCapability().setIsConnectedState(zoneState.link.state === 'ONLINE')
     ]);
   }
-}), Math.max(config.tado.sync_interval_seconds, 10) * 1000);
+}), config.tado.sync_cron);

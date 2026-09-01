@@ -13,7 +13,7 @@ function advanceByOneDay(target, time) {
   return normalizeTime(time, tomorrow);
 }
 
-export default function(func, time) {
+export default function scheduleDaily(func, time) {
   // Only the very first occurrence needs to be resolved against "now" - if today's time has
   // already passed, start from tomorrow instead. Every occurrence after that is simply the
   // previous target advanced by a day, so it's always in the future by construction - never

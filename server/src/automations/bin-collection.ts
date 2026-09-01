@@ -5,7 +5,7 @@ import { Device } from '../models';
 import config from '../config/app';
 import dayjs from '../dayjs';
 import logger from '../logger';
-import setIntervalForTime from '../helpers/set-interval-for-time';
+import scheduleDaily from '../helpers/schedule-daily';
 import { joinWithAnd, pluralise } from '../helpers/array';
 
 export const parameters = z.object({
@@ -13,7 +13,7 @@ export const parameters = z.object({
 });
 
 export default function ({ reminderTime }: z.infer<typeof parameters>) {
-  setIntervalForTime(async () => {
+  scheduleDaily(async () => {
     try {
       const devices = await Device.findByCapability('BIN_COLLECTION');
       const tomorrow = dayjs().add(1, 'day');

@@ -3,7 +3,7 @@ import { timeString } from './schema';
 import bus, { FIRST_USER_HOME } from '../bus';
 import { Device, Stay, BooleanEvent } from '../models';
 import { isWithinTime } from '../helpers/time';
-import setIntervalForTime from '../helpers/set-interval-for-time';
+import scheduleDaily from '../helpers/schedule-daily';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
@@ -49,12 +49,12 @@ export default function ({ switchNames, morningStart, morningEnd, eveningStart, 
   }));
 
   // Turn off at end of morning at specified time.
-  setIntervalForTime(async () => {
+  scheduleDaily(async () => {
     await setDevicesOnStatus(false);
   }, morningEnd);
 
   // Turn on in the evening at certain time if someone is at home
-  setIntervalForTime(async () => {
+  scheduleDaily(async () => {
     const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(new Date());
 
     if (isSomeoneAtHome) {
@@ -70,7 +70,7 @@ export default function ({ switchNames, morningStart, morningEnd, eveningStart, 
   });
 
   // Turn off last thing at night
-  setIntervalForTime(async () => {
+  scheduleDaily(async () => {
     await setDevicesOnStatus(false);
   }, eveningEnd);
 }
