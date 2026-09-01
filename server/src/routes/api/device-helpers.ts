@@ -2,6 +2,7 @@ import { Device, NumericEvent, BooleanEvent, StringEvent } from '../../models';
 import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse, RestDeviceResponse, CapabilityApiResponse, CapabilityApiResponseBase } from '../../api/types';
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
+import { legionellaThreshold } from '../../services/ebusd/dhw';
 
 export function mapNumericState(eventPromise: Promise<NumericEvent | null>, device: Device): Promise<NumericStateApiResponse> {
   return eventPromise.then(event => {
@@ -102,6 +103,14 @@ export async function getCapabilityData(device: Device, capability: string, inst
 
     case 'HEAT_PUMP': {
       const heatPump = device.getHeatPumpCapability(instanceId);
+
+      const [lastLegionellaCycle] = await heatPump.getDHWTemperatureHistory({
+        since: device.createdAt,
+        until: new Date(),
+        value: { gte: legionellaThreshold() },
+        limit: 1,
+      });
+
       return awaitPromises({
         type: 'HEAT_PUMP' as const,
         mode: mapStringState(heatPump.getModeEvent(), device),
@@ -109,6 +118,7 @@ export async function getCapabilityData(device: Device, capability: string, inst
         dhwTemperature: mapNumericState(heatPump.getDHWTemperatureEvent(), device),
         dhwBoost: mapBooleanState(heatPump.getDHWBoostEvent(), device),
         dhwMaxChargeTime: mapNumericState(heatPump.getDHWMaxChargeTimeEvent(), device),
+        lastLegionellaCycle: lastLegionellaCycle?.start.toISOString() ?? null,
         outsideTemperature: mapNumericState(heatPump.getOutsideTemperatureEvent(), device),
         actualFlowTemperature: mapNumericState(heatPump.getActualFlowTemperatureEvent(), device),
         returnTemperature: mapNumericState(heatPump.getReturnTemperatureEvent(), device),

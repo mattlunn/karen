@@ -35,6 +35,7 @@ export type CapabilityApiResponseBase = {
   dhwTemperature: NumericStateApiResponse;
   dhwBoost: BooleanStateApiResponse;
   dhwMaxChargeTime: NumericStateApiResponse;
+  lastLegionellaCycle: string | null;
   outsideTemperature: NumericStateApiResponse;
   actualFlowTemperature: NumericStateApiResponse;
   returnTemperature: NumericStateApiResponse;

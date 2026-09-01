@@ -477,6 +477,14 @@ export const registry: CapabilityUIRegistry = {
         title: 'Hot Water Charge Time',
         value: (e) => `${e.value} min`,
       }),
+      createCapability(null, {
+        icon: faCalendarCheck,
+        title: 'Last Legionella Cycle',
+        value: cap.lastLegionellaCycle
+          ? `${humanDate(dayjs(cap.lastLegionellaCycle))} at ${dayjs(cap.lastLegionellaCycle).format('HH:mm')}`
+          : 'Never',
+        footer: cap.lastLegionellaCycle ? dayjs(cap.lastLegionellaCycle).fromNow() : undefined,
+      }),
       createCapability(cap.actualFlowTemperature, {
         icon: faThermometer4,
         title: 'Flow Temperature',

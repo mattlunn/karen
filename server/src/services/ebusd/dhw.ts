@@ -46,7 +46,7 @@ export function getPlannedDHWWindow(): DHWPlannedWindow | null {
 
 // The heat pump lands a degree or two below setpoint, so a reading this far
 // under the target still counts as a completed pasteurising run.
-function legionellaThreshold(): number {
+export function legionellaThreshold(): number {
   return config.ebusd.dhw_legionella_target_temp - config.ebusd.dhw_legionella_temp_tolerance;
 }
 
