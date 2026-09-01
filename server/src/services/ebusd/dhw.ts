@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import { HeatPumpCapability, HeatPumpDHWMode, DHWPlannedWindow } from '../../models/capabilities';
+import { HeatPumpCapability, HeatPumpDHWMode, DHWPlannedWindow, DHWTargetReason } from '../../models/capabilities';
 import config from '../../config/app';
 import dayjs from '../../dayjs';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
@@ -9,8 +9,6 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
 import EbusClient from './client';
 import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow } from '../../helpers/prices';
-
-type DHWTargetReason = DHWPlannedWindow['reason'];
 
 // The current Auto plan: a single cheap block, written once and never revised
 // until it rolls over.
@@ -46,23 +44,36 @@ export function getPlannedDHWWindow(): DHWPlannedWindow | null {
 
 // The heat pump lands a degree or two below setpoint, so a reading this far
 // under the target still counts as a completed pasteurising run.
-export function legionellaThreshold(): number {
+function legionellaThreshold(): number {
   return config.ebusd.dhw_legionella_target_temp - config.ebusd.dhw_legionella_temp_tolerance;
 }
 
-async function pasteurisedWithinInterval(heatPump: HeatPumpCapability): Promise<boolean> {
-  const [event] = await heatPump.getDHWTemperatureHistory({
-    since: dayjs().subtract(config.ebusd.dhw_legionella_max_interval_days, 'day').toDate(),
-    until: new Date(),
+// Start times of the cylinder heat-ups that reached legionella temperature in
+// [since, until), most recent first (so `limit` keeps the newest).
+export async function getLegionellaCycles(device: Device, since: Date, until: Date, limit?: number): Promise<Date[]> {
+  const events = await device.getHeatPumpCapability().getDHWTemperatureHistory({
+    since,
+    until,
     value: { gte: legionellaThreshold() },
-    limit: 1,
+    limit,
   });
 
-  return event != null;
+  return events.map(event => event.start);
 }
 
-async function resolveTarget(heatPump: HeatPumpCapability, window: CheapestWindow): Promise<{ targetTemp: number, reason: DHWTargetReason }> {
-  if (!await pasteurisedWithinInterval(heatPump)) {
+async function pasteurisedWithinInterval(device: Device): Promise<boolean> {
+  const [latest] = await getLegionellaCycles(
+    device,
+    dayjs().subtract(config.ebusd.dhw_legionella_max_interval_days, 'day').toDate(),
+    new Date(),
+    1,
+  );
+
+  return latest != null;
+}
+
+async function resolveTarget(device: Device, window: CheapestWindow): Promise<{ targetTemp: number, reason: DHWTargetReason }> {
+  if (!await pasteurisedWithinInterval(device)) {
     return { targetTemp: config.ebusd.dhw_legionella_target_temp, reason: 'LEGIONELLA' };
   }
 
@@ -76,7 +87,7 @@ async function resolveTarget(heatPump: HeatPumpCapability, window: CheapestWindo
 // Whether Auto wants DHW enabled right now, planning a fresh block only when we
 // hold a full horizon of forward prices. A plan, once written, is run as-is and
 // never recalculated - so the block can't drift.
-async function resolveAutoState(heatPump: HeatPumpCapability): Promise<boolean> {
+async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): Promise<boolean> {
   const now = new Date();
 
   if (currentPlan !== null && now < currentPlan.end) {
@@ -111,7 +122,7 @@ async function resolveAutoState(heatPump: HeatPumpCapability): Promise<boolean> 
     return false;
   }
 
-  const { targetTemp, reason } = await resolveTarget(heatPump, window);
+  const { targetTemp, reason } = await resolveTarget(device, window);
 
   currentPlan = { ...window, targetTemp, reason };
   logger.info(`DHW: scheduled ${reason} block ${window.start.toISOString()} - ${window.end.toISOString()} @ ${window.averagePence.toFixed(2)}p/kWh, target ${targetTemp}°C`);
@@ -150,7 +161,7 @@ async function reconcile(): Promise<void> {
 
     clearPlan();
   } else {
-    shouldBeOn = await resolveAutoState(heatPump);
+    shouldBeOn = await resolveAutoState(device, heatPump);
   }
 
   const readonly = config.ebusd.dhw_plan_mode === 'readonly';
@@ -185,7 +196,7 @@ async function alertIfLegionellaOverdue(): Promise<void> {
 
   // DHWMode=OFF deliberately suppresses the pasteurising run, so overdue is
   // expected then, not a fault.
-  if (await heatPump.getDHWMode() === 'OFF' || await pasteurisedWithinInterval(heatPump)) {
+  if (await heatPump.getDHWMode() === 'OFF' || await pasteurisedWithinInterval(device)) {
     return;
   }
 

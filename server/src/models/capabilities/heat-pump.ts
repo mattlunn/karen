@@ -8,4 +8,10 @@ export class HeatPumpCapability extends HeatPumpBaseCapability {
       .provideHeatPumpCapability!()
       .getPlannedDHWWindow(this.device);
   }
+
+  getLegionellaCycles(since: Date, until: Date, limit?: number): Promise<Date[]> {
+    return Device.getProviderCapabilities(this.device.provider)
+      .provideHeatPumpCapability!()
+      .getLegionellaCycles(this.device, since, until, limit);
+  }
 }
