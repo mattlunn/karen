@@ -3,14 +3,31 @@ import { HeatPumpCapability, HeatPumpDHWMode, DHWPlannedWindow } from '../../mod
 import config from '../../config/app';
 import dayjs from '../../dayjs';
 import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import setIntervalForTime from '../../helpers/set-interval-for-time';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
+import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
 import EbusClient from './client';
 import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow } from '../../helpers/prices';
 
+type DHWTargetReason = DHWPlannedWindow['reason'];
+
 // The current Auto plan: a single cheap block, written once and never revised
-// until it rolls over.
-let currentPlan: CheapestWindow | null = null;
+// until it rolls over. `targetTemp` / `reason` are resolved when the block is
+// planned and drive the HwcTempDesired setpoint while the block runs.
+interface DHWPlan extends CheapestWindow {
+  targetTemp: number;
+  reason: DHWTargetReason;
+}
+
+let currentPlan: DHWPlan | null = null;
+
+// The "has the cylinder hit legionella temperature recently?" lookback reaches a
+// little past the max interval so an on-time run still registers.
+const LEGIONELLA_LOOKBACK_BUFFER_DAYS = 2;
+
+// Local time of the daily "legionella overdue" admin check.
+const LEGIONELLA_OVERDUE_CHECK_TIME = '10:00';
 
 function clearPlan() {
   currentPlan = null;
@@ -30,7 +47,56 @@ export function getPlannedDHWWindow(): DHWPlannedWindow | null {
   return currentPlan === null ? null : {
     start: currentPlan.start.toISOString(),
     end: currentPlan.end.toISOString(),
+    targetTemp: currentPlan.targetTemp,
+    reason: currentPlan.reason,
   };
+}
+
+// A cylinder reading at or above this counts as a completed pasteurising run -
+// the tolerance absorbs the degree or two the heat pump lands short of setpoint.
+function legionellaThreshold(): number {
+  return config.ebusd.dhw_legionella_target_temp - config.ebusd.dhw_legionella_temp_tolerance;
+}
+
+// When the cylinder last reached legionella temperature. null means "not within
+// the lookback window", i.e. a pasteurising run is overdue. Derived live from the
+// temperature history so it needs no persisted state and naturally credits a
+// plunge-driven or manual high-temp run.
+async function lastLegionellaReachedAt(heatPump: HeatPumpCapability): Promise<Date | null> {
+  const lookbackDays = config.ebusd.dhw_legionella_max_interval_days + LEGIONELLA_LOOKBACK_BUFFER_DAYS;
+
+  const [event] = await heatPump.getDHWTemperatureHistory({
+    since: dayjs().subtract(lookbackDays, 'day').toDate(),
+    until: new Date(),
+    value: { gte: legionellaThreshold() },
+    limit: 1,
+  });
+
+  if (event == null) {
+    return null;
+  }
+
+  return event.end ?? new Date();
+}
+
+function isLegionellaOverdue(lastReachedAt: Date | null): boolean {
+  return lastReachedAt === null
+    || dayjs(lastReachedAt).isBefore(dayjs().subtract(config.ebusd.dhw_legionella_max_interval_days, 'day'));
+}
+
+// Resolves the setpoint for a freshly planned block: legionella temperature when
+// a pasteurising run is overdue, plunge temperature when the block's electricity
+// is free or paid (negative average unit rate), otherwise the standard setpoint.
+async function resolveTarget(heatPump: HeatPumpCapability, window: CheapestWindow): Promise<{ targetTemp: number, reason: DHWTargetReason }> {
+  if (isLegionellaOverdue(await lastLegionellaReachedAt(heatPump))) {
+    return { targetTemp: config.ebusd.dhw_legionella_target_temp, reason: 'LEGIONELLA' };
+  }
+
+  if (window.averagePence < 0) {
+    return { targetTemp: config.ebusd.dhw_plunge_target_temp, reason: 'PLUNGE' };
+  }
+
+  return { targetTemp: config.ebusd.dhw_standard_target_temp, reason: 'STANDARD' };
 }
 
 // Whether Auto wants DHW enabled right now, planning a fresh block only when we
@@ -71,18 +137,22 @@ async function resolveAutoState(heatPump: HeatPumpCapability): Promise<boolean> 
     return false;
   }
 
-  currentPlan = window;
-  logger.info(`DHW: scheduled cheap block ${window.start.toISOString()} - ${window.end.toISOString()} @ ${window.averagePence.toFixed(2)}p/kWh`);
+  const { targetTemp, reason } = await resolveTarget(heatPump, window);
+
+  currentPlan = { ...window, targetTemp, reason };
+  logger.info(`DHW: scheduled ${reason} block ${window.start.toISOString()} - ${window.end.toISOString()} @ ${window.averagePence.toFixed(2)}p/kWh, target ${targetTemp}°C`);
 
   return now >= window.start && now < window.end;
 }
 
-// The single writer of HwcOpMode. Resolves the desired state in priority order
-// and issues one ebusd write, only when it differs from the controller.
+// The single writer of HwcOpMode and HwcTempDesired. Resolves the desired state
+// in priority order and issues one ebusd write each, only when it differs from
+// the controller.
 //
-// dhw_plan_mode=readonly lets a non-prod instance run this loop against the shared
-// physical heat pump without writing to it - it still resolves the plan (so the
-// UI / insights reflect what it *would* do), it just doesn't touch HwcOpMode.
+// dhw_plan_mode=readonly lets a non-prod instance run this loop against the
+// shared physical heat pump without writing to it - it still resolves the plan
+// (so the UI / insights reflect what it *would* do), it just doesn't touch the
+// controller.
 async function reconcile(): Promise<void> {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
@@ -109,13 +179,59 @@ async function reconcile(): Promise<void> {
     shouldBeOn = await resolveAutoState(heatPump);
   }
 
+  const readonly = config.ebusd.dhw_plan_mode === 'readonly';
+  const desiredTargetTemp = (shouldBeOn && currentPlan !== null)
+    ? currentPlan.targetTemp
+    : config.ebusd.dhw_standard_target_temp;
+
+  // Setpoint before circuit, so a block that raises the target (plunge /
+  // legionella) charges to it from the first minute.
+  if (await client.getDHWTargetTemp() !== desiredTargetTemp) {
+    if (readonly) {
+      logger.info(`DHW: [readonly] would set HwcTempDesired ${desiredTargetTemp}°C`);
+    } else {
+      await client.setDHWTargetTemp(desiredTargetTemp);
+    }
+  }
+
   if (await heatPump.getDHWIsOn() !== shouldBeOn) {
-    if (config.ebusd.dhw_plan_mode === 'readonly') {
+    if (readonly) {
       logger.info(`DHW: [readonly] would set HwcOpMode ${shouldBeOn ? 'manual' : 'off'}`);
     } else {
       await client.setDHWOpMode(shouldBeOn ? 'manual' : 'off');
     }
   }
+}
+
+// Daily: nag admins if the cylinder hasn't been pasteurised within the configured
+// interval - covers a truncated run, an outage, or missing forward prices. Karen
+// keeps retrying a legionella target on each Auto cycle until it lands; this is
+// just the "it still hasn't" backstop.
+async function alertIfLegionellaOverdue(): Promise<void> {
+  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
+  const heatPump = device.getHeatPumpCapability();
+
+  // DHWMode=OFF is a deliberate "no hot water" (e.g. an empty house), which
+  // suppresses the pasteurising run too - so don't nag while it's off.
+  if (await heatPump.getDHWMode() === 'OFF') {
+    return;
+  }
+
+  const lastReachedAt = await lastLegionellaReachedAt(heatPump);
+
+  if (!isLegionellaOverdue(lastReachedAt)) {
+    return;
+  }
+
+  const when = lastReachedAt === null
+    ? `not in over ${config.ebusd.dhw_legionella_max_interval_days} days`
+    : `last ${dayjs(lastReachedAt).fromNow()}`;
+
+  logger.warn(`DHW: legionella cycle overdue - hot water ${when}`);
+
+  bus.emit(NOTIFICATION_TO_ADMINS, {
+    message: `🚨 Hot water has not reached ${legionellaThreshold()}°C within ${config.ebusd.dhw_legionella_max_interval_days} days (${when}). The legionella cycle may be failing to complete.`,
+  });
 }
 
 export async function setDHWMode(mode: HeatPumpDHWMode): Promise<void> {
@@ -154,4 +270,9 @@ export async function setDHWBoost(on: boolean): Promise<void> {
 nowAndSetInterval(
   createBackgroundTransaction('ebusd:dhw', reconcile),
   Math.max(config.ebusd.dhw_check_interval_minutes, 1) * 60 * 1000
+);
+
+setIntervalForTime(
+  createBackgroundTransaction('ebusd:dhw-legionella-check', alertIfLegionellaOverdue),
+  LEGIONELLA_OVERDUE_CHECK_TIME
 );

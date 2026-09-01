@@ -14,6 +14,8 @@ export * from './capabilities.gen';
 export interface DHWPlannedWindow {
   start: string;
   end: string;
+  targetTemp: number;
+  reason: 'STANDARD' | 'PLUNGE' | 'LEGIONELLA';
 }
 
 export interface ProviderHeatPumpCapability extends ProviderHeatPumpCapabilityBase {
