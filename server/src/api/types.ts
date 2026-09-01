@@ -2,6 +2,16 @@ export interface ApiErrorResponse {
   error: string;
 }
 
+// The DHW block the cost-aware scheduler will run next. `reason` is why its
+// `targetTemp` was chosen: PLUNGE on negative prices, LEGIONELLA when a
+// pasteurising run is overdue, else STANDARD.
+export interface DhwPlannedRunApiResponse {
+  start: string;
+  end: string;
+  targetTemp: number;
+  reason: 'STANDARD' | 'PLUNGE' | 'LEGIONELLA';
+}
+
 // Device API response - current status values with timestamps.
 // State responses always carry an envelope (anchored to device.createdAt when
 // no observation has happened yet) but `value` is null until first observation.
@@ -35,6 +45,8 @@ export type CapabilityApiResponseBase = {
   dhwTemperature: NumericStateApiResponse;
   dhwBoost: BooleanStateApiResponse;
   dhwMaxChargeTime: NumericStateApiResponse;
+  lastLegionellaCycle: string | null;
+  plannedDhwRun: DhwPlannedRunApiResponse | null;
   outsideTemperature: NumericStateApiResponse;
   actualFlowTemperature: NumericStateApiResponse;
   returnTemperature: NumericStateApiResponse;

@@ -104,6 +104,13 @@ declare namespace _default {
     const dhw_plan_mode: 'readonly' | 'readwrite' | undefined;
     const dhw_planning_horizon_hours: number;
     const dhw_check_interval_minutes: number;
+    const dhw_standard_target_temp: number;
+    const dhw_plunge_target_temp: number;
+    const dhw_legionella_target_temp: number;
+    const dhw_legionella_temp_tolerance: number;
+    const dhw_legionella_max_interval_days: number;
+    const dhw_legionella_alert_grace_days: number;
+    const dhw_legionella_alert_check_time: string;
   }
   export namespace homeconnect {
     const client_id: string;

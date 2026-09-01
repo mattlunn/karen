@@ -52,9 +52,13 @@ export default class EbusClient {
     const result = await this.#command(`write -c ${circuit} ${key} ${value}`);
 
     // ebusd echoes the decoded value back for some messages and replies with the
-    // literal `done` for writes that have no slave read-back. Anything else
-    // (`ERR: ...`) is a real failure.
-    if (result !== value && result !== 'done') {
+    // literal `done` for writes that have no slave read-back. A numeric field
+    // echoes back at its own precision (`70` -> `70.00`), so accept a numeric
+    // match too. Anything else (`ERR: ...`) is a real failure.
+    const numericValue = Number(value);
+    const echoedSameNumber = value !== '' && Number.isFinite(numericValue) && Number(result) === numericValue;
+
+    if (result !== value && result !== 'done' && !echoedSameNumber) {
       throw new Error(`Unable to write '${value}' to ${key}. Result was ${result}`);
     }
 
@@ -141,6 +145,10 @@ export default class EbusClient {
     return this.#read({ value: 'HwcMaxChargeTime', circuit: 'ctlv3' }, toNumber);
   }
 
+  async getDHWTargetTemp(): Promise<number> {
+    return this.#read({ value: 'HwcTempDesired', circuit: 'ctlv3' }, toNumber);
+  }
+
   async getCopHc(): Promise<number> {
     return this.#read({ value: 'CopHc', circuit: 'hmu' }, toNumber);
   }
@@ -151,6 +159,10 @@ export default class EbusClient {
 
   async setDHWOpMode(mode: 'off' | 'manual') {
     await this.#write('ctlv3', 'HwcOpMode', mode);
+  }
+
+  async setDHWTargetTemp(celsius: number) {
+    await this.#write('ctlv3', 'HwcTempDesired', String(celsius));
   }
 
   // Vaillant "Sonderfunktion": `load` is the physical panel's one-time hot-water

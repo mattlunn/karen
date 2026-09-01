@@ -102,6 +102,9 @@ export async function getCapabilityData(device: Device, capability: string, inst
 
     case 'HEAT_PUMP': {
       const heatPump = device.getHeatPumpCapability(instanceId);
+
+      const [lastLegionellaCycle] = await heatPump.getLegionellaCycles(device.createdAt, new Date(), 1);
+
       return awaitPromises({
         type: 'HEAT_PUMP' as const,
         mode: mapStringState(heatPump.getModeEvent(), device),
@@ -109,6 +112,8 @@ export async function getCapabilityData(device: Device, capability: string, inst
         dhwTemperature: mapNumericState(heatPump.getDHWTemperatureEvent(), device),
         dhwBoost: mapBooleanState(heatPump.getDHWBoostEvent(), device),
         dhwMaxChargeTime: mapNumericState(heatPump.getDHWMaxChargeTimeEvent(), device),
+        lastLegionellaCycle: lastLegionellaCycle?.toISOString() ?? null,
+        plannedDhwRun: heatPump.getPlannedDHWWindow(),
         outsideTemperature: mapNumericState(heatPump.getOutsideTemperatureEvent(), device),
         actualFlowTemperature: mapNumericState(heatPump.getActualFlowTemperatureEvent(), device),
         returnTemperature: mapNumericState(heatPump.getReturnTemperatureEvent(), device),

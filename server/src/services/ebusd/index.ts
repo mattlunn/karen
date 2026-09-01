@@ -5,7 +5,7 @@ import nowAndSetInterval from '../../helpers/now-and-set-interval';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 import { storeRunningMetrics } from './history';
-import { setDHWMode, setDHWBoost, getPlannedDHWWindow } from './dhw';
+import { setDHWMode, setDHWBoost, getPlannedDHWWindow, getLegionellaCycles } from './dhw';
 
 const STATUSCODE_TO_MODE: Record<string, HeatPumpMode> = {
   'Heating': 'HEATING',
@@ -25,6 +25,7 @@ Device.registerProvider('ebusd', {
       setDHWMode: (_device: Device, mode: HeatPumpDHWMode) => setDHWMode(mode),
       setDHWBoost: (_device: Device, on: boolean) => setDHWBoost(on),
       getPlannedDHWWindow: () => getPlannedDHWWindow(),
+      getLegionellaCycles: (device: Device, since: Date, until: Date, limit?: number) => getLegionellaCycles(device, since, until, limit),
     };
   },
 

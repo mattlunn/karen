@@ -11,13 +11,18 @@ export { TelevisionCapability } from './television';
 export { BinCollectionCapability } from './bin-collection';
 export * from './capabilities.gen';
 
+export type DHWTargetReason = 'STANDARD' | 'PLUNGE' | 'LEGIONELLA';
+
 export interface DHWPlannedWindow {
   start: string;
   end: string;
+  targetTemp: number;
+  reason: DHWTargetReason;
 }
 
 export interface ProviderHeatPumpCapability extends ProviderHeatPumpCapabilityBase {
   getPlannedDHWWindow(device: Device): DHWPlannedWindow | null;
+  getLegionellaCycles(device: Device, since: Date, until: Date, limit?: number): Promise<Date[]>;
 }
 
 export type ScheduledChange = {
