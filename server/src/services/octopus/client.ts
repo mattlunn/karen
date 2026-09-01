@@ -7,8 +7,15 @@ export interface TelemetryReading {
 
 export interface RateInterval {
   start: Date;
-  end: Date | null; // null while the rate is the current open-ended one
+  end: Date; // clamped to the fetch window; only `start` and `value` are persisted
   value: number; // pence (inc. VAT)
+}
+
+export interface TariffAgreement {
+  tariffCode: string;
+  productCode: string;
+  validFrom: Date;
+  validTo: Date | null; // null for the current, open-ended agreement
 }
 
 interface AccountResponse {
@@ -16,7 +23,7 @@ interface AccountResponse {
     electricity_meter_points: {
       mpan: string;
       meters: { serial_number: string }[];
-      agreements: { tariff_code: string }[];
+      agreements: { tariff_code: string; valid_from: string; valid_to: string | null }[];
     }[];
   }[];
 }
@@ -178,42 +185,67 @@ function productCodeFromTariff(tariffCode: string): string {
   return tariffCode.replace(/^E-1R-/, '').replace(/-[A-Z]$/, '');
 }
 
-export async function getTariff(): Promise<{ tariffCode: string; productCode: string }> {
+export async function getAgreements(): Promise<TariffAgreement[]> {
   const account = await request<AccountResponse>(
     `${BASE_URL}/v1/accounts/${config.octopus.account_number}/`
   );
 
   const meterPoint = account.properties[0].electricity_meter_points[0];
-  const agreement = meterPoint.agreements[meterPoint.agreements.length - 1];
-  const tariffCode = agreement.tariff_code;
 
-  return { tariffCode, productCode: productCodeFromTariff(tariffCode) };
-}
-
-export async function getUnitRates(tariffCode: string, productCode: string, since: Date, until: Date): Promise<RateInterval[]> {
-  const url = `${BASE_URL}/v1/products/${productCode}/electricity-tariffs/${tariffCode}`
-    + `/standard-unit-rates/?period_from=${since.toISOString()}&period_to=${until.toISOString()}&page_size=25000`;
-
-  return mapRates(await requestAllPages<RateResult>(url), since);
-}
-
-export async function getStandingCharges(tariffCode: string, productCode: string, since: Date, until: Date): Promise<RateInterval[]> {
-  const url = `${BASE_URL}/v1/products/${productCode}/electricity-tariffs/${tariffCode}`
-    + `/standing-charges/?period_from=${since.toISOString()}&period_to=${until.toISOString()}&page_size=25000`;
-
-  return mapRates(await requestAllPages<RateResult>(url), since);
-}
-
-// The endpoints return the interval *covering* period_from, whose valid_from can
-// predate it (standing charges especially - one open-ended interval for years).
-// Drop anything at or before `since` so the caller only ever applies new items.
-function mapRates(results: RateResult[], since: Date): RateInterval[] {
-  return results
-    .map(r => ({
-      start: new Date(r.valid_from),
-      end: r.valid_to ? new Date(r.valid_to) : null,
-      value: r.value_inc_vat
+  return meterPoint.agreements
+    .map(a => ({
+      tariffCode: a.tariff_code,
+      productCode: productCodeFromTariff(a.tariff_code),
+      validFrom: new Date(a.valid_from),
+      validTo: a.valid_to ? new Date(a.valid_to) : null
     }))
-    .filter(r => r.start.getTime() > since.getTime())
-    .sort((a, b) => a.start.getTime() - b.start.getTime());
+    .sort((a, b) => a.validFrom.getTime() - b.validFrom.getTime());
+}
+
+export async function getUnitRates(agreements: TariffAgreement[], since: Date, until: Date): Promise<RateInterval[]> {
+  return fetchAcrossAgreements(agreements, since, until, 'standard-unit-rates');
+}
+
+export async function getStandingCharges(agreements: TariffAgreement[], since: Date, until: Date): Promise<RateInterval[]> {
+  return fetchAcrossAgreements(agreements, since, until, 'standing-charges');
+}
+
+// Octopus serves rates for any product regardless of which tariff the account
+// was actually on, so a single `[since, until]` fetch against the current tariff
+// silently rewrites history after a tariff switch. Fetch each agreement's own
+// window from its own product instead, and clamp what comes back to that window:
+// flat tariffs and standing charges return a single open-ended interval whose
+// `valid_from` reaches back months, which we want to land as an event at the
+// window boundary rather than discard as historic.
+async function fetchAcrossAgreements(agreements: TariffAgreement[], since: Date, until: Date, path: string): Promise<RateInterval[]> {
+  const relevant = agreements.filter(a =>
+    a.validFrom.getTime() < until.getTime() && (a.validTo === null || a.validTo.getTime() > since.getTime())
+  );
+  const intervals: RateInterval[] = [];
+
+  for (const agreement of relevant) {
+    const windowStart = Math.max(since.getTime(), agreement.validFrom.getTime());
+    const windowEnd = Math.min(until.getTime(), agreement.validTo?.getTime() ?? until.getTime());
+    const url = `${BASE_URL}/v1/products/${agreement.productCode}/electricity-tariffs/${agreement.tariffCode}`
+      + `/${path}/?period_from=${new Date(windowStart).toISOString()}&period_to=${new Date(windowEnd).toISOString()}&page_size=25000`;
+
+    for (const r of await requestAllPages<RateResult>(url)) {
+      // Clamp each slot to the agreement's window. The endpoint returns whole
+      // slots either side of period_from/period_to, and a flat tariff returns a
+      // single open-ended slot reaching back months - but a slot only counts for
+      // the tariff in force during it, and a slot that collapses to nothing
+      // belongs wholly to the adjacent agreement. This also keeps starts
+      // strictly increasing across agreements for sync().
+      const start = Math.max(new Date(r.valid_from).getTime(), windowStart);
+      const end = Math.min(r.valid_to ? new Date(r.valid_to).getTime() : windowEnd, windowEnd);
+
+      if (start >= end) {
+        continue;
+      }
+
+      intervals.push({ start: new Date(start), end: new Date(end), value: r.value_inc_vat });
+    }
+  }
+
+  return intervals.sort((a, b) => a.start.getTime() - b.start.getTime());
 }

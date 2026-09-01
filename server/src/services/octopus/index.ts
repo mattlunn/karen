@@ -8,7 +8,7 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
 import { haveForecastThrough } from '../../helpers/prices';
 import type { Capability } from '../../models/capabilities';
-import { getTariff, getUnitRates, getStandingCharges, getSmartMeterDeviceId, getTelemetry } from './client';
+import { getAgreements, getUnitRates, getStandingCharges, getSmartMeterDeviceId, getTelemetry } from './client';
 
 const PROVIDER_ID = 'electricity-meter';
 
@@ -37,9 +37,6 @@ Device.registerProvider('octopus', {
     device.manufacturer = 'Octopus Energy';
     device.model = 'Smart Meter';
 
-    const { tariffCode, productCode } = await getTariff();
-    device.meta.tariffCode = tariffCode;
-    device.meta.productCode = productCode;
     device.meta.telemetryDeviceId = await getSmartMeterDeviceId(config.octopus.account_number);
 
     await device.save();
@@ -68,8 +65,7 @@ async function sync<T>(
 // endpoint runs ~24h (or more) behind and shouldn't be presented as "current".
 async function pollRates(device: Device) {
   const until = dayjs().add(FORWARD_WINDOW_HOURS, 'hour').toDate();
-  const tariffCode = device.meta.tariffCode as string;
-  const productCode = device.meta.productCode as string;
+  const agreements = await getAgreements();
   const energyCost = device.getEnergyCostCapability();
 
   // Unit rates / standing charges: on Agile, Octopus publishes the next day's
@@ -78,14 +74,14 @@ async function pollRates(device: Device) {
   await sync(
     device, until,
     () => energyCost.getUnitRateEvent(),
-    (since, to) => getUnitRates(tariffCode, productCode, since, to),
+    (since, to) => getUnitRates(agreements, since, to),
     (rate) => energyCost.setUnitRateState(rate.value, rate.start)
   );
 
   await sync(
     device, until,
     () => energyCost.getStandingChargeEvent(),
-    (since, to) => getStandingCharges(tariffCode, productCode, since, to),
+    (since, to) => getStandingCharges(agreements, since, to),
     (standingCharge) => energyCost.setStandingChargeState(standingCharge.value, standingCharge.start)
   );
 }
