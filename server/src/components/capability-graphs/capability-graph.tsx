@@ -138,6 +138,8 @@ export type CapabilityGraphProps = {
     suggestedMax?: number,
   }>
 
+  showNow?: boolean
+
   timeUnit?: TimeUnit
   height?: string
 };
@@ -362,6 +364,25 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     chartOptions.plugins.legend = {
       ...chartOptions.plugins.legend,
       labels: { filter: (item: any) => item.text !== '' }
+    };
+  }
+
+  if (props.showNow) {
+    const now = dayjs().toISOString();
+
+    chartOptions.plugins.annotation.annotations.now = {
+      type: 'line',
+      xMin: now,
+      xMax: now,
+      borderColor: '#fa5252',
+      borderWidth: 2,
+      label: {
+        display: true,
+        content: 'Now',
+        position: 'start',
+        backgroundColor: '#fa5252',
+        font: { size: 10 }
+      }
     };
   }
 
