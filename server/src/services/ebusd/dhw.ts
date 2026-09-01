@@ -13,18 +13,13 @@ import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow }
 type DHWTargetReason = DHWPlannedWindow['reason'];
 
 // The current Auto plan: a single cheap block, written once and never revised
-// until it rolls over. `targetTemp` / `reason` are resolved when the block is
-// planned and drive the HwcTempDesired setpoint while the block runs.
+// until it rolls over.
 interface DHWPlan extends CheapestWindow {
   targetTemp: number;
   reason: DHWTargetReason;
 }
 
 let currentPlan: DHWPlan | null = null;
-
-// The "has the cylinder hit legionella temperature recently?" lookback reaches a
-// little past the max interval so an on-time run still registers.
-const LEGIONELLA_LOOKBACK_BUFFER_DAYS = 2;
 
 function clearPlan() {
   currentPlan = null;
@@ -49,43 +44,25 @@ export function getPlannedDHWWindow(): DHWPlannedWindow | null {
   };
 }
 
-// A cylinder reading at or above this counts as a completed pasteurising run -
-// the tolerance absorbs the degree or two the heat pump lands short of setpoint.
+// The heat pump lands a degree or two below setpoint, so a reading this far
+// under the target still counts as a completed pasteurising run.
 function legionellaThreshold(): number {
   return config.ebusd.dhw_legionella_target_temp - config.ebusd.dhw_legionella_temp_tolerance;
 }
 
-// When the cylinder last reached legionella temperature. null means "not within
-// the lookback window", i.e. a pasteurising run is overdue. Derived live from the
-// temperature history so it needs no persisted state and naturally credits a
-// plunge-driven or manual high-temp run.
-async function lastLegionellaReachedAt(heatPump: HeatPumpCapability): Promise<Date | null> {
-  const lookbackDays = config.ebusd.dhw_legionella_max_interval_days + LEGIONELLA_LOOKBACK_BUFFER_DAYS;
-
+async function pasteurisedWithinInterval(heatPump: HeatPumpCapability): Promise<boolean> {
   const [event] = await heatPump.getDHWTemperatureHistory({
-    since: dayjs().subtract(lookbackDays, 'day').toDate(),
+    since: dayjs().subtract(config.ebusd.dhw_legionella_max_interval_days, 'day').toDate(),
     until: new Date(),
     value: { gte: legionellaThreshold() },
     limit: 1,
   });
 
-  if (event == null) {
-    return null;
-  }
-
-  return event.end ?? new Date();
+  return event != null;
 }
 
-function isLegionellaOverdue(lastReachedAt: Date | null): boolean {
-  return lastReachedAt === null
-    || dayjs(lastReachedAt).isBefore(dayjs().subtract(config.ebusd.dhw_legionella_max_interval_days, 'day'));
-}
-
-// Resolves the setpoint for a freshly planned block: legionella temperature when
-// a pasteurising run is overdue, plunge temperature when the block's electricity
-// is free or paid (negative average unit rate), otherwise the standard setpoint.
 async function resolveTarget(heatPump: HeatPumpCapability, window: CheapestWindow): Promise<{ targetTemp: number, reason: DHWTargetReason }> {
-  if (isLegionellaOverdue(await lastLegionellaReachedAt(heatPump))) {
+  if (!await pasteurisedWithinInterval(heatPump)) {
     return { targetTemp: config.ebusd.dhw_legionella_target_temp, reason: 'LEGIONELLA' };
   }
 
@@ -181,8 +158,8 @@ async function reconcile(): Promise<void> {
     ? currentPlan.targetTemp
     : config.ebusd.dhw_standard_target_temp;
 
-  // Setpoint before circuit, so a block that raises the target (plunge /
-  // legionella) charges to it from the first minute.
+  // Write the setpoint before enabling the circuit, so a raised-target block
+  // heats towards it from the start rather than after the next reconcile.
   if (await client.getDHWTargetTemp() !== desiredTargetTemp) {
     if (readonly) {
       logger.info(`DHW: [readonly] would set HwcTempDesired ${desiredTargetTemp}°C`);
@@ -200,34 +177,24 @@ async function reconcile(): Promise<void> {
   }
 }
 
-// Daily: nag admins if the cylinder hasn't been pasteurised within the configured
-// interval - covers a truncated run, an outage, or missing forward prices. Karen
-// keeps retrying a legionella target on each Auto cycle until it lands; this is
-// just the "it still hasn't" backstop.
+// Recovery is resolveTarget retrying a legionella block on each Auto cycle until
+// it lands; this only tells admins when that still hasn't happened in time.
 async function alertIfLegionellaOverdue(): Promise<void> {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const heatPump = device.getHeatPumpCapability();
 
-  // DHWMode=OFF is a deliberate "no hot water" (e.g. an empty house), which
-  // suppresses the pasteurising run too - so don't nag while it's off.
-  if (await heatPump.getDHWMode() === 'OFF') {
+  // DHWMode=OFF deliberately suppresses the pasteurising run, so overdue is
+  // expected then, not a fault.
+  if (await heatPump.getDHWMode() === 'OFF' || await pasteurisedWithinInterval(heatPump)) {
     return;
   }
 
-  const lastReachedAt = await lastLegionellaReachedAt(heatPump);
+  const days = config.ebusd.dhw_legionella_max_interval_days;
 
-  if (!isLegionellaOverdue(lastReachedAt)) {
-    return;
-  }
-
-  const when = lastReachedAt === null
-    ? `not in over ${config.ebusd.dhw_legionella_max_interval_days} days`
-    : `last ${dayjs(lastReachedAt).fromNow()}`;
-
-  logger.warn(`DHW: legionella cycle overdue - hot water ${when}`);
+  logger.warn(`DHW: hot water has not reached ${legionellaThreshold()}°C in ${days} days`);
 
   bus.emit(NOTIFICATION_TO_ADMINS, {
-    message: `🚨 Hot water has not reached ${legionellaThreshold()}°C within ${config.ebusd.dhw_legionella_max_interval_days} days (${when}). The legionella cycle may be failing to complete.`,
+    message: `🚨 Hot water has not reached ${legionellaThreshold()}°C in ${days} days. The legionella cycle may be failing to complete.`,
   });
 }
 
