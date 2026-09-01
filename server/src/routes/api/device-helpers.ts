@@ -119,6 +119,7 @@ export async function getCapabilityData(device: Device, capability: string, inst
         dhwBoost: mapBooleanState(heatPump.getDHWBoostEvent(), device),
         dhwMaxChargeTime: mapNumericState(heatPump.getDHWMaxChargeTimeEvent(), device),
         lastLegionellaCycle: lastLegionellaCycle?.start.toISOString() ?? null,
+        plannedDhwRun: heatPump.getPlannedDHWWindow(),
         outsideTemperature: mapNumericState(heatPump.getOutsideTemperatureEvent(), device),
         actualFlowTemperature: mapNumericState(heatPump.getActualFlowTemperatureEvent(), device),
         returnTemperature: mapNumericState(heatPump.getReturnTemperatureEvent(), device),
