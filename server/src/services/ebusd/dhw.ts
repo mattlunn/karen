@@ -26,9 +26,6 @@ let currentPlan: DHWPlan | null = null;
 // little past the max interval so an on-time run still registers.
 const LEGIONELLA_LOOKBACK_BUFFER_DAYS = 2;
 
-// Local time of the daily "legionella overdue" admin check.
-const LEGIONELLA_OVERDUE_CHECK_TIME = '10:00';
-
 function clearPlan() {
   currentPlan = null;
 }
@@ -274,5 +271,5 @@ nowAndSetInterval(
 
 setIntervalForTime(
   createBackgroundTransaction('ebusd:dhw-legionella-check', alertIfLegionellaOverdue),
-  LEGIONELLA_OVERDUE_CHECK_TIME
+  config.ebusd.dhw_legionella_overdue_check_time
 );
