@@ -136,6 +136,7 @@ function ScheduleGraph() {
           modes={data.modes}
           yAxis={yAxisRate}
           timeUnit="hour"
+          markers={[{ at: dayjs().toISOString(), label: 'Now', color: '#fa5252' }]}
         />
       )}
     </>

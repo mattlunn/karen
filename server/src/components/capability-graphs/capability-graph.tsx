@@ -128,6 +128,12 @@ export type CapabilityGraphProps = {
     color: string;
   }[]
 
+  markers?: {
+    at: string;
+    label?: string;
+    color: string;
+  }[]
+
   modes?: ModeSeries[]
 
   yAxis?: Record<string, {
@@ -363,6 +369,27 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       ...chartOptions.plugins.legend,
       labels: { filter: (item: any) => item.text !== '' }
     };
+  }
+
+  if (props.markers) {
+    props.markers.forEach((marker, idx) => {
+      chartOptions.plugins.annotation.annotations[`marker${idx}`] = {
+        type: 'line',
+        xMin: marker.at,
+        xMax: marker.at,
+        borderColor: marker.color,
+        borderWidth: 2,
+        ...(marker.label ? {
+          label: {
+            display: true,
+            content: marker.label,
+            position: 'start',
+            backgroundColor: marker.color,
+            font: { size: 10 }
+          }
+        } : {})
+      };
+    });
   }
 
   if (props.zones) {
