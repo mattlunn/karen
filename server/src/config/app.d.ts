@@ -110,7 +110,7 @@ declare namespace _default {
     const dhw_legionella_temp_tolerance: number;
     const dhw_legionella_max_interval_days: number;
     const dhw_legionella_alert_grace_days: number;
-    const dhw_legionella_overdue_check_time: string;
+    const dhw_legionella_alert_check_time: string;
   }
   export namespace homeconnect {
     const client_id: string;

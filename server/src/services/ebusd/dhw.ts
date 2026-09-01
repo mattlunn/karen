@@ -253,5 +253,5 @@ nowAndSetInterval(
 
 setIntervalForTime(
   createBackgroundTransaction('ebusd:dhw-legionella-check', alertIfLegionellaOverdue),
-  config.ebusd.dhw_legionella_overdue_check_time
+  config.ebusd.dhw_legionella_alert_check_time
 );
