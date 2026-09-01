@@ -61,19 +61,15 @@ export async function getLegionellaCycles(device: Device, since: Date, until: Da
   return events.map(event => event.start);
 }
 
-async function pasteurisedWithinInterval(device: Device): Promise<boolean> {
-  const [latest] = await getLegionellaCycles(
+async function resolveTarget(device: Device, window: CheapestWindow): Promise<{ targetTemp: number, reason: DHWTargetReason }> {
+  const [lastCycle] = await getLegionellaCycles(
     device,
     dayjs().subtract(config.ebusd.dhw_legionella_max_interval_days, 'day').toDate(),
     new Date(),
     1,
   );
 
-  return latest != null;
-}
-
-async function resolveTarget(device: Device, window: CheapestWindow): Promise<{ targetTemp: number, reason: DHWTargetReason }> {
-  if (!await pasteurisedWithinInterval(device)) {
+  if (lastCycle == null) {
     return { targetTemp: config.ebusd.dhw_legionella_target_temp, reason: 'LEGIONELLA' };
   }
 
@@ -193,14 +189,19 @@ async function reconcile(): Promise<void> {
 async function alertIfLegionellaOverdue(): Promise<void> {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const heatPump = device.getHeatPumpCapability();
+  const days = config.ebusd.dhw_legionella_max_interval_days;
 
   // DHWMode=OFF deliberately suppresses the pasteurising run, so overdue is
   // expected then, not a fault.
-  if (await heatPump.getDHWMode() === 'OFF' || await pasteurisedWithinInterval(device)) {
+  if (await heatPump.getDHWMode() === 'OFF') {
     return;
   }
 
-  const days = config.ebusd.dhw_legionella_max_interval_days;
+  const [lastCycle] = await getLegionellaCycles(device, dayjs().subtract(days, 'day').toDate(), new Date(), 1);
+
+  if (lastCycle != null) {
+    return;
+  }
 
   logger.warn(`DHW: hot water has not reached ${legionellaThreshold()}°C in ${days} days`);
 
