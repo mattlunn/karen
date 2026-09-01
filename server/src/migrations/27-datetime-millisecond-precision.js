@@ -1,13 +1,9 @@
 'use strict';
 
 // Widen every datetime column from DATETIME (0 fractional-seconds precision) to
-// DATETIME(3). The application works entirely in millisecond-precision JS Dates,
-// but a bare DATETIME rounds them to whole seconds on write and - on the mysql
-// dialect - drops the fractional part from WHERE-clause literals. That made range
-// queries and the JS-side comparisons against their results disagree at
-// sub-second boundaries (e.g. a forecast-coverage check reading `now` a few ms
-// past a half-hour slot boundary would exclude the slot that starts exactly on
-// it). DATETIME(3) lets the millisecond round-trip so both sides agree.
+// DATETIME(3). The application works in millisecond-precision JS Dates, but on
+// the mysql dialect a bare DATETIME rounds them to whole seconds on write and
+// drops the fractional part from WHERE-clause literals.
 
 const COLUMNS = {
   alarm_activations: [
