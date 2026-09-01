@@ -197,16 +197,19 @@ async function alertIfLegionellaOverdue(): Promise<void> {
     return;
   }
 
-  const [lastCycle] = await getLegionellaCycles(device, dayjs().subtract(days, 'day').toDate(), new Date(), 1);
+  // resolveTarget schedules a catch-up run the moment it goes overdue, so wait
+  // out the grace period for that to land before crying wolf.
+  const lookbackDays = days + config.ebusd.dhw_legionella_alert_grace_days;
+  const [lastCycle] = await getLegionellaCycles(device, dayjs().subtract(lookbackDays, 'day').toDate(), new Date(), 1);
 
   if (lastCycle != null) {
     return;
   }
 
-  logger.warn(`DHW: hot water has not reached ${legionellaThreshold()}°C in ${days} days`);
+  logger.warn(`DHW: hot water has not reached ${legionellaThreshold()}°C in over ${days} days`);
 
   bus.emit(NOTIFICATION_TO_ADMINS, {
-    message: `🚨 Hot water has not reached ${legionellaThreshold()}°C in ${days} days. The legionella cycle may be failing to complete.`,
+    message: `🚨 Hot water has not reached ${legionellaThreshold()}°C in over ${days} days. The legionella cycle may be failing to complete.`,
   });
 }
 
