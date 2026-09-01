@@ -41,7 +41,7 @@ declare namespace _default {
     const home_id: number;
     let refresh_token: string;
     const secret: string;
-    const sync_interval_seconds: number;
+    const sync_cron: string;
     const passive_zone_names: string[];
   }
   export namespace shelly {
@@ -60,11 +60,11 @@ declare namespace _default {
       psk: string;
       channels: { label: string; number: number; aliases?: string[] }[];
     }[];
-    const poll_interval_seconds: number;
+    const poll_cron: string;
     const connect_timeout_milliseconds: number;
   }
   export namespace tplink {
-    const sync_interval_seconds: number;
+    const sync_cron: string;
     const discovery_duration_seconds: number;
     const connect_timeout_milliseconds: number;
   }
@@ -76,7 +76,7 @@ declare namespace _default {
       ip: string;
       version: string;
     }[];
-    const poll_interval_seconds: number;
+    const poll_cron: string;
     const connect_timeout_milliseconds: number;
   }
   export namespace synology {
@@ -94,23 +94,23 @@ declare namespace _default {
     const username: string;
     const password: string;
     const device_considered_gone_after_in_seconds: number;
-    const device_check_interval_in_seconds: number;
+    const device_check_cron: string;
   }
   export namespace ebusd {
     const host: string;
     const port: number;
-    const poll_interval_minutes: number;
+    const poll_cron: string;
     const min_mode_duration_minutes: number | undefined;
     const dhw_plan_mode: 'readonly' | 'readwrite' | undefined;
     const dhw_planning_horizon_hours: number;
-    const dhw_check_interval_minutes: number;
+    const dhw_check_cron: string;
     const dhw_standard_target_temp: number;
     const dhw_plunge_target_temp: number;
     const dhw_legionella_target_temp: number;
     const dhw_legionella_temp_tolerance: number;
     const dhw_legionella_max_interval_days: number;
     const dhw_legionella_alert_grace_days: number;
-    const dhw_legionella_alert_check_time: string;
+    const dhw_legionella_alert_check_cron: string;
   }
   export namespace homeconnect {
     const client_id: string;
@@ -124,9 +124,9 @@ declare namespace _default {
   export namespace octopus {
     const api_key: string;
     const account_number: string;
-    const poll_rates_interval_minutes: number;
-    const poll_current_power_interval_minutes: number;
-    const forward_prices_expected_by_hour: number;
+    const poll_rates_cron: string;
+    const poll_current_power_cron: string;
+    const forward_price_check_cron: string;
     const mpan: string;
     const serial_number: string;
   }

@@ -3,7 +3,7 @@ import { timeString } from './schema';
 import bus, { NOTIFICATION_TO_USER } from '../bus';
 import dayjs from '../dayjs';
 import logger from '../logger';
-import setIntervalForTime from '../helpers/set-interval-for-time';
+import scheduleDaily from '../helpers/schedule-daily';
 import { getServiceStatus, ServiceStatus } from '../services/raildata/client';
 
 const DAY_NAMES = new Set([
@@ -93,7 +93,7 @@ function runAlert(alert: TrainAlert, checkInterval: number) {
 
 export default function ({ startCheckingAt, checkInterval, alerts }: z.infer<typeof parameters>) {
   for (const alert of alerts) {
-    setIntervalForTime(() => {
+    scheduleDaily(() => {
       runAlert(alert, checkInterval);
     }, `${alert.departureTime} - ${startCheckingAt}m`);
   }

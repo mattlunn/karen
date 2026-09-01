@@ -1,7 +1,7 @@
 import { Device } from '../../models';
 import { ElectricVehicleCapability, ChargeSchedule } from '../../models/capabilities';
 import config from '../../config/app';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';
 import { processSignal } from './signals';
@@ -11,7 +11,6 @@ import { planDeadlineCharge, planOpportunisticCharge, isWithinBlocks, Block } fr
 import { toPriceSlots, medianPence } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
-import nowAndSetIntervalForTime from '../../helpers/now-and-set-interval-for-time';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 
 // The committed deadline-charge plan, persisted on device.meta.chargeWindow
@@ -368,9 +367,7 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
   await runBauMode(device, ev, now);
 }
 
-// Run the charge schedule check every 5 minutes so block boundaries are hit
-// within a few minutes of the half-hour.
-nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async () => {
+nowAndSetCron(createBackgroundTransaction('vehicle:charge-schedule', async () => {
   const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
   const ev = device.getElectricVehicleCapability();
   const now = dayjs();
@@ -378,9 +375,9 @@ nowAndSetInterval(createBackgroundTransaction('vehicle:charge-schedule', async (
   await clearNextChargeIfExpired(device, now);
   await chooseNextCharge(device, now);
   await runPriceAwareCharging(device, ev, now);
-}), 5 * 60 * 1000);
+}), '*/5 * * * *');
 
-nowAndSetIntervalForTime(createBackgroundTransaction('vehicle:monthly-mileage', async () => {
+nowAndSetCron(createBackgroundTransaction('vehicle:monthly-mileage', async () => {
   const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
   const capability = device.getElectricVehicleCapability();
   const startOfMonth = dayjs().startOf('month').toDate();
@@ -388,4 +385,4 @@ nowAndSetIntervalForTime(createBackgroundTransaction('vehicle:monthly-mileage', 
 
   await ensureHistoricalMonthly(device, capability);
   await storeMonthlyAggregates(capability, startOfMonth, now, now);
-}), '00:00');
+}), '0 0 * * *');

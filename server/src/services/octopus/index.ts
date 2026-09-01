@@ -1,8 +1,8 @@
 import { Device } from '../../models';
 import config from '../../config/app';
 import dayjs from '../../dayjs';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
-import setIntervalForTime from '../../helpers/set-interval-for-time';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
+import setCron from '../../helpers/set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
@@ -134,19 +134,19 @@ async function pollCurrentPower(device: Device) {
   );
 }
 
-nowAndSetInterval(createBackgroundTransaction('octopus:poll-rates', async () => {
+nowAndSetCron(createBackgroundTransaction('octopus:poll-rates', async () => {
   const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
 
   await pollRates(device);
-}), Math.max(config.octopus.poll_rates_interval_minutes, 1) * 60 * 1000);
+}), config.octopus.poll_rates_cron);
 
-nowAndSetInterval(createBackgroundTransaction('octopus:poll-current-power', async () => {
+nowAndSetCron(createBackgroundTransaction('octopus:poll-current-power', async () => {
   const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
 
   await pollCurrentPower(device);
-}), Math.max(config.octopus.poll_current_power_interval_minutes, 1) * 60 * 1000);
+}), config.octopus.poll_current_power_cron);
 
-setIntervalForTime(
+setCron(
   createBackgroundTransaction('octopus:forward-price-check', checkForwardPricesAvailable),
-  `${String(config.octopus.forward_prices_expected_by_hour).padStart(2, '0')}:00`
+  config.octopus.forward_price_check_cron
 );

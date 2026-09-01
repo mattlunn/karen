@@ -1,7 +1,7 @@
 import { Device } from '../../models';
 import { HeatPumpMode, HeatPumpDHWMode } from '../../models/capabilities';
 import config from '../../config/app';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 import { storeRunningMetrics } from './history';
@@ -47,7 +47,7 @@ Device.registerProvider('ebusd', {
   }
 });
 
-nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
+nowAndSetCron(createBackgroundTransaction('ebusd:poll', async () => {
   const client = new EbusClient(config.ebusd.host, config.ebusd.port);
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const heatPumpCapability = device.getHeatPumpCapability();
@@ -102,21 +102,10 @@ nowAndSetInterval(createBackgroundTransaction('ebusd:poll', async () => {
   if (failures.length > 0) {
     throw failures[0].reason;
   }
-}), Math.max(config.ebusd.poll_interval_minutes, 1) * 60 * 1000);
+}), config.ebusd.poll_cron);
 
-let dailyMetricsRunning = false;
+nowAndSetCron(createBackgroundTransaction('ebusd:daily-metrics', async () => {
+  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
 
-nowAndSetInterval(createBackgroundTransaction('ebusd:daily-metrics', async () => {
-  if (dailyMetricsRunning) {
-    return;
-  }
-
-  dailyMetricsRunning = true;
-
-  try {
-    const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
-    await storeRunningMetrics(device, device.getHeatPumpCapability());
-  } finally {
-    dailyMetricsRunning = false;
-  }
-}), 15 * 60 * 1000);
+  await storeRunningMetrics(device, device.getHeatPumpCapability());
+}), '*/15 * * * *');

@@ -2,8 +2,8 @@ import { Device } from '../../models';
 import { HeatPumpCapability, HeatPumpDHWMode, DHWPlannedWindow, DHWTargetReason } from '../../models/capabilities';
 import config from '../../config/app';
 import dayjs from '../../dayjs';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
-import setIntervalForTime from '../../helpers/set-interval-for-time';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
+import setCron from '../../helpers/set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
@@ -250,12 +250,12 @@ export async function setDHWBoost(on: boolean): Promise<void> {
   await reconcile();
 }
 
-nowAndSetInterval(
+nowAndSetCron(
   createBackgroundTransaction('ebusd:dhw', reconcile),
-  Math.max(config.ebusd.dhw_check_interval_minutes, 1) * 60 * 1000
+  config.ebusd.dhw_check_cron
 );
 
-setIntervalForTime(
+setCron(
   createBackgroundTransaction('ebusd:dhw-legionella-check', alertIfLegionellaOverdue),
-  config.ebusd.dhw_legionella_alert_check_time
+  config.ebusd.dhw_legionella_alert_check_cron
 );

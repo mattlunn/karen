@@ -4,10 +4,10 @@ import { Device, Stay } from '../models';
 import dayjs, { Dayjs } from '../dayjs';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
-import nowAndSetInterval from '../helpers/now-and-set-interval';
+import nowAndSetCron from '../helpers/now-and-set-cron';
 
 export const parameters = z.object({
-  checkIntervalMinutes: z.number().positive(),
+  checkCron: z.string(),
   minWarmUpRatePerHour: z.number().positive(),
   dhwAutoLeadTimeHours: z.number().positive()
 });
@@ -21,7 +21,7 @@ export function getPreWarmStartTime(): WarmupState {
 }
 
 export default function ({
-  checkIntervalMinutes,
+  checkCron,
   minWarmUpRatePerHour,
   dhwAutoLeadTimeHours
 }: z.infer<typeof parameters>) {
@@ -122,7 +122,6 @@ export default function ({
     });
   }
 
-  const intervalMs = Math.max(checkIntervalMinutes, 1) * 60 * 1000;
   const runCheck = createBackgroundTransaction('automations:heating-warmup', async () => {
     const isSomeoneHome = await Stay.checkIfSomeoneHomeAt(new Date());
     const nextEta = await Stay.findNextUpcomingEta();
@@ -134,7 +133,7 @@ export default function ({
     }
   });
 
-  nowAndSetInterval(runCheck, intervalMs);
+  nowAndSetCron(runCheck, checkCron);
 
   // Handles ETA being set, and (first) user home.
   bus.on(STAY_START, () => {

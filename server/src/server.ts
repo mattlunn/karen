@@ -14,6 +14,7 @@ import vehicleRoutes from './routes/vehicle';
 import versionRoutes from './routes/version';
 import auth from './middleware/auth';
 import buildVersion from './middleware/build-version';
+import setCron from './helpers/set-cron';
 import { Device } from './models';
 import config from './config/app';
 import cookieParser from 'cookie-parser';
@@ -80,4 +81,4 @@ httpServer.listen(config.port, () => {
   logger.info(`Listening on ${config.port}`);
 });
 
-setInterval(createBackgroundTransaction('device:synchronize', () => Device.synchronize()), dayjs.duration(1, 'day').asMilliseconds());
+setCron(createBackgroundTransaction('device:synchronize', () => Device.synchronize()), '0 0 * * *');
