@@ -14,7 +14,9 @@ import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow }
 // until it rolls over. Persisted on device.meta rather than held in memory,
 // because replanning needs a full forward-price horizon that isn't always
 // available - a restart would otherwise drop the plan and be unable to rebuild it.
-interface DHWPlan extends CheapestWindow {
+interface DHWPlan {
+  start: Date;
+  end: Date;
   targetTemp: number;
   reason: DHWTargetReason;
 }
@@ -60,8 +62,6 @@ async function getEnergyCostCapability() {
   return devices[0].getEnergyCostCapability();
 }
 
-// Deliberately not the stored shape: averagePence is provenance for the choice,
-// not part of the window the API exposes.
 export function getPlannedDHWWindow(device: Device): DHWPlannedWindow | null {
   const plan = getPlan(device);
 
@@ -152,7 +152,7 @@ async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): P
 
   const { targetTemp, reason } = await resolveTarget(device, window);
 
-  await setPlan(device, { ...window, targetTemp, reason });
+  await setPlan(device, { start: window.start, end: window.end, targetTemp, reason });
   logger.info(`DHW: scheduled ${reason} block ${window.start.toISOString()} - ${window.end.toISOString()} @ ${window.averagePence.toFixed(2)}p/kWh, target ${targetTemp}°C`);
 
   return now >= window.start && now < window.end;
