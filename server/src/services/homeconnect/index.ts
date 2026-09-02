@@ -8,6 +8,7 @@ import ApiClient from './lib/client';
 import type { SseType } from './lib/client';
 import { formatProgramName } from './lib/format';
 
+type ProgramCapability = OvenCapability | MicrowaveCapability | DishwasherCapability;
 type SSEOperation =
   | { key: 'BSH.Common.Status.OperationState'; value: string; timestamp: number }
   | { key: 'BSH.Common.Root.ActiveProgram'; value: string; timestamp: number }
@@ -43,6 +44,7 @@ async function getAccessToken(): Promise<string> {
   });
 
   const token = await res.json() as { access_token: string; refresh_token?: string; expires_in: number };
+  
   cachedToken = token.access_token;
   tokenExpiresAt = Date.now() + token.expires_in * 1000;
 
@@ -56,15 +58,6 @@ async function getAccessToken(): Promise<string> {
 
 const client = new ApiClient(getAccessToken);
 
-type ProgramCapability = OvenCapability | MicrowaveCapability | DishwasherCapability;
-
-function programCapability(device: Device, applianceType: string): ProgramCapability {
-  switch (applianceType) {
-    case 'Oven': return device.getOvenCapability();
-    case 'Microwave': return device.getMicrowaveCapability();
-    default: return device.getDishwasherCapability();
-  }
-}
 
 // Also drives the SWITCH capability, so Alexa PowerController and the
 // device-page toggle reflect whether a program is running.
@@ -78,46 +71,67 @@ async function setRunningProgram(device: Device, capability: ProgramCapability, 
   await device.getSwitchCapability().setIsOnState(programName !== null, ts, now);
 }
 
-async function applyItem(device: Device, applianceType: string, item: SSEOperation, now: Date): Promise<void> {
-  const ts = new Date(item.timestamp * 1000);
+async function applyOvenItem(device: Device, item: SSEOperation, ts: Date, now: Date): Promise<void> {
+  const capability = device.getOvenCapability();
 
   if (item.key === 'BSH.Common.Status.OperationState') {
     if (!item.value.endsWith('.Run')) {
-      await setRunningProgram(device, programCapability(device, applianceType), null, ts, now);
+      await setRunningProgram(device, capability, null, ts, now);
     }
-
-    return;
-  }
-
-  if (item.key === 'BSH.Common.Root.ActiveProgram') {
+  } else if (item.key === 'BSH.Common.Root.ActiveProgram') {
     const programName = item.value ? formatProgramName(item.value) : null;
 
-    await setRunningProgram(device, programCapability(device, applianceType), programName, ts, now);
-    return;
+    await setRunningProgram(device, capability, programName, ts, now);
+  } else if (item.key === 'Cooking.Oven.Option.SetpointTemperature') {
+    await capability.setSetpointTemperatureState(item.value, ts, now);
+  } else if (item.key === 'Cooking.Oven.Status.CurrentCavityTemperature') {
+    await capability.setCurrentTemperatureState(item.value, ts, now);
   }
+}
 
-  if (applianceType === 'Oven') {
-    const capability = device.getOvenCapability();
+async function applyMicrowaveItem(device: Device, item: SSEOperation, ts: Date, now: Date): Promise<void> {
+  const capability = device.getMicrowaveCapability();
 
-    if (item.key === 'Cooking.Oven.Option.SetpointTemperature') {
-      await capability.setSetpointTemperatureState(item.value, ts, now);
-    } else if (item.key === 'Cooking.Oven.Status.CurrentCavityTemperature') {
-      await capability.setCurrentTemperatureState(item.value, ts, now);
+  if (item.key === 'BSH.Common.Status.OperationState') {
+    if (!item.value.endsWith('.Run')) {
+      await setRunningProgram(device, capability, null, ts, now);
     }
-  } else if (applianceType === 'Microwave') {
-    if (item.key === 'BSH.Common.Option.RemainingProgramTime') {
-      await device.getMicrowaveCapability().setEstimatedCompletionTimeState(item.timestamp * 1000 + item.value * 1000, ts, now);
-    }
-  } else if (applianceType === 'Dishwasher') {
-    const capability = device.getDishwasherCapability();
+  } else if (item.key === 'BSH.Common.Root.ActiveProgram') {
+    const programName = item.value ? formatProgramName(item.value) : null;
 
-    if (item.key === 'BSH.Common.Option.RemainingProgramTime') {
-      await capability.setEstimatedCompletionTimeState(item.timestamp * 1000 + item.value * 1000, ts, now);
-    } else if (item.key === 'Dishcare.Dishwasher.Status.SaltNearlyEmpty') {
-      await capability.setIsSaltLowState(item.value, ts, now);
-    } else if (item.key === 'Dishcare.Dishwasher.Status.RinseAidNearlyEmpty') {
-      await capability.setIsRinseAidLowState(item.value, ts, now);
+    await setRunningProgram(device, capability, programName, ts, now);
+  } else if (item.key === 'BSH.Common.Option.RemainingProgramTime') {
+    await capability.setEstimatedCompletionTimeState(item.timestamp * 1000 + item.value * 1000, ts, now);
+  }
+}
+
+async function applyDishwasherItem(device: Device, item: SSEOperation, ts: Date, now: Date): Promise<void> {
+  const capability = device.getDishwasherCapability();
+
+  if (item.key === 'BSH.Common.Status.OperationState') {
+    if (!item.value.endsWith('.Run')) {
+      await setRunningProgram(device, capability, null, ts, now);
     }
+  } else if (item.key === 'BSH.Common.Root.ActiveProgram') {
+    const programName = item.value ? formatProgramName(item.value) : null;
+
+    await setRunningProgram(device, capability, programName, ts, now);
+  } else if (item.key === 'BSH.Common.Option.RemainingProgramTime') {
+    await capability.setEstimatedCompletionTimeState(item.timestamp * 1000 + item.value * 1000, ts, now);
+  } else if (item.key === 'Dishcare.Dishwasher.Status.SaltNearlyEmpty') {
+    await capability.setIsSaltLowState(item.value, ts, now);
+  } else if (item.key === 'Dishcare.Dishwasher.Status.RinseAidNearlyEmpty') {
+    await capability.setIsRinseAidLowState(item.value, ts, now);
+  }
+}
+
+async function applyItem(device: Device, applianceType: string, item: SSEOperation, now: Date): Promise<void> {
+  const ts = new Date(item.timestamp * 1000);
+
+  switch (applianceType) {
+    case 'Oven': return applyOvenItem(device, item, ts, now);
+    case 'Microwave': return applyMicrowaveItem(device, item, ts, now);
+    case 'Dishwasher': return applyDishwasherItem(device, item, ts, now);
   }
 }
 
@@ -137,14 +151,7 @@ async function handleSseMessage(msg: { haId: string; items: { key: string; times
 
   const applianceType = device.meta.applianceType as string;
 
-  // Process ActiveProgram items before OperationState so the program name is
-  // set before the state check potentially clears it
-  const sorted = ([...msg.items] as SSEOperation[]).sort((a, b) => {
-    const priority = (key: SSEOperation['key']) => key === 'BSH.Common.Root.ActiveProgram' ? 0 : 1;
-    return priority(a.key) - priority(b.key);
-  });
-
-  for (const item of sorted) {
+  for (const item of msg.items as SSEOperation[]) {
     try {
       await applyItem(device, applianceType, item, now);
     } catch (err) {
@@ -209,7 +216,9 @@ Device.registerProvider('homeconnect', {
           manufacturer: 'Home Connect',
           model: appliance.type,
         });
+
         device.meta.applianceType = appliance.type;
+
         await device.save();
       }
     }
