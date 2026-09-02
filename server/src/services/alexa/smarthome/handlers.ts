@@ -247,6 +247,7 @@ function toCelsius(temp: { value: number; scale: 'CELSIUS' | 'FAHRENHEIT' | 'KEL
 
 async function createOvenResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
   const oven = device.getOvenCapability();
+
   const [programEvent, currentTemp, targetTemp, connectivity] = await Promise.all([
     oven.getProgramNameEvent(),
     oven.getCurrentTemperature(),
@@ -304,6 +305,7 @@ async function createOvenResponseProperties(device: Device, sampleTime: Date): P
 
 async function createMicrowaveResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
   const mw = device.getMicrowaveCapability();
+
   const [programEvent, connectivity] = await Promise.all([
     mw.getProgramNameEvent(),
     getConnectivityValue(device),
@@ -331,6 +333,7 @@ async function createMicrowaveResponseProperties(device: Device, sampleTime: Dat
 
 async function createDishwasherResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
   const dw = device.getDishwasherCapability();
+
   const [programEvent, connectivity] = await Promise.all([
     dw.getProgramNameEvent(),
     getConnectivityValue(device),
@@ -353,12 +356,15 @@ async function createDishwasherResponseProperties(device: Device, sampleTime: Da
 
 async function responsePropsForAppliance(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
   const caps = device.getCapabilities();
+
   if (caps.includes('OVEN')) {
     return createOvenResponseProperties(device, sampleTime);
   }
+
   if (caps.includes('MICROWAVE')) {
     return createMicrowaveResponseProperties(device, sampleTime);
   }
+
   return createDishwasherResponseProperties(device, sampleTime);
 }
 

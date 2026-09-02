@@ -93,7 +93,6 @@ async function applyItem(device: Device, applianceType: string, item: SSEOperati
     const programName = item.value ? formatProgramName(item.value) : null;
 
     await setRunningProgram(device, programCapability(device, applianceType), programName, ts, now);
-
     return;
   }
 

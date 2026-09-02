@@ -303,7 +303,6 @@ export async function getCapabilityData(device: Device, capability: string, inst
 
     case 'OVEN': {
       const oven = device.getOvenCapability();
-
       return awaitPromises({
         type: 'OVEN' as const,
         runningProgram: mapStringState(oven.getProgramNameEvent(), device),
@@ -314,7 +313,6 @@ export async function getCapabilityData(device: Device, capability: string, inst
 
     case 'MICROWAVE': {
       const mw = device.getMicrowaveCapability();
-
       return awaitPromises({
         type: 'MICROWAVE' as const,
         runningProgram: mapStringState(mw.getProgramNameEvent(), device),
