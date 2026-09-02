@@ -547,6 +547,7 @@
   ]
 }, {
   "name": "Dishwasher",
+  "capabilityModelClassName": "DishwasherBase",
   "properties": [
     {
       "name": "ProgramName",

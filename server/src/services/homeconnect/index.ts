@@ -164,6 +164,10 @@ async function handleSseMessage(msg: { haId: string; items: { key: string; times
 const OVEN_DEFAULT_PROGRAM = 'Cooking.Oven.Program.HeatingMode.HotAir3D';
 const OVEN_DEFAULT_TEMPERATURE = 200;
 
+// The formatProgramName() output for 'Dishcare.Dishwasher.Program.MachineCare' — i.e. the
+// ProgramName value stored when a machine-care cycle runs.
+const MACHINE_CARE_PROGRAM_NAME = 'Machine Care';
+
 Device.registerProvider('homeconnect', {
   getCapabilities(device) {
     const type = device.meta.applianceType as string | undefined;
@@ -194,6 +198,21 @@ Device.registerProvider('homeconnect', {
         await client.startActiveProgram(device.providerId, OVEN_DEFAULT_PROGRAM, [
           { key: 'Cooking.Oven.Option.SetpointTemperature', value: celsius, unit: '°C' },
         ]);
+      }
+    };
+  },
+
+  provideDishwasherCapability() {
+    return {
+      getLastMachineCareRun: async (device: Device) => {
+        const [run] = await device.getDishwasherCapability().getProgramNameHistory({
+          since: device.createdAt,
+          until: new Date(),
+          value: { eq: MACHINE_CARE_PROGRAM_NAME },
+          limit: 1,
+        });
+
+        return run ?? null;
       }
     };
   },

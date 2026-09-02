@@ -322,14 +322,7 @@ export async function getCapabilityData(device: Device, capability: string, inst
 
     case 'DISHWASHER': {
       const dw = device.getDishwasherCapability();
-      const now = new Date();
-      const machineCareRuns = await dw.getProgramNameHistory({
-        since: device.createdAt,
-        until: now,
-        value: { eq: 'Machine Care' },
-        limit: 1,
-      });
-      const lastSelfCareRun = machineCareRuns[0] ?? null;
+      const lastSelfCareRun = await dw.getLastMachineCareRun();
 
       return awaitPromises({
         type: 'DISHWASHER' as const,
