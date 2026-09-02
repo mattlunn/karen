@@ -1,15 +1,23 @@
 import express from 'express';
 import { Device } from '../../models';
-import { setDHWMode, getDHWMode } from '../../services/ebusd';
 import { getPreWarmStartTime } from '../../automations/heating-warmup';
 import { HeatingUpdateRequest, HeatingStatusResponse, CentralHeatingMode, ApiErrorResponse } from '../../api/types';
 
 const router = express.Router();
 
-router.get<Record<string, never>, HeatingStatusResponse>('/', async (_req, res) => {
-  const [dhwIsOn, thermostatDevices] = await Promise.all([
-    getDHWMode(),
+async function getHeatPumpCapability() {
+  return (await Device.findByCapability('HEAT_PUMP'))[0].getHeatPumpCapability();
+}
+
+async function buildHeatingStatus(): Promise<HeatingStatusResponse> {
+  const [heatPump, thermostatDevices] = await Promise.all([
+    getHeatPumpCapability(),
     Device.findByCapability('THERMOSTAT')
+  ]);
+
+  const [dhwMode, dhwBoost] = await Promise.all([
+    heatPump.getDHWMode(),
+    heatPump.getDHWBoost()
   ]);
 
   const thermostatData = await Promise.all(
@@ -44,15 +52,22 @@ router.get<Record<string, never>, HeatingStatusResponse>('/', async (_req, res) 
 
   const preWarmStartTime = getPreWarmStartTime();
 
-  res.json({
+  return {
     centralHeating,
-    dhw: dhwIsOn ? 'ON' : 'OFF',
+    dhwStatus: {
+      mode: dhwMode,
+      isBoosting: dhwBoost
+    },
     preWarmStartTime: preWarmStartTime?.toISOString() ?? null
-  });
+  };
+}
+
+router.get<Record<string, never>, HeatingStatusResponse>('/', async (_req, res) => {
+  res.json(await buildHeatingStatus());
 });
 
-router.put<Record<string, never>, void | ApiErrorResponse, HeatingUpdateRequest>('/', async (req, res) => {
-  const { centralHeating, dhw } = req.body;
+router.put<Record<string, never>, HeatingStatusResponse | ApiErrorResponse, HeatingUpdateRequest>('/', async (req, res) => {
+  const { centralHeating, dhw, dhwBoost } = req.body;
 
   if (centralHeating !== undefined) {
     if (!['ON', 'OFF', 'SETBACK'].includes(centralHeating)) {
@@ -82,15 +97,19 @@ router.put<Record<string, never>, void | ApiErrorResponse, HeatingUpdateRequest>
   }
 
   if (dhw !== undefined) {
-    if (!['ON', 'OFF'].includes(dhw)) {
-      res.status(400).json({ error: 'Invalid dhw mode. Must be ON or OFF.' });
+    if (!['OFF', 'AUTO'].includes(dhw)) {
+      res.status(400).json({ error: 'Invalid dhw mode. Must be OFF or AUTO.' });
       return;
     }
 
-    await setDHWMode(dhw === 'ON');
+    await (await getHeatPumpCapability()).setDHWMode(dhw);
   }
 
-  res.status(204).send();
+  if (dhwBoost !== undefined) {
+    await (await getHeatPumpCapability()).setDHWBoost(dhwBoost);
+  }
+
+  res.status(200).json(await buildHeatingStatus());
 });
 
 export default router;

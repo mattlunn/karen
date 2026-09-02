@@ -1,4 +1,4 @@
-import config from '../../../config';
+import config from '../../../config/app';
 import logger from '../../../logger';
 import { Device } from '../../../models';
 import { makeEventsRequest } from './client';
@@ -9,10 +9,14 @@ import {
   handleReportState,
   handleLightControl,
   handleAlarmControl,
+  handlePowerControl,
+  handleTelevisionControl,
+  handleLauncherControl,
   handleAppliancePowerOff,
   handleApplianceSetCookingMode,
   handleOvenCookByTemperature,
-  AlexaRequestWithEndpoint
+  AlexaRequestWithEndpoint,
+  AlexaInvalidValueError
 } from './handlers';
 import {
   AlexaSmartHomeRequest,
@@ -23,10 +27,16 @@ import {
   AlexaReportStateRequest,
   AlexaSecurityPanelRequest,
   AlexaSetCookingModeRequest,
-  AlexaCookByTemperatureRequest
+  AlexaCookByTemperatureRequest,
+  AlexaSpeakerRequest,
+  AlexaStepSpeakerRequest,
+  AlexaSelectInputRequest,
+  AlexaChangeChannelRequest,
+  AlexaLaunchTargetRequest
 } from './types';
 
 export type { AlexaRequestWithEndpoint };
+export { AlexaInvalidValueError };
 
 async function sendAddOrUpdateReport(endpoints: unknown[]): Promise<void> {
   await makeEventsRequest('Alexa.Discovery', 'AddOrUpdateReport', '3', undefined, (bearer) => ({
@@ -90,10 +100,15 @@ export const smarthomeHandlers: Record<string, SmartHomeRequestHandler> = {
     if (device.getCapabilities().some(c => APPLIANCE_CAPS.includes(c))) {
       return handleAppliancePowerOff(req);
     }
-    return handleLightControl(req);
+    return handlePowerControl(req);
   },
   'Alexa.BrightnessController': (r) => handleLightControl(r as AlexaBrightnessRequest),
   'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest),
   'Alexa.Cooking': (r) => handleApplianceSetCookingMode(r as AlexaSetCookingModeRequest),
   'Alexa.Cooking.TemperatureController': (r) => handleOvenCookByTemperature(r as AlexaCookByTemperatureRequest),
+  'Alexa.Speaker': (r) => handleTelevisionControl(r as AlexaSpeakerRequest),
+  'Alexa.StepSpeaker': (r) => handleTelevisionControl(r as AlexaStepSpeakerRequest),
+  'Alexa.InputController': (r) => handleTelevisionControl(r as AlexaSelectInputRequest),
+  'Alexa.ChannelController': (r) => handleTelevisionControl(r as AlexaChangeChannelRequest),
+  'Alexa.Launcher': (r) => handleLauncherControl(r as AlexaLaunchTargetRequest)
 };

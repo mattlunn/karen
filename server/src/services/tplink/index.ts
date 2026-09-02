@@ -1,10 +1,10 @@
 import { Bulb, Client, Plug } from 'tplink-smarthome-api';
 import { Device } from '../../models';
-import config from '../../config';
+import config from '../../config/app';
 import sleep from '../../helpers/sleep';
 import newrelic from 'newrelic';
 import logger from '../../logger';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
 
 const client = new Client();
 
@@ -19,7 +19,7 @@ function getTpLinkDeviceFromDevice(device: Device): Promise<Plug | Bulb | null> 
   });
 }
 
-nowAndSetInterval(async () => {
+nowAndSetCron(async () => {
   const devices = await Device.findByProvider('tplink');
 
   for (const device of devices) {
@@ -33,7 +33,7 @@ nowAndSetInterval(async () => {
     await device.getLightCapability().setIsOnState(await tpLinkDevice.getPowerState());
     await device.getConnectivityCapability().setIsConnectedState(true);
   }
-}, Math.max(config.tplink.sync_interval_seconds, 60) * 1000);
+}, config.tplink.sync_cron);
 
 Device.registerProvider('tplink', {
   getCapabilities() {
@@ -47,7 +47,12 @@ Device.registerProvider('tplink', {
       },
 
       async setIsOn(device: Device, isOn: boolean) {
-        await getTpLinkDeviceFromDevice(device).then(x => x?.setPowerState(isOn));
+        const tpLinkDevice = await getTpLinkDeviceFromDevice(device);
+
+        if (tpLinkDevice) {
+          await tpLinkDevice.setPowerState(isOn);
+          await device.getLightCapability().setIsOnState(isOn);
+        }
       }
     };
   },

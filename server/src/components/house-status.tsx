@@ -4,7 +4,7 @@ import classnames from 'classnames';
 import { HOME, AWAY } from '../constants/status';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDroplet, faFire, faShieldHalved, faTemperatureArrowUp } from '@fortawesome/free-solid-svg-icons';
-import { SegmentedControl, Text, Title } from '@mantine/core';
+import { Button, SegmentedControl, Text, Title } from '@mantine/core';
 import { useUsers } from '../hooks/queries/use-users';
 import { useHeating } from '../hooks/queries/use-heating';
 import { useSecurity } from '../hooks/queries/use-security';
@@ -31,7 +31,7 @@ export default function HouseStatus() {
 
   const stays = usersData;
   const alarmMode = securityData.alarmMode;
-  const { centralHeating: commonThermostatMode, dhw: dhwHeatingMode } = heatingData;
+  const { centralHeating: commonThermostatMode, dhwStatus } = heatingData;
   const preWarmStartTime = heatingData.preWarmStartTime ? dayjs(heatingData.preWarmStartTime) : null;
 
   return (
@@ -83,14 +83,22 @@ export default function HouseStatus() {
       <div className={styles.homeControls}>
         <Title order={3} className={styles.homeControlsTitle}><FontAwesomeIcon icon={faDroplet} /></Title>
         <SegmentedControl
-          value={dhwHeatingMode}
+          value={dhwStatus.mode}
           onChange={(value) => updateHeating({ dhw: value as DHWHeatingMode })}
           disabled={heatingMutating}
           data={[
-            { label: 'On', value: 'ON' },
+            { label: 'Auto', value: 'AUTO' },
             { label: 'Off', value: 'OFF' },
           ]}
         />
+        <Button
+          variant={dhwStatus.isBoosting ? 'filled' : 'default'}
+          color="blue"
+          disabled={heatingMutating}
+          onClick={() => updateHeating({ dhwBoost: !dhwStatus.isBoosting })}
+        >
+          {dhwStatus.isBoosting ? 'Boosting' : 'Boost'}
+        </Button>
       </div>
 
       {preWarmStartTime && (

@@ -1,3 +1,8 @@
+const BTHOME_OBJECT_ID_TO_PROPERTY = {
+  1: 'battery',
+  45: 'contact',
+};
+
 export default class Gen2PlusDeviceClient {
   constructor(ip, username, password, generation) {
     this._ip = ip;
@@ -68,5 +73,38 @@ export default class Gen2PlusDeviceClient {
 
   async setLedMode(mode) {
     return await this._request(`/rpc/PLUGUK_UI.SetConfig?config={"leds":{"mode":"${mode}"}}`);
+  }
+
+  // Returns this Presence sensor's configured zones straight off the device, so callers don't
+  // have to ask a human to know/type the zone ids and names set up in the Shelly app.
+  async getPresenceZones() {
+    const { components } = await this._request('/rpc/Shelly.GetComponents');
+
+    return components
+      .filter((component) => component.key.startsWith('presencezone:'))
+      .map((component) => ({ id: `zone${component.config.id}`, name: component.config.name }));
+  }
+
+  // Returns the `{ [localSensorId]: property }` mapping for a BTHome (BLU) device
+  // already paired to this gateway, restricted to object types Karen understands.
+  async getBTHomeSensorsFor(mac) {
+    const { components } = await this._request('/rpc/Shelly.GetComponents?dynamic_only=true');
+    const sensors = {};
+
+    for (const component of components) {
+      if (!component.key.startsWith('bthomesensor:') || component.config.addr !== mac) {
+        continue;
+      }
+
+      const property = BTHOME_OBJECT_ID_TO_PROPERTY[component.config.obj_id];
+
+      if (property) {
+        const id = component.key.split(':')[1];
+
+        sensors[id] = property;
+      }
+    }
+
+    return sensors;
   }
 }

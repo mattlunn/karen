@@ -8,8 +8,14 @@ export class Recording extends Model<InferAttributes<Recording>, InferCreationAt
   declare public start: Date;
   declare public end: CreationOptional<Date>;
   declare public size: CreationOptional<number>;
+  declare public createdAt: CreationOptional<Date>;
+  declare public updatedAt: CreationOptional<Date>;
 
   declare public event: NonAttribute<Event>;
+
+  static findByEventId(eventId: number) {
+    return this.findOne({ where: { eventId } });
+  }
 }
 
 export default function (sequelize: Sequelize) {
@@ -33,17 +39,27 @@ export default function (sequelize: Sequelize) {
     },
 
     start: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE(3),
       allowNull: false
     },
 
     end: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE(3),
       allowNull: false
     },
 
     size: {
       type: DataTypes.INTEGER.UNSIGNED
+    },
+
+    createdAt: {
+      type: DataTypes.DATE(3),
+      allowNull: false
+    },
+
+    updatedAt: {
+      type: DataTypes.DATE(3),
+      allowNull: false
     }
   }, {
     sequelize,

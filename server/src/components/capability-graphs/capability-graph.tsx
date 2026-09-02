@@ -13,8 +13,7 @@ import {
   TimeScale,
   Colors,
   Filler,
-  ChartDataset,
-  Point
+  ChartDataset
 } from 'chart.js';
 import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
@@ -34,6 +33,8 @@ export function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'da
   }
   return 'minute';
 }
+
+export type TimeUnit = 'minute' | 'hour' | 'day' | 'month';
 
 ChartJS.register(
   LinearScale,
@@ -67,19 +68,59 @@ function mapNumericDataToDataset(numericEventHistory: HistoryDetailsApiResponse<
   }, []);
 }
 
+// For periodic aggregates (daily/monthly totals etc.) rather than a continuously-held state:
+// one point per bucket (at the bucket's start, matching the axis tick), so a line interpolates
+// a trend between buckets instead of plotting a plateau across the whole bucket that jumps at
+// the boundary.
+//
+// setNumericProperty collapses consecutive buckets that share the same value into a single
+// event spanning all of them (e.g. four zero-usage days become one row from day 1 to day 5).
+// When `period` is given, that span is unrolled back into one point per bucket, so e.g. a bar
+// chart still shows four separate zero bars instead of one that silently covers 4 days.
+function mapNumericDataToAggregateDataset(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse>, period?: 'day' | 'month') {
+  const sortedEvents = filterClampAndSortHistory(numericEventHistory.history, numericEventHistory.since, numericEventHistory.until, false);
+
+  return sortedEvents.reduce((acc: ({ x: string, y: number })[], curr) => {
+    // Still the current/in-progress bucket - there's only one point to plot.
+    if (!period || !curr.end) {
+      acc.push({ x: curr.start, y: curr.value });
+      return acc;
+    }
+
+    for (let bucket = dayjs(curr.start); bucket.isBefore(curr.end); bucket = bucket.add(1, period)) {
+      acc.push({ x: bucket.toISOString(), y: curr.value });
+    }
+
+    return acc;
+  }, []);
+}
+
+export type ModeSeries = {
+  data: HistoryDetailsApiResponse<EnumEventApiResponse | BooleanEventApiResponse>,
+  details: {
+    value: string | true;
+    label: string;
+    fillColor?: string
+  }[]
+};
+
 export type CapabilityGraphProps = {
   lines: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
     yAxisID?: string,
-    borderDash?: number[]
+    borderDash?: number[],
+    period?: 'day' | 'month'
   }[]
 
-  bar?: {
+  bars?: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
-    yAxisID?: string
-  }
+    yAxisID?: string,
+    period?: 'day' | 'month'
+  }[]
+
+  stacked?: boolean
 
   zones?: {
     min?: number;
@@ -87,24 +128,23 @@ export type CapabilityGraphProps = {
     color: string;
   }[]
 
-  modes?: {
-    data: HistoryDetailsApiResponse<EnumEventApiResponse | BooleanEventApiResponse>,
-    details: {
-      value: string | true;
-      label: string;
-      fillColor?: string
-    }[]
-  }
+  markers?: {
+    at: string;
+    label?: string;
+    color: string;
+  }[]
+
+  modes?: ModeSeries[]
 
   yAxis?: Record<string, {
     position?: 'left' | 'right',
     max?: number,
     min?: number,
+    suggestedMin?: number,
+    suggestedMax?: number,
   }>
 
-  yMin?: number
-  yMax?: number
-  timeUnit?: 'minute' | 'hour' | 'day'
+  timeUnit?: TimeUnit
   height?: string
 };
 
@@ -122,12 +162,14 @@ function getMinMax(props: CapabilityGraphProps): { min: string; max: string } | 
     return { min, max };
   }
 
-  if (props.bar) {
-    return { min: props.bar.data.since, max: props.bar.data.until };
+  if (props.bars && props.bars.length > 0) {
+    return { min: props.bars[0].data.since, max: props.bars[0].data.until };
   }
 
-  if (props.modes) {
-    return { min: props.modes.data.since, max: props.modes.data.until };
+  const modeSeries = props.modes ?? [];
+
+  if (modeSeries.length > 0) {
+    return { min: modeSeries[0].data.since, max: modeSeries[0].data.until };
   }
 
   return null;
@@ -146,18 +188,19 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }
 
   const { min, max } = minMax;
-  const modesOnly = props.lines.length === 0;
+  const modesOnly = props.lines.length === 0 && !props.bars?.length;
 
-  const datasets: ChartDataset<"line", { x: string; y: number; }[]>[] = props.lines.map(x => ({
+  const datasets: (ChartDataset<"line", { x: string; y: number; }[]> | ChartDataset<"bar", { x: string; y: number; }[]>)[] = props.lines.map(x => ({
     type: 'line',
-    data: mapNumericDataToDataset(x.data),
+    data: x.period ? mapNumericDataToAggregateDataset(x.data, x.period) : mapNumericDataToDataset(x.data),
     label: x.label,
     yAxisID: x.yAxisID || 'y',
+    ...(x.period ? { tension: 0.3 } : {}),
     ...(x.borderDash ? { borderDash: x.borderDash } : {})
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
-  const tickStepSize = timeUnit === 'day' ? 1 : 15;
+  const tickStepSize = timeUnit === 'day' || timeUnit === 'month' ? 1 : timeUnit === 'hour' ? 2 : 15;
 
   // TODO: Fixme any
   const chartOptions: any = {
@@ -183,32 +226,71 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
       colors: {
         forceOverride: true
+      },
+
+      legend: {
+        onClick: (_e: unknown, legendItem: { datasetIndex: number }, legend: { chart: any }) => {
+          const chart = legend.chart;
+          const clickedIndex = legendItem.datasetIndex;
+          const eligible: number[] = chart.data.datasets
+            .map((d: { label?: string }, i: number) => ({ d, i }))
+            .filter(({ d }: { d: { label?: string } }) => d.label !== '')
+            .map(({ i }: { i: number }) => i);
+
+          const visibleCount = eligible.filter((i: number) => chart.isDatasetVisible(i)).length;
+          const clickedVisible = chart.isDatasetVisible(clickedIndex);
+
+          if (visibleCount === eligible.length) {
+            // All visible → isolate clicked
+            for (const i of eligible) {
+              chart.setDatasetVisibility(i, i === clickedIndex);
+            }
+          } else if (!clickedVisible) {
+            // Clicked a hidden one → add it
+            chart.setDatasetVisibility(clickedIndex, true);
+          } else if (visibleCount === 1) {
+            // Clicked the last visible one → restore all
+            for (const i of eligible) {
+              chart.setDatasetVisibility(i, true);
+            }
+          } else {
+            // Clicked a visible one, others still visible → hide it
+            chart.setDatasetVisibility(clickedIndex, false);
+          }
+
+          chart.update();
+        }
       }
     },
 
     maintainAspectRatio: false
   };
 
-  if (props.bar) {
-    datasets.push({
-      type: 'line',
-      fill: 'start',
-      data: mapNumericDataToDataset(props.bar.data),
-      label: props.bar.label,
-      yAxisID: props.bar.yAxisID || 'y',
-      pointHitRadius: 10,
-      pointRadius: 0,
-      borderWidth: 1,
-      stepped: true
-    });
+  if (props.stacked && props.bars) {
+    chartOptions.scales.x.stacked = true;
   }
 
-  if (props.modes) {
-    const sortedEvents = filterClampAndSortHistory(props.modes.data.history, props.modes.data.since, props.modes.data.until, true);
+  if (props.bars) {
+    for (const bar of props.bars) {
+      datasets.push({
+        type: 'bar',
+        data: mapNumericDataToAggregateDataset(bar.data, bar.period),
+        label: bar.label,
+        yAxisID: bar.yAxisID || 'y',
+        borderWidth: 1,
+        ...(props.stacked ? { stack: 'stack' } : {})
+      });
+    }
+  }
 
-    for (let i=0;i<props.modes.details.length;i++) {
-      const mode = props.modes.details[i];
-      const axisName = `yMode${i}`;
+  const modeSeries = props.modes ?? [];
+
+  modeSeries.forEach((series, seriesIndex) => {
+    const sortedEvents = filterClampAndSortHistory(series.data.history, series.data.since, series.data.until, true);
+
+    for (let i = 0; i < series.details.length; i++) {
+      const mode = series.details[i];
+      const axisName = `yMode${seriesIndex}_${i}`;
 
       datasets.push({
         type: 'line',
@@ -247,7 +329,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         display: false
       };
     }
-  }
+  });
 
   if (props.yAxis) {
     for (const [axisId, axisDetails] of Object.entries(props.yAxis)) {
@@ -259,6 +341,10 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       if (modesOnly) {
         scaleConfig.ticks = { color: 'transparent' };
         scaleConfig.grid = { display: false };
+      }
+
+      if (props.stacked) {
+        scaleConfig.stacked = true;
       }
 
       chartOptions.scales[axisId] = scaleConfig;
@@ -285,12 +371,25 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     };
   }
 
-  if (props.yMin || props.yMax) {
-    chartOptions.scales.y = {
-      type: 'linear',
-      min: props.yMin,
-      max: props.yMax,
-    };
+  if (props.markers) {
+    props.markers.forEach((marker, idx) => {
+      chartOptions.plugins.annotation.annotations[`marker${idx}`] = {
+        type: 'line',
+        xMin: marker.at,
+        xMax: marker.at,
+        borderColor: marker.color,
+        borderWidth: 2,
+        ...(marker.label ? {
+          label: {
+            display: true,
+            content: marker.label,
+            position: 'start',
+            backgroundColor: marker.color,
+            font: { size: 10 }
+          }
+        } : {})
+      };
+    });
   }
 
   if (props.zones) {

@@ -11,6 +11,7 @@ import type {
   EnumEventApiResponse,
 } from '../../api/types';
 import type { DateRangePreset } from '../date-range/types';
+import type { TimeUnit } from '../capability-graphs/capability-graph';
 
 // ============================================================================
 // Metric Display Context
@@ -118,11 +119,12 @@ export interface GraphConfig {
   yAxis?: Record<string, { position: 'left' | 'right'; min?: number; max?: number }>;
   yMin?: number;
   yMax?: number;
+  suggestedYMin?: number;
   zones?: { min: number; max: number; color: string }[];
   overridePreset?: DateRangePreset;
   overrideStart?: string;
   overrideEnd?: string;
-  timeUnit?: string;
+  timeUnit?: TimeUnit;
 }
 
 // ============================================================================

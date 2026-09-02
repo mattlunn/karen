@@ -55,3 +55,12 @@ export function buildScheduleNotification(
     ? `Car charging started: ${tail}`
     : `Car needs to be plugged in to allow ${tail}`;
 }
+
+export function buildChargingFailureNotification(
+  targetPercentage: number,
+  targetTime: Dayjs,
+): string {
+  const targetStr = `${targetTime.format('HH:mm')} ${humanDate(targetTime)}`;
+
+  return `Car is plugged in but not charging; it won't reach ${targetPercentage}% by ${targetStr}. Check that the cable is fully plugged in and that the correct charge limit is set in the Kia app.`;
+}

@@ -4,7 +4,7 @@ import './styles/global.css';
 import './dayjs';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router';
 import { createTheme, MantineProvider } from '@mantine/core';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -13,13 +13,13 @@ import { BuildVersionProvider } from './components/build-version-context';
 import AppLayout from './components/app-layout';
 import ErrorBoundary from './components/error-boundary';
 import Home from './components/pages/home';
-import Timeline from './components/pages/timeline';
 import Devices from './components/pages/devices';
 import Device from './components/pages/device';
 import Login from './components/pages/login';
 import HeatingInsights from './components/pages/insights-heating';
 import EnergyInsights from './components/pages/insights-energy';
 import InsightsBins from './components/pages/insights-bins';
+import SecurityInsights from './components/pages/insights-security';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,12 +55,12 @@ const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { path: '/', element: <Home /> },
-      { path: '/timeline', element: <Timeline /> },
       { path: '/insights/heating', element: <HeatingInsights /> },
       { path: '/insights/energy', element: <EnergyInsights /> },
       { path: '/device/:id', element: <Device /> },
       { path: '/device', element: <Devices /> },
       { path: '/insights/bins', element: <InsightsBins /> },
+      { path: '/insights/security', element: <SecurityInsights /> },
     ],
   },
 ]);

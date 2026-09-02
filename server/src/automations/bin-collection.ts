@@ -1,17 +1,19 @@
+import { z } from 'zod';
+import { timeString } from './schema';
 import bus, { NOTIFICATION_TO_ALL } from '../bus';
 import { Device } from '../models';
-import config from '../config';
+import config from '../config/app';
 import dayjs from '../dayjs';
 import logger from '../logger';
-import setIntervalForTime from '../helpers/set-interval-for-time';
+import scheduleDaily from '../helpers/schedule-daily';
 import { joinWithAnd, pluralise } from '../helpers/array';
 
-type BinCollectionAutomationParameters = {
-  reminderTime: string;
-};
+export const parameters = z.object({
+  reminderTime: timeString
+});
 
-export default function ({ reminderTime }: BinCollectionAutomationParameters) {
-  setIntervalForTime(async () => {
+export default function ({ reminderTime }: z.infer<typeof parameters>) {
+  scheduleDaily(async () => {
     try {
       const devices = await Device.findByCapability('BIN_COLLECTION');
       const tomorrow = dayjs().add(1, 'day');
@@ -59,7 +61,7 @@ export default function ({ reminderTime }: BinCollectionAutomationParameters) {
       if (movedFromTomorrow.length > 0) {
         const newDate = dayjs(overrideFromTomorrow!.newDate);
         bus.emit(NOTIFICATION_TO_ALL, {
-          message: `🗑️ ${joinWithAnd(movedFromTomorrow)} bin collection moved to ${newDate.format('ddd D MMM')}`,
+          message: `‼️ 🗑️ ${joinWithAnd(movedFromTomorrow)} bin collection moved to ${newDate.format('ddd D MMM')}`,
         });
       }
     } catch (e) {

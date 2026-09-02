@@ -21,7 +21,16 @@ function normalizeBase(base, date) {
   } else {
     const [hour, minute] = base.split(':');
 
-    return dayjs(date).startOf('minute').hour(+hour).minute(+minute);
+    // dayjs' hour()/minute() setters operate on the fixed UTC offset already baked into `date`
+    // (from converting it to Europe/London), rather than re-deriving the correct offset for the
+    // resulting wall-clock time. That's fine when `date` and the target time share a DST state,
+    // but silently produces a result an hour off when they fall on opposite sides of a
+    // transition (e.g. normalizing "17:00" against a date at UTC midnight, the day BST starts).
+    // Round-trip through a plain date/time string via dayjs.tz() instead, which does perform
+    // that offset lookup correctly for the resulting local time.
+    const dateStr = dayjs(date).format('YYYY-MM-DD');
+
+    return dayjs.tz(`${dateStr} ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`, 'Europe/London');
   }
 }
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import config from '../config';
+import config from '../config/app';
 import { User } from '../models';
 import { markUserAsHome, markUserAsAway } from '../helpers/presence';
 

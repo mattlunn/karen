@@ -1,4 +1,5 @@
-import { Device } from '../../models';
+import { Device, CapabilityInstance } from '../../models';
+import { Capability } from '../../models/capabilities';
 import { publishCommand } from './mqtt';
 
 const TOPIC_PREFIX = 'shellies';
@@ -16,11 +17,26 @@ Device.registerProvider('shelly', {
         return ['SWITCH', 'CONNECTIVITY'];
 
       case 'S4SW-001X8EU': // Shelly 1 Mini Gen4 (Fire Alarm)
-        return ['CONTACT_SENSOR', 'CONNECTIVITY'];
+        return ['ALARM_SENSOR', 'CONNECTIVITY'];
+
+      case 'SBDW-002C':    // Shelly BLU Door/Window (via BLE gateway)
+        return ['CONTACT_SENSOR', 'BATTERY_LEVEL_INDICATOR'];
+
+      case 'S4SN-0U61X': // Shelly Presence Gen4 (mmWave, multi-zone)
+        return ['MOTION_SENSOR', 'CONNECTIVITY'];
 
       default:
         throw new Error(`Cannot infer capabilities for device ${device.id} (${device.model})`);
     }
+  },
+
+  getCapabilityInstances(device: Device, capability: Capability): CapabilityInstance[] {
+    // For Shelly Presence Gen4.
+    if (capability === 'MOTION_SENSOR' && Array.isArray(device.meta.zones)) {
+      return (device.meta.zones as { id: string; name: string }[]).map(({ id, name }) => ({ id, name }));
+    }
+
+    return [{ id: null, name: null }];
   },
 
   provideLightCapability() {

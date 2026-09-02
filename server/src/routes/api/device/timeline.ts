@@ -65,18 +65,21 @@ export default async function (req: Request<{ id: string }>, res: Response, next
       }
 
       case 'MOTION_SENSOR': {
-        const sensor = device.getMotionSensorCapability();
-        historyPromises.push(
-          mapBooleanHistory((hs) => sensor.getHasMotionHistory(hs), historySelector)
-            .then(history => {
-              for (const event of history) {
-                events.push({ type: 'motion-start', timestamp: event.start });
-                if (event.end) {
-                  events.push({ type: 'motion-end', timestamp: event.end });
+        for (const instance of device.getCapabilityInstances(capability)) {
+          const sensor = device.getMotionSensorCapability(instance.id);
+
+          historyPromises.push(
+            mapBooleanHistory((hs) => sensor.getHasMotionHistory(hs), historySelector)
+              .then(history => {
+                for (const event of history) {
+                  events.push({ type: 'motion-start', timestamp: event.start, instanceName: instance.name });
+                  if (event.end) {
+                    events.push({ type: 'motion-end', timestamp: event.end, instanceName: instance.name });
+                  }
                 }
-              }
-            })
-        );
+              })
+          );
+        }
         break;
       }
 
@@ -99,6 +102,45 @@ export default async function (req: Request<{ id: string }>, res: Response, next
           conn.getIsConnectedHistory(historySelector).then(history => {
             for (const event of history) {
               events.push({ type: event.value ? 'connectivity-online' : 'connectivity-offline', timestamp: event.start.toISOString() });
+            }
+          })
+        );
+        break;
+      }
+
+      case 'CONTACT_SENSOR': {
+        const sensor = device.getContactSensorCapability();
+        historyPromises.push(
+          sensor.getIsOpenHistory(historySelector).then(history => {
+            for (const event of history) {
+              if (event.value) {
+                const durationSeconds = event.end
+                  ? Math.round((event.end.getTime() - event.start.getTime()) / 1000)
+                  : null;
+                events.push({
+                  type: 'contact-opened',
+                  timestamp: event.start.toISOString(),
+                  durationSeconds
+                });
+              }
+            }
+          })
+        );
+        break;
+      }
+
+      case 'SWITCH': {
+        const switchCapability = device.getSwitchCapability();
+        historyPromises.push(
+          switchCapability.getIsOnHistory(historySelector).then(history => {
+            for (const event of history) {
+              events.push({ type: 'switch-on', timestamp: event.start.toISOString() });
+
+              if (event.end) {
+                const durationSeconds = Math.round((event.end.getTime() - event.start.getTime()) / 1000);
+
+                events.push({ type: 'switch-off', timestamp: event.end.toISOString(), durationSeconds });
+              }
             }
           })
         );

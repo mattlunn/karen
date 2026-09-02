@@ -1,5 +1,5 @@
 import { Device, NumericEvent, BooleanEvent, StringEvent } from '../../models';
-import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse, RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
+import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse, RestDeviceResponse, CapabilityApiResponse, CapabilityApiResponseBase } from '../../api/types';
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
 
@@ -60,7 +60,7 @@ export function mapStringState(eventPromise: Promise<StringEvent | null>, device
   });
 }
 
-export async function getCapabilityData(device: Device, capability: string): Promise<CapabilityApiResponse> {
+export async function getCapabilityData(device: Device, capability: string, instanceId: string | null = null): Promise<CapabilityApiResponseBase> {
   switch (capability) {
     case 'CAMERA': {
       const now = new Date().toISOString();
@@ -76,7 +76,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'LIGHT_SENSOR': {
-      const sensor = device.getLightSensorCapability();
+      const sensor = device.getLightSensorCapability(instanceId);
       return awaitPromises({
         type: 'LIGHT_SENSOR' as const,
         illuminance: mapNumericState(sensor.getIlluminanceEvent(), device)
@@ -84,7 +84,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'HUMIDITY_SENSOR': {
-      const sensor = device.getHumiditySensorCapability();
+      const sensor = device.getHumiditySensorCapability(instanceId);
       return awaitPromises({
         type: 'HUMIDITY_SENSOR' as const,
         humidity: mapNumericState(sensor.getHumidityEvent(), device)
@@ -92,7 +92,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'LIGHT': {
-      const light = device.getLightCapability();
+      const light = device.getLightCapability(instanceId);
       return awaitPromises({
         type: 'LIGHT' as const,
         isOn: mapBooleanState(light.getIsOnEvent(), device),
@@ -101,12 +101,19 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'HEAT_PUMP': {
-      const heatPump = device.getHeatPumpCapability();
+      const heatPump = device.getHeatPumpCapability(instanceId);
+
+      const [lastLegionellaCycle] = await heatPump.getLegionellaCycles(device.createdAt, new Date(), 1);
+
       return awaitPromises({
         type: 'HEAT_PUMP' as const,
         mode: mapStringState(heatPump.getModeEvent(), device),
         compressorModulation: mapNumericState(heatPump.getCompressorModulationEvent(), device),
         dhwTemperature: mapNumericState(heatPump.getDHWTemperatureEvent(), device),
+        dhwBoost: mapBooleanState(heatPump.getDHWBoostEvent(), device),
+        dhwMaxChargeTime: mapNumericState(heatPump.getDHWMaxChargeTimeEvent(), device),
+        lastLegionellaCycle: lastLegionellaCycle?.toISOString() ?? null,
+        plannedDhwRun: heatPump.getPlannedDHWWindow(),
         outsideTemperature: mapNumericState(heatPump.getOutsideTemperatureEvent(), device),
         actualFlowTemperature: mapNumericState(heatPump.getActualFlowTemperatureEvent(), device),
         returnTemperature: mapNumericState(heatPump.getReturnTemperatureEvent(), device),
@@ -118,7 +125,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'LOCK': {
-      const lock = device.getLockCapability();
+      const lock = device.getLockCapability(instanceId);
       return awaitPromises({
         type: 'LOCK' as const,
         isLocked: mapBooleanState(lock.getIsLockedEvent(), device)
@@ -126,7 +133,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'MOTION_SENSOR': {
-      const sensor = device.getMotionSensorCapability();
+      const sensor = device.getMotionSensorCapability(instanceId);
       return awaitPromises({
         type: 'MOTION_SENSOR' as const,
         hasMotion: mapBooleanState(sensor.getHasMotionEvent(), device)
@@ -134,7 +141,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'TEMPERATURE_SENSOR': {
-      const sensor = device.getTemperatureSensorCapability();
+      const sensor = device.getTemperatureSensorCapability(instanceId);
       return awaitPromises({
         type: 'TEMPERATURE_SENSOR' as const,
         currentTemperature: mapNumericState(sensor.getCurrentTemperatureEvent(), device)
@@ -142,7 +149,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'THERMOSTAT': {
-      const thermostat = device.getThermostatCapability();
+      const thermostat = device.getThermostatCapability(instanceId);
       return awaitPromises({
         type: 'THERMOSTAT' as const,
         targetTemperature: mapNumericState(thermostat.getTargetTemperatureEvent(), device),
@@ -154,7 +161,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'BUTTON': {
-      const button = device.getButtonCapability();
+      const button = device.getButtonCapability(instanceId);
       const now = new Date();
       const startOfToday = dayjs().startOf('day').toDate();
 
@@ -183,15 +190,25 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       return { type: 'SPEAKER' };
 
     case 'SWITCH': {
-      const switchCapability = device.getSwitchCapability();
+      const switchCapability = device.getSwitchCapability(instanceId);
       return awaitPromises({
         type: 'SWITCH' as const,
         isOn: mapBooleanState(switchCapability.getIsOnEvent(), device)
       });
     }
 
+    case 'TELEVISION': {
+      const tv = device.getTelevisionCapability(instanceId);
+      return awaitPromises({
+        type: 'TELEVISION' as const,
+        volume: mapNumericState(tv.getVolumeEvent(), device),
+        isMuted: mapBooleanState(tv.getIsMutedEvent(), device),
+        availableSources: tv.getAvailableSources(),
+      });
+    }
+
     case 'BATTERY_LEVEL_INDICATOR': {
-      const battery = device.getBatteryLevelIndicatorCapability();
+      const battery = device.getBatteryLevelIndicatorCapability(instanceId);
       return awaitPromises({
         type: 'BATTERY_LEVEL_INDICATOR' as const,
         batteryPercentage: mapNumericState(battery.getBatteryPercentageEvent(), device)
@@ -199,20 +216,20 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'BATTERY_LOW_INDICATOR': {
-      const battery = device.getBatteryLowIndicatorCapability();
+      const battery = device.getBatteryLowIndicatorCapability(instanceId);
       return awaitPromises({
         type: 'BATTERY_LOW_INDICATOR' as const,
         isLow: mapBooleanState(battery.getIsBatteryLowEvent(), device)
       });
     }
 
-    case 'CONTACT_SENSOR': {
-      const sensor = device.getContactSensorCapability();
-      const event = await sensor.getIsClosedEvent();
+    case 'ALARM_SENSOR': {
+      const sensor = device.getAlarmSensorCapability(instanceId);
+      const event = await sensor.getIsTriggeredEvent();
 
       return {
-        type: 'CONTACT_SENSOR' as const,
-        isClosed: await mapBooleanState(Promise.resolve(event), device),
+        type: 'ALARM_SENSOR' as const,
+        isTriggered: await mapBooleanState(Promise.resolve(event), device),
         lastTriggered: event ? {
           start: event.start.toISOString(),
           end: event.end?.toISOString() ?? null,
@@ -223,8 +240,16 @@ export async function getCapabilityData(device: Device, capability: string): Pro
       };
     }
 
+    case 'CONTACT_SENSOR': {
+      const sensor = device.getContactSensorCapability(instanceId);
+      return awaitPromises({
+        type: 'CONTACT_SENSOR' as const,
+        isOpen: mapBooleanState(sensor.getIsOpenEvent(), device)
+      });
+    }
+
     case 'BIN_COLLECTION': {
-      const cap = device.getBinCollectionCapability();
+      const cap = device.getBinCollectionCapability(instanceId);
       const schedule = cap.getScheduleData();
       const next = cap.getNextCollectionDate();
 
@@ -237,7 +262,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'ELECTRIC_VEHICLE': {
-      const ev = device.getElectricVehicleCapability();
+      const ev = device.getElectricVehicleCapability(instanceId);
 
       return awaitPromises({
         type: 'ELECTRIC_VEHICLE' as const,
@@ -251,7 +276,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'CONNECTIVITY': {
-      const conn = device.getConnectivityCapability();
+      const conn = device.getConnectivityCapability(instanceId);
       return awaitPromises({
         type: 'CONNECTIVITY' as const,
         isConnected: mapBooleanState(conn.getIsConnectedEvent(), device)
@@ -259,7 +284,7 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'ENERGY_MONITOR': {
-      const energyMonitor = device.getEnergyMonitorCapability();
+      const energyMonitor = device.getEnergyMonitorCapability(instanceId);
       return awaitPromises({
         type: 'ENERGY_MONITOR' as const,
         currentPower: mapNumericState(energyMonitor.getCurrentPowerEvent(), device),
@@ -269,10 +294,9 @@ export async function getCapabilityData(device: Device, capability: string): Pro
     }
 
     case 'ENERGY_COST': {
-      const energyCost = device.getEnergyCostCapability();
+      const energyCost = device.getEnergyCostCapability(instanceId);
       return awaitPromises({
         type: 'ENERGY_COST' as const,
-        unitRate: mapNumericState(energyCost.getUnitRateEvent(), device),
         standingCharge: mapNumericState(energyCost.getStandingChargeEvent(), device)
       });
     }
@@ -341,7 +365,11 @@ function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fall
 export async function mapDeviceToResponse(device: Device): Promise<RestDeviceResponse> {
   const capabilities = device.getCapabilities();
   const capabilityData = await Promise.all(
-    capabilities.map(cap => getCapabilityData(device, cap))
+    capabilities.flatMap(cap => device.getCapabilityInstances(cap).map(async (instance) => ({
+      ...await getCapabilityData(device, cap, instance.id),
+      instanceId: instance.id,
+      instanceName: instance.name
+    })))
   );
 
   const lastSeen = getLastSeenFromCapabilities(capabilityData, device.createdAt);

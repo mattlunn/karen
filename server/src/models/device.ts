@@ -8,8 +8,10 @@ import {
   ProviderSpeakerCapability,
   ProviderThermostatCapability,
   ProviderSwitchCapability,
+  ProviderTelevisionCapability,
   ProviderElectricVehicleCapability,
   ProviderOvenCapability,
+  ProviderHeatPumpCapability,
 
   LightSensorCapability,
   HumiditySensorCapability,
@@ -21,11 +23,14 @@ import {
   TemperatureSensorCapability,
   ThermostatCapability,
   SwitchCapability,
+  TelevisionCapability,
   HeatPumpCapability,
   SpeakerCapability,
   ElectricVehicleCapability,
   BinCollectionCapability,
   ButtonCapability,
+  DoorbellCapability,
+  AlarmSensorCapability,
   ContactSensorCapability,
   ConnectivityCapability,
   EnergyMonitorCapability,
@@ -40,6 +45,8 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare provider: string;
   declare providerId: string;
   declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
+  declare deletedAt: CreationOptional<Date | null>;
   declare name: CreationOptional<string>;
   declare manufacturer: CreationOptional<string>;
   declare model: CreationOptional<string>;
@@ -47,7 +54,6 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare metaStringified: CreationOptional<string>;
 
   #metaParsed: Record<string, unknown>;
-  #capabilityCache: Map<(device: Device) => unknown, unknown> = new Map();
 
   declare getEvents: HasManyGetAssociationsMixin<{ start: Date; }>;
 
@@ -63,102 +69,104 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     return this.#metaParsed;
   }
 
-  #getCapabilityOrThrow<T>(handler: () => T): T {
-    // TODO: Should check that the provider can provide this capability at this point???
-
-    if (!this.#capabilityCache.has(handler)) {
-      this.#capabilityCache.set(handler, handler());
-    }
-
-    return this.#capabilityCache.get(handler) as T;
+  getConnectivityCapability(instanceId: string | null = null): ConnectivityCapability {
+    return new ConnectivityCapability(this, instanceId);
   }
 
-  getConnectivityCapability(): ConnectivityCapability {
-    return this.#getCapabilityOrThrow(() => new ConnectivityCapability(this));
+  getBatteryLowIndicatorCapability(instanceId: string | null = null): BatteryLowIndicatorCapability {
+    return new BatteryLowIndicatorCapability(this, instanceId);
   }
 
-  getBatteryLowIndicatorCapability(): BatteryLowIndicatorCapability {
-    return this.#getCapabilityOrThrow(() => new BatteryLowIndicatorCapability(this));
+  getBatteryLevelIndicatorCapability(instanceId: string | null = null): BatteryLevelIndicatorCapability {
+    return new BatteryLevelIndicatorCapability(this, instanceId);
   }
 
-  getBatteryLevelIndicatorCapability(): BatteryLevelIndicatorCapability {
-    return this.#getCapabilityOrThrow(() => new BatteryLevelIndicatorCapability(this));
+  getLockCapability(instanceId: string | null = null): LockCapability {
+    return new LockCapability(this, instanceId);
   }
 
-  getLockCapability(): LockCapability {
-    return this.#getCapabilityOrThrow(() => new LockCapability(this));
+  getLightCapability(instanceId: string | null = null): LightCapability {
+    return new LightCapability(this, instanceId);
   }
 
-  getLightCapability(): LightCapability {
-    return this.#getCapabilityOrThrow(() => new LightCapability(this));
+  getThermostatCapability(instanceId: string | null = null): ThermostatCapability {
+    return new ThermostatCapability(this, instanceId);
   }
 
-  getThermostatCapability(): ThermostatCapability {
-    return this.#getCapabilityOrThrow(() => new ThermostatCapability(this));
+  getMotionSensorCapability(instanceId: string | null = null): MotionSensorCapability {
+    return new MotionSensorCapability(this, instanceId);
   }
 
-  getMotionSensorCapability(): MotionSensorCapability {
-    return this.#getCapabilityOrThrow(() => new MotionSensorCapability(this));
+  getTemperatureSensorCapability(instanceId: string | null = null): TemperatureSensorCapability {
+    return new TemperatureSensorCapability(this, instanceId);
   }
 
-  getTemperatureSensorCapability(): TemperatureSensorCapability {
-    return this.#getCapabilityOrThrow(() => new TemperatureSensorCapability(this));
+  getHeatPumpCapability(instanceId: string | null = null): HeatPumpCapability {
+    return new HeatPumpCapability(this, instanceId);
   }
 
-  getHeatPumpCapability(): HeatPumpCapability {
-    return this.#getCapabilityOrThrow(() => new HeatPumpCapability(this));
+  getLightSensorCapability(instanceId: string | null = null): LightSensorCapability {
+    return new LightSensorCapability(this, instanceId);
   }
 
-  getLightSensorCapability(): LightSensorCapability {
-    return this.#getCapabilityOrThrow(() => new LightSensorCapability(this));
+  getHumiditySensorCapability(instanceId: string | null = null): HumiditySensorCapability {
+    return new HumiditySensorCapability(this, instanceId);
   }
 
-  getHumiditySensorCapability(): HumiditySensorCapability {
-    return this.#getCapabilityOrThrow(() => new HumiditySensorCapability(this));
+  getSpeakerCapability(instanceId: string | null = null): SpeakerCapability {
+    return new SpeakerCapability(this, instanceId);
   }
 
-  getSpeakerCapability(): SpeakerCapability {
-    return this.#getCapabilityOrThrow(() => new SpeakerCapability(this));
+  getSwitchCapability(instanceId: string | null = null): SwitchCapability {
+    return new SwitchCapability(this, instanceId);
   }
 
-  getSwitchCapability(): SwitchCapability {
-    return this.#getCapabilityOrThrow(() => new SwitchCapability(this));
+  getTelevisionCapability(instanceId: string | null = null): TelevisionCapability {
+    return new TelevisionCapability(this, instanceId);
   }
 
-  getElectricVehicleCapability(): ElectricVehicleCapability {
-    return this.#getCapabilityOrThrow(() => new ElectricVehicleCapability(this));
+  getElectricVehicleCapability(instanceId: string | null = null): ElectricVehicleCapability {
+    return new ElectricVehicleCapability(this, instanceId);
   }
 
-  getBinCollectionCapability(): BinCollectionCapability {
-    return this.#getCapabilityOrThrow(() => new BinCollectionCapability(this));
+  getBinCollectionCapability(instanceId: string | null = null): BinCollectionCapability {
+    return new BinCollectionCapability(this, instanceId);
   }
 
-  getButtonCapability(): ButtonCapability {
-    return this.#getCapabilityOrThrow(() => new ButtonCapability(this));
+  getButtonCapability(instanceId: string | null = null): ButtonCapability {
+    return new ButtonCapability(this, instanceId);
   }
 
-  getContactSensorCapability(): ContactSensorCapability {
-    return this.#getCapabilityOrThrow(() => new ContactSensorCapability(this));
+  getDoorbellCapability(instanceId: string | null = null): DoorbellCapability {
+    return new DoorbellCapability(this, instanceId);
   }
 
-  getEnergyMonitorCapability(): EnergyMonitorCapability {
-    return this.#getCapabilityOrThrow(() => new EnergyMonitorCapability(this));
+  getAlarmSensorCapability(instanceId: string | null = null): AlarmSensorCapability {
+    return new AlarmSensorCapability(this, instanceId);
   }
 
-  getEnergyCostCapability(): EnergyCostCapability {
-    return this.#getCapabilityOrThrow(() => new EnergyCostCapability(this));
+  getContactSensorCapability(instanceId: string | null = null): ContactSensorCapability {
+    return new ContactSensorCapability(this, instanceId);
   }
 
-  getOvenCapability(): OvenCapability {
-    return this.#getCapabilityOrThrow(() => new OvenCapability(this));
+  getEnergyMonitorCapability(instanceId: string | null = null): EnergyMonitorCapability {
+    return new EnergyMonitorCapability(this, instanceId);
   }
 
-  getMicrowaveCapability(): MicrowaveCapability {
-    return this.#getCapabilityOrThrow(() => new MicrowaveCapability(this));
+  getEnergyCostCapability(instanceId: string | null = null): EnergyCostCapability {
+    return new EnergyCostCapability(this, instanceId);
   }
 
-  getDishwasherCapability(): DishwasherCapability {
-    return this.#getCapabilityOrThrow(() => new DishwasherCapability(this));
+  getOvenCapability(instanceId: string | null = null): OvenCapability {
+    return new OvenCapability(this, instanceId);
+  }
+
+  getMicrowaveCapability(instanceId: string | null = null): MicrowaveCapability {
+    return new MicrowaveCapability(this, instanceId);
+  }
+
+  getDishwasherCapability(instanceId: string | null = null): DishwasherCapability {
+    return new DishwasherCapability(this, instanceId);
   }
 
   getCapabilities(): Capability[] {
@@ -171,8 +179,27 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
     return provider.getCapabilities(this);
   }
 
-  async getLatestEvent(type: string): Promise<Event | null> {
-    return Event.getLatestForDevice(this.id, type);
+  /**
+   * The instances of a capability this device exposes. Providers that don't
+   * implement `getCapabilityInstances` describe a device with exactly one,
+   * unnamed instance of each capability - which is every provider today.
+   *
+   * Instance ids share one namespace across the device, so a provider
+   * returning the same id for two capabilities is what links them (e.g. a
+   * dual plug's `SWITCH` and `ENERGY_MONITOR` both reporting `plug1`).
+   */
+  getCapabilityInstances(capability: Capability): CapabilityInstance[] {
+    const provider = Device._providers.get(this.provider);
+
+    if (provider === undefined) {
+      throw new Error(`Provider ${this.provider} does not exist for device ${this.id} (${this.name})`);
+    }
+
+    return provider.getCapabilityInstances?.(this, capability) ?? [{ id: null, name: null }];
+  }
+
+  async getLatestEvent(type: string, instanceId: string | null = null): Promise<Event | null> {
+    return Event.getLatestForDevice(this.id, type, instanceId);
   }
 
   static findByName(name: string): Promise<Device | null> {
@@ -280,16 +307,34 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   }
 }
 
+/**
+ * One instance of a capability on a device. A null id means the singleton
+ * instance - the device itself - and is what every provider gets by default.
+ */
+export type CapabilityInstance = {
+  id: string | null;
+  name: string | null;
+};
+
 type ProviderHandler = {
   provideLightCapability?(): ProviderLightCapability;
   provideLockCapability?(): ProviderLockCapability;
   provideThermostatCapability?(): ProviderThermostatCapability;
   provideSwitchCapability?(): ProviderSwitchCapability;
   provideOvenCapability?(): ProviderOvenCapability;
+  provideTelevisionCapability?(): ProviderTelevisionCapability;
   provideSpeakerCapability?(): ProviderSpeakerCapability;
   provideElectricVehicleCapability?(): ProviderElectricVehicleCapability;
+  provideHeatPumpCapability?(): ProviderHeatPumpCapability;
 
   getCapabilities(device: Device): Capability[];
+
+  // Optional: only providers with multi-instance hardware implement this.
+  // Keyed by capability so a device can expose instances for some capabilities
+  // while staying singleton for others (e.g. per-zone MOTION_SENSOR, but one
+  // device-level CONNECTIVITY).
+  getCapabilityInstances?(device: Device, capability: Capability): CapabilityInstance[];
+
   synchronize(): Promise<void>;
 };
 
@@ -304,8 +349,18 @@ export default function (sequelize: Sequelize) {
     },
 
     createdAt: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE(3),
       allowNull: false
+    },
+
+    updatedAt: {
+      type: DataTypes.DATE(3),
+      allowNull: false
+    },
+
+    deletedAt: {
+      type: DataTypes.DATE(3),
+      allowNull: true
     },
 
     name: {
@@ -342,7 +397,7 @@ export default function (sequelize: Sequelize) {
     },
 
     metaStringified: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true
     }
   }, {

@@ -1,13 +1,14 @@
 import dayjs, { Dayjs } from '../../dayjs';
-import config from '../../config';
+import config from '../../config/app';
 import logger from '../../logger';
-import { Event, Recording, Stay, Device, Op } from '../../models';
+import { Event, BooleanEvent, Recording, Stay, Device, Op } from '../../models';
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
 import { v4 as uuidv4 } from 'uuid';
 import sleep from '../../helpers/sleep';
 import { enqueueWorkItem } from '../../queue';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
+import setCron from '../../helpers/set-cron';
 import bus, { NOTIFICATION_TO_ALL } from '../../bus';
 
 export { makeSynologyRequest };
@@ -27,36 +28,33 @@ type SynologyCamera = { id: number; status: number; enabled: boolean; vendor: st
 
 // Download footage from start -> end, +- 5 seconds.
 
-async function createEvent(device: Device, now: Dayjs) {
-  const latestCameraEvent = await device.getLatestEvent('motion');
-  let activeCameraEvent = latestCameraEvent && !latestCameraEvent.end ? latestCameraEvent : null;
+async function extendOrCreateMotionEvent(device: Device, now: Dayjs): Promise<BooleanEvent> {
+  const motion = device.getMotionSensorCapability();
+  const latestMotionEvent = await motion.getHasMotionEvent();
+  const activeCameraEvent = latestMotionEvent && !latestMotionEvent.end ? latestMotionEvent : null;
 
   if (activeCameraEvent) {
     const cutoffForExtension = dayjs(now).subtract(config.synology.maximum_length_of_event_in_seconds, 's');
     const canExtendActiveCameraEvent = cutoffForExtension.isBefore(activeCameraEvent.start);
 
-    if (!canExtendActiveCameraEvent) {
-      activeCameraEvent.end = now.toDate();
-      await activeCameraEvent.save();
+    if (canExtendActiveCameraEvent) {
+      // setBooleanProperty's same-value handling just bumps lastReported rather than writing a
+      // new row, so there's nothing new to return - the active event is still this one.
+      await motion.setHasMotionState(true, now.toDate());
 
-      activeCameraEvent = null;
+      return activeCameraEvent;
     }
+
+    // Close out the event that's grown too long - the setHasMotionState(true, ...) call
+    // below will then open a fresh one, rather than extending this one further.
+    await motion.setHasMotionState(false, now.toDate());
   }
 
-  if (!activeCameraEvent) {
-    activeCameraEvent = await Event.create({
-      start: now.toDate(),
-      lastReported: now.toDate(),
-      deviceId: device.id,
-      type: 'motion'
-    });
-  }
-
-  return activeCameraEvent;
+  return (await motion.setHasMotionState(true, now.toDate()))!;
 }
 
-async function captureRecording(event: Event, providerId: string, startOfRecording: Dayjs, endOfRecording: Dayjs) {
-  const existingRecording = await event.getRecording();
+async function captureRecording(event: BooleanEvent, providerId: string, startOfRecording: Dayjs, endOfRecording: Dayjs) {
+  const existingRecording = await Recording.findByEventId(event.id);
   let attempts = 10;
   let cameraRecording;
 
@@ -103,7 +101,7 @@ async function captureRecording(event: Event, providerId: string, startOfRecordi
 
 export async function onMotionDetected(cameraId: string, startOfDetectedMotion: Dayjs) {
   const device = await Device.findByProviderIdOrError('synology', cameraId);
-  const event = await createEvent(device, startOfDetectedMotion);
+  const event = await extendOrCreateMotionEvent(device, startOfDetectedMotion);
 
   latestCameraEvents.set(device.id, startOfDetectedMotion);
 
@@ -111,8 +109,7 @@ export async function onMotionDetected(cameraId: string, startOfDetectedMotion: 
     const now = new Date();
 
     if (latestCameraEvents.get(device.id) === startOfDetectedMotion) {
-      event.end = now;
-      await event.save();
+      await device.getMotionSensorCapability().setHasMotionState(false, now);
     }
 
     enqueueWorkItem(() => captureRecording(event, device.providerId, dayjs(event.start).subtract(2, 's'), dayjs(now).add(2, 's')));
@@ -132,19 +129,12 @@ export async function onDoorbellRing(cameraId: string) {
     sound: 'doorbell'
   });
 
-  const event = await Event.create({
-    deviceId: device.id,
-    start: now,
-    end: now,
-    lastReported: now,
-    type: 'ring',
-    value: 1
-  });
+  const event = await device.getDoorbellCapability().setRingState(true, now);
 
-  await s3.store(event.id.toString(), image, 'image/jpeg');
+  await s3.store(event!.id.toString(), image, 'image/jpeg');
 }
 
-setInterval(createBackgroundTransaction('synology:clear-old-recordings', async () => {
+setCron(createBackgroundTransaction('synology:clear-old-recordings', async () => {
   if (typeof config.days_to_keep_recordings_while_home === 'number') {
     const cutoffForUnarmedRecordings = dayjs().subtract(config.days_to_keep_recordings_while_home, 'days');
     const recordings = await Recording.findAll({
@@ -167,7 +157,7 @@ setInterval(createBackgroundTransaction('synology:clear-old-recordings', async (
 
     logger.info('Old recordings removed. See you again tomorrow...');
   }
-}), dayjs.duration(1, 'day').asMilliseconds());
+}), '0 0 * * *');
 
 
 async function updateCamerasConnectivity(cameras: SynologyCamera[]) {
@@ -201,7 +191,7 @@ export async function onConnectivityChanged() {
 
 Device.registerProvider('synology', {
   getCapabilities(device) {
-    return ['CAMERA', 'CONNECTIVITY'];
+    return ['CAMERA', 'CONNECTIVITY', 'MOTION_SENSOR', 'DOORBELL'];
   },
 
   async synchronize() {

@@ -1,4 +1,4 @@
-jest.mock('../../../config', () => ({}), { virtual: true });
+jest.mock('../../../config/app', () => ({}), { virtual: true });
 
 import { setBooleanProperty, setNumericProperty, setStringProperty } from './index';
 import { Device, Event } from '../..';
@@ -41,7 +41,7 @@ describe('setNumericProperty', () => {
       const historicTimestamp = new Date('2024-01-14T00:00:00Z');
 
       await expect(
-        setNumericProperty(mockDevice as unknown as Device, 'temperature', 50, false, historicTimestamp)
+        setNumericProperty(mockDevice as unknown as Device, 'temperature', null, 50, false, historicTimestamp)
       ).rejects.toThrow('Cannot insert historic event');
     });
   });
@@ -55,6 +55,7 @@ describe('setNumericProperty', () => {
       const result = await setNumericProperty(
         mockDevice as unknown as Device,
         'temperature',
+        null,
         50,
         false,
         new Date('2024-01-15T00:00:00Z')
@@ -77,6 +78,7 @@ describe('setNumericProperty', () => {
       const result = await setNumericProperty(
         mockDevice as unknown as Device,
         'temperature',
+        null,
         200,
         false,
         newTimestamp
@@ -95,6 +97,7 @@ describe('setNumericProperty', () => {
       const result = await setNumericProperty(
         mockDevice as unknown as Device,
         'temperature',
+        null,
         100, // Same value
         false,
         newTimestamp
@@ -115,6 +118,7 @@ describe('setNumericProperty', () => {
       await setNumericProperty(
         mockDevice as unknown as Device,
         'temperature',
+        null,
         200, // Different value
         false,
         sameTimestamp
@@ -133,6 +137,7 @@ describe('setNumericProperty', () => {
       const result = await setNumericProperty(
         mockDevice as unknown as Device,
         'temperature',
+        null,
         100, // Same value
         false,
         sameTimestamp
@@ -153,6 +158,7 @@ describe('setNumericProperty', () => {
       const result = await setNumericProperty(
         mockDevice as unknown as Device,
         'counter',
+        null,
         1,
         true,
         timestamp
@@ -203,7 +209,7 @@ describe('setBooleanProperty', () => {
       const historicTimestamp = new Date('2024-01-14T00:00:00Z');
 
       await expect(
-        setBooleanProperty(mockDevice as unknown as Device, 'isOn', true, false, historicTimestamp)
+        setBooleanProperty(mockDevice as unknown as Device, 'isOn', null, true, false, historicTimestamp)
       ).rejects.toThrow('Cannot insert historic event');
     });
   });
@@ -217,6 +223,7 @@ describe('setBooleanProperty', () => {
       const result = await setBooleanProperty(
         mockDevice as unknown as Device,
         'isOn',
+        null,
         true,
         false,
         new Date('2024-01-15T00:00:00Z')
@@ -239,6 +246,7 @@ describe('setBooleanProperty', () => {
       const result = await setBooleanProperty(
         mockDevice as unknown as Device,
         'isOn',
+        null,
         true,
         false,
         newTimestamp
@@ -255,6 +263,7 @@ describe('setBooleanProperty', () => {
       await setBooleanProperty(
         mockDevice as unknown as Device,
         'isOn',
+        null,
         false,
         false,
         newTimestamp
@@ -272,6 +281,7 @@ describe('setBooleanProperty', () => {
       const result = await setBooleanProperty(
         mockDevice as unknown as Device,
         'isOn',
+        null,
         true,
         false,
         newTimestamp
@@ -290,6 +300,7 @@ describe('setBooleanProperty', () => {
       const result = await setBooleanProperty(
         mockDevice as unknown as Device,
         'isOn',
+        null,
         false,
         false,
         newTimestamp
@@ -310,6 +321,7 @@ describe('setBooleanProperty', () => {
       const result = await setBooleanProperty(
         mockDevice as unknown as Device,
         'isOn',
+        null,
         true,
         false,
         sameTimestamp
@@ -327,6 +339,7 @@ describe('setBooleanProperty', () => {
       const result = await setBooleanProperty(
         mockDevice as unknown as Device,
         'isOn',
+        null,
         false,
         false,
         sameTimestamp
@@ -342,7 +355,7 @@ describe('setBooleanProperty', () => {
       const sameTimestamp = new Date('2024-01-15T00:00:00Z');
 
       await expect(
-        setBooleanProperty(mockDevice as unknown as Device, 'isOn', true, false, sameTimestamp)
+        setBooleanProperty(mockDevice as unknown as Device, 'isOn', null, true, false, sameTimestamp)
       ).rejects.toThrow('Cannot turn on');
     });
 
@@ -353,6 +366,7 @@ describe('setBooleanProperty', () => {
       const result = await setBooleanProperty(
         mockDevice as unknown as Device,
         'isOn',
+        null,
         false,
         false,
         sameTimestamp
@@ -374,6 +388,7 @@ describe('setBooleanProperty', () => {
       const result = await setBooleanProperty(
         mockDevice as unknown as Device,
         'pressed',
+        null,
         true,
         true,
         timestamp
@@ -392,7 +407,7 @@ describe('setBooleanProperty', () => {
       const historicTimestamp = new Date('2024-01-14T00:00:00Z');
 
       await expect(
-        setBooleanProperty(mockDevice as unknown as Device, 'pressed', true, true, historicTimestamp)
+        setBooleanProperty(mockDevice as unknown as Device, 'pressed', null, true, true, historicTimestamp)
       ).rejects.toThrow('Cannot insert historic event');
     });
   });
@@ -423,7 +438,7 @@ describe('setStringProperty', () => {
       const historicTimestamp = new Date('2024-01-14T00:00:00Z');
 
       await expect(
-        setStringProperty(mockDevice as unknown as Device, 'mode', 'DHW', false, historicTimestamp)
+        setStringProperty(mockDevice as unknown as Device, 'mode', null, 'DHW', false, historicTimestamp)
       ).rejects.toThrow('Cannot insert historic event');
     });
   });
@@ -437,6 +452,7 @@ describe('setStringProperty', () => {
       const result = await setStringProperty(
         mockDevice as unknown as Device,
         'mode',
+        null,
         'HEATING',
         false,
         new Date('2024-01-15T00:00:00Z')
@@ -459,6 +475,7 @@ describe('setStringProperty', () => {
       const result = await setStringProperty(
         mockDevice as unknown as Device,
         'mode',
+        null,
         'DHW',
         false,
         newTimestamp
@@ -481,6 +498,7 @@ describe('setStringProperty', () => {
       const result = await setStringProperty(
         mockDevice as unknown as Device,
         'mode',
+        null,
         'HEATING',
         false,
         newTimestamp
@@ -501,6 +519,7 @@ describe('setStringProperty', () => {
       await setStringProperty(
         mockDevice as unknown as Device,
         'mode',
+        null,
         'DHW',
         false,
         sameTimestamp
@@ -519,6 +538,7 @@ describe('setStringProperty', () => {
       const result = await setStringProperty(
         mockDevice as unknown as Device,
         'mode',
+        null,
         'HEATING',
         false,
         sameTimestamp
@@ -527,5 +547,126 @@ describe('setStringProperty', () => {
       expect(mockEvent.save).not.toHaveBeenCalled();
       expect(result).toBeNull();
     });
+  });
+});
+
+describe('capability instances', () => {
+  let mockDevice: { id: number; getLatestEvent: jest.Mock };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockDevice = {
+      id: 1,
+      getLatestEvent: jest.fn(),
+    };
+  });
+
+  it('reads the event series for the requested instance', async () => {
+    mockDevice.getLatestEvent.mockResolvedValue(null);
+    (Event.create as jest.Mock).mockResolvedValue({ id: 1 });
+
+    await setBooleanProperty(
+      mockDevice as unknown as Device,
+      'motion',
+      'zone1',
+      true,
+      false,
+      new Date('2024-01-15T00:00:00Z'),
+      undefined
+    );
+
+    expect(mockDevice.getLatestEvent).toHaveBeenCalledWith('motion', 'zone1');
+  });
+
+  it('stamps the instance onto newly created events', async () => {
+    mockDevice.getLatestEvent.mockResolvedValue(null);
+    (Event.create as jest.Mock).mockResolvedValue({ id: 1 });
+
+    await setBooleanProperty(
+      mockDevice as unknown as Device,
+      'motion',
+      'zone1',
+      true,
+      false,
+      new Date('2024-01-15T00:00:00Z'),
+      undefined
+    );
+
+    expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'motion',
+      instanceId: 'zone1',
+    }));
+  });
+
+  it('stamps the instance onto momentary events too', async () => {
+    mockDevice.getLatestEvent.mockResolvedValue(null);
+    (Event.create as jest.Mock).mockResolvedValue({ id: 1 });
+
+    await setBooleanProperty(
+      mockDevice as unknown as Device,
+      'pressed',
+      'button2',
+      true,
+      true,
+      new Date('2024-01-15T00:00:00Z'),
+      undefined
+    );
+
+    expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+      instanceId: 'button2',
+    }));
+  });
+
+  it('a null instanceId is the singleton instance, so existing capabilities are unaffected', async () => {
+    mockDevice.getLatestEvent.mockResolvedValue(null);
+    (Event.create as jest.Mock).mockResolvedValue({ id: 1 });
+
+    await setNumericProperty(
+      mockDevice as unknown as Device,
+      'temperature',
+      null,
+      21,
+      false,
+      new Date('2024-01-15T00:00:00Z')
+    );
+
+    expect(mockDevice.getLatestEvent).toHaveBeenCalledWith('temperature', null);
+    expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+      instanceId: null,
+    }));
+  });
+
+  it('keeps instances of the same property independent', async () => {
+    // zone0 is already occupied; zone1 has never reported. Setting zone1 must
+    // not see zone0's open event, and must create its own.
+    const zone0Event = {
+      start: new Date('2024-01-15T00:00:00Z'),
+      value: 1,
+      end: null,
+      lastReported: new Date('2024-01-15T00:00:00Z'),
+      save: jest.fn().mockResolvedValue(undefined),
+      destroy: jest.fn().mockResolvedValue(undefined),
+    };
+
+    mockDevice.getLatestEvent.mockImplementation(async (_type: string, instanceId: string | null) =>
+      instanceId === 'zone0' ? zone0Event : null
+    );
+    (Event.create as jest.Mock).mockResolvedValue({ id: 9 });
+
+    await setBooleanProperty(
+      mockDevice as unknown as Device,
+      'motion',
+      'zone1',
+      true,
+      false,
+      new Date('2024-01-16T00:00:00Z'),
+      undefined
+    );
+
+    expect(zone0Event.save).not.toHaveBeenCalled();
+    expect(zone0Event.end).toBeNull();
+    expect(Event.create).toHaveBeenCalledWith(expect.objectContaining({
+      instanceId: 'zone1',
+    }));
   });
 });

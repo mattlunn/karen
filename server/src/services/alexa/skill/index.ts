@@ -58,7 +58,8 @@ async function GoingOut(intent: GoingOutIntent) {
     outputSpeech: {
       type: 'PlainText',
       text: `Karen said she's missing you already`
-    }
+    },
+    shouldEndSession: true
   };
 }
 
@@ -88,7 +89,10 @@ async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
 
   if (!message) {
     logger.error(`"${deviceName}" asked for messages, but there was none.`);
-    return;
+
+    // Alexa rejects a response with no `response` key as malformed, so end the session silently
+    // rather than returning nothing.
+    return { shouldEndSession: true };
   }
 
   messages.delete(deviceName);
@@ -97,7 +101,8 @@ async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
     outputSpeech: {
       type: 'SSML',
       ssml: `<speak>${message}</speak>`
-    }
+    },
+    shouldEndSession: true
   };
 }
 

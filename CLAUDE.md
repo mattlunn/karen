@@ -61,7 +61,7 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 - `models/` - Sequelize ORM models (Device, User, Room, Event, etc.)
 - `models/capabilities/` - Device capability system (Light, Lock, Thermostat, etc.)
 - `services/` - Integration services for each IoT platform (alexa/, tado/, shelly/, etc.)
-- `automations/` - Rule-based automation modules loaded from config.json
+- `automations/` - Rule-based automation modules loaded from config/automations.json
 - `routes/` - Express route handlers for REST endpoints and webhooks
 - `components/` - React components (pages/, modals/, capability-graphs/)
 - `helpers/` - Utility functions (date, time, sun calculations, presence)
@@ -75,10 +75,28 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 ### Naming Conventions
 
 - **Component files**: Use hyphenated lowercase names (e.g., `date-range-context.tsx`, not `DateRangeContext.tsx`)
+- **Database tables vs columns**: Table names are `snake_case` and pluralised (e.g. `alarm_activations`, `armings`, `events`); column names are `camelCase` (e.g. `armingId`, `startedAt`, `suppressFurtherAlertsUntil`, `lastReported`). Sequelize models map camelCase attributes straight to camelCase columns — the codebase does **not** use `underscored: true`. Follow both when adding migrations or model fields.
+- **Datetime columns are millisecond precision**: every datetime column in the schema is `DATETIME(3)`, and every model attribute that maps to one is declared `DataTypes.DATE(3)` (`Sequelize.DATE(3)` in the `.js` models), including `createdAt` / `updatedAt` / `deletedAt`. Never add a bare `DataTypes.DATE` / migration `Sequelize.DATE` — on the mysql dialect a bare `DATE` rounds a JS `Date` to whole seconds on write and drops the fractional part from `WHERE`-clause literals, so range queries built from `new Date()` truncate their bounds and disagree with the millisecond-precision JS comparisons run against the rows they return. New columns: `DATETIME(3)` in the migration, `DataTypes.DATE(3)` on the attribute.
 
 ### Coding Style
 
 - **Always use curly braces for `if` statements**, even single-line bodies. Never write `if (x) doSomething();`.
+- **Prefer `dayjs` over raw `Date` arithmetic.** For anything date/time — adding or subtracting a duration, diffing two instants, start/end of period, comparisons — go through `dayjs` (imported from `../dayjs`, never the npm package directly). Don't hand-roll millisecond maths like `new Date(Date.now() + hours * 60 * 60 * 1000)` or `(a.getTime() - b.getTime()) / 3600000`; use `dayjs().add(hours, 'hour')` and `dayjs(a).diff(b, 'hour', true)`. Converting back with `.toDate()` at the boundary is fine. Tight numeric loops over fixed slot widths (e.g. stepping half-hour price slots) may stay as plain millisecond arithmetic where dayjs would only obscure them.
+- **Blank line after a declaration group, and around blocks.** After the last `const`/`let` in a contiguous group of declarations, add a blank line before the next non-declaration statement (a call, `if`, `for`, `return`, etc.). Likewise, surround `if`/`for`/`while`/`try` blocks with a blank line before (if preceded by other statements) and after (if followed by other statements) — see `routes/api/device/timeline.ts`'s `SWITCH` case for a clean example. Exceptions, applied consistently across the codebase:
+  - No blank line when the declaration is immediately consumed by the very next statement (e.g. `const capability = device.getFooCapability(); somePromise.push(...)`, or `const x = foo(); return x;`).
+  - Consecutive short, related declarations can be grouped without blank lines between them — just add the one blank line before the next *distinct* statement.
+  - No leading blank line for the first statement right after an opening `{`, and none right before a closing `}` — including a guard clause that's the first line of a function.
+  - Trivial one- or two-statement bodies don't need any separating blank lines (nothing to separate).
+- **Comment sparingly.** Only add a comment where the logic or its purpose isn't clear from the code itself — an external constraint, a non-obvious edge case, a reason for doing something the unexpected way. Don't restate what the code plainly says. In particular, a doc comment that just paraphrases a well-named function/variable and its signature is pure noise — leave it out. Prefer naming the thing well over explaining a vague name.
+  - Bad (on `getPlannedChargeBlocks(): { start; end }[]`): `// The charge blocks the scheduler is currently driving, for showing planned run windows in the UI.`
+  - Good: no comment — or, if there's a real subtlety, comment only that: `// Empty between a committed window ending and the next one being planned.`
+  - **A new function gets no comment by default.** Add one only if you can point to a specific fact it carries that isn't already in the signature or body: an external constraint, an ordering/timing dependency, a cross-function interaction, or a reason for doing something the non-obvious way. "It summarises what the function does" is not such a fact — nor is "the function has several branches".
+  - **Nearby comments are not licence.** If surrounding functions carry header comments, match their *bar* (genuine rationale), not their *frequency*. Most well-named functions need none.
+  - Before committing, re-read every comment you added and ask: could a competent reader get this from the code in ~10 seconds? If yes, delete it.
+  - Bad (on `resolveTarget()`): `// Legionella temp when overdue, plunge temp on negative prices, else standard.` — Good: no comment; the branch conditions and the returned enum already say it.
+- **Write comments in the present tense, describing the code as it stands.** A comment explains the current behaviour to whoever reads it next; it isn't a changelog, and git history already records what changed and why. Drop clauses about what the code "used to" do, what a previous version got wrong, or what a change fixed. For example:
+  - Good: `// Alexa sends LaunchRequest and SessionEndedRequest to any skill, neither of which carries an intent.`
+  - Bad: `// Alexa sends LaunchRequest and SessionEndedRequest to any skill, neither of which carries an intent. Reading .name off them used to throw, which Alexa reads out as an error.`
 
 ### REST API Type System
 
@@ -178,7 +196,11 @@ Device.registerProvider('providerName', {
 
 **Event-Driven Updates**: Device changes emit events via `DeviceCapabilityEvents`, which trigger SSE (Server-Sent Events) for real-time UI updates.
 
-**Configuration-Driven Automations**: Automations are configured in `config.json` and dynamically loaded at startup. Each automation module receives parameters and registers event handlers. Each automation exports a default function with a named `FooAutomationParameters` type for its config object (see `automations/bathroom.ts`). Required parameters have no defaults.
+**Configuration-Driven Automations**: Automations are configured in `config/automations.json` (a top-level array of `{ name, parameters }`, sibling to `config/app.json` — see "Automations config" below) and dynamically loaded at startup by `automations/index.js`. Each automation module receives `parameters` and registers event handlers. Each automation exports a `parameters` Zod schema, and its default function's argument type is derived from that schema via `z.infer<typeof parameters>` — one artifact rather than two that can drift (see `automations/auto-relock.ts`). Schemas declare **no defaults**: every value comes from `config/automations.json`, so the config is the whole picture of what an automation will do. `automations/index.js` validates each entry against its schema before starting it, and throws on the first invalid entry. `automations/index.js` also watches `config/automations.json` for changes and calls `process.exit(0)` when it changes — nodemon (dev) or the container's restart policy (prod) is what actually brings the process back up with the new config; there is no in-process hot-reload, since automation modules subscribe to events at load time with no teardown path.
+
+**Automations config**: `config/automations.json` holds no secrets (device names, timeouts, schedules only), unlike `config/app.json`. Unlike `config/app.json`, DEV and PROD deliberately do **not** share this file — each environment has its own copy, both gitignored (not git-tracked), same as `config/app.json`. See `CLAUDE.local.md` for this host's specific paths and how to reach PROD's copy for live debugging/changes — editing PROD's copy changes real production automation behaviour (door locks, heating, lights) after the next restart, so treat it accordingly.
+
+**Runtime mutable config**: For settings that need to persist across server restarts and be changeable at runtime (e.g. feature flags, seasonal overrides), add a field to `config/app.json` and use `saveConfig()` from `helpers/config.js` to write back to disk atomically. Do NOT create a new DB settings table — `saveConfig` is the established pattern already used for Tado/Alexa/SmartCar token persistence and costs zero infrastructure.
 
 **Capability UI Registry**: UI configuration for device capabilities is centralized in `/components/capabilities/`. When adding a new capability type, only update `registry.tsx`:
 
@@ -273,8 +295,29 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 ## Local Development Setup
 
 1. Clone this repo and `george` dependency
-2. Copy `config.json` from live, empty secrets, place in `./server/src/config.json`
+2. Copy `config/app.json` from live, empty secrets, place in `./server/src/config/app.json`
 3. Create MySQL database and update config
 4. Run `npm run migrate`
 5. Run `npm run dev` (watch) and `npm run start:dev` (server) in separate terminals
 6. Use ngrok for public endpoint: `https://karen-dev.ngrok.io`
+
+## New worktree setup
+
+Spawned worktrees are clean checkouts — `server/src/config/` (holding `app.json` and `automations.json`) is gitignored, so it never carries over automatically, and worktrees may be created by tooling (e.g. Claude Remote Control) with no interactive setup step. Before running or testing anything, from the worktree root:
+
+```bash
+mkdir -p server/src/config
+
+if [ -f /opt/karen/config/app.json ]; then
+  ln -s /opt/karen/config/app.json server/src/config/app.json
+else
+  echo "No shared config/app.json at /opt/karen/config/app.json — follow 'Local Development Setup' above to create server/src/config/app.json manually."
+fi
+
+if [ -f /opt/karen/config/automations.json ]; then
+  ln -s /opt/karen/config/automations.json server/src/config/automations.json
+else
+  echo "No shared automations.json at /opt/karen/config/automations.json — see 'Automations config' below."
+fi
+cd server/src && npm install && npm run codegen
+```

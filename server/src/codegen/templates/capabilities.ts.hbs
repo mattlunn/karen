@@ -25,68 +25,80 @@ export type {{name}} = {{{values}}};
 {{#each capabilities}}
 export class {{className}} {
   protected device: Device;
+  protected instanceId: string | null;
 
-  constructor(device: Device) {
+  constructor(device: Device, instanceId: string | null = null) {
     this.device = device;
+    this.instanceId = instanceId;
   }
 
 {{#each properties}}
   {{#if isBoolean}}
   get{{propertyName}}(): Promise<boolean> {
-    return getBooleanProperty(this.device, '{{fieldName}}');
+    return getBooleanProperty(this.device, '{{fieldName}}', this.instanceId);
   }
 
   get{{propertyName}}Event(): Promise<BooleanEvent | null> {
-    return getLatestBooleanEvent(this.device, '{{fieldName}}');
+    return getLatestBooleanEvent(this.device, '{{fieldName}}', this.instanceId);
   }
 
   get{{propertyName}}History(selection: HistorySelector): Promise<BooleanEvent[]> {
-    return getBooleanPropertyHistory(this.device, '{{fieldName}}', selection);
+    return getBooleanPropertyHistory(this.device, '{{fieldName}}', this.instanceId, selection);
   }
 
-  async set{{propertyName}}State(value: boolean, stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
-    const event = await setBooleanProperty(this.device, '{{fieldName}}', value, {{#if isMomentary}}true{{else}}false{{/if}}, stateTimestamp, reportedAt);
+  async set{{propertyName}}State(value: boolean, stateTimestamp?: Date, reportedAt?: Date): Promise<BooleanEvent | null> {
+    const event = await setBooleanProperty(this.device, '{{fieldName}}', this.instanceId, value, {{#if isMomentary}}true{{else}}false{{/if}}, stateTimestamp, reportedAt);
 
-    if (event !== null) {
-      {{#if isMomentary}}
-      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}(new BooleanEvent(event));
-      {{else}}
-      const eventWrapper = new BooleanEvent(event);
-      if (value) {
-        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Start(eventWrapper);
-      } else {
-        DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}End(eventWrapper);
-      }
-
-      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
-      {{/if}}
+    if (event === null) {
+      return null;
     }
+
+    {{#if isMomentary}}
+    const eventWrapper = new BooleanEvent(event);
+    DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}(eventWrapper);
+    {{else}}
+    const eventWrapper = new BooleanEvent(event);
+    if (value) {
+      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Start(eventWrapper);
+    } else {
+      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}End(eventWrapper);
+    }
+
+    DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
+    {{/if}}
+
+    return eventWrapper;
   }
   {{#if isWriteable}}
   set{{propertyName}}(value: boolean): Promise<void> {
-    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}Capability!().set{{propertyName}}(this.device, value);
+    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}Capability!().set{{propertyName}}(this.device, value, this.instanceId);
   }
   {{/if}}
   {{else}}
   {{#if isString}}
   get{{propertyName}}(): Promise<{{{valueType}}}> {
-    return getStringProperty(this.device, '{{fieldName}}') as Promise<{{{valueType}}}>;
+    return getStringProperty(this.device, '{{fieldName}}', this.instanceId) as Promise<{{{valueType}}}>;
   }
 
   get{{propertyName}}Event(): Promise<StringEvent | null> {
-    return getLatestStringEvent(this.device, '{{fieldName}}');
+    return getLatestStringEvent(this.device, '{{fieldName}}', this.instanceId);
   }
 
   get{{propertyName}}History(selection: HistorySelector): Promise<StringEvent[]> {
-    return getStringPropertyHistory(this.device, '{{fieldName}}', selection);
+    return getStringPropertyHistory(this.device, '{{fieldName}}', this.instanceId, selection);
   }
 
-  async set{{propertyName}}State(value: {{{valueType}}}, stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
-    const event = await setStringProperty(this.device, '{{fieldName}}', value, false, stateTimestamp, reportedAt);
+  async set{{propertyName}}State(value: {{{valueType}}}, stateTimestamp?: Date, reportedAt?: Date): Promise<StringEvent | null> {
+    const event = await setStringProperty(this.device, '{{fieldName}}', this.instanceId, value, false, stateTimestamp, reportedAt);
 
-    if (event !== null) {
-      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(new StringEvent(event));
+    if (event === null) {
+      return null;
     }
+
+    const eventWrapper = new StringEvent(event);
+    DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
+
+    return eventWrapper;
   }
 
   async clear{{propertyName}}State(stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
@@ -100,33 +112,38 @@ export class {{className}} {
 
   {{#if isWriteable}}
   set{{propertyName}}(value: {{{valueType}}}): Promise<void> {
-    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}Capability!().set{{propertyName}}(this.device, value);
+    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}Capability!().set{{propertyName}}(this.device, value, this.instanceId);
   }
   {{/if}}
   {{else}}
   get{{propertyName}}(): Promise<number> {
-    return getNumericProperty(this.device, '{{fieldName}}');
+    return getNumericProperty(this.device, '{{fieldName}}', this.instanceId);
   }
 
   get{{propertyName}}Event(): Promise<NumericEvent | null> {
-    return getLatestNumericEvent(this.device, '{{fieldName}}');
+    return getLatestNumericEvent(this.device, '{{fieldName}}', this.instanceId);
   }
 
   get{{propertyName}}History(selection: HistorySelector): Promise<NumericEvent[]> {
-    return getNumericPropertyHistory(this.device, '{{fieldName}}', selection);
+    return getNumericPropertyHistory(this.device, '{{fieldName}}', this.instanceId, selection);
   }
 
-  async set{{propertyName}}State(value: number, stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
-    const event = await setNumericProperty(this.device, '{{fieldName}}', value, false, stateTimestamp, reportedAt);
+  async set{{propertyName}}State(value: number, stateTimestamp?: Date, reportedAt?: Date): Promise<NumericEvent | null> {
+    const event = await setNumericProperty(this.device, '{{fieldName}}', this.instanceId, value, false, stateTimestamp, reportedAt);
 
-    if (event !== null) {
-      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(new NumericEvent(event));
+    if (event === null) {
+      return null;
     }
+
+    const eventWrapper = new NumericEvent(event);
+    DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
+
+    return eventWrapper;
   }
 
   {{#if isWriteable}}
   set{{propertyName}}(value: number): Promise<void> {
-    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}Capability!().set{{propertyName}}(this.device, value);
+    return Device.getProviderCapabilities(this.device.provider).provide{{../capabilityName}}Capability!().set{{propertyName}}(this.device, value, this.instanceId);
   }
   {{/if}}
   {{/if}}
@@ -140,7 +157,7 @@ export class {{className}} {
 export type {{#if providerClassName}}{{providerClassName}}{{else}}Provider{{capabilityName}}Capability{{/if}} = {
   {{#each properties}}
   {{#if isWriteable}}
-  set{{propertyName}}(device: Device, value: {{{valueType}}}): Promise<void>
+  set{{propertyName}}(device: Device, value: {{{valueType}}}, instanceId?: string | null): Promise<void>
   {{/if}}
   {{/each}}
 }

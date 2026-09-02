@@ -1,7 +1,9 @@
+import { z } from 'zod';
+import { timeString } from './schema';
 import bus, { FIRST_USER_HOME } from '../bus';
 import { Device, Stay, BooleanEvent } from '../models';
 import { isWithinTime } from '../helpers/time';
-import setIntervalForTime from '../helpers/set-interval-for-time';
+import scheduleDaily from '../helpers/schedule-daily';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
@@ -14,15 +16,15 @@ import logger from '../logger';
 // Gets turned on at certain time, or when someone comes home.
 // Gets turned off when Karen turns off all the lights, or at fixed time.
 
-type ChristmasTreeAutomationParameters = {
-  switchNames: string[];
-  morningStart: string;
-  morningEnd: string;
-  eveningStart: string;
-  eveningEnd: string;
-};
+export const parameters = z.object({
+  switchNames: z.array(z.string()),
+  morningStart: timeString,
+  morningEnd: timeString,
+  eveningStart: timeString,
+  eveningEnd: timeString
+});
 
-export default function ({ switchNames, morningStart, morningEnd, eveningStart, eveningEnd }: ChristmasTreeAutomationParameters) {
+export default function ({ switchNames, morningStart, morningEnd, eveningStart, eveningEnd }: z.infer<typeof parameters>) {
   async function setDevicesOnStatus(onStatus: boolean) {
     return Promise.all(switchNames.map(async (switchName) => {
       const device = await Device.findByName(switchName);
@@ -47,12 +49,12 @@ export default function ({ switchNames, morningStart, morningEnd, eveningStart, 
   }));
 
   // Turn off at end of morning at specified time.
-  setIntervalForTime(async () => {
+  scheduleDaily(async () => {
     await setDevicesOnStatus(false);
   }, morningEnd);
 
   // Turn on in the evening at certain time if someone is at home
-  setIntervalForTime(async () => {
+  scheduleDaily(async () => {
     const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(new Date());
 
     if (isSomeoneAtHome) {
@@ -68,7 +70,7 @@ export default function ({ switchNames, morningStart, morningEnd, eveningStart, 
   });
 
   // Turn off last thing at night
-  setIntervalForTime(async () => {
+  scheduleDaily(async () => {
     await setDevicesOnStatus(false);
   }, eveningEnd);
 }

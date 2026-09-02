@@ -40,3 +40,7 @@ export function formatDuration(seconds: number): string {
 
   return `${hoursPart} ${minutes} minute${minutes === 1 ? '' : 's'}`;
 }
+
+export function isWithinWindow(window: { start: Date, end: Date }, date: Date): boolean {
+  return date >= window.start && date < window.end;
+}

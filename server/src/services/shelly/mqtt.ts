@@ -1,6 +1,6 @@
 import { connect, MqttClient } from 'mqtt';
 import { Device } from '../../models';
-import config from '../../config';
+import config from '../../config/app';
 import logger from '../../logger';
 
 const TOPIC_PREFIX = 'shellies';
@@ -22,8 +22,7 @@ function getClient(): MqttClient {
         `${TOPIC_PREFIX}/+/online`,
         `${TOPIC_PREFIX}/+/light/0/status`,
         `${TOPIC_PREFIX}/+/light/0/power`,
-        `${TOPIC_PREFIX}/+/status/switch:0`,
-        `${TOPIC_PREFIX}/+/status/input:0`,
+        `${TOPIC_PREFIX}/+/status/+`,
       ], (err) => {
         if (err) {
           logger.error(err, 'Shelly MQTT subscribe failed');
@@ -48,13 +47,14 @@ function getClient(): MqttClient {
 async function handleMessage(topic: string, payload: string): Promise<void> {
   const segments = topic.split('/');
   const mqttId = segments[1];
+  const subtopic = segments.slice(2).join('/');
+
   const device = await Device.findByProviderId('shelly', mqttId);
 
   if (device === null) {
     return;
   }
 
-  const subtopic = segments.slice(2).join('/');
   const capabilities = device.getCapabilities();
 
   if (subtopic === 'online') {
@@ -95,10 +95,52 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
     return;
   }
 
-  if (subtopic === 'status/input:0' && capabilities.includes('CONTACT_SENSOR')) {
+  if (subtopic === 'status/input:0' && capabilities.includes('ALARM_SENSOR')) {
     const data = JSON.parse(payload);
 
-    await device.getContactSensorCapability().setIsClosedState(data.state);
+    await device.getAlarmSensorCapability().setIsTriggeredState(data.state);
+
+    return;
+  }
+
+  // BLU (Bluetooth) sensors are relayed under their pairing gateway's own topic,
+  // keyed by a small integer the gateway assigns locally when the sensor is
+  // bound (see BTHome.AddDevice) rather than by the sensor's own MAC. That id
+  // isn't unique across Shelly devices — only within one gateway — so it can't
+  // be the child's providerId; and the gateway's own providerId is already
+  // taken by the gateway device itself. So each BLU child stores its pairing
+  // in meta (`gatewayProviderId` + `sensors: { [sensorId]: property }`) and we
+  // look it up by that pair.
+  // The Presence Gen4 publishes one status topic per configured zone. Each zone
+  // is an instance of this device's MOTION_SENSOR capability (zones are regions
+  // of one sensor's field of view, not separate hardware), so the zone id from
+  // the topic addresses the instance directly.
+  if (subtopic.startsWith('status/presencezone:')) {
+    const zoneId = `zone${subtopic.slice('status/presencezone:'.length)}`;
+    const data = JSON.parse(payload);
+
+    if (capabilities.includes('MOTION_SENSOR')) {
+      await device.getMotionSensorCapability(zoneId).setHasMotionState(data.value);
+    }
+
+    return;
+  }
+
+  if (subtopic.startsWith('status/bthomesensor:')) {
+    const sensorId = subtopic.slice('status/bthomesensor:'.length);
+    const data = JSON.parse(payload);
+    const children = await Device.findByProvider('shelly');
+    const child = children.find((d) => d.meta.gatewayProviderId === mqttId && (d.meta.sensors as Record<string, string> | undefined)?.[sensorId]);
+
+    if (child) {
+      const property = (child.meta.sensors as Record<string, string>)[sensorId];
+
+      if (property === 'contact') {
+        await child.getContactSensorCapability().setIsOpenState(Boolean(data.value));
+      } else if (property === 'battery') {
+        await child.getBatteryLevelIndicatorCapability().setBatteryPercentageState(data.value);
+      }
+    }
 
     return;
   }

@@ -2,10 +2,20 @@ export interface ApiErrorResponse {
   error: string;
 }
 
+// The DHW block the cost-aware scheduler will run next. `reason` is why its
+// `targetTemp` was chosen: PLUNGE on negative prices, LEGIONELLA when a
+// pasteurising run is overdue, else STANDARD.
+export interface DhwPlannedRunApiResponse {
+  start: string;
+  end: string;
+  targetTemp: number;
+  reason: 'STANDARD' | 'PLUNGE' | 'LEGIONELLA';
+}
+
 // Device API response - current status values with timestamps.
 // State responses always carry an envelope (anchored to device.createdAt when
 // no observation has happened yet) but `value` is null until first observation.
-export type CapabilityApiResponse = {
+export type CapabilityApiResponseBase = {
   type: 'LIGHT';
   brightness: NumericStateApiResponse;
   isOn: BooleanStateApiResponse;
@@ -33,6 +43,10 @@ export type CapabilityApiResponse = {
   mode: EnumStateApiResponse;
   compressorModulation: NumericStateApiResponse;
   dhwTemperature: NumericStateApiResponse;
+  dhwBoost: BooleanStateApiResponse;
+  dhwMaxChargeTime: NumericStateApiResponse;
+  lastLegionellaCycle: string | null;
+  plannedDhwRun: DhwPlannedRunApiResponse | null;
   outsideTemperature: NumericStateApiResponse;
   actualFlowTemperature: NumericStateApiResponse;
   returnTemperature: NumericStateApiResponse;
@@ -57,6 +71,11 @@ export type CapabilityApiResponse = {
   type: 'SWITCH';
   isOn: BooleanStateApiResponse;
 } | {
+  type: 'TELEVISION';
+  volume: NumericStateApiResponse;
+  isMuted: BooleanStateApiResponse;
+  availableSources: TelevisionSourceApiResponse[];
+} | {
   type: 'BATTERY_LEVEL_INDICATOR';
   batteryPercentage: NumericStateApiResponse;
 } | {
@@ -69,11 +88,14 @@ export type CapabilityApiResponse = {
   isCableConnected: BooleanStateApiResponse;
   chargeLimit: NumericStateApiResponse;
   odometer: NumericStateApiResponse;
-  chargeSchedule: { targetPercentage: number; targetTime: string; calculatedStartTime: string | null } | null;
+  chargeSchedule: { targetPercentage: number; targetTime: string } | null;
+} | {
+  type: 'ALARM_SENSOR';
+  isTriggered: BooleanStateApiResponse;
+  lastTriggered: { start: string; end: string | null; durationSeconds: number | null } | null;
 } | {
   type: 'CONTACT_SENSOR';
-  isClosed: BooleanStateApiResponse;
-  lastTriggered: { start: string; end: string | null; durationSeconds: number | null } | null;
+  isOpen: BooleanStateApiResponse;
 } | {
   type: 'BIN_COLLECTION';
   color: string;
@@ -91,7 +113,6 @@ export type CapabilityApiResponse = {
   dayCost: NumericStateApiResponse;
 } | {
   type: 'ENERGY_COST';
-  unitRate: NumericStateApiResponse;
   standingCharge: NumericStateApiResponse;
 } | {
   type: 'OVEN';
@@ -112,6 +133,18 @@ export type CapabilityApiResponse = {
 } | {
   type: null;
 };
+
+// A device can expose several instances of one capability (e.g. a presence
+// sensor reporting occupancy per zone), so `capabilities` may contain more
+// than one entry of the same `type`, distinguished by `instanceId`. A null
+// instanceId is the singleton instance - the device itself.
+export type CapabilityInstanceMeta = {
+  instanceId: string | null;
+  instanceName: string | null;
+};
+
+// Intersecting distributes over the union, so narrowing on `type` still works.
+export type CapabilityApiResponse = CapabilityApiResponseBase & CapabilityInstanceMeta;
 
 // Current-state envelopes (live device data). `value` is null until the
 // integration reports an observation; envelope timestamps are still present
@@ -135,6 +168,11 @@ export type EnumStateApiResponse = {
   end: string | null;
   lastReported: string;
   value: string | null;
+};
+
+export type TelevisionSourceApiResponse = {
+  label: string;
+  kind: 'channel' | 'guide';
 };
 
 // History API response types (real DB rows; `value` is never null).
@@ -175,6 +213,7 @@ export type HistoryLineApiResponse = {
   label: string;
   yAxisID?: string;
   borderDash?: number[];
+  period?: 'day' | 'month';
 };
 
 export type HistoryModeDetailApiResponse = {
@@ -192,19 +231,29 @@ export type HistoryBarApiResponse = {
   data: HistoryDetailsApiResponse<NumericEventApiResponse>;
   label: string;
   yAxisID?: string;
+  period?: 'day' | 'month';
 };
 
 export type HistoryApiResponse = {
   lines: HistoryLineApiResponse[];
-  modes?: HistoryModesApiResponse;
-  bar?: HistoryBarApiResponse;
+  modes?: HistoryModesApiResponse[];
+  bars?: HistoryBarApiResponse[];
 };
 
 // Device Timeline API response types (/api/device/:id/timeline)
 export type DeviceTimelineEventApiResponse = {
-  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline';
+  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline' | 'switch-on';
   timestamp: string;
   value?: string;
+  instanceName?: string | null;
+} | {
+  type: 'contact-opened';
+  timestamp: string;
+  durationSeconds: number | null;
+} | {
+  type: 'switch-off';
+  timestamp: string;
+  durationSeconds: number;
 };
 
 export type DeviceTimelineApiResponse = {
@@ -217,7 +266,12 @@ export type DeviceTimelineApiResponse = {
 export type AlarmMode = 'OFF' | 'AWAY' | 'NIGHT';
 export type UserStatus = 'HOME' | 'AWAY';
 export type CentralHeatingMode = 'ON' | 'OFF' | 'SETBACK';
-export type DHWHeatingMode = 'ON' | 'OFF';
+export type DHWHeatingMode = 'OFF' | 'AUTO';
+
+export interface DHWStatus {
+  mode: DHWHeatingMode;
+  isBoosting: boolean;
+}
 
 // /api/devices endpoint
 export interface HomeRoom {
@@ -274,9 +328,28 @@ export interface VehicleUpdateRequest {
   manualChargeSchedule?: { targetPercentage: number; targetTime: string } | null;
 }
 
+// /api/device/:id/switch endpoint
+export interface SwitchUpdateRequest {
+  isOn: boolean;
+}
+
+// /api/device/:id/television endpoint
+export interface TelevisionUpdateRequest {
+  volume?: number;
+  isMuted?: boolean;
+  source?: string;
+}
+
 // /api/security endpoint
 export interface AlarmStatusResponse {
   alarmMode: AlarmMode;
+  start: string | null;
+  activations: Array<{
+    id: number;
+    startedAt: string;
+    suppressFurtherAlertsUntil: string;
+    triggeringDevice: { id: number; name: string };
+  }>;
 }
 
 export interface AlarmUpdateRequest {
@@ -287,11 +360,12 @@ export interface AlarmUpdateRequest {
 export interface HeatingUpdateRequest {
   centralHeating?: CentralHeatingMode;
   dhw?: DHWHeatingMode;
+  dhwBoost?: boolean;
 }
 
 export interface HeatingStatusResponse {
   centralHeating: CentralHeatingMode | null;
-  dhw: DHWHeatingMode;
+  dhwStatus: DHWStatus;
   preWarmStartTime: string | null;
 }
 
@@ -317,35 +391,101 @@ export type UserResponse = {
   until: number | null
 });
 
-// Timeline Feed API response types (/api/timeline)
-export type TimelineFeedEvent =
-  | { type: 'motion'; id: number; timestamp: number; deviceId: number; deviceName: string; recordingId: number | null; }
-  | { type: 'arrival'; id: number; timestamp: number; userId: string; }
-  | { type: 'departure'; id: number; timestamp: number; userId: string; }
-  | { type: 'light-on'; id: number; timestamp: number; deviceId: number; deviceName: string; }
-  | { type: 'light-off'; id: number; timestamp: number; deviceId: number; deviceName: string; duration: number; }
-  | { type: 'alarm-arming'; id: number; timestamp: number; mode: AlarmMode; }
-  | { type: 'doorbell-ring'; id: number; timestamp: number; };
-
-export interface TimelineFeedApiResponse {
-  events: TimelineFeedEvent[];
-  hasMore: boolean;
-}
-
 // /api/insights/heating endpoint
 export interface HeatingInsightsApiResponse {
   lines: (HistoryLineApiResponse & { deviceName: string })[];
-  modes: HistoryModesApiResponse;
+  modes: HistoryModesApiResponse[];
   temperatures: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltas: (HistoryLineApiResponse & { deviceName: string })[];
   temperatureDeltaSwitchOnThreshold: number | null;
   heatPump: { id: number; name: string };
 }
 
-// /api/insights/energy/usage and /api/insights/energy/cost endpoints
-export type EnergyInsightsSeriesApiResponse = {
-  series: (HistoryLineApiResponse & { deviceId: number; deviceName: string })[];
+// /api/insights/energy/usage endpoint - one non-stacked instantaneous-power
+// line per ENERGY_MONITOR device (the whole-house meter included as-is).
+export type EnergyUsageInsightsApiResponse = {
+  series: HistoryLineApiResponse[];
 };
+
+// /api/insights/energy/cost endpoint - per-day cost of each sub-metered device
+// (all LIGHT-capable devices summed into one "Lights" entry) as a stacked bar
+// breakdown, plus the whole-house meter's own daily total as a separate overlay
+// line. The gap between the stack and the line is the unmetered remainder.
+export type EnergyCostInsightsApiResponse = {
+  series: HistoryLineApiResponse[];
+  total: HistoryLineApiResponse;
+};
+
+// /api/insights/energy/schedule endpoint - unit rate as a line with EV and DHW
+// run windows (actual and planned) shaded beneath it. Each band is its own
+// mode series so overlapping EV/DHW windows render honestly.
+export interface EnergyScheduleApiResponse {
+  lines: HistoryLineApiResponse[];
+  modes: HistoryModesApiResponse[];
+}
+
+// /api/insights/security endpoint
+export interface SecurityInsightsApiResponse {
+  armings: Array<{
+    id: number;
+    mode: 'NIGHT' | 'AWAY';
+    start: string;
+    end: string | null;
+    activations: Array<{
+      id: number;
+      startedAt: string;
+      suppressFurtherAlertsUntil: string;
+      triggeringDevice: { id: number; name: string };
+    }>;
+  }>;
+  motionEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    instanceId: string | null;
+    instanceName: string | null;
+    start: string;
+    end: string | null;
+    recordingId: number | null;
+  }>;
+  lockEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    isLocked: boolean;
+  }>;
+  contactEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    isOpen: boolean;
+  }>;
+  doorbellRings: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    hasThumbnail: boolean;
+  }>;
+  motionByDeviceHour: Array<{
+    deviceId: number;
+    instanceId: string | null;
+    label: string;
+    // Always 24 entries, one motion count per hour of day (0-23).
+    countByHour: number[];
+    // Independent of the selected range - the device's last motion detection full-stop.
+    lastMotion: string | null;
+  }>;
+  connectivityEvents: Array<{
+    id: number;
+    deviceId: number;
+    deviceName: string;
+    timestamp: string;
+    isConnected: boolean;
+  }>;
+}
 
 export interface DeviceUpdateEvent {
   type: 'device_update';

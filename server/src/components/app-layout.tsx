@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router';
 import { AppShell } from '@mantine/core';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import Header from './header';
@@ -10,7 +10,7 @@ import ErrorBoundary from './error-boundary';
 
 export default function AppLayout() {
   const location = useLocation();
-  const isHome = location.pathname === '/';
+  const isFullBleed = location.pathname === '/' || location.pathname === '/insights/security';
   const [sidebarOpened, { toggle: toggleSidebar, close: closeSidebar }] = useDisclosure(false);
   const isDesktop = useMediaQuery('(min-width: 62em)');
 
@@ -22,7 +22,7 @@ export default function AppLayout() {
         breakpoint: 'md',
         collapsed: { mobile: !sidebarOpened }
       }}
-      padding={isHome ? 0 : 'md'}
+      padding={isFullBleed ? 0 : 'md'}
       withBorder={false}
     >
       <AppShell.Header>

@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 import { Anchor, Stack, Group, UnstyledButton, Popover } from '@mantine/core';
 import classnames from 'classnames';
 import styles from './nav-links.module.css';
 
 const navLinks = [
   { label: 'Home', to: '/' },
-  { label: 'Timeline', to: '/timeline' },
   { label: 'Devices', to: '/device' },
 ];
 
 const insightsLinks = [
-  { label: 'Heating', to: '/insights/heating' },
-  { label: 'Energy', to: '/insights/energy' },
   { label: 'Bins', to: '/insights/bins' },
+  { label: 'Energy', to: '/insights/energy' },
+  { label: 'Heating', to: '/insights/heating' },
+  { label: 'Security', to: '/insights/security' },
 ];
 
 interface NavLinksProps {

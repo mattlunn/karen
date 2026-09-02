@@ -27,11 +27,16 @@ export function getPresetRange(preset: DateRangePreset): DateRange {
 
 interface DateRangeProviderProps {
   children: ReactNode;
+  defaultPreset?: DateRangePreset;
+  // Overrides the initial range computed from defaultPreset - lets a caller that already
+  // computed a range elsewhere (e.g. to also drive a request outside this provider) share the
+  // exact same since/until, rather than a second, independently-timestamped equivalent.
+  defaultRange?: DateRange;
 }
 
-export function DateRangeProvider({ children }: DateRangeProviderProps) {
-  const [activePreset, setActivePreset] = useState<DateRangePreset>('last6hours');
-  const [globalRange, setGlobalRange] = useState<DateRange>(() => getPresetRange('last6hours'));
+export function DateRangeProvider({ children, defaultPreset = 'last6hours', defaultRange }: DateRangeProviderProps) {
+  const [activePreset, setActivePreset] = useState<DateRangePreset>(defaultPreset);
+  const [globalRange, setGlobalRange] = useState<DateRange>(() => defaultRange ?? getPresetRange(defaultPreset));
 
   const handleSetActivePreset = (preset: DateRangePreset) => {
     setActivePreset(preset);

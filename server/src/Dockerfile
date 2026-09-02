@@ -8,4 +8,6 @@ USER node
 ENV NODE_ENV=production
 ARG BUILD_VERSION=dev
 ENV BUILD_VERSION=$BUILD_VERSION
-CMD ["npm", "start"]
+# Apply any pending DB migrations before booting; a migration failure keeps the
+# container from starting (and the restart policy retries it).
+CMD ["sh", "-c", "node scripts/migrate.js && exec npm start"]

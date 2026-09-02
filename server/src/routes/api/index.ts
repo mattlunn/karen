@@ -7,7 +7,6 @@ import deviceRouteHander from './device';
 import deviceHistoryHandler from './device/history';
 import deviceTimelineHandler from './device/timeline';
 import devicesRouter from './devices';
-import timelineRouter from './timeline';
 import securityRouter from './security';
 import heatingRouter from './heating';
 import usersRouter from './users';
@@ -15,16 +14,18 @@ import deviceLightRouter from './device/light';
 import deviceLockRouter from './device/lock';
 import deviceThermostatRouter from './device/thermostat';
 import deviceVehicleRouter from './device/vehicle';
+import deviceSwitchRouter from './device/switch';
+import deviceTelevisionRouter from './device/television';
 import eventsRouter from './events';
 import insightsHeatingHandler from './insights/heating';
-import { usageHandler as insightsEnergyUsageHandler, costHandler as insightsEnergyCostHandler } from './insights/energy';
+import insightsSecurityHandler from './insights/security';
+import { usageHandler as insightsEnergyUsageHandler, costHandler as insightsEnergyCostHandler, scheduleHandler as insightsEnergyScheduleHandler } from './insights/energy';
 
 const router = express.Router();
 
 router.use('/events', eventsRouter);
 router.use('/devices', devicesRouter);
 router.use('/users', usersRouter);
-router.use('/timeline', timelineRouter);
 router.use('/security', securityRouter);
 router.use('/heating', heatingRouter);
 router.get('/device/:id', deviceRouteHander);
@@ -34,9 +35,13 @@ router.use('/device/:id/light', deviceLightRouter);
 router.use('/device/:id/lock', deviceLockRouter);
 router.use('/device/:id/thermostat', deviceThermostatRouter);
 router.use('/device/:id/vehicle', deviceVehicleRouter);
+router.use('/device/:id/switch', deviceSwitchRouter);
+router.use('/device/:id/television', deviceTelevisionRouter);
 router.get('/insights/heating', insightsHeatingHandler);
+router.get('/insights/security', insightsSecurityHandler);
 router.get('/insights/energy/usage', insightsEnergyUsageHandler);
 router.get('/insights/energy/cost', insightsEnergyCostHandler);
+router.get('/insights/energy/schedule', insightsEnergyScheduleHandler);
 
 router.get('/snapshot/:id', async (req, res) => {
   res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {

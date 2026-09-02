@@ -3,7 +3,7 @@ import { EnergyMonitorCapability, EnergyCostCapability } from '../../models/capa
 import { NumericEvent } from '../../models/event';
 import { filterClampAndSortHistory } from '../../helpers/history';
 import { calculateWattHours } from '../../helpers/energy';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
@@ -93,4 +93,4 @@ export async function storeDailyEnergy(): Promise<void> {
   }
 }
 
-nowAndSetInterval(createBackgroundTransaction('energy:daily', storeDailyEnergy), 15 * 60 * 1000);
+nowAndSetCron(createBackgroundTransaction('energy:daily', storeDailyEnergy), '*/15 * * * *');

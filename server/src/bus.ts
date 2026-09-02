@@ -7,6 +7,7 @@ export const FIRST_USER_HOME = 'FIRST_USER_HOME';
 export const LAST_USER_LEAVES = 'LAST_USER_LEAVES';
 export const NOTIFICATION_TO_ALL = 'NOTIFICATION_TO_ALL';
 export const NOTIFICATION_TO_ADMINS = 'NOTIFICATION_TO_ADMINS';
+export const NOTIFICATION_TO_USER = 'NOTIFICATION_TO_USER';
 export const STAY_START = 'STAY_START';
 export const STAY_END = 'STAY_END';
 
@@ -15,6 +16,7 @@ const emitter: KarenEventBus = new EventEmitter();
 emitter.setMaxListeners(100);
 
 type NotificationEvents = 'NOTIFICATION_TO_ALL' | 'NOTIFICATION_TO_ADMINS';
+type UserNotificationEvents = 'NOTIFICATION_TO_USER';
 type StayEvents = 'FIRST_USER_HOME' | 'LAST_USER_LEAVES' | 'STAY_START' | 'STAY_END';
 
 type BaseNotificationPayload = {
@@ -27,12 +29,16 @@ type NotificationPayload =
   | (BaseNotificationPayload & { priority: 2, retry: number, expire: number })
   | (BaseNotificationPayload & { priority?: -2 | -1 | 0 | 1 });
 
+type UserNotificationPayload = NotificationPayload & { userHandle: string };
+
 interface KarenEventBus extends EventEmitter {
   emit(event: NotificationEvents, payload: NotificationPayload): boolean;
+  emit(event: UserNotificationEvents, payload: UserNotificationPayload): boolean;
   emit(event: StayEvents, payload: Stay): boolean;
   emit(event: DeviceCapabilityEvent, payload: NumericEvent | BooleanEvent | StringEvent): void;
 
   on(event: NotificationEvents, cb: (payload: NotificationPayload) => void): this;
+  on(event: UserNotificationEvents, cb: (payload: UserNotificationPayload) => void): this;
   on(event: StayEvents, cb: (payload: Stay) => void): this;
   on(event: DeviceCapabilityEvent, cb: (payload: NumericEvent) => unknown): this;
   on(event: DeviceCapabilityEvent, cb: (payload: BooleanEvent) => unknown): this;

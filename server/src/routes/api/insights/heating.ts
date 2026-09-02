@@ -5,7 +5,14 @@ import { TimeRangeSelector } from '../../../models/capabilities/helpers';
 import { mapNumericHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
 import { awaitPromises } from '../../../helpers/promises';
 import { asyncMap } from '../../../helpers/array';
-import config from '../../../config';
+import automationsConfig from '../../../config/automations.json';
+
+// TS infers automations.json's element type as a literal union of whatever automations
+// this environment's real (gitignored) file happens to contain, so looking up one that
+// isn't configured here - like 'heating', which isn't in every environment's config -
+// wouldn't type-check against that inferred union. Widen back to the ambient contract
+// (config/automations.d.ts) so this lookup type-checks regardless of local config content.
+const automations = automationsConfig as { name: string; parameters?: Record<string, unknown> }[];
 
 function findEventAt(events: NumericEvent[], t: number): NumericEvent | null {
   // Events are ordered newest-first (DESC). Iterate that way so that if a stale
@@ -72,7 +79,7 @@ export default async function (req: Request, res: Response) {
 
   const heatpump = heatpumps[0].getHeatPumpCapability();
 
-  const heatingAutomation = config.automations.find((a) => a.name === 'heating');
+  const heatingAutomation = automations.find((a) => a.name === 'heating');
   const switchOnThreshold = heatingAutomation?.parameters?.temperatureDeltaSwitchOnThreshold;
 
   res.json(await awaitPromises({
@@ -102,7 +109,7 @@ export default async function (req: Request, res: Response) {
         { value: 'FROST_PROTECTION', label: 'Frost Protection' },
         { value: 'DHW', label: 'Hot Water' }
       ]
-    }),
+    }).then(m => [m]),
     temperatures: asyncMap(thermostats, async (device) => {
       const thermostat = device.getThermostatCapability();
       const [data, isPassive] = await Promise.all([

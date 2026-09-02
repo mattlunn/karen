@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-# Install MySQL client, openssh-client, and GitHub CLI.
+# Install MySQL client, openssh-client, jq, and GitHub CLI.
 curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
   | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null
 chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
   > /etc/apt/sources.list.d/github-cli.list
-apt-get update -qq && apt-get install -y -q default-mysql-client openssh-client gh
+apt-get update -qq && apt-get install -y -q default-mysql-client openssh-client jq iputils-ping vim gh
 
 # Provision a karen-only deploy key in the persisted ~/.ssh volume.
 # On first run we generate the key and print the public half so it can

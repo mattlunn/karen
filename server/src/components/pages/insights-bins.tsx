@@ -5,7 +5,7 @@ import PageLoader from '../page-loader';
 import BinScheduleCalendar from '../bin-schedule-calendar';
 import dayjs from '../../dayjs';
 import { forDeviceCapability } from '../../helpers/device';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 export default function InsightsBins() {
   const { data, isPending } = useDevices();

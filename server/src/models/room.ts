@@ -21,10 +21,10 @@ export default function (sequelize: Sequelize) {
       unique: true
     },
     createdAt: {
-      type: DataTypes.DATE
+      type: DataTypes.DATE(3)
     },
     updatedAt: {
-      type: DataTypes.DATE
+      type: DataTypes.DATE(3)
     },
     name: {
       type: DataTypes.STRING,
