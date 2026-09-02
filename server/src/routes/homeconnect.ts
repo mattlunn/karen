@@ -4,6 +4,8 @@ import { stringify} from 'querystring';
 import logger from '../logger';
 import { saveConfig } from '../helpers/config';
 
+type HomeConnectTokenResponse = { access_token: string; refresh_token: string; expires_in: number };
+
 const router = express.Router();
 
 router.use((req, res, next) => {
@@ -29,10 +31,10 @@ router.get('/authorize', async (req, res) => {
       method: 'POST'
     });
 
-    type HomeConnectTokenResponse = { access_token: string; refresh_token: string; expires_in: number };
     const token = await request.json() as HomeConnectTokenResponse;
 
     config.homeconnect.refresh_token = token.refresh_token;
+    
     saveConfig();
     logger.info('HomeConnect authorized successfully');
     res.send('HomeConnect authorized. You can close this tab.');

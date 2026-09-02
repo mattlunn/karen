@@ -78,6 +78,7 @@ export default class ApiClient {
         const handleEvent = (type: SseType) => (message: MessageEvent) => {
           const data = JSON.parse(message.data);
           const items: SseItem[] = data.items ?? [];
+
           onMessage({ haId: data.haId, items }, type);
         };
 
@@ -87,16 +88,19 @@ export default class ApiClient {
 
         es.addEventListener('CONNECTED', (message: MessageEvent) => {
           const data = JSON.parse(message.data);
+
           onMessage({ haId: data.haId, items: [] }, 'CONNECTED');
         });
 
         es.addEventListener('DISCONNECTED', (message: MessageEvent) => {
           const data = JSON.parse(message.data);
+
           onMessage({ haId: data.haId, items: [] }, 'DISCONNECTED');
         });
 
         es.onerror = (err) => {
           logger.warn({ err }, 'Home Connect SSE error; reconnecting in 30s');
+
           es.close();
           setTimeout(connect, 30_000);
         };
@@ -104,6 +108,7 @@ export default class ApiClient {
         logger.info('Home Connect SSE connected');
       } catch (err) {
         logger.warn({ err }, 'Home Connect SSE connect failed; retrying in 30s');
+        
         setTimeout(connect, 30_000);
       }
     };
