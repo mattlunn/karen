@@ -3,6 +3,7 @@ import logger from '../../logger';
 import { saveConfig } from '../../helpers/config';
 import { Device } from '../../models';
 import type { Capability } from '../../models/capabilities';
+import { OvenCapability, MicrowaveCapability, DishwasherCapability } from '../../models/capabilities';
 import ApiClient from './lib/client';
 import type { SseType } from './lib/client';
 import { formatProgramName } from './lib/format';
@@ -55,57 +56,63 @@ async function getAccessToken(): Promise<string> {
 
 const client = new ApiClient(getAccessToken);
 
+type ProgramCapability = OvenCapability | MicrowaveCapability | DishwasherCapability;
+
+function programCapability(device: Device, applianceType: string): ProgramCapability {
+  switch (applianceType) {
+    case 'Oven': return device.getOvenCapability();
+    case 'Microwave': return device.getMicrowaveCapability();
+    default: return device.getDishwasherCapability();
+  }
+}
+
+// Also drives the SWITCH capability, so Alexa PowerController and the
+// device-page toggle reflect whether a program is running.
+async function setRunningProgram(device: Device, capability: ProgramCapability, programName: string | null, ts: Date, now: Date): Promise<void> {
+  if (programName === null) {
+    await capability.clearProgramNameState(ts, now);
+  } else {
+    await capability.setProgramNameState(programName, ts, now);
+  }
+
+  await device.getSwitchCapability().setIsOnState(programName !== null, ts, now);
+}
+
 async function applyItem(device: Device, applianceType: string, item: SSEOperation, now: Date): Promise<void> {
   const ts = new Date(item.timestamp * 1000);
+
+  if (item.key === 'BSH.Common.Status.OperationState') {
+    if (!item.value.endsWith('.Run')) {
+      await setRunningProgram(device, programCapability(device, applianceType), null, ts, now);
+    }
+
+    return;
+  }
+
+  if (item.key === 'BSH.Common.Root.ActiveProgram') {
+    const programName = item.value ? formatProgramName(item.value) : null;
+
+    await setRunningProgram(device, programCapability(device, applianceType), programName, ts, now);
+
+    return;
+  }
 
   if (applianceType === 'Oven') {
     const capability = device.getOvenCapability();
 
-    if (item.key === 'BSH.Common.Status.OperationState') {
-      if (!item.value.endsWith('.Run')) {
-        await capability.clearProgramNameState(ts, now);
-      }
-    } else if (item.key === 'BSH.Common.Root.ActiveProgram') {
-      if (item.value) {
-        await capability.setProgramNameState(formatProgramName(item.value), ts, now);
-      } else {
-        await capability.clearProgramNameState(ts, now);
-      }
-    } else if (item.key === 'Cooking.Oven.Option.SetpointTemperature') {
+    if (item.key === 'Cooking.Oven.Option.SetpointTemperature') {
       await capability.setSetpointTemperatureState(item.value, ts, now);
     } else if (item.key === 'Cooking.Oven.Status.CurrentCavityTemperature') {
       await capability.setCurrentTemperatureState(item.value, ts, now);
     }
   } else if (applianceType === 'Microwave') {
-    const capability = device.getMicrowaveCapability();
-
-    if (item.key === 'BSH.Common.Status.OperationState') {
-      if (!item.value.endsWith('.Run')) {
-        await capability.clearProgramNameState(ts, now);
-      }
-    } else if (item.key === 'BSH.Common.Root.ActiveProgram') {
-      if (item.value) {
-        await capability.setProgramNameState(formatProgramName(item.value), ts, now);
-      } else {
-        await capability.clearProgramNameState(ts, now);
-      }
-    } else if (item.key === 'BSH.Common.Option.RemainingProgramTime') {
-      await capability.setEstimatedCompletionTimeState(item.timestamp * 1000 + item.value * 1000, ts, now);
+    if (item.key === 'BSH.Common.Option.RemainingProgramTime') {
+      await device.getMicrowaveCapability().setEstimatedCompletionTimeState(item.timestamp * 1000 + item.value * 1000, ts, now);
     }
   } else if (applianceType === 'Dishwasher') {
     const capability = device.getDishwasherCapability();
 
-    if (item.key === 'BSH.Common.Status.OperationState') {
-      if (!item.value.endsWith('.Run')) {
-        await capability.clearProgramNameState(ts, now);
-      }
-    } else if (item.key === 'BSH.Common.Root.ActiveProgram') {
-      if (item.value) {
-        await capability.setProgramNameState(formatProgramName(item.value), ts, now);
-      } else {
-        await capability.clearProgramNameState(ts, now);
-      }
-    } else if (item.key === 'BSH.Common.Option.RemainingProgramTime') {
+    if (item.key === 'BSH.Common.Option.RemainingProgramTime') {
       await capability.setEstimatedCompletionTimeState(item.timestamp * 1000 + item.value * 1000, ts, now);
     } else if (item.key === 'Dishcare.Dishwasher.Status.SaltNearlyEmpty') {
       await capability.setIsSaltLowState(item.value, ts, now);
@@ -149,13 +156,14 @@ async function handleSseMessage(msg: { haId: string; items: { key: string; times
 
 // Hardcoded to 3D Hot Air — the only program used via voice.
 const OVEN_DEFAULT_PROGRAM = 'Cooking.Oven.Program.HeatingMode.HotAir3D';
+const OVEN_DEFAULT_TEMPERATURE = 200;
 
 Device.registerProvider('homeconnect', {
   getCapabilities(device) {
     const type = device.meta.applianceType as string | undefined;
     const cap = type ? CAPABILITY_MAP[type] : undefined;
 
-    return cap ? [cap as Capability, 'CONNECTIVITY'] : [];
+    return cap ? [cap as Capability, 'SWITCH', 'CONNECTIVITY'] : [];
   },
 
   provideSwitchCapability() {
@@ -163,8 +171,12 @@ Device.registerProvider('homeconnect', {
       setIsOn: async (device: Device, value: boolean) => {
         if (!value) {
           await client.stopActiveProgram(device.providerId);
+        } else if (device.meta.applianceType === 'Oven') {
+          await client.startActiveProgram(device.providerId, OVEN_DEFAULT_PROGRAM, [
+            { key: 'Cooking.Oven.Option.SetpointTemperature', value: OVEN_DEFAULT_TEMPERATURE, unit: '°C' },
+          ]);
         } else {
-          throw new Error('Remote start is not supported for Home Connect appliances');
+          throw new Error(`Remote start is not supported for the ${device.meta.applianceType}`);
         }
       }
     };

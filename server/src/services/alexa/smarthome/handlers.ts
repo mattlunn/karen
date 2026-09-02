@@ -362,19 +362,6 @@ async function responsePropsForAppliance(device: Device, sampleTime: Date): Prom
   return createDishwasherResponseProperties(device, sampleTime);
 }
 
-export async function handleAppliancePowerOff(request: AlexaTurnOnOffRequest): Promise<object> {
-  if (request.header.name !== 'TurnOff') {
-    throw new Error('Remote start of this appliance is not supported');
-  }
-
-  const device = await Device.findByIdOrError(request.endpoint.endpointId);
-  const then = new Date();
-
-  await device.getSwitchCapability().setIsOn(false);
-
-  return controlResponse(request, then, await responsePropsForAppliance(device, then));
-}
-
 export async function handleOvenSetCookingMode(request: AlexaSetCookingModeRequest): Promise<object> {
   const mode = request.payload?.cookingMode?.value;
   const device = await Device.findByIdOrError(request.endpoint.endpointId);

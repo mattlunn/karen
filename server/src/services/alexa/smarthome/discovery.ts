@@ -198,37 +198,6 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
           version: '3'
         }]
       });
-    } else if (capabilities.includes('SWITCH')) {
-      endpoints.push({
-        friendlyName: device.name,
-        endpointId: String(device.id),
-        displayCategories: ['SWITCH'],
-        manufacturerName: device.manufacturer,
-        description: `${device.name} switch`,
-        capabilities: [{
-          type: 'AlexaInterface',
-          interface: 'Alexa.PowerController',
-          version: '3',
-          properties: {
-            supported: [{ name: 'powerState' }],
-            proactivelyReported: false,
-            retrievable: true
-          }
-        }, {
-          type: 'AlexaInterface',
-          interface: 'Alexa.EndpointHealth',
-          version: '3',
-          properties: {
-            supported: [{ name: 'connectivity' }],
-            proactivelyReported: false,
-            retrievable: true
-          }
-        }, {
-          type: 'AlexaInterface',
-          interface: 'Alexa',
-          version: '3'
-        }]
-      });
     } else if (capabilities.includes('SPEAKER')) {
       const instanceId = `${device.id}-1`;
       endpoints.push({
@@ -404,6 +373,37 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
         displayCategories: ['WASHER'],
         manufacturerName: device.manufacturer,
         description: device.name,
+        capabilities: [{
+          type: 'AlexaInterface',
+          interface: 'Alexa.PowerController',
+          version: '3',
+          properties: {
+            supported: [{ name: 'powerState' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.EndpointHealth',
+          version: '3',
+          properties: {
+            supported: [{ name: 'connectivity' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa',
+          version: '3'
+        }]
+      });
+    } else if (capabilities.includes('SWITCH')) {
+      endpoints.push({
+        friendlyName: device.name,
+        endpointId: String(device.id),
+        displayCategories: ['SWITCH'],
+        manufacturerName: device.manufacturer,
+        description: `${device.name} switch`,
         capabilities: [{
           type: 'AlexaInterface',
           interface: 'Alexa.PowerController',
