@@ -11,16 +11,47 @@ import EbusClient from './client';
 import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow } from '../../helpers/prices';
 
 // The current Auto plan: a single cheap block, written once and never revised
-// until it rolls over.
+// until it rolls over. Persisted on device.meta rather than held in memory,
+// because replanning needs a full forward-price horizon that isn't always
+// available - a restart would otherwise drop the plan and be unable to rebuild it.
 interface DHWPlan extends CheapestWindow {
   targetTemp: number;
   reason: DHWTargetReason;
 }
 
-let currentPlan: DHWPlan | null = null;
+// device.meta is JSON, so the block's instants round-trip as ISO strings.
+type StoredDHWPlan = Omit<DHWPlan, 'start' | 'end'> & { start: string; end: string };
 
-function clearPlan() {
-  currentPlan = null;
+function getStoredPlan(device: Device): StoredDHWPlan | undefined {
+  return device.meta.dhwPlan as StoredDHWPlan | undefined;
+}
+
+function getPlan(device: Device): DHWPlan | null {
+  const stored = getStoredPlan(device);
+
+  return stored === undefined ? null : {
+    ...stored,
+    start: new Date(stored.start),
+    end: new Date(stored.end),
+  };
+}
+
+async function setPlan(device: Device, plan: DHWPlan): Promise<void> {
+  device.meta.dhwPlan = {
+    ...plan,
+    start: plan.start.toISOString(),
+    end: plan.end.toISOString(),
+  } satisfies StoredDHWPlan;
+
+  await device.save();
+}
+
+async function clearPlan(device: Device): Promise<void> {
+  if (getStoredPlan(device) !== undefined) {
+    device.meta.dhwPlan = undefined;
+
+    await device.save();
+  }
 }
 
 async function getEnergyCostCapability() {
@@ -33,12 +64,14 @@ async function getEnergyCostCapability() {
   return devices[0].getEnergyCostCapability();
 }
 
-export function getPlannedDHWWindow(): DHWPlannedWindow | null {
-  return currentPlan === null ? null : {
-    start: currentPlan.start.toISOString(),
-    end: currentPlan.end.toISOString(),
-    targetTemp: currentPlan.targetTemp,
-    reason: currentPlan.reason,
+export function getPlannedDHWWindow(device: Device): DHWPlannedWindow | null {
+  const stored = getStoredPlan(device);
+
+  return stored === undefined ? null : {
+    start: stored.start,
+    end: stored.end,
+    targetTemp: stored.targetTemp,
+    reason: stored.reason,
   };
 }
 
@@ -85,13 +118,14 @@ async function resolveTarget(device: Device, window: CheapestWindow): Promise<{ 
 // never recalculated - so the block can't drift.
 async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): Promise<boolean> {
   const now = new Date();
+  const plan = getPlan(device);
 
-  if (currentPlan !== null && now < currentPlan.end) {
-    return now >= currentPlan.start;
+  if (plan !== null && now < plan.end) {
+    return now >= plan.start;
   }
 
-  if (currentPlan !== null && now >= currentPlan.end) {
-    clearPlan();
+  if (plan !== null && now >= plan.end) {
+    await clearPlan(device);
   }
 
   const horizonHours = config.ebusd.dhw_planning_horizon_hours;
@@ -120,7 +154,7 @@ async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): P
 
   const { targetTemp, reason } = await resolveTarget(device, window);
 
-  currentPlan = { ...window, targetTemp, reason };
+  await setPlan(device, { ...window, targetTemp, reason });
   logger.info(`DHW: scheduled ${reason} block ${window.start.toISOString()} - ${window.end.toISOString()} @ ${window.averagePence.toFixed(2)}p/kWh, target ${targetTemp}°C`);
 
   return now >= window.start && now < window.end;
@@ -148,25 +182,28 @@ async function reconcile(): Promise<void> {
 
   if (isBoosting) {
     // A one-time load is running: hold the circuit enabled and leave the
-    // controller to revert HwcSFMode to `auto` itself when it's done.
+    // controller to revert HwcSFMode to `auto` itself when it's done. The plan
+    // stands - a boost is a transient override of what's happening now, not a
+    // change to the day's schedule, and a boost only reaches the standard
+    // setpoint so it can't stand in for a raised-target block.
     shouldBeOn = true;
-
-    clearPlan();
   } else if (mode === 'OFF') {
     shouldBeOn = false;
 
-    clearPlan();
+    await clearPlan(device);
   } else {
     shouldBeOn = await resolveAutoState(device, heatPump);
   }
 
   const readonly = config.ebusd.dhw_plan_mode === 'readonly';
+  const plan = getPlan(device);
+  const blockIsLive = plan !== null && Date.now() >= plan.start.getTime() && Date.now() < plan.end.getTime();
 
   // The plan's setpoint applies only while its block is live. Outside it - a
-  // block still ahead, a finished block, or a boost that cleared the plan -
+  // block still ahead, a finished block, or a boost running on its own -
   // HwcTempDesired drops back to standard rather than sitting at plunge/legionella temp.
-  const desiredTargetTemp = (shouldBeOn && currentPlan !== null)
-    ? currentPlan.targetTemp
+  const desiredTargetTemp = (shouldBeOn && blockIsLive)
+    ? plan.targetTemp
     : config.ebusd.dhw_standard_target_temp;
 
   // Write the setpoint before enabling the circuit, so a raised-target block
