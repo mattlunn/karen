@@ -310,6 +310,7 @@ async function createMicrowaveResponseProperties(device: Device, sampleTime: Dat
   ]);
 
   const isRunning = programEvent !== null;
+
   return [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
@@ -336,6 +337,7 @@ async function createDishwasherResponseProperties(device: Device, sampleTime: Da
   ]);
 
   const isRunning = programEvent !== null;
+
   return [{
     namespace: 'Alexa.PowerController',
     name: 'powerState',
@@ -366,15 +368,17 @@ export async function handleAppliancePowerOff(request: AlexaTurnOnOffRequest): P
   }
 
   const device = await Device.findByIdOrError(request.endpoint.endpointId);
+  const then = new Date();
+
   await device.getSwitchCapability().setIsOn(false);
 
-  const then = new Date();
   return controlResponse(request, then, await responsePropsForAppliance(device, then));
 }
 
-export async function handleApplianceSetCookingMode(request: AlexaSetCookingModeRequest): Promise<object> {
+export async function handleOvenSetCookingMode(request: AlexaSetCookingModeRequest): Promise<object> {
   const mode = request.payload?.cookingMode?.value;
   const device = await Device.findByIdOrError(request.endpoint.endpointId);
+  const then = new Date();
 
   if (mode === 'OFF') {
     await device.getSwitchCapability().setIsOn(false);
@@ -385,16 +389,16 @@ export async function handleApplianceSetCookingMode(request: AlexaSetCookingMode
     throw new Error(`Cooking mode ${mode} not supported on this appliance`);
   }
 
-  const then = new Date();
   return controlResponse(request, then, await responsePropsForAppliance(device, then));
 }
 
 export async function handleOvenCookByTemperature(request: AlexaCookByTemperatureRequest): Promise<object> {
   const device = await Device.findByIdOrError(request.endpoint.endpointId);
   const celsius = toCelsius(request.payload.targetCookingTemperature);
+  const then = new Date();
+
   await device.getOvenCapability().setSetpointTemperature(Math.round(celsius));
 
-  const then = new Date();
   return controlResponse(request, then, await responsePropsForAppliance(device, then));
 }
 

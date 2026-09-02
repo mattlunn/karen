@@ -13,7 +13,7 @@ import {
   handleTelevisionControl,
   handleLauncherControl,
   handleAppliancePowerOff,
-  handleApplianceSetCookingMode,
+  handleOvenSetCookingMode,
   handleOvenCookByTemperature,
   AlexaRequestWithEndpoint,
   AlexaInvalidValueError
@@ -104,7 +104,7 @@ export const smarthomeHandlers: Record<string, SmartHomeRequestHandler> = {
   },
   'Alexa.BrightnessController': (r) => handleLightControl(r as AlexaBrightnessRequest),
   'Alexa.SecurityPanelController': (r) => handleAlarmControl(r as AlexaSecurityPanelRequest),
-  'Alexa.Cooking': (r) => handleApplianceSetCookingMode(r as AlexaSetCookingModeRequest),
+  'Alexa.Cooking': (r) => handleOvenSetCookingMode(r as AlexaSetCookingModeRequest),
   'Alexa.Cooking.TemperatureController': (r) => handleOvenCookByTemperature(r as AlexaCookByTemperatureRequest),
   'Alexa.Speaker': (r) => handleTelevisionControl(r as AlexaSpeakerRequest),
   'Alexa.StepSpeaker': (r) => handleTelevisionControl(r as AlexaStepSpeakerRequest),
