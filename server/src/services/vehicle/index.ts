@@ -367,6 +367,9 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
   await runBauMode(device, ev, now);
 }
 
+// Aligned ticks hit the half-hour block boundaries exactly, so the 5-minute cadence
+// is for what isn't aligned: reacting to the cable being plugged in, and stopping
+// within five minutes of the charge limit rather than thirty.
 nowAndSetCron(createBackgroundTransaction('vehicle:charge-schedule', async () => {
   const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
   const ev = device.getElectricVehicleCapability();

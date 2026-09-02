@@ -24,7 +24,7 @@ Device.registerProvider('ebusd', {
     return {
       setDHWMode: (_device: Device, mode: HeatPumpDHWMode) => setDHWMode(mode),
       setDHWBoost: (_device: Device, on: boolean) => setDHWBoost(on),
-      getPlannedDHWWindow: () => getPlannedDHWWindow(),
+      getPlannedDHWWindow: (device: Device) => getPlannedDHWWindow(device),
       getLegionellaCycles: (device: Device, since: Date, until: Date, limit?: number) => getLegionellaCycles(device, since, until, limit),
     };
   },
