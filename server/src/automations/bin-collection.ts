@@ -61,7 +61,7 @@ export default function ({ reminderTime }: z.infer<typeof parameters>) {
       if (movedFromTomorrow.length > 0) {
         const newDate = dayjs(overrideFromTomorrow!.newDate);
         bus.emit(NOTIFICATION_TO_ALL, {
-          message: `🗑️ ${joinWithAnd(movedFromTomorrow)} bin collection moved to ${newDate.format('ddd D MMM')}`,
+          message: `‼️ 🗑️ ${joinWithAnd(movedFromTomorrow)} bin collection moved to ${newDate.format('ddd D MMM')}`,
         });
       }
     } catch (e) {
