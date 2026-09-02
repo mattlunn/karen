@@ -9,6 +9,7 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
 import EbusClient from './client';
 import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow } from '../../helpers/prices';
+import { isWithinWindow } from '../../helpers/date';
 
 // The current Auto plan: a single cheap block, written once and never revised
 // until it rolls over. Persisted on device.meta rather than held in memory,
@@ -118,11 +119,11 @@ async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): P
   const now = new Date();
   const plan = getPlan(device);
 
-  if (plan !== null && now < plan.end) {
-    return now >= plan.start;
-  }
+  if (plan !== null) {
+    if (now < plan.end) {
+      return isWithinWindow(plan, now);
+    }
 
-  if (plan !== null && now >= plan.end) {
     await clearPlan(device);
   }
 
@@ -155,7 +156,7 @@ async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): P
   await setPlan(device, { start: window.start, end: window.end, targetTemp, reason });
   logger.info(`DHW: scheduled ${reason} block ${window.start.toISOString()} - ${window.end.toISOString()} @ ${window.averagePence.toFixed(2)}p/kWh, target ${targetTemp}°C`);
 
-  return now >= window.start && now < window.end;
+  return isWithinWindow(window, now);
 }
 
 // The single writer of HwcOpMode and HwcTempDesired. Resolves the desired state
@@ -195,7 +196,7 @@ async function reconcile(): Promise<void> {
 
   const readonly = config.ebusd.dhw_plan_mode === 'readonly';
   const plan = getPlan(device);
-  const blockIsLive = plan !== null && Date.now() >= plan.start.getTime() && Date.now() < plan.end.getTime();
+  const blockIsLive = plan !== null && isWithinWindow(plan, new Date());
 
   // The plan's setpoint applies only while its block is live. Outside it - a
   // block still ahead, a finished block, or a boost running on its own -

@@ -1,4 +1,5 @@
 import dayjs from '../../dayjs';
+import { isWithinWindow } from '../../helpers/date';
 import {
   PriceSlot,
   SlotBlock,
@@ -127,5 +128,5 @@ export function planOpportunisticCharge(
 }
 
 export function isWithinBlocks(blocks: Block[], now: Date): boolean {
-  return blocks.some(b => now >= b.start && now < b.end);
+  return blocks.some(b => isWithinWindow(b, now));
 }
