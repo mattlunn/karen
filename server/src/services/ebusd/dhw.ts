@@ -22,12 +22,8 @@ interface DHWPlan extends CheapestWindow {
 // device.meta is JSON, so the block's instants round-trip as ISO strings.
 type StoredDHWPlan = Omit<DHWPlan, 'start' | 'end'> & { start: string; end: string };
 
-function getStoredPlan(device: Device): StoredDHWPlan | undefined {
-  return device.meta.dhwPlan as StoredDHWPlan | undefined;
-}
-
 function getPlan(device: Device): DHWPlan | null {
-  const stored = getStoredPlan(device);
+  const stored = device.meta.dhwPlan as StoredDHWPlan | undefined;
 
   return stored === undefined ? null : {
     ...stored,
@@ -47,7 +43,7 @@ async function setPlan(device: Device, plan: DHWPlan): Promise<void> {
 }
 
 async function clearPlan(device: Device): Promise<void> {
-  if (getStoredPlan(device) !== undefined) {
+  if (device.meta.dhwPlan !== undefined) {
     device.meta.dhwPlan = undefined;
 
     await device.save();
@@ -64,14 +60,16 @@ async function getEnergyCostCapability() {
   return devices[0].getEnergyCostCapability();
 }
 
+// Deliberately not the stored shape: averagePence is provenance for the choice,
+// not part of the window the API exposes.
 export function getPlannedDHWWindow(device: Device): DHWPlannedWindow | null {
-  const stored = getStoredPlan(device);
+  const plan = getPlan(device);
 
-  return stored === undefined ? null : {
-    start: stored.start,
-    end: stored.end,
-    targetTemp: stored.targetTemp,
-    reason: stored.reason,
+  return plan === null ? null : {
+    start: plan.start.toISOString(),
+    end: plan.end.toISOString(),
+    targetTemp: plan.targetTemp,
+    reason: plan.reason,
   };
 }
 
