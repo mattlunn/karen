@@ -371,7 +371,8 @@ export async function handleOvenSetCookingMode(request: AlexaSetCookingModeReque
     await device.getSwitchCapability().setIsOn(false);
   } else if (device.getCapabilities().includes('OVEN')) {
     const setpoint = await device.getOvenCapability().getSetpointTemperature();
-    await device.getOvenCapability().setSetpointTemperature(setpoint || 180);
+    
+    await device.getOvenCapability().setSetpointTemperature(setpoint || 200);
   } else {
     throw new Error(`Cooking mode ${mode} not supported on this appliance`);
   }
