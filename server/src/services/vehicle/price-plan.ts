@@ -127,6 +127,13 @@ export function planOpportunisticCharge(
   return groupIntoBlocks(picked, minBlockMinutes);
 }
 
+// Negative-price windows: charge through them regardless of the BAU ceiling or
+// the cheap-baseline test. Runs shorter than minBlockMinutes are dropped, same
+// as the other planners.
+export function planPlungeCharge(slots: PriceSlot[], now: Date, minBlockMinutes: number): Block[] {
+  return groupIntoBlocks(slots.filter(s => s.end > now && s.pence < 0), minBlockMinutes);
+}
+
 export function isWithinBlocks(blocks: Block[], now: Date): boolean {
   return blocks.some(b => isWithinWindow(b, now));
 }

@@ -1,5 +1,5 @@
 import { PriceSlot } from '../../helpers/prices';
-import { planDeadlineCharge, planOpportunisticCharge, isWithinBlocks } from './price-plan';
+import { planDeadlineCharge, planOpportunisticCharge, planPlungeCharge, isWithinBlocks } from './price-plan';
 
 const T0 = new Date('2026-01-01T00:00:00Z');
 
@@ -156,6 +156,36 @@ describe('planOpportunisticCharge', () => {
 
   it('charges nothing when no charge is needed', () => {
     expect(planOpportunisticCharge(run(0, 24, 5), at(0), 20, 60, 0)).toEqual([]);
+  });
+});
+
+describe('planPlungeCharge', () => {
+  it('returns a block spanning a contiguous negative run', () => {
+    const slots = [...run(0, 2, 8), ...run(2, 4, -1), ...run(4, 6, 8)];
+
+    expect(planPlungeCharge(slots, at(0), 60)).toEqual([{ start: at(2), end: at(4) }]);
+  });
+
+  it('drops a negative run shorter than minBlockMinutes', () => {
+    const slots = [...run(0, 2, 8), ...run(2, 2.5, -1), ...run(2.5, 6, 8)];
+
+    expect(planPlungeCharge(slots, at(0), 60)).toEqual([]);
+  });
+
+  it('ignores zero-priced and positive slots', () => {
+    const slots = [...run(0, 2, 0), ...run(2, 4, -1), ...run(4, 6, 5)];
+
+    expect(planPlungeCharge(slots, at(0), 60)).toEqual([{ start: at(2), end: at(4) }]);
+  });
+
+  it('returns nothing when no slot is negative', () => {
+    expect(planPlungeCharge(run(0, 24, 5), at(0), 60)).toEqual([]);
+  });
+
+  it('ignores negative slots already in the past', () => {
+    const slots = [...run(0, 2, -1), ...run(2, 6, 8), ...run(6, 8, -1)];
+
+    expect(planPlungeCharge(slots, at(4), 60)).toEqual([{ start: at(6), end: at(8) }]);
   });
 });
 

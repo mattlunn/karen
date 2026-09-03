@@ -7,7 +7,7 @@ import * as client from './client';
 import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
-import { planDeadlineCharge, planOpportunisticCharge, isWithinBlocks, Block } from './price-plan';
+import { planDeadlineCharge, planOpportunisticCharge, planPlungeCharge, isWithinBlocks, Block } from './price-plan';
 import { toPriceSlots, medianPence } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
@@ -194,6 +194,12 @@ async function getForwardPriceSlots(now: Date, hours: number) {
   return toPriceSlots(events, now, until);
 }
 
+async function getPlungeBlocks(now: Date): Promise<Block[]> {
+  const slots = await getForwardPriceSlots(now, config.smartcar.charge_planning_horizon_hours);
+
+  return planPlungeCharge(slots, now, config.smartcar.charge_min_block_minutes);
+}
+
 async function getBaselinePence(now: Date): Promise<number | null> {
   const energyCost = await getEnergyCostCapability();
 
@@ -281,7 +287,7 @@ async function planDeadlineWindowIfNeeded(device: Device, now: Dayjs, hoursNeede
 }
 
 // `hoursNeeded` here already includes charge_start_buffer_hours.
-async function runDeadlineMode(device: Device, ev: ElectricVehicleCapability, now: Dayjs, stored: ChargeSchedule, hoursNeeded: number) {
+async function runDeadlineMode(device: Device, ev: ElectricVehicleCapability, now: Dayjs, stored: ChargeSchedule, hoursNeeded: number, plungeBlocks: Block[]) {
   const deadline = dayjs(stored.targetTime);
 
   await planDeadlineWindowIfNeeded(device, now, hoursNeeded, deadline);
@@ -294,31 +300,48 @@ async function runDeadlineMode(device: Device, ev: ElectricVehicleCapability, no
     blocks = [{ start: now.toDate(), end: deadline.toDate() }];
   }
 
+  const plungeActive = isWithinBlocks(plungeBlocks, now.toDate());
+  const target = plungeActive
+    ? Math.max(stored.targetPercentage, config.smartcar.charge_plunge_limit ?? 100)
+    : stored.targetPercentage;
+
+  blocks = [...blocks, ...plungeBlocks];
   currentPlannedBlocks = blocks;
 
-  await applyChargeBlocks(ev, now, blocks, stored.targetPercentage, deadline);
+  await applyChargeBlocks(ev, now, blocks, target, deadline);
 }
 
-async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
+async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Dayjs, plungeBlocks: Block[]) {
   const [isCableConnected, chargePercentage] = await Promise.all([
     ev.getIsCableConnected(),
     ev.getChargePercentage(),
   ]);
 
   const defaultLimit = config.smartcar.default_charge_limit;
+  const plungeActive = isWithinBlocks(plungeBlocks, now.toDate());
+  const plungeTarget = plungeActive
+    ? Math.max(defaultLimit, config.smartcar.charge_plunge_limit ?? 100)
+    : defaultLimit;
 
-  if (!isCableConnected || chargePercentage >= defaultLimit) {
+  if (!isCableConnected) {
     currentPlannedBlocks = [];
     await applyChargeBlocks(ev, now, [], defaultLimit);
+    return;
+  }
+
+  // Above the BAU ceiling: nothing to charge through unless a plunge window is running.
+  if (chargePercentage >= defaultLimit) {
+    currentPlannedBlocks = plungeBlocks;
+    await applyChargeBlocks(ev, now, plungeBlocks, plungeTarget);
     return;
   }
 
   const baseline = await getBaselinePence(now.toDate());
 
   if (baseline === null) {
-    // No rate history to judge "cheap" against - stay off.
-    currentPlannedBlocks = [];
-    await applyChargeBlocks(ev, now, [], defaultLimit);
+    // No rate history to judge "cheap" against - only plunge windows charge.
+    currentPlannedBlocks = plungeBlocks;
+    await applyChargeBlocks(ev, now, plungeBlocks, plungeTarget);
     return;
   }
 
@@ -328,13 +351,16 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
 
   // No forward prices -> planOpportunisticCharge yields no blocks -> stay off,
   // pending the admin acting on the Octopus alert.
-  const blocks = planOpportunisticCharge(
-    slots, now.toDate(), baseline, minBlock,
-    computeHoursNeeded(defaultLimit - chargePercentage),
-  );
+  const blocks = [
+    ...planOpportunisticCharge(
+      slots, now.toDate(), baseline, minBlock,
+      computeHoursNeeded(defaultLimit - chargePercentage),
+    ),
+    ...plungeBlocks,
+  ];
 
   currentPlannedBlocks = blocks;
-  await applyChargeBlocks(ev, now, blocks, defaultLimit);
+  await applyChargeBlocks(ev, now, blocks, plungeTarget);
 }
 
 // BAU is the default. A recurring charge schedule is nearly always set (just
@@ -344,6 +370,7 @@ async function runBauMode(device: Device, ev: ElectricVehicleCapability, now: Da
 // deadline`. That scales with how much charge is actually needed: an 80%->100%
 // top-up engages far later than a 15%->100% charge with the same deadline.
 async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
+  const plungeBlocks = await getPlungeBlocks(now.toDate());
   const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
 
   if (stored) {
@@ -352,7 +379,7 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
     const hoursToDeadline = dayjs(stored.targetTime).diff(now, 'hour', true);
 
     if (hoursNeeded / hoursToDeadline >= config.smartcar.charge_deadline_engage_fraction) {
-      await runDeadlineMode(device, ev, now, stored, hoursNeeded);
+      await runDeadlineMode(device, ev, now, stored, hoursNeeded, plungeBlocks);
       return;
     }
 
@@ -364,7 +391,7 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
     }
   }
 
-  await runBauMode(device, ev, now);
+  await runBauMode(device, ev, now, plungeBlocks);
 }
 
 // Aligned ticks hit the half-hour block boundaries exactly, so the 5-minute cadence
