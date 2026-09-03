@@ -35,17 +35,6 @@ function getPlan(device: Device): ChargePlan | null {
   };
 }
 
-async function setPlan(device: Device, plan: ChargePlan): Promise<void> {
-  device.meta.chargePlan = {
-    horizonEnd: plan.horizonEnd.toISOString(),
-    slots: plan.slots.map(s => ({ start: s.start.toISOString(), end: s.end.toISOString() })),
-    target: plan.target,
-    deadline: plan.deadline === null ? null : plan.deadline.toISOString(),
-  } satisfies StoredChargePlan;
-
-  await device.save();
-}
-
 async function clearPlan(device: Device): Promise<void> {
   if (device.meta.chargePlan !== undefined) {
     device.meta.chargePlan = undefined;
@@ -322,7 +311,14 @@ async function createPlan(device: Device, now: Dayjs, chargePercentage: number):
     startBufferHours: config.smartcar.charge_start_buffer_hours,
   });
 
-  await setPlan(device, plan);
+  device.meta.chargePlan = {
+    horizonEnd: plan.horizonEnd.toISOString(),
+    slots: plan.slots.map(s => ({ start: s.start.toISOString(), end: s.end.toISOString() })),
+    target: plan.target,
+    deadline: plan.deadline === null ? null : plan.deadline.toISOString(),
+  } satisfies StoredChargePlan;
+
+  await device.save();
 
   logger.info(`Price-aware charging: planned ${plan.slots.length} slot(s) to ${plan.target}%${plan.deadline === null ? '' : ` for ${plan.deadline.toISOString()}`}`);
 
