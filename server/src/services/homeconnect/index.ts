@@ -168,6 +168,12 @@ const OVEN_DEFAULT_TEMPERATURE = 200;
 // ProgramName value stored when a machine-care cycle runs.
 const MACHINE_CARE_PROGRAM_NAME = 'Machine Care';
 
+// Home Connect reports built-in combi microwave-ovens with type "Oven"; config
+// maps their haId to the type we actually want to treat them as.
+function resolveApplianceType(haId: string, reportedType: string): string {
+  return config.homeconnect.applianceTypeOverrides?.[haId] ?? reportedType;
+}
+
 Device.registerProvider('homeconnect', {
   getCapabilities(device) {
     const type = device.meta.applianceType as string | undefined;
@@ -221,7 +227,9 @@ Device.registerProvider('homeconnect', {
     const appliances = await client.getAppliances();
 
     for (const appliance of appliances) {
-      if (!CAPABILITY_MAP[appliance.type]) {
+      const type = resolveApplianceType(appliance.haId, appliance.type);
+
+      if (!CAPABILITY_MAP[type]) {
         continue;
       }
 
@@ -233,10 +241,10 @@ Device.registerProvider('homeconnect', {
           providerId: appliance.haId,
           name: appliance.name,
           manufacturer: 'Home Connect',
-          model: appliance.type,
+          model: type,
         });
 
-        device.meta.applianceType = appliance.type;
+        device.meta.applianceType = type;
 
         await device.save();
       }
