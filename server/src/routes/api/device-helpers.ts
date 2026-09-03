@@ -331,6 +331,7 @@ export async function getCapabilityData(device: Device, capability: string, inst
         lastSelfCareRun: lastSelfCareRun ? mapStringState(Promise.resolve(lastSelfCareRun), device) : Promise.resolve(null),
         isSaltLow: mapBooleanState(dw.getIsSaltLowEvent(), device),
         isRinseAidLow: mapBooleanState(dw.getIsRinseAidLowEvent(), device),
+        scheduledRun: dw.getScheduledRun(),
       });
     }
 

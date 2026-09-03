@@ -50,6 +50,7 @@ import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, Ligh
 import ThermostatModal from '../modals/thermostat-modal';
 import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import ChargeLimitModal from '../modals/charge-limit-modal';
+import DishwasherScheduleModal from '../modals/dishwasher-schedule-modal';
 import dayjs from '../../dayjs';
 import { humanDate, formatDuration } from '../../helpers/date';
 import { RelativeDuration } from '../relative-duration';
@@ -927,7 +928,7 @@ export const registry: CapabilityUIRegistry = {
 
   DISHWASHER: {
     priority: 14,
-    getCapabilityMetrics: (cap) => [
+    getCapabilityMetrics: (cap, device) => [
       createCapability(cap.runningProgram, {
         icon: faWind,
         title: 'Program',
@@ -951,6 +952,18 @@ export const registry: CapabilityUIRegistry = {
         title: 'Rinse Aid',
         value: (e) => e.value ? 'Low' : 'OK',
         isIssue: (e) => e.value,
+      }),
+      createCapability(null, {
+        icon: faCalendarCheck,
+        title: 'Scheduled Run',
+        value: cap.scheduledRun
+          ? `${dayjs(cap.scheduledRun.start).format('HH:mm')} ${humanDate(dayjs(cap.scheduledRun.start))}`
+          : 'Not scheduled',
+        iconColor: '#3498db',
+        iconHighlighted: !!cap.scheduledRun,
+        onIconClick: ({ openModal, closeModal }) => {
+          openModal(<DishwasherScheduleModal device={device} capability={cap} closeModal={closeModal} />);
+        },
       }),
       createCapability(cap.lastSelfCareRun, {
         icon: faWrench,

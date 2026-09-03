@@ -10,6 +10,8 @@ export type Appliance = {
   type: string;
 }
 
+export type ProgramOption = { key: string; value: number | string; unit?: string };
+
 type SseItem = { key: string; timestamp: number; value: unknown };
 export type SseType = 'NOTIFY' | 'EVENT' | 'STATUS' | 'CONNECTED' | 'DISCONNECTED';
 export type SseCallback = (msg: { haId: string; items: SseItem[] }, type: SseType) => void;
@@ -54,7 +56,13 @@ export default class ApiClient {
     await this.#request(`/homeappliances/${haId}/programs/active`, { method: 'DELETE' });
   }
 
-  async startActiveProgram(haId: string, programKey: string, options: Array<{ key: string; value: number | string; unit?: string }>): Promise<void> {
+  async getSelectedProgram(haId: string): Promise<{ key: string; options: ProgramOption[] }> {
+    const data = await this.#request(`/homeappliances/${haId}/programs/selected`) as { key: string; options?: ProgramOption[] };
+
+    return { key: data.key, options: data.options ?? [] };
+  }
+
+  async startActiveProgram(haId: string, programKey: string, options: ProgramOption[]): Promise<void> {
     await this.#request(`/homeappliances/${haId}/programs/active`, {
       method: 'PUT',
       body: JSON.stringify({ data: { key: programKey, options } })
