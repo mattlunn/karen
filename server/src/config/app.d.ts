@@ -150,7 +150,7 @@ declare namespace _default {
       interval_weeks: number;
     }[];
     const charge_median_rate_days: number;
-    const charge_min_block_minutes: number;
+    const charge_plunge_limit: number;
     const charge_planning_horizon_hours: number;
     const charge_deadline_engage_fraction: number;
   }

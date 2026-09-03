@@ -1,132 +1,155 @@
 import dayjs from '../../dayjs';
 import { isWithinWindow } from '../../helpers/date';
-import {
-  PriceSlot,
-  SlotBlock,
-  selectCheapestSlots,
-  findCheapestWindow,
-  groupIntoBlocks,
-} from '../../helpers/prices';
+import { PriceSlot } from '../../helpers/prices';
 
-export type Block = SlotBlock;
-
-export interface DeadlinePlan {
-  // The far edge of the window this plan commits to; not recomputed until
-  // `now` reaches it.
-  windowEnd: Date;
-  blocks: Block[];
+export interface PlanSlot {
+  start: Date;
+  end: Date;
 }
 
-function slotMinutesOf(slots: PriceSlot[]): number {
-  return dayjs(slots[0].end).diff(slots[0].start, 'minute', true);
+export interface ChargeDeadline {
+  targetPercentage: number;
+  targetTime: Date;
 }
 
-// toPriceSlots returns slots in ascending, contiguous order, so the last slot's
-// end is the end of the published horizon.
-function endOfPublishedPrices(slots: PriceSlot[]): Date {
-  return slots[slots.length - 1].end;
+export interface ChargePlan {
+  // The plan is fixed until `now` reaches this.
+  horizonEnd: Date;
+  slots: PlanSlot[];
+  // The SoC ceiling to charge toward: the highest of the passes that contributed.
+  target: number;
+  // Set only by the deadline pass, and drives the not-charging alert.
+  deadline: Date | null;
 }
 
-/**
- * Plans one committed window of a deadline charge. Only ~31h of Agile prices
- * are ever published, so a deadline further out is planned a window at a time:
- * take a pro-rata share of the remaining work, place it optimally *within the
- * fully-published window*, and don't recompute until the window rolls over.
- *
- * Because the window is bounded by the published horizon, prices are fully
- * known across it, so "cheapest within the window" is genuinely optimal - the
- * unknown future only sets the window's length, never the placement.
- *
- * The deadline always beats cost: with no slack left
- * (`deadline - now <= hoursNeeded`) prices are ignored and the plan is a
- * single continuous block to the deadline.
- */
-export function planDeadlineCharge(
-  slots: PriceSlot[],
-  hoursNeeded: number,
-  now: Date,
-  deadline: Date,
-  minBlockMinutes: number,
-): DeadlinePlan {
-  const hoursToDeadline = dayjs(deadline).diff(now, 'hour', true);
+export interface PlanOptions {
+  slots: PriceSlot[];
+  now: Date;
+  horizonEnd: Date;
+  chargePercentage: number;
+  baselinePence: number | null;
+  schedule: ChargeDeadline | null;
+  chargeRatePercentPerHour: number;
+  defaultLimit: number;
+  plungeLimit: number;
+  deadlineEngageFraction: number;
+  startBufferHours: number;
+}
 
-  if (hoursNeeded <= 0) {
-    return { windowEnd: deadline, blocks: [] };
-  }
+type EngagementOptions = Omit<PlanOptions, 'slots' | 'horizonEnd' | 'baselinePence' | 'defaultLimit' | 'plungeLimit' | 'schedule'> & {
+  schedule: ChargeDeadline;
+};
 
-  if (hoursToDeadline <= hoursNeeded) {
-    return { windowEnd: deadline, blocks: [{ start: now, end: deadline }] };
-  }
-
-  if (slots.length === 0) {
-    return { windowEnd: now, blocks: [] };
-  }
-
-  const publishedEnd = endOfPublishedPrices(slots);
-  const windowEnd = publishedEnd < deadline ? publishedEnd : deadline;
-  const windowHours = dayjs(windowEnd).diff(now, 'hour', true);
-
-  if (windowHours <= 0) {
-    return { windowEnd, blocks: [] };
-  }
-
-  const share = hoursNeeded * (windowHours / hoursToDeadline);
-  const slotsNeeded = Math.ceil((share * 60) / slotMinutesOf(slots));
-
-  const picked = selectCheapestSlots(slots, slotsNeeded, now, windowEnd);
-
-  return { windowEnd, blocks: groupIntoBlocks(picked, minBlockMinutes) };
+function hoursToCharge(from: number, to: number, ratePercentPerHour: number): number {
+  return Math.max(0, to - from) / ratePercentPerHour;
 }
 
 /**
- * Business-as-usual charging: of the upcoming slots priced below
- * `baselinePence` (the trailing-median unit rate), charge through the cheapest
- * `hoursNeeded`-worth. Judging "cheap" against recent history rather than a
- * percentile of the next 24h means a uniformly cheap day charges freely while
- * an expensive day charges only in the dips; capping at what the car actually
- * needs then keeps it out of the dearer end of that set.
+ * Whether a scheduled charge is close enough to take over from opportunistic
+ * charging: when it would need `deadlineEngageFraction` of the time still left.
+ * That scales with how much charge is actually needed, so an 80%->100% top-up
+ * engages far later than a 15%->100% charge with the same deadline.
  *
- * Selection is by whole `minBlockMinutes` runs, not by individual slot, because
- * `groupIntoBlocks` discards anything shorter: the cheapest slots are usually
- * not adjacent, so picking them individually leaves a small top-up with nothing
- * to charge through, on every tick until prices roll. Rounding up to whole
- * blocks can overshoot `hoursNeeded`, which `applyChargeBlocks` bounds.
+ * Also consulted between plans, since a plan fixed while a deadline was still
+ * far off must not sit frozen while it creeps into range.
  */
-export function planOpportunisticCharge(
-  slots: PriceSlot[],
-  now: Date,
-  baselinePence: number,
-  minBlockMinutes: number,
-  hoursNeeded: number,
-): Block[] {
-  const cheap = slots.filter(s => s.end > now && s.pence < baselinePence);
+export function isDeadlineEngaged(options: EngagementOptions): boolean {
+  const { schedule, now, chargePercentage, chargeRatePercentPerHour, startBufferHours } = options;
+  const hoursNeeded = hoursToCharge(chargePercentage, schedule.targetPercentage, chargeRatePercentPerHour) + startBufferHours;
+  const hoursToDeadline = dayjs(schedule.targetTime).diff(now, 'hour', true);
 
-  if (cheap.length === 0 || hoursNeeded <= 0) {
-    return [];
-  }
-
-  const slotsNeeded = Math.ceil((hoursNeeded * 60) / slotMinutesOf(cheap));
-  const picked: PriceSlot[] = [];
-  let pool = cheap;
-
-  while (picked.length < slotsNeeded) {
-    const window = findCheapestWindow(pool, minBlockMinutes, pool[0].start, pool.at(-1)!.end);
-
-    if (window === null) {
-      break;
-    }
-
-    picked.push(...pool.filter(s => s.start >= window.start && s.end <= window.end));
-    pool = pool.filter(s => s.end <= window.start || s.start >= window.end);
-
-    if (pool.length === 0) {
-      break;
-    }
-  }
-
-  return groupIntoBlocks(picked, minBlockMinutes);
+  return hoursToDeadline > 0 && hoursNeeded / hoursToDeadline >= options.deadlineEngageFraction;
 }
 
-export function isWithinBlocks(blocks: Block[], now: Date): boolean {
-  return blocks.some(b => isWithinWindow(b, now));
+/**
+ * Builds the plan for one horizon, as up to three passes over a single pool of
+ * forward price slots sorted cheapest-first. Each pass tops the same plan up to
+ * its own quota, so a slot one pass has already taken counts toward the next.
+ *
+ * 1. Deadline, when engaged: the cheapest slots falling before the deadline, up
+ *    to a pro-rata share of the work. Only ~31h of Agile prices are ever
+ *    published, so a deadline beyond the horizon is charged a horizon at a time.
+ *    With no slack left the share saturates and this takes every slot before the
+ *    deadline, which is the deadline beating cost.
+ * 2. Business as usual, otherwise: the cheapest slots priced under the trailing
+ *    median, up to what reaches `defaultLimit`. Judging cheap against recent
+ *    history rather than a percentile of the horizon means a uniformly cheap day
+ *    charges freely while an expensive day charges only in the dips.
+ * 3. Plunge, always: negative-priced slots, up to what reaches `plungeLimit`.
+ *    Charging is worth it at any hour the grid is paying us to consume, so this
+ *    ignores both the baseline and `defaultLimit`.
+ */
+export function planCharge(options: PlanOptions): ChargePlan {
+  const {
+    slots, now, horizonEnd, chargePercentage, baselinePence, schedule,
+    chargeRatePercentPerHour, defaultLimit, plungeLimit, startBufferHours,
+  } = options;
+
+  const pool = slots
+    .filter(s => s.end > now)
+    .sort((a, b) => a.pence - b.pence || a.start.getTime() - b.start.getTime());
+
+  if (pool.length === 0) {
+    return { horizonEnd, slots: [], target: defaultLimit, deadline: null };
+  }
+
+  const slotHours = dayjs(pool[0].end).diff(pool[0].start, 'hour', true);
+  const picked = new Set<PriceSlot>();
+
+  function take(predicate: (slot: PriceSlot) => boolean, quotaSlots: number): number {
+    let added = 0;
+
+    for (const slot of pool) {
+      if (picked.size >= quotaSlots) {
+        break;
+      }
+
+      if (!picked.has(slot) && predicate(slot)) {
+        picked.add(slot);
+        added++;
+      }
+    }
+
+    return added;
+  }
+
+  function quotaFor(percentage: number): number {
+    return Math.ceil(hoursToCharge(chargePercentage, percentage, chargeRatePercentPerHour) / slotHours);
+  }
+
+  let target = defaultLimit;
+  let deadline: Date | null = null;
+
+  if (schedule !== null && isDeadlineEngaged({ ...options, schedule })) {
+    const hoursNeeded = hoursToCharge(chargePercentage, schedule.targetPercentage, chargeRatePercentPerHour) + startBufferHours;
+    const hoursToDeadline = dayjs(schedule.targetTime).diff(now, 'hour', true);
+    const horizonHours = dayjs(horizonEnd).diff(now, 'hour', true);
+    const share = hoursNeeded * Math.min(1, horizonHours / hoursToDeadline);
+
+    take(s => s.end <= schedule.targetTime, Math.ceil(share / slotHours));
+
+    target = schedule.targetPercentage;
+    deadline = schedule.targetTime;
+  }
+
+  if (deadline === null && baselinePence !== null) {
+    take(s => s.pence < baselinePence, quotaFor(defaultLimit));
+  }
+
+  if (take(s => s.pence < 0, quotaFor(plungeLimit)) > 0) {
+    target = Math.max(target, plungeLimit);
+  }
+
+  return {
+    horizonEnd,
+    slots: [...picked]
+      .sort((a, b) => a.start.getTime() - b.start.getTime())
+      .map(s => ({ start: s.start, end: s.end })),
+    target,
+    deadline,
+  };
+}
+
+export function isWithinSlots(slots: PlanSlot[], now: Date): boolean {
+  return slots.some(s => isWithinWindow(s, now));
 }
