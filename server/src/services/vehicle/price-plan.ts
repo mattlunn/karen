@@ -134,6 +134,27 @@ export function planPlungeCharge(slots: PriceSlot[], now: Date, minBlockMinutes:
   return groupIntoBlocks(slots.filter(s => s.end > now && s.pence < 0), minBlockMinutes);
 }
 
+// Coalesces overlapping or touching blocks into a minimal set, so a plunge
+// window layered onto a base plan doesn't paint the same span twice.
+export function mergeBlocks(blocks: Block[]): Block[] {
+  const sorted = [...blocks].sort((a, b) => a.start.getTime() - b.start.getTime());
+  const merged: Block[] = [];
+
+  for (const block of sorted) {
+    const last = merged.at(-1);
+
+    if (last && block.start.getTime() <= last.end.getTime()) {
+      if (block.end.getTime() > last.end.getTime()) {
+        last.end = block.end;
+      }
+    } else {
+      merged.push({ start: block.start, end: block.end });
+    }
+  }
+
+  return merged;
+}
+
 export function isWithinBlocks(blocks: Block[], now: Date): boolean {
   return blocks.some(b => isWithinWindow(b, now));
 }

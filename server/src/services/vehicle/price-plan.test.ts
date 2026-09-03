@@ -1,5 +1,5 @@
 import { PriceSlot } from '../../helpers/prices';
-import { planDeadlineCharge, planOpportunisticCharge, planPlungeCharge, isWithinBlocks } from './price-plan';
+import { planDeadlineCharge, planOpportunisticCharge, planPlungeCharge, mergeBlocks, isWithinBlocks } from './price-plan';
 
 const T0 = new Date('2026-01-01T00:00:00Z');
 
@@ -186,6 +186,32 @@ describe('planPlungeCharge', () => {
     const slots = [...run(0, 2, -1), ...run(2, 6, 8), ...run(6, 8, -1)];
 
     expect(planPlungeCharge(slots, at(4), 60)).toEqual([{ start: at(6), end: at(8) }]);
+  });
+});
+
+describe('mergeBlocks', () => {
+  it('leaves disjoint blocks alone, in order', () => {
+    const blocks = [{ start: at(6), end: at(8) }, { start: at(2), end: at(4) }];
+
+    expect(mergeBlocks(blocks)).toEqual([{ start: at(2), end: at(4) }, { start: at(6), end: at(8) }]);
+  });
+
+  it('coalesces overlapping blocks', () => {
+    const blocks = [{ start: at(2), end: at(5) }, { start: at(4), end: at(8) }];
+
+    expect(mergeBlocks(blocks)).toEqual([{ start: at(2), end: at(8) }]);
+  });
+
+  it('coalesces touching blocks', () => {
+    const blocks = [{ start: at(2), end: at(4) }, { start: at(4), end: at(6) }];
+
+    expect(mergeBlocks(blocks)).toEqual([{ start: at(2), end: at(6) }]);
+  });
+
+  it('keeps the longer end when one block contains another', () => {
+    const blocks = [{ start: at(2), end: at(9) }, { start: at(4), end: at(6) }];
+
+    expect(mergeBlocks(blocks)).toEqual([{ start: at(2), end: at(9) }]);
   });
 });
 
