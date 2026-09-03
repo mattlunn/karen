@@ -116,7 +116,8 @@ declare namespace _default {
     const client_id: string;
     const client_secret: string;
     const secret: string;
-    const access_token: string;
+    let refresh_token: string;
+    const applianceTypeOverrides: Record<string, string>;
   }
   export namespace raildata {
     const api_key: string;

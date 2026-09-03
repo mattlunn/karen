@@ -10,6 +10,8 @@ import {
   ProviderSwitchCapability,
   ProviderTelevisionCapability,
   ProviderElectricVehicleCapability,
+  ProviderOvenCapability,
+  ProviderDishwasherCapability,
   ProviderHeatPumpCapability,
 
   LightSensorCapability,
@@ -33,7 +35,10 @@ import {
   ContactSensorCapability,
   ConnectivityCapability,
   EnergyMonitorCapability,
-  EnergyCostCapability
+  EnergyCostCapability,
+  OvenCapability,
+  MicrowaveCapability,
+  DishwasherCapability
 } from './capabilities';
 
 export class Device extends Model<InferAttributes<Device>, InferCreationAttributes<Device>> {
@@ -151,6 +156,18 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   getEnergyCostCapability(instanceId: string | null = null): EnergyCostCapability {
     return new EnergyCostCapability(this, instanceId);
+  }
+
+  getOvenCapability(instanceId: string | null = null): OvenCapability {
+    return new OvenCapability(this, instanceId);
+  }
+
+  getMicrowaveCapability(instanceId: string | null = null): MicrowaveCapability {
+    return new MicrowaveCapability(this, instanceId);
+  }
+
+  getDishwasherCapability(instanceId: string | null = null): DishwasherCapability {
+    return new DishwasherCapability(this, instanceId);
   }
 
   getCapabilities(): Capability[] {
@@ -305,6 +322,8 @@ type ProviderHandler = {
   provideLockCapability?(): ProviderLockCapability;
   provideThermostatCapability?(): ProviderThermostatCapability;
   provideSwitchCapability?(): ProviderSwitchCapability;
+  provideOvenCapability?(): ProviderOvenCapability;
+  provideDishwasherCapability?(): ProviderDishwasherCapability;
   provideTelevisionCapability?(): ProviderTelevisionCapability;
   provideSpeakerCapability?(): ProviderSpeakerCapability;
   provideElectricVehicleCapability?(): ProviderElectricVehicleCapability;

@@ -52,6 +52,18 @@ export interface AlexaSecurityPanelRequest {
   payload: { armState?: string };
 }
 
+export interface AlexaSetCookingModeRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.Cooking'; name: 'SetCookingMode' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { cookingMode: { value: string }; cookingPower?: { value: number; unit: string } };
+}
+
+export interface AlexaCookByTemperatureRequest {
+  header: AlexaRequestHeader & { namespace: 'Alexa.Cooking.TemperatureController'; name: 'CookByTemperature' };
+  endpoint: AlexaRequestEndpoint;
+  payload: { targetCookingTemperature: { value: number; scale: 'CELSIUS' | 'FAHRENHEIT' | 'KELVIN' } };
+}
+
 export interface AlexaSetVolumeRequest {
   header: AlexaRequestHeader & { namespace: 'Alexa.Speaker'; name: 'SetVolume' };
   endpoint: AlexaRequestEndpoint;
@@ -114,6 +126,8 @@ export type AlexaSmartHomeRequest =
   | AlexaTurnOnOffRequest
   | AlexaBrightnessRequest
   | AlexaSecurityPanelRequest
+  | AlexaSetCookingModeRequest
+  | AlexaCookByTemperatureRequest
   | AlexaSpeakerRequest
   | AlexaStepSpeakerRequest
   | AlexaSelectInputRequest

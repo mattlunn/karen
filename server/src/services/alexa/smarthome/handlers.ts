@@ -12,6 +12,8 @@ import {
   AlexaSetBrightnessRequest,
   AlexaAdjustBrightnessRequest,
   AlexaSecurityPanelRequest,
+  AlexaSetCookingModeRequest,
+  AlexaCookByTemperatureRequest,
   AlexaSpeakerRequest,
   AlexaSetVolumeRequest,
   AlexaAdjustVolumeRequest,
@@ -30,6 +32,7 @@ export type AlexaRequestWithEndpoint = Extract<AlexaSmartHomeRequest, { endpoint
 
 interface AlexaEndpointProperty {
   namespace: string;
+  instance?: string;
   name: string;
   value: unknown;
   timeOfSample: string;
@@ -230,6 +233,169 @@ export async function handleAcceptGrant(request: AlexaAcceptGrantRequest) {
   };
 }
 
+function toCelsius(temp: { value: number; scale: 'CELSIUS' | 'FAHRENHEIT' | 'KELVIN' }): number {
+  if (temp.scale === 'CELSIUS') {
+    return temp.value;
+  }
+
+  if (temp.scale === 'FAHRENHEIT') {
+    return (temp.value - 32) * 5 / 9;
+  }
+
+  return temp.value - 273.15;
+}
+
+async function createOvenResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
+  const oven = device.getOvenCapability();
+
+  const [programEvent, currentTemp, targetTemp, connectivity] = await Promise.all([
+    oven.getProgramNameEvent(),
+    oven.getCurrentTemperature(),
+    oven.getSetpointTemperature(),
+    getConnectivityValue(device),
+  ]);
+
+  const isRunning = programEvent !== null;
+  const runningMinutes = programEvent
+    ? Math.max(0, Math.floor((sampleTime.getTime() - programEvent.start.getTime()) / 60_000))
+    : 0;
+  const props: AlexaEndpointPropertyDraft[] = [{
+    namespace: 'Alexa.PowerController',
+    name: 'powerState',
+    value: isRunning ? 'ON' : 'OFF',
+    timeOfSample: sampleTime.toISOString()
+  }, {
+    namespace: 'Alexa.Cooking',
+    name: 'cookingMode',
+    value: { value: isRunning ? 'BAKE' : 'OFF' },
+    timeOfSample: sampleTime.toISOString()
+  }, {
+    namespace: 'Alexa.RangeController',
+    instance: 'Oven.RunningTime',
+    name: 'rangeValue',
+    value: runningMinutes,
+    timeOfSample: sampleTime.toISOString()
+  }, {
+    namespace: 'Alexa.EndpointHealth',
+    name: 'connectivity',
+    value: { value: connectivity },
+    timeOfSample: sampleTime.toISOString()
+  }];
+
+  if (currentTemp !== null) {
+    props.push({
+      namespace: 'Alexa.Cooking.TemperatureSensor',
+      name: 'currentCookingTemperature',
+      value: { value: { value: currentTemp, scale: 'CELSIUS' } },
+      timeOfSample: sampleTime.toISOString()
+    });
+  }
+
+  if (targetTemp !== null) {
+    props.push({
+      namespace: 'Alexa.Cooking.TemperatureController',
+      name: 'targetCookingTemperature',
+      value: { value: { value: targetTemp, scale: 'CELSIUS' } },
+      timeOfSample: sampleTime.toISOString()
+    });
+  }
+
+  return props;
+}
+
+async function createMicrowaveResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
+  const mw = device.getMicrowaveCapability();
+
+  const [programEvent, connectivity] = await Promise.all([
+    mw.getProgramNameEvent(),
+    getConnectivityValue(device),
+  ]);
+
+  const isRunning = programEvent !== null;
+
+  return [{
+    namespace: 'Alexa.PowerController',
+    name: 'powerState',
+    value: isRunning ? 'ON' : 'OFF',
+    timeOfSample: sampleTime.toISOString()
+  }, {
+    namespace: 'Alexa.Cooking',
+    name: 'cookingMode',
+    value: { value: isRunning ? 'DEFROST' : 'OFF' },
+    timeOfSample: sampleTime.toISOString()
+  }, {
+    namespace: 'Alexa.EndpointHealth',
+    name: 'connectivity',
+    value: { value: connectivity },
+    timeOfSample: sampleTime.toISOString()
+  }];
+}
+
+async function createDishwasherResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
+  const dw = device.getDishwasherCapability();
+
+  const [programEvent, connectivity] = await Promise.all([
+    dw.getProgramNameEvent(),
+    getConnectivityValue(device),
+  ]);
+
+  const isRunning = programEvent !== null;
+
+  return [{
+    namespace: 'Alexa.PowerController',
+    name: 'powerState',
+    value: isRunning ? 'ON' : 'OFF',
+    timeOfSample: sampleTime.toISOString()
+  }, {
+    namespace: 'Alexa.EndpointHealth',
+    name: 'connectivity',
+    value: { value: connectivity },
+    timeOfSample: sampleTime.toISOString()
+  }];
+}
+
+async function responsePropsForAppliance(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
+  const caps = device.getCapabilities();
+
+  if (caps.includes('OVEN')) {
+    return createOvenResponseProperties(device, sampleTime);
+  }
+
+  if (caps.includes('MICROWAVE')) {
+    return createMicrowaveResponseProperties(device, sampleTime);
+  }
+
+  return createDishwasherResponseProperties(device, sampleTime);
+}
+
+export async function handleOvenSetCookingMode(request: AlexaSetCookingModeRequest): Promise<object> {
+  const mode = request.payload?.cookingMode?.value;
+  const device = await Device.findByIdOrError(request.endpoint.endpointId);
+  const then = new Date();
+
+  if (mode === 'OFF') {
+    await device.getSwitchCapability().setIsOn(false);
+  } else if (device.getCapabilities().includes('OVEN')) {
+    const setpoint = await device.getOvenCapability().getSetpointTemperature();
+    
+    await device.getOvenCapability().setSetpointTemperature(setpoint || 200);
+  } else {
+    throw new Error(`Cooking mode ${mode} not supported on this appliance`);
+  }
+
+  return controlResponse(request, then, await responsePropsForAppliance(device, then));
+}
+
+export async function handleOvenCookByTemperature(request: AlexaCookByTemperatureRequest): Promise<object> {
+  const device = await Device.findByIdOrError(request.endpoint.endpointId);
+  const celsius = toCelsius(request.payload.targetCookingTemperature);
+  const then = new Date();
+
+  await device.getOvenCapability().setSetpointTemperature(Math.round(celsius));
+
+  return controlResponse(request, then, await responsePropsForAppliance(device, then));
+}
+
 export async function handleReportState(request: AlexaReportStateRequest) {
   const endpointId = request.endpoint.endpointId;
   const then = new Date();
@@ -247,6 +413,12 @@ export async function handleReportState(request: AlexaReportStateRequest) {
     return stateReport(request, then, await createLightResponseProperties(device, then));
   } else if (capabilities.includes('THERMOSTAT')) {
     return stateReport(request, then, await createThermostatResponseProperties(device, then));
+  } else if (capabilities.includes('OVEN')) {
+    return stateReport(request, then, await createOvenResponseProperties(device, then));
+  } else if (capabilities.includes('MICROWAVE')) {
+    return stateReport(request, then, await createMicrowaveResponseProperties(device, then));
+  } else if (capabilities.includes('DISHWASHER')) {
+    return stateReport(request, then, await createDishwasherResponseProperties(device, then));
   } else if (capabilities.includes('SWITCH')) {
     return stateReport(request, then, await createSwitchResponseProperties(device, then));
   } else {

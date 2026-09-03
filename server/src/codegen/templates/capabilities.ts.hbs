@@ -6,6 +6,7 @@ import {
   setBooleanProperty,
   getStringProperty,
   setStringProperty,
+  clearStringProperty,
   getBooleanPropertyHistory,
   getNumericPropertyHistory,
   getStringPropertyHistory,
@@ -98,6 +99,15 @@ export class {{className}} {
     DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(eventWrapper);
 
     return eventWrapper;
+  }
+
+  async clear{{propertyName}}State(stateTimestamp?: Date, reportedAt?: Date): Promise<void> {
+    const now = new Date();
+    const event = await clearStringProperty(this.device, '{{fieldName}}', stateTimestamp ?? now, reportedAt ?? now);
+
+    if (event !== null) {
+      DeviceCapabilityEvents.emit{{../capabilityName}}{{propertyName}}Changed(event);
+    }
   }
 
   {{#if isWriteable}}
