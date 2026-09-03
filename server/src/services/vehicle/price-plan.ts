@@ -90,8 +90,16 @@ export function planCharge(options: PlanOptions): ChargePlan {
     .sort((a, b) => a.pence - b.pence || a.start.getTime() - b.start.getTime());
 
   if (pool.length === 0) {
-    return { horizonEnd, slots: [], target: defaultLimit, deadline: null };
+    return { horizonEnd: now, slots: [], target: defaultLimit, deadline: null };
   }
+
+  // Only ~31h of Agile prices are ever published, and the cable can go in at any
+  // point in that cycle. Committing past what's published would freeze a plan
+  // made from a partial horizon over the tranche that lands next, so the plan
+  // ends where the prices do and is rebuilt when they extend. Placement within
+  // it is then genuinely optimal: the unknown future only sets the length.
+  const publishedEnd = new Date(Math.max(...pool.map(s => s.end.getTime())));
+  const planEnd = publishedEnd < horizonEnd ? publishedEnd : horizonEnd;
 
   const slotHours = dayjs(pool[0].end).diff(pool[0].start, 'hour', true);
   const picked = new Set<PriceSlot>();
@@ -123,8 +131,8 @@ export function planCharge(options: PlanOptions): ChargePlan {
   if (schedule !== null && isDeadlineEngaged({ ...options, schedule })) {
     const hoursNeeded = hoursToCharge(chargePercentage, schedule.targetPercentage, chargeRatePercentPerHour) + startBufferHours;
     const hoursToDeadline = dayjs(schedule.targetTime).diff(now, 'hour', true);
-    const horizonHours = dayjs(horizonEnd).diff(now, 'hour', true);
-    const share = hoursNeeded * Math.min(1, horizonHours / hoursToDeadline);
+    const planHours = dayjs(planEnd).diff(now, 'hour', true);
+    const share = hoursNeeded * Math.min(1, planHours / hoursToDeadline);
 
     take(s => s.end <= schedule.targetTime, Math.ceil(share / slotHours));
 
@@ -141,7 +149,7 @@ export function planCharge(options: PlanOptions): ChargePlan {
   }
 
   return {
-    horizonEnd,
+    horizonEnd: planEnd,
     slots: [...picked]
       .sort((a, b) => a.start.getTime() - b.start.getTime())
       .map(s => ({ start: s.start, end: s.end })),
