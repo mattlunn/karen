@@ -27,7 +27,7 @@ export interface SlotBlock {
  * Expands a unit-rate event series into fixed-length price slots over
  * `[since, until)`. `setNumericProperty` collapses a run of equal-price
  * half-hours into one longer event, so this re-expands them into individual
- * slots - which is what makes the count-based `selectCheapestSlots` correct.
+ * slots - which is what makes count-based slot selection correct.
  *
  * The series is contiguous by construction (Octopus writes forward-dated,
  * back-to-back rates), so the only open event is the frontier: on a multi-rate
@@ -123,24 +123,6 @@ export function findCheapestWindow(
 }
 
 /**
- * Picks the `slotsNeeded` cheapest in-range slots (ties broken on earliest
- * start), returned in chronological order. Unlike `findCheapestWindow` the
- * result need not be contiguous.
- */
-export function selectCheapestSlots(
-  slots: PriceSlot[],
-  slotsNeeded: number,
-  notBefore: Date,
-  notAfter: Date
-): PriceSlot[] {
-  return slots
-    .filter(s => withinRange(s, notBefore, notAfter))
-    .sort((a, b) => a.pence - b.pence || a.start.getTime() - b.start.getTime())
-    .slice(0, Math.max(0, slotsNeeded))
-    .sort((a, b) => a.start.getTime() - b.start.getTime());
-}
-
-/**
  * Median pence across the given slots, or null when there are none.
  */
 export function medianPence(slots: PriceSlot[]): number | null {
@@ -160,7 +142,7 @@ export function medianPence(slots: PriceSlot[]): number | null {
  * Merges adjacent slots into contiguous blocks, discarding any block shorter
  * than `minBlockMinutes`.
  */
-export function groupIntoBlocks(slots: PriceSlot[], minBlockMinutes: number): SlotBlock[] {
+export function groupIntoBlocks(slots: SlotBlock[], minBlockMinutes: number): SlotBlock[] {
   const sorted = [...slots].sort((a, b) => a.start.getTime() - b.start.getTime());
   const blocks: SlotBlock[] = [];
 

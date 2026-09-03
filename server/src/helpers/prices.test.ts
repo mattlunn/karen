@@ -1,7 +1,6 @@
 import {
   toPriceSlots,
   findCheapestWindow,
-  selectCheapestSlots,
   medianPence,
   groupIntoBlocks,
   haveForecastThrough,
@@ -110,26 +109,6 @@ describe('findCheapestWindow', () => {
 
     expect(win!.start).toEqual(at(60));
     expect(win!.averagePence).toBeCloseTo(9);
-  });
-});
-
-describe('selectCheapestSlots', () => {
-  it('returns the N cheapest slots in chronological order', () => {
-    const s = slots(0, [8, 2, 5, 1, 9]);
-
-    const picked = selectCheapestSlots(s, 3, at(0), at(240));
-
-    // Cheapest three are pences 2, 5, 1 - returned in chronological order.
-    expect(picked.map(p => p.pence)).toEqual([2, 5, 1]);
-    expect(picked.map(p => p.start.getTime())).toEqual([at(30), at(60), at(90)].map(d => d.getTime()));
-  });
-
-  it('breaks ties on earliest start', () => {
-    const s = slots(0, [3, 3, 3, 1]);
-
-    const picked = selectCheapestSlots(s, 2, at(0), at(240));
-
-    expect(picked.map(p => p.start.getTime())).toEqual([at(0).getTime(), at(90).getTime()]);
   });
 });
 
