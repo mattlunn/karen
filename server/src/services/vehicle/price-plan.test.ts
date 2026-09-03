@@ -238,6 +238,40 @@ describe('planCharge - plunge', () => {
   });
 });
 
+describe('planCharge - planning horizon', () => {
+  it('ends the plan where the published prices do', () => {
+    // Cable goes in with only 10h of the 24h horizon published.
+    const { horizonEnd } = plan({ slots: run(0, 10, 5), baselinePence: 20, horizonEnd: at(24) });
+
+    expect(horizonEnd).toEqual(at(10));
+  });
+
+  it('keeps the requested horizon when prices reach past it', () => {
+    const { horizonEnd } = plan({ slots: run(0, 36, 5), baselinePence: 20, horizonEnd: at(24) });
+
+    expect(horizonEnd).toEqual(at(24));
+  });
+
+  it('expires immediately when there are no prices at all', () => {
+    const { horizonEnd, slots: picked } = plan({ slots: [], baselinePence: 20 });
+
+    expect(horizonEnd).toEqual(at(0));
+    expect(picked).toEqual([]);
+  });
+
+  it('pro-rates a deadline share over the published window, not the requested one', () => {
+    // 10h of charge needed by hour 20, but prices only reach hour 10.
+    const { slots: picked } = plan({
+      slots: run(0, 10, 5), horizonEnd: at(24), chargePercentage: 0,
+      schedule: { targetPercentage: 100, targetTime: at(20) },
+    });
+
+    // share = 10 * (10 / 20) = 5h. Pro-rating over the requested 24h horizon
+    // would saturate instead and take the whole published window.
+    expect(totalHours(picked)).toBeCloseTo(5);
+  });
+});
+
 describe('isDeadlineEngaged', () => {
   const base = {
     now: at(0),
