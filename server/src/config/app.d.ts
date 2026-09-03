@@ -118,6 +118,8 @@ declare namespace _default {
     const secret: string;
     let refresh_token: string;
     const applianceTypeOverrides: Record<string, string>;
+    const dishwasher_planning_horizon_hours: number;
+    const dishwasher_default_run_minutes: number;
   }
   export namespace raildata {
     const api_key: string;

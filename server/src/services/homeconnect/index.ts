@@ -7,6 +7,7 @@ import { OvenCapability, MicrowaveCapability, DishwasherCapability } from '../..
 import ApiClient from './lib/client';
 import type { SseType } from './lib/client';
 import { formatProgramName } from './lib/format';
+import createScheduler, { clearScheduledRun } from './dishwasher';
 
 type ProgramCapability = OvenCapability | MicrowaveCapability | DishwasherCapability;
 type SSEOperation =
@@ -57,6 +58,7 @@ async function getAccessToken(): Promise<string> {
 }
 
 const client = new ApiClient(getAccessToken);
+const scheduler = createScheduler(client);
 
 
 // Also drives the SWITCH capability, so Alexa PowerController and the
@@ -109,7 +111,9 @@ async function applyDishwasherItem(device: Device, item: SSEOperation, ts: Date,
   const capability = device.getDishwasherCapability();
 
   if (item.key === 'BSH.Common.Status.OperationState') {
-    if (!item.value.endsWith('.Run')) {
+    if (item.value.endsWith('.Run')) {
+      await clearScheduledRun(device);
+    } else {
       await setRunningProgram(device, capability, null, ts, now);
     }
   } else if (item.key === 'BSH.Common.Root.ActiveProgram') {
@@ -219,7 +223,11 @@ Device.registerProvider('homeconnect', {
         });
 
         return run ?? null;
-      }
+      },
+
+      getScheduledRun: scheduler.getScheduledRun,
+      scheduleCheapestRun: scheduler.scheduleCheapestRun,
+      cancelScheduledRun: scheduler.cancelScheduledRun,
     };
   },
 

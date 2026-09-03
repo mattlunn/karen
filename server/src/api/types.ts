@@ -130,6 +130,7 @@ export type CapabilityApiResponseBase = {
   lastSelfCareRun: EnumStateApiResponse | null;
   isSaltLow: BooleanStateApiResponse;
   isRinseAidLow: BooleanStateApiResponse;
+  scheduledRun: { start: string; end: string; programName: string } | null;
 } | {
   type: null;
 };
@@ -326,6 +327,11 @@ export interface ThermostatUpdateRequest {
 export interface VehicleUpdateRequest {
   chargeLimit?: number;
   manualChargeSchedule?: { targetPercentage: number; targetTime: string } | null;
+}
+
+// /api/device/:id/dishwasher endpoint
+export interface DishwasherUpdateRequest {
+  scheduled: boolean;
 }
 
 // /api/device/:id/switch endpoint

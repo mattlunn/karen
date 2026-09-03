@@ -62,6 +62,15 @@ export type ProviderSpeakerCapability = {
   emitSound(device: Device, sound: string | string[], ttlInSeconds?: number): Promise<void>;
 }
 
+export interface DishwasherScheduledRun {
+  start: string;
+  end: string;
+  programName: string;
+}
+
 export type ProviderDishwasherCapability = {
   getLastMachineCareRun(device: Device): Promise<StringEvent | null>;
+  getScheduledRun(device: Device): DishwasherScheduledRun | null;
+  scheduleCheapestRun(device: Device): Promise<void>;
+  cancelScheduledRun(device: Device): Promise<void>;
 }
