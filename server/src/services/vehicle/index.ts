@@ -7,7 +7,7 @@ import * as client from './client';
 import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
-import { planDeadlineCharge, planOpportunisticCharge, planPlungeCharge, mergeBlocks, isWithinBlocks, Block } from './price-plan';
+import { planDeadlineCharge, planOpportunisticCharge, planPlungeCharge, isWithinBlocks, Block } from './price-plan';
 import { toPriceSlots, medianPence } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
@@ -343,6 +343,9 @@ async function planBauCharging(ev: ElectricVehicleCapability, now: Dayjs, isCabl
 // live the ceiling lifts to charge_plunge_limit so the battery keeps filling
 // past the normal target for as long as the grid is paying us to consume. A
 // disconnected cable means nothing can charge, plunge included.
+//
+// Plunge blocks may overlap the base blocks; everything downstream keys off
+// isWithinBlocks (a plain `.some`), so overlap is harmless and left as-is.
 function layerPlunge(plan: ChargePlan, plungeBlocks: Block[], now: Date, isCableConnected: boolean): ChargePlan {
   if (!isCableConnected || plungeBlocks.length === 0) {
     return plan;
@@ -352,7 +355,7 @@ function layerPlunge(plan: ChargePlan, plungeBlocks: Block[], now: Date, isCable
     ? Math.max(plan.target, config.smartcar.charge_plunge_limit ?? 100)
     : plan.target;
 
-  return { ...plan, blocks: mergeBlocks([...plan.blocks, ...plungeBlocks]), target };
+  return { ...plan, blocks: [...plan.blocks, ...plungeBlocks], target };
 }
 
 async function commitPlan(ev: ElectricVehicleCapability, now: Dayjs, plan: ChargePlan) {
