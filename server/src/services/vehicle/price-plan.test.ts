@@ -34,7 +34,6 @@ function plan(overrides: Partial<PlanOptions> = {}) {
   return planCharge({
     slots: [],
     now: at(0),
-    horizonEnd: at(24),
     chargePercentage: 0,
     baselinePence: null,
     schedule: null,
@@ -108,15 +107,15 @@ describe('planCharge - business as usual', () => {
 describe('planCharge - deadline', () => {
   // 20h to deadline and 10h of charge needed; hours 0-5 and 10-15 are free,
   // 5-10 and 15-20 cost £100. Only the first 10h of prices are published at
-  // hour 0, so the charge is planned a horizon at a time.
+  // hour 0, so the charge is planned a publication at a time.
   const cheap = 0;
   const dear = 10_000;
   const schedule = { targetPercentage: 100, targetTime: at(20) };
 
-  it('places the hour-0 horizon\'s whole share in the free early hours', () => {
+  it('places the first publication\'s whole share in the free early hours', () => {
     const slots = [...run(0, 5, cheap), ...run(5, 10, dear)];
     const { slots: picked, target, deadline } = plan({
-      slots, schedule, horizonEnd: at(10), chargePercentage: 0,
+      slots, schedule, chargePercentage: 0,
     });
 
     // share = 10 * (10 / 20) = 5h, entirely within the free 0-5 block.
@@ -126,11 +125,11 @@ describe('planCharge - deadline', () => {
     expect(deadline).toEqual(at(20));
   });
 
-  it('places the remaining share in the next horizon\'s free hours', () => {
+  it('places the remaining share in the next publication\'s free hours', () => {
     // Horizon rolls at hour 10; half the charge is still needed, 10-20 published.
     const slots = [...run(10, 15, cheap), ...run(15, 20, dear)];
     const { slots: picked } = plan({
-      slots, schedule, now: at(10), horizonEnd: at(20), chargePercentage: 50,
+      slots, schedule, now: at(10), chargePercentage: 50,
     });
 
     expect(totalHours(picked)).toBeCloseTo(5);
@@ -139,11 +138,11 @@ describe('planCharge - deadline', () => {
 
   it('never schedules into an expensive window across the whole run', () => {
     const first = plan({
-      slots: [...run(0, 5, cheap), ...run(5, 10, dear)], schedule, horizonEnd: at(10),
+      slots: [...run(0, 5, cheap), ...run(5, 10, dear)], schedule,
     });
     const second = plan({
       slots: [...run(10, 15, cheap), ...run(15, 20, dear)],
-      schedule, now: at(10), horizonEnd: at(20), chargePercentage: 50,
+      schedule, now: at(10), chargePercentage: 50,
     });
 
     const all = [...first.slots, ...second.slots];
@@ -238,36 +237,41 @@ describe('planCharge - plunge', () => {
   });
 });
 
-describe('planCharge - planning horizon', () => {
+describe('planCharge - plan end', () => {
   it('ends the plan where the published prices do', () => {
-    // Cable goes in with only 10h of the 24h horizon published.
-    const { horizonEnd } = plan({ slots: run(0, 10, 5), baselinePence: 20, horizonEnd: at(24) });
+    const { end } = plan({ slots: run(0, 10, 5), baselinePence: 20 });
 
-    expect(horizonEnd).toEqual(at(10));
+    expect(end).toEqual(at(10));
   });
 
-  it('keeps the requested horizon when prices reach past it', () => {
-    const { horizonEnd } = plan({ slots: run(0, 36, 5), baselinePence: 20, horizonEnd: at(24) });
+  it('takes a long publication whole rather than capping it', () => {
+    const { end } = plan({ slots: run(0, 36, 5), baselinePence: 20 });
 
-    expect(horizonEnd).toEqual(at(24));
+    expect(end).toEqual(at(36));
+  });
+
+  it('ignores slots that have already passed', () => {
+    const { end } = plan({ slots: run(0, 10, 5), baselinePence: 20, now: at(4) });
+
+    expect(end).toEqual(at(10));
   });
 
   it('expires immediately when there are no prices at all', () => {
-    const { horizonEnd, slots: picked } = plan({ slots: [], baselinePence: 20 });
+    const { end, slots: picked } = plan({ slots: [], baselinePence: 20 });
 
-    expect(horizonEnd).toEqual(at(0));
+    expect(end).toEqual(at(0));
     expect(picked).toEqual([]);
   });
 
-  it('pro-rates a deadline share over the published window, not the requested one', () => {
+  it('pro-rates a deadline share over the published window', () => {
     // 10h of charge needed by hour 20, but prices only reach hour 10.
     const { slots: picked } = plan({
-      slots: run(0, 10, 5), horizonEnd: at(24), chargePercentage: 0,
+      slots: run(0, 10, 5), chargePercentage: 0,
       schedule: { targetPercentage: 100, targetTime: at(20) },
     });
 
-    // share = 10 * (10 / 20) = 5h. Pro-rating over the requested 24h horizon
-    // would saturate instead and take the whole published window.
+    // share = 10 * (10 / 20) = 5h. Pro-rating over the deadline's own 20h would
+    // saturate instead and take the whole published window.
     expect(totalHours(picked)).toBeCloseTo(5);
   });
 });
@@ -321,5 +325,30 @@ describe('isWithinSlots', () => {
 
   it('is exclusive of the slot end', () => {
     expect(isWithinSlots(slots, at(4))).toBe(false);
+  });
+});
+
+describe('planCharge - in-progress slots', () => {
+  it('can take the slot `now` falls inside', () => {
+    // Plugged in 6 minutes into a cheap slot that a dearer day follows.
+    const slots = [...run(0, 0.5, -3), ...run(0.5, 24, 30)];
+
+    const { slots: picked } = plan({
+      slots, baselinePence: 20, now: at(0.1), chargePercentage: 79,
+    });
+
+    expect(picked).toHaveLength(1);
+    expect(picked[0].start).toEqual(at(0));
+    expect(isWithinSlots(picked, at(0.1))).toBe(true);
+  });
+
+  it('still drops a slot that has already ended', () => {
+    const slots = run(0, 24, 5);
+
+    const { slots: picked } = plan({
+      slots, baselinePence: 20, now: at(1), chargePercentage: 79,
+    });
+
+    expect(picked.every(s => s.end > at(1))).toBe(true);
   });
 });

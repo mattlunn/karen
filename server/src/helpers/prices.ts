@@ -1,3 +1,5 @@
+export const SLOT_MINUTES = 30;
+
 export interface PriceSlot {
   start: Date;
   end: Date;
@@ -23,6 +25,12 @@ export interface SlotBlock {
   end: Date;
 }
 
+export function startOfSlot(date: Date, slotMinutes = SLOT_MINUTES): Date {
+  const slotMs = slotMinutes * 60 * 1000;
+
+  return new Date(Math.floor(date.getTime() / slotMs) * slotMs);
+}
+
 /**
  * Expands a unit-rate event series into fixed-length price slots over
  * `[since, until)`. `setNumericProperty` collapses a run of equal-price
@@ -34,12 +42,14 @@ export interface SlotBlock {
  * series it is the latest half-hour fetched, worth one slot; a lone open event
  * is a flat tariff spanning the whole window. A sub-slot partial at either edge
  * is dropped, so slots stay aligned to the half-hour.
+ *
+ * Slots come back in start order, so the last one is where the series ends.
  */
 export function toPriceSlots(
   events: NumericEventLike[],
   since: Date,
   until: Date,
-  slotMinutes = 30
+  slotMinutes = SLOT_MINUTES
 ): PriceSlot[] {
   const slotMs = slotMinutes * 60 * 1000;
   const sorted = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());

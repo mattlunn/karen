@@ -4,6 +4,7 @@ import {
   medianPence,
   groupIntoBlocks,
   haveForecastThrough,
+  startOfSlot,
   PriceSlot,
 } from './prices';
 
@@ -22,6 +23,18 @@ function slots(startMin: number, pences: number[]): PriceSlot[] {
     pence,
   }));
 }
+
+describe('startOfSlot', () => {
+  it('floors a time inside a slot back to the slot boundary', () => {
+    expect(startOfSlot(at(6))).toEqual(at(0));
+    expect(startOfSlot(at(41))).toEqual(at(30));
+  });
+
+  it('leaves a time already on a boundary alone', () => {
+    expect(startOfSlot(at(0))).toEqual(at(0));
+    expect(startOfSlot(at(30))).toEqual(at(30));
+  });
+});
 
 describe('toPriceSlots', () => {
   it('re-expands a collapsed multi-half-hour event into individual slots', () => {
