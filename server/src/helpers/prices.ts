@@ -42,6 +42,8 @@ export function startOfSlot(date: Date, slotMinutes = SLOT_MINUTES): Date {
  * series it is the latest half-hour fetched, worth one slot; a lone open event
  * is a flat tariff spanning the whole window. A sub-slot partial at either edge
  * is dropped, so slots stay aligned to the half-hour.
+ *
+ * Slots come back in start order, so the last one is where the series ends.
  */
 export function toPriceSlots(
   events: NumericEventLike[],

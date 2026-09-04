@@ -8,17 +8,17 @@ import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
 import { planCharge, isDeadlineEngaged, isWithinSlots, ChargePlan } from './price-plan';
-import { toPriceSlots, medianPence, groupIntoBlocks, startOfSlot } from '../../helpers/prices';
+import { toPriceSlots, medianPence, groupIntoBlocks, startOfSlot, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 
 // The current plan, persisted on device.meta.chargePlan (separately from
 // device.meta.chargeSchedule, which is just the target). It is fixed for a
-// planning horizon, so it has to survive a restart rather than be rebuilt from
-// prices that have since moved.
+// publication, so it has to survive a restart rather than be rebuilt from prices
+// that have since moved.
 interface StoredChargePlan {
-  horizonEnd: string;
+  end: string;
   slots: { start: string; end: string }[];
   target: number;
   deadline: string | null;
@@ -28,7 +28,7 @@ function getPlan(device: Device): ChargePlan | null {
   const stored = device.meta.chargePlan as StoredChargePlan | undefined;
 
   return stored === undefined ? null : {
-    horizonEnd: new Date(stored.horizonEnd),
+    end: new Date(stored.end),
     slots: stored.slots.map(s => ({ start: new Date(s.start), end: new Date(s.end) })),
     target: stored.target,
     deadline: stored.deadline === null ? null : new Date(stored.deadline),
@@ -205,7 +205,11 @@ async function getEnergyCostCapability() {
   return devices.length === 0 ? null : devices[0].getEnergyCostCapability();
 }
 
-async function getForwardPriceSlots(now: Date, hours: number) {
+// Octopus fetches 48h of forward rates, so this bounds the query rather than the
+// plan - on Agile the published prices always run out first.
+const FORWARD_WINDOW_HOURS = 48;
+
+async function getForwardPriceSlots(now: Date) {
   const energyCost = await getEnergyCostCapability();
 
   if (energyCost === null) {
@@ -216,7 +220,7 @@ async function getForwardPriceSlots(now: Date, hours: number) {
   // still take the rest of the slot it lands in: `toPriceSlots` drops a partial
   // at the edge, and that slot is often the cheapest of the day.
   const since = startOfSlot(now);
-  const until = dayjs(now).add(hours, 'hour').toDate();
+  const until = dayjs(now).add(FORWARD_WINDOW_HOURS, 'hour').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until });
 
   return toPriceSlots(events, since, until);
@@ -292,19 +296,14 @@ async function applyPlan(ev: ElectricVehicleCapability, now: Dayjs, plan: Charge
   }
 }
 
-async function createPlan(device: Device, now: Dayjs, chargePercentage: number): Promise<ChargePlan> {
-  const horizonHours = config.smartcar.charge_planning_horizon_hours;
-  const [slots, baselinePence] = await Promise.all([
-    getForwardPriceSlots(now.toDate(), horizonHours),
-    getBaselinePence(now.toDate()),
-  ]);
+async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, chargePercentage: number): Promise<ChargePlan> {
+  const baselinePence = await getBaselinePence(now.toDate());
 
   // With no forward prices this yields an empty plan and nothing charges until
   // they arrive, pending the admin acting on the Octopus alert.
   const plan = planCharge({
     slots,
     now: now.toDate(),
-    horizonEnd: now.add(horizonHours, 'hour').toDate(),
     chargePercentage,
     baselinePence,
     schedule: getSchedule(device),
@@ -316,7 +315,7 @@ async function createPlan(device: Device, now: Dayjs, chargePercentage: number):
   });
 
   device.meta.chargePlan = {
-    horizonEnd: plan.horizonEnd.toISOString(),
+    end: plan.end.toISOString(),
     slots: plan.slots.map(s => ({ start: s.start.toISOString(), end: s.end.toISOString() })),
     target: plan.target,
     deadline: plan.deadline === null ? null : plan.deadline.toISOString(),
@@ -329,13 +328,24 @@ async function createPlan(device: Device, now: Dayjs, chargePercentage: number):
   return plan;
 }
 
-// A plan is fixed for its horizon so it can't jitter as prices are restated, with
-// one exception: a plan made while a deadline was still far off must not sit
-// frozen while that deadline creeps into engagement range, or it is missed
-// outright. The horizon is longer than a typical deadline lead time, so this is
-// the common case rather than an edge one.
-function needsReplan(device: Device, plan: ChargePlan, now: Dayjs, chargePercentage: number): boolean {
-  if (!now.isBefore(plan.horizonEnd)) {
+// A plan is fixed so it can't jitter as prices are restated, with two exceptions.
+//
+// Prices reaching past where the plan ends are strictly more information than it
+// was built from. Agile publishes early afternoon for a plan running to midnight,
+// so holding the old one spends the evening on slots the new day beats outright.
+//
+// And a plan made while a deadline was still far off must not sit frozen while
+// that deadline creeps into engagement range, or it is missed outright. A
+// publication reaches further than a typical deadline lead time, so this is the
+// common case rather than an edge one.
+function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: Dayjs, chargePercentage: number): boolean {
+  if (!now.isBefore(plan.end)) {
+    return true;
+  }
+
+  const publishedEnd = slots.at(-1)?.end;
+
+  if (publishedEnd !== undefined && publishedEnd > plan.end) {
     return true;
   }
 
@@ -369,10 +379,11 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
     return;
   }
 
+  const slots = await getForwardPriceSlots(now.toDate());
   let plan = getPlan(device);
 
-  if (plan === null || needsReplan(device, plan, now, chargePercentage)) {
-    plan = await createPlan(device, now, chargePercentage);
+  if (plan === null || needsReplan(device, plan, slots, now, chargePercentage)) {
+    plan = await createPlan(device, slots, now, chargePercentage);
   }
 
   await applyPlan(ev, now, plan, chargePercentage);
