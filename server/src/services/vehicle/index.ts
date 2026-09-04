@@ -8,7 +8,7 @@ import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
 import { planCharge, isDeadlineEngaged, isWithinSlots, ChargePlan } from './price-plan';
-import { toPriceSlots, medianPence, groupIntoBlocks } from '../../helpers/prices';
+import { toPriceSlots, medianPence, groupIntoBlocks, startOfSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
@@ -212,10 +212,14 @@ async function getForwardPriceSlots(now: Date, hours: number) {
     return [];
   }
 
+  // Aligned to the slot boundary rather than `now`, so plugging in mid-slot can
+  // still take the rest of the slot it lands in: `toPriceSlots` drops a partial
+  // at the edge, and that slot is often the cheapest of the day.
+  const since = startOfSlot(now);
   const until = dayjs(now).add(hours, 'hour').toDate();
-  const events = await energyCost.getUnitRateHistory({ since: now, until });
+  const events = await energyCost.getUnitRateHistory({ since, until });
 
-  return toPriceSlots(events, now, until);
+  return toPriceSlots(events, since, until);
 }
 
 async function getBaselinePence(now: Date): Promise<number | null> {

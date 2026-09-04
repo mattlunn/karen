@@ -323,3 +323,28 @@ describe('isWithinSlots', () => {
     expect(isWithinSlots(slots, at(4))).toBe(false);
   });
 });
+
+describe('planCharge - in-progress slots', () => {
+  it('can take the slot `now` falls inside', () => {
+    // Plugged in 6 minutes into a cheap slot that a dearer day follows.
+    const slots = [...run(0, 0.5, -3), ...run(0.5, 24, 30)];
+
+    const { slots: picked } = plan({
+      slots, baselinePence: 20, now: at(0.1), chargePercentage: 79,
+    });
+
+    expect(picked).toHaveLength(1);
+    expect(picked[0].start).toEqual(at(0));
+    expect(isWithinSlots(picked, at(0.1))).toBe(true);
+  });
+
+  it('still drops a slot that has already ended', () => {
+    const slots = run(0, 24, 5);
+
+    const { slots: picked } = plan({
+      slots, baselinePence: 20, now: at(1), chargePercentage: 79,
+    });
+
+    expect(picked.every(s => s.end > at(1))).toBe(true);
+  });
+});
