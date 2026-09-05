@@ -94,9 +94,11 @@ npm run codegen          # Generate TypeScript from GraphQL schema
   - **Nearby comments are not licence.** If surrounding functions carry header comments, match their *bar* (genuine rationale), not their *frequency*. Most well-named functions need none.
   - Before committing, re-read every comment you added and ask: could a competent reader get this from the code in ~10 seconds? If yes, delete it.
   - Bad (on `resolveTarget()`): `// Legionella temp when overdue, plunge temp on negative prices, else standard.` — Good: no comment; the branch conditions and the returned enum already say it.
-- **Write comments in the present tense, describing the code as it stands.** A comment explains the current behaviour to whoever reads it next; it isn't a changelog, and git history already records what changed and why. Drop clauses about what the code "used to" do, what a previous version got wrong, or what a change fixed. For example:
+- **Never leave temporal comments.** Write comments in the present tense, describing the code as it stands right now — not its history. A comment explains the current behaviour to whoever reads it next; it isn't a changelog, and git history already records what changed and why. This rules out more than just "used to" phrasing: drop any clause that only makes sense by reference to a prior or alternate version of the code — what a previous version got wrong, what a change fixed, or a contrast against an approach that's since been removed ("not the old X", "wider than Y used to be", "the naive approach would..."). If an alternative is worth mentioning at all, describe it as a general tradeoff a reader could reconstruct from first principles, not as something *this codebase* used to do. A comment should read the same the day it's written and five years later, once nobody remembers what came before it. For example:
   - Good: `// Alexa sends LaunchRequest and SessionEndedRequest to any skill, neither of which carries an intent.`
   - Bad: `// Alexa sends LaunchRequest and SessionEndedRequest to any skill, neither of which carries an intent. Reading .name off them used to throw, which Alexa reads out as an error.`
+  - Good: `// Splitting into fixed buckets guarantees one option per slice of the window, rather than the cheapest N options clustering wherever prices happen to be lowest right now.`
+  - Bad: `// The old code ranked every hour by cost and took the 4 cheapest overall, which clustered them at 9/10/11/12; bucketing spreads them out instead.`
 
 ### REST API Type System
 

@@ -53,9 +53,9 @@ describe('planAppliance - buckets', () => {
   });
 
   it('picks the cheapest whole hour within each bucket, not the cheapest overall', () => {
-    // Prices fall monotonically from hour 3 to hour 12 - the naive "4
-    // cheapest overall" would cluster at 9/10/11/12; bucketing should spread
-    // one pick across each third of the window instead.
+    // Prices fall monotonically from hour 3 to hour 12, so the cheapest
+    // hour within each third of the window is progressively later - each
+    // bucket's own slice, not all three clustered at one end of the window.
     const slots = run(0, 24, 10).map(s => ({ ...s, pence: 12 - (s.start.getTime() - at(3).getTime()) / 3_600_000 }));
     const { buckets } = plan(slots)!;
 

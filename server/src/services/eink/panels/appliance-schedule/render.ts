@@ -23,9 +23,9 @@ const SPARKLINE_WINDOW_HOURS = 12;
 const SPARKLINE_X = 560;
 const SPARKLINE_Y = 8;
 const SPARKLINE_WIDTH = OPTIONS_END_X - SPARKLINE_X;
-// Clock-time header labels ("08:47-11:47") sit right below this and are
-// wider than the old hour ranges were - leave more clearance above them
-// than the sparkline's own height would otherwise need.
+// Clock-time header labels ("08:47-11:47") sit right below this and need
+// clear vertical space above them, so the sparkline stays shorter than the
+// full available header height.
 const SPARKLINE_HEIGHT = 28;
 
 export interface AppliancePanelRow {

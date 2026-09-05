@@ -12,7 +12,7 @@ export interface ApplianceProfile {
   // physical dial - equal to cycleMinutes for a standalone appliance, but
   // just the washer's own duration for a composed wash-then-dry profile,
   // since the washer's "finished in N hours" control has no idea a dryer
-  // runs afterward. Used to find which price window a given dial setting
+  // runs afterward. Determines which price window a given dial setting
   // actually costs.
   dialCycleMinutes: number;
   // kWh consumed per 30-minute slot from the start of the cycle.
