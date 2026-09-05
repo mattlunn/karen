@@ -153,6 +153,26 @@ declare namespace _default {
     const charge_plunge_limit: number;
     const charge_deadline_engage_fraction: number;
   }
+  export namespace eink {
+    export namespace appliance_schedule {
+      const render_cron: string;
+      const flat_day_threshold_percent: number;
+      const transfer_gap_minutes: number;
+      const appliances: {
+        id: string;
+        label: string;
+        cycle_minutes: number;
+        power_profile_kwh: number[];
+        delay_min_hours: number;
+        delay_max_hours: number;
+      }[];
+      const wash_then_dry: {
+        washer_id: string;
+        dryer_id: string;
+        label: string;
+      };
+    }
+  }
   const bins: {
     overrides: {
       originalDate: string;

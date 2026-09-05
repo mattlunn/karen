@@ -12,6 +12,7 @@ import homeConnectRoutes from './routes/homeconnect';
 import tadoRoutes from './routes/tado';
 import vehicleRoutes from './routes/vehicle';
 import versionRoutes from './routes/version';
+import einkRoutes from './routes/eink';
 import auth from './middleware/auth';
 import buildVersion from './middleware/build-version';
 import setCron from './helpers/set-cron';
@@ -38,6 +39,7 @@ require('./services/vehicle');
 require('./services/bins');
 require('./services/octopus');
 require('./services/energy');
+require('./services/eink');
 
 require('./automations');
 
@@ -62,6 +64,7 @@ app.use('/homeconnect', homeConnectRoutes);
 app.use('/tado', tadoRoutes);
 app.use('/vehicle', vehicleRoutes);
 app.use('/version', versionRoutes);
+app.use('/eink', einkRoutes);
 app.use('/', express.static(__dirname + '/static'));
 
 app.use((req, res) => {
