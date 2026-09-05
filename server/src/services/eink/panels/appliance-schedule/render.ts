@@ -72,11 +72,6 @@ function drawRow(ctx: SKRSContext2D, top: number, row: AppliancePanelRow) {
     return;
   }
 
-  if (row.plan.flat) {
-    drawCentered(ctx, 'Prices flat', (OPTIONS_START_X + OPTIONS_END_X) / 2, top + 40, '22px "DejaVu Sans Bold"');
-    return;
-  }
-
   const bestIndex = row.plan.options.findIndex(o => o.hours === row.plan!.best.hours);
 
   if (bestIndex !== -1) {

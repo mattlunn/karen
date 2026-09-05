@@ -24,7 +24,7 @@ const oneSlotProfile: ApplianceProfile = {
 
 function plan(slots: PriceSlot[], overrides: Partial<PlanApplianceOptions> = {}) {
   return planAppliance({
-    slots, now: at(0), profile: oneSlotProfile, flatDayThresholdPercent: 10, ...overrides,
+    slots, now: at(0), profile: oneSlotProfile, ...overrides,
   });
 }
 
@@ -82,19 +82,6 @@ describe('planAppliance - delay options', () => {
     const profile: ApplianceProfile = { ...oneSlotProfile, delayMinHours: 20, delayMaxHours: 24 };
 
     expect(plan(run(0, 10, 5), { profile })).toBeNull();
-  });
-});
-
-describe('planAppliance - flat day suppression', () => {
-  it('flags flat once the best achievable saving is below the threshold', () => {
-    expect(plan(run(0, 24, 10))!.flat).toBe(true);
-  });
-
-  it('does not flag flat once a real saving is achievable', () => {
-    // A 1h delay starts at 0.5h (1h minus the 30-minute cycle).
-    const slots = [...run(0, 0.5, 10), ...run(0.5, 1, 1), ...run(1, 24, 10)];
-
-    expect(plan(slots)!.flat).toBe(false);
   });
 });
 

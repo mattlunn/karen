@@ -48,10 +48,7 @@ async function render(): Promise<void> {
 
   const rows: AppliancePanelRow[] = profiles.map(profile => ({
     profile,
-    plan: planAppliance({
-      slots, now, profile,
-      flatDayThresholdPercent: config.eink.appliance_schedule.flat_day_threshold_percent,
-    }),
+    plan: planAppliance({ slots, now, profile }),
   }));
 
   const data: AppliancePanelData = { now, rows };

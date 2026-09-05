@@ -156,7 +156,6 @@ declare namespace _default {
   export namespace eink {
     export namespace appliance_schedule {
       const render_cron: string;
-      const flat_day_threshold_percent: number;
       const transfer_gap_minutes: number;
       const appliances: {
         id: string;

@@ -26,16 +26,12 @@ export interface RowPlan {
   // them as a timeline of options rather than a leaderboard.
   options: DelayOption[];
   best: DelayOption;
-  // True once even the best achievable saving falls below the threshold -
-  // render "Prices flat" rather than a discouraging small number.
-  flat: boolean;
 }
 
 export interface PlanApplianceOptions {
   slots: PriceSlot[];
   now: Date;
   profile: ApplianceProfile;
-  flatDayThresholdPercent: number;
 }
 
 // Sums `profile.powerProfileKwh[i] * pool[startIndex + i].pence`. Returns null
@@ -73,7 +69,7 @@ function indexOfSlotStarting(pool: PriceSlot[], start: Date): number {
  * case, where the row has nothing to show rather than a guess.
  */
 export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
-  const { slots, now, profile, flatDayThresholdPercent } = options;
+  const { slots, now, profile } = options;
   const pool = slots
     .filter(s => s.end > now)
     .sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -104,7 +100,7 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
   const best = cheapestFirst[0];
   const options4 = cheapestFirst.slice(0, 4).sort((a, b) => a.hours - b.hours);
 
-  return { costNowPence, options: options4, best, flat: best.savingPercent < flatDayThresholdPercent };
+  return { costNowPence, options: options4, best };
 }
 
 /**
