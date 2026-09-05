@@ -16,11 +16,6 @@ const PANEL_ID = 'appliance-schedule';
 // returns whatever exists, same rationale as services/octopus's own window.
 const FORECAST_HORIZON_HOURS = 48;
 
-// e-ink holds its last image forever, so a stuck render must eventually say
-// so rather than sit silently stale. render_cron is every 30 minutes, so 3
-// straight failures is 90 minutes before the fallback frame takes over.
-const FAILURES_BEFORE_FALLBACK = 3;
-
 async function getEnergyCostCapability() {
   const devices = await Device.findByCapability('ENERGY_COST');
 
@@ -29,7 +24,6 @@ async function getEnergyCostCapability() {
 
 let cachedPng: Buffer = renderNoDataFrame(WIDTH, HEIGHT, 'No data yet');
 let cachedJson: unknown = null;
-let consecutiveFailures = 0;
 
 async function render(): Promise<void> {
   const energyCost = await getEnergyCostCapability();
@@ -63,20 +57,7 @@ async function render(): Promise<void> {
   };
 }
 
-nowAndSetCron(createBackgroundTransaction('eink:appliance-schedule:render', async () => {
-  try {
-    await render();
-    consecutiveFailures = 0;
-  } catch (e) {
-    consecutiveFailures++;
-
-    if (consecutiveFailures >= FAILURES_BEFORE_FALLBACK) {
-      cachedPng = renderNoDataFrame(WIDTH, HEIGHT, 'No data - check karen');
-    }
-
-    throw e;
-  }
-}), config.eink.appliance_schedule.render_cron);
+nowAndSetCron(createBackgroundTransaction('eink:appliance-schedule:render', render), config.eink.appliance_schedule.render_cron);
 
 registerPanel({
   id: PANEL_ID,
