@@ -43,7 +43,7 @@ async function render(): Promise<void> {
     plan: planAppliance({ slots, now, profile }),
   }));
 
-  const data: AppliancePanelData = { now, rows };
+  const data: AppliancePanelData = { now, priceSlots: slots, rows };
 
   cachedPng = renderAppliancePanel(data);
   cachedJson = {

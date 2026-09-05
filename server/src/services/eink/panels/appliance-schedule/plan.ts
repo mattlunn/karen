@@ -13,19 +13,35 @@ export interface ApplianceProfile {
   delayMaxHours: number;
 }
 
+// How many equal-width slices [delayMinHours, delayMaxHours] is split into.
+// Ranking every whole hour by cost and taking the N cheapest overall tends to
+// cluster them all in whichever end of the window is currently cheapest (e.g.
+// 9h/10h/11h/12h back to back) instead of spreading across the window - fixed
+// buckets guarantee one representative option per slice of the day instead.
+const BUCKET_COUNT = 3;
+
 export interface DelayOption {
   hours: number;
   costPence: number;
   savingPercent: number;
 }
 
+export interface DelayBucket {
+  from: number;
+  to: number;
+  // null when no whole hour in [from, to] can be costed - the panel renders
+  // this as "£££" rather than leaving the column blank.
+  option: DelayOption | null;
+}
+
 export interface RowPlan {
   costNowPence: number;
-  // The 4 cheapest achievable whole-hour delay settings, in chronological
-  // (ascending hours) order - not ranked by saving, since the panel shows
-  // them as a timeline of options rather than a leaderboard.
-  options: DelayOption[];
-  best: DelayOption;
+  // BUCKET_COUNT entries, chronological (by construction - bucket i always
+  // covers earlier hours than bucket i + 1).
+  buckets: DelayBucket[];
+  // The cheapest option across all buckets, for the highlighted column. Null
+  // only when every bucket is empty.
+  best: DelayOption | null;
 }
 
 export interface PlanApplianceOptions {
@@ -81,26 +97,34 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
   }
 
   const cycleHours = profile.cycleMinutes / 60;
-  const candidates: DelayOption[] = [];
+  const span = profile.delayMaxHours - profile.delayMinHours;
+  const buckets: DelayBucket[] = Array.from({ length: BUCKET_COUNT }, (_, i) => ({
+    from: Math.round(profile.delayMinHours + (span / BUCKET_COUNT) * i),
+    to: Math.round(profile.delayMinHours + (span / BUCKET_COUNT) * (i + 1)),
+    option: null,
+  }));
 
   for (let hours = profile.delayMinHours; hours <= profile.delayMaxHours; hours++) {
     const start = startOfSlot(dayjs(now).add(hours, 'hour').subtract(cycleHours, 'hour').toDate());
     const costPence = costOfWindow(pool, indexOfSlotStarting(pool, start), profile);
 
-    if (costPence !== null) {
-      candidates.push({ hours, costPence, savingPercent: Math.round((costNowPence - costPence) / costNowPence * 100) });
+    if (costPence === null) {
+      continue;
+    }
+
+    const bucket = buckets[Math.min(BUCKET_COUNT - 1, Math.floor((hours - profile.delayMinHours) / (span / BUCKET_COUNT)))];
+    const option = { hours, costPence, savingPercent: Math.round((costNowPence - costPence) / costNowPence * 100) };
+
+    if (bucket.option === null || option.costPence < bucket.option.costPence) {
+      bucket.option = option;
     }
   }
 
-  if (candidates.length === 0) {
-    return null;
-  }
+  const best = buckets.reduce<DelayOption | null>((min, bucket) => (
+    bucket.option && (min === null || bucket.option.costPence < min.costPence) ? bucket.option : min
+  ), null);
 
-  const cheapestFirst = [...candidates].sort((a, b) => a.costPence - b.costPence);
-  const best = cheapestFirst[0];
-  const options4 = cheapestFirst.slice(0, 4).sort((a, b) => a.hours - b.hours);
-
-  return { costNowPence, options: options4, best };
+  return { costNowPence, buckets, best };
 }
 
 /**
