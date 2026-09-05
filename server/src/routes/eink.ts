@@ -1,7 +1,18 @@
 import { Router } from 'express';
+import config from '../config/app';
 import { getPanel } from '../services/eink/registry';
 
 const router = Router();
+
+router.use((req, res, next) => {
+  if (req.query.secret !== config.eink.secret) {
+    res.sendStatus(401);
+
+    return;
+  }
+
+  next();
+});
 
 router.get('/:panelId.png', (req, res) => {
   const panel = getPanel(req.params.panelId);

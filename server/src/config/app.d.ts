@@ -154,6 +154,7 @@ declare namespace _default {
     const charge_deadline_engage_fraction: number;
   }
   export namespace eink {
+    const secret: string;
     export namespace appliance_schedule {
       const render_cron: string;
       const transfer_gap_minutes: number;
