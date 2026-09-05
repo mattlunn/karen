@@ -21,9 +21,12 @@ const HEADER_HEIGHT = 64;
 // planning against.
 const SPARKLINE_WINDOW_HOURS = 12;
 const SPARKLINE_X = 560;
-const SPARKLINE_Y = 10;
+const SPARKLINE_Y = 8;
 const SPARKLINE_WIDTH = OPTIONS_END_X - SPARKLINE_X;
-const SPARKLINE_HEIGHT = 40;
+// Clock-time header labels ("08:47-11:47") sit right below this and are
+// wider than the old hour ranges were - leave more clearance above them
+// than the sparkline's own height would otherwise need.
+const SPARKLINE_HEIGHT = 28;
 
 export interface AppliancePanelRow {
   profile: ApplianceProfile;
@@ -140,7 +143,7 @@ export function renderAppliancePanel(data: AppliancePanelData): Buffer {
   const { ctx, toPng } = createPanelCanvas(WIDTH, HEIGHT);
 
   drawLeft(ctx, 'Cheapest times to run', MARGIN, 34, '30px "DejaVu Sans Bold"');
-  drawLeft(ctx, `Updated ${dayjs(data.now).format('HH:mm')}`, MARGIN, 56, '18px "DejaVu Sans"');
+  drawLeft(ctx, 'Finishing at', MARGIN, 56, '18px "DejaVu Sans"');
 
   const sparkline = scaleSparkline(data.priceSlots, data.now, SPARKLINE_WINDOW_HOURS, SPARKLINE_WIDTH, SPARKLINE_HEIGHT);
 
@@ -150,10 +153,15 @@ export function renderAppliancePanel(data: AppliancePanelData): Buffer {
   // Bucket ranges are identical across rows in practice (every appliance
   // shares the same [delayMinHours, delayMaxHours]), so the header labels
   // the columns once from whichever row has a plan, rather than per row.
+  // Shown as clock times ("02:30-05:30") rather than hours-from-now, since
+  // "when will the whole run finish" is the question the columns answer.
   const headerBuckets = data.rows.find(r => r.plan !== null)?.plan?.buckets;
 
   headerBuckets?.forEach((bucket, i) => {
-    drawCentered(ctx, `${bucket.from}-${bucket.to}h`, optionColumnX(i) + OPTION_WIDTH / 2, 54, '16px "DejaVu Sans"');
+    const from = dayjs(data.now).add(bucket.from, 'hour').format('HH:mm');
+    const to = dayjs(data.now).add(bucket.to, 'hour').format('HH:mm');
+
+    drawCentered(ctx, `${from}-${to}`, optionColumnX(i) + OPTION_WIDTH / 2, 54, '16px "DejaVu Sans"');
   });
 
   data.rows.forEach((row, i) => {
