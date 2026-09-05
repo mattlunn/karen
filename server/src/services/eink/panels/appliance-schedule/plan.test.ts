@@ -19,7 +19,7 @@ function run(fromHour: number, toHour: number, pence: number): PriceSlot[] {
 }
 
 const oneSlotProfile: ApplianceProfile = {
-  id: 'test', label: 'Test', cycleMinutes: 30, powerProfileKwh: [1], delayMinHours: 3, delayMaxHours: 12,
+  id: 'test', label: 'Test', cycleMinutes: 30, dialCycleMinutes: 30, powerProfileKwh: [1], delayMinHours: 3, delayMaxHours: 12,
 };
 
 function plan(slots: PriceSlot[], overrides: Partial<PlanApplianceOptions> = {}) {
@@ -30,7 +30,7 @@ function plan(slots: PriceSlot[], overrides: Partial<PlanApplianceOptions> = {})
 
 describe('planAppliance - cost now', () => {
   it('weights each slot in the cycle by its own power-profile entry', () => {
-    const profile: ApplianceProfile = { id: 't', label: 'T', cycleMinutes: 60, powerProfileKwh: [2, 1], delayMinHours: 3, delayMaxHours: 12 };
+    const profile: ApplianceProfile = { id: 't', label: 'T', cycleMinutes: 60, dialCycleMinutes: 60, powerProfileKwh: [2, 1], delayMinHours: 3, delayMaxHours: 12 };
     const slots = [{ start: at(0), end: at(0.5), pence: 5 }, { start: at(0.5), end: at(1), pence: 3 }];
 
     expect(plan(slots, { profile })!.costNowPence).toBe(2 * 5 + 1 * 3);
@@ -38,7 +38,7 @@ describe('planAppliance - cost now', () => {
 
   it('returns null when the cycle cannot even be costed starting immediately', () => {
     const profile: ApplianceProfile = {
-      id: 'washer', label: 'Washer', cycleMinutes: 130, powerProfileKwh: [0.45, 0.2, 0.1, 0.1, 0.05], delayMinHours: 3, delayMaxHours: 12,
+      id: 'washer', label: 'Washer', cycleMinutes: 130, dialCycleMinutes: 130, powerProfileKwh: [0.45, 0.2, 0.1, 0.1, 0.05], delayMinHours: 3, delayMaxHours: 12,
     };
 
     expect(plan(run(0, 1, 10), { profile })).toBeNull();
@@ -99,10 +99,10 @@ describe('planAppliance - buckets', () => {
 
 describe('composeProfiles', () => {
   const washer: ApplianceProfile = {
-    id: 'washing_machine', label: 'Washing machine', cycleMinutes: 130, powerProfileKwh: [0.45, 0.2, 0.1, 0.1, 0.05], delayMinHours: 3, delayMaxHours: 12,
+    id: 'washing_machine', label: 'Washing machine', cycleMinutes: 130, dialCycleMinutes: 130, powerProfileKwh: [0.45, 0.2, 0.1, 0.1, 0.05], delayMinHours: 3, delayMaxHours: 12,
   };
   const dryer: ApplianceProfile = {
-    id: 'tumble_dryer', label: 'Tumble dryer', cycleMinutes: 280, powerProfileKwh: [0.55, 0.5, 0.5, 0.45, 0.4], delayMinHours: 3, delayMaxHours: 12,
+    id: 'tumble_dryer', label: 'Tumble dryer', cycleMinutes: 280, dialCycleMinutes: 280, powerProfileKwh: [0.55, 0.5, 0.5, 0.45, 0.4], delayMinHours: 3, delayMaxHours: 12,
   };
 
   it('concatenates the power profiles end to end with no gap', () => {
@@ -112,11 +112,12 @@ describe('composeProfiles', () => {
     expect(composed.cycleMinutes).toBe(410);
   });
 
-  it('takes the delay range from the first profile only, since only its delay is settable', () => {
+  it('takes the delay range and dial duration from the first profile only, since only its delay is settable', () => {
     const composed = composeProfiles('wash_then_dry', 'Wash → dry', [washer, dryer], 0);
 
     expect(composed.delayMinHours).toBe(3);
     expect(composed.delayMaxHours).toBe(12);
+    expect(composed.dialCycleMinutes).toBe(130); // the washer's own duration, not the combined 410
   });
 
   it('inserts a zero-power gap slot for a non-zero transfer gap', () => {
@@ -126,16 +127,30 @@ describe('composeProfiles', () => {
     expect(composed.cycleMinutes).toBe(440);
   });
 
-  it('leaves an early bucket empty when the composed cycle is too long for it to be feasible, rather than needing a delayMinHours fix', () => {
-    // washer (130min) + dryer (280min) is a 6h50 cycle; the inherited 3h
-    // minimum delay can't actually fit it - the per-hour feasibility check
-    // should just skip those hours rather than needing composeProfiles to
-    // special-case its own delayMinHours.
+});
+
+describe('composeProfiles - dial uses the settable leg\'s own duration, not the combined one', () => {
+  // Uniform per-slot weights, so a window's cost depends only on whether it
+  // happens to include the one cheap slot below - isolating the effect of
+  // *which* start times get explored, not how they're weighted.
+  const washer: ApplianceProfile = {
+    id: 'washer', label: 'Washer', cycleMinutes: 120, dialCycleMinutes: 120, powerProfileKwh: [1, 1, 1, 1], delayMinHours: 3, delayMaxHours: 6,
+  };
+  const dryer: ApplianceProfile = {
+    id: 'dryer', label: 'Dryer', cycleMinutes: 180, dialCycleMinutes: 180, powerProfileKwh: [1, 1, 1, 1, 1, 1], delayMinHours: 3, delayMaxHours: 6,
+  };
+
+  it('reaches a start time the combined duration would put out of range', () => {
+    // Only reachable at hours=6 if the dial math uses the washer's own 2h
+    // duration (start = now + 6h - 2h = now + 4h, a window of 10 slots
+    // ending at now + 9h, which covers this slot). The bug being fixed used
+    // the combined 5h duration instead (start = now + 6h - 5h = now + 1h, a
+    // window ending at now + 6h) - which could never reach this slot at any
+    // hours setting up to the 6h max.
     const composed = composeProfiles('wash_then_dry', 'Wash → dry', [washer, dryer], 0);
-    const slots = run(0, 24, 10);
+    const slots = run(0, 24, 10).map(s => (s.start.getTime() === at(8.5).getTime() ? { ...s, pence: 0 } : s));
     const { buckets } = planAppliance({ slots, now: at(0), profile: composed })!;
 
-    expect(buckets[0].option).toBeNull(); // 3-6h: nothing fits a 6h50 cycle
-    expect(buckets[2].option).not.toBeNull(); // 9-12h: plenty of room
+    expect(buckets[2].option).toEqual({ hours: 6, costPence: 90, savingPercent: 10 });
   });
 });

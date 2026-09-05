@@ -4,7 +4,20 @@ import { PriceSlot, startOfSlot } from '../../../../helpers/prices';
 export interface ApplianceProfile {
   id: string;
   label: string;
+  // Full elapsed duration - for display, and for how many price slots
+  // powerProfileKwh implies. For a composed profile (e.g. wash then dry)
+  // this is the whole sequence, not just the leg with a settable delay.
   cycleMinutes: number;
+  // The duration of the one leg whose delay is actually settable on a
+  // physical dial - equal to cycleMinutes for a standalone appliance, but
+  // just the washer's own duration for a composed wash-then-dry profile,
+  // since the washer's "finished in N hours" control has no idea a dryer
+  // runs afterward. This is what the hours<->start conversion must use:
+  // using the full combined duration there would both mislabel the result
+  // (dialing it into the washer would finish 4h46, not 12h, from now) and
+  // silently shrink the range of starts ever considered, since the same
+  // [delayMinHours, delayMaxHours] then maps to an earlier band of starts.
+  dialCycleMinutes: number;
   // kWh consumed per 30-minute slot from the start of the cycle.
   powerProfileKwh: number[];
   // Neither machine offers a delay under a few hours, so a delay setting is
@@ -96,7 +109,7 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
     return null;
   }
 
-  const cycleHours = profile.cycleMinutes / 60;
+  const cycleHours = profile.dialCycleMinutes / 60;
   const span = profile.delayMaxHours - profile.delayMinHours;
   const buckets: DelayBucket[] = Array.from({ length: BUCKET_COUNT }, (_, i) => ({
     from: Math.round(profile.delayMinHours + (span / BUCKET_COUNT) * i),
@@ -129,9 +142,10 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
 
 /**
  * Merges appliance profiles end-to-end (e.g. wash then dry) into one profile
- * for costing. `cycleMinutes`, `delayMinHours` and `delayMaxHours` come from
- * the first profile only, since only its delay is actually settable on the
- * machine - the downstream leg has no dial of its own to convert into.
+ * for costing. `dialCycleMinutes`, `delayMinHours` and `delayMaxHours` come
+ * from the first profile only, since only its delay is actually settable on
+ * the machine - the downstream leg has no dial of its own to convert into.
+ * `cycleMinutes` (and the price slots costed) still cover the whole sequence.
  */
 export function composeProfiles(id: string, label: string, profiles: ApplianceProfile[], transferGapMinutes: number): ApplianceProfile {
   const [first, ...rest] = profiles;
@@ -146,6 +160,7 @@ export function composeProfiles(id: string, label: string, profiles: AppliancePr
     id,
     label,
     cycleMinutes: profiles.reduce((sum, p) => sum + p.cycleMinutes, 0) + transferGapMinutes * (profiles.length - 1),
+    dialCycleMinutes: first.dialCycleMinutes,
     powerProfileKwh,
     delayMinHours: first.delayMinHours,
     delayMaxHours: first.delayMaxHours,
