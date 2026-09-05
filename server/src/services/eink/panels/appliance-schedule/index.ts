@@ -3,7 +3,6 @@ import config from '../../../../config/app';
 import dayjs from '../../../../dayjs';
 import nowAndSetCron from '../../../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../../../helpers/newrelic';
-import logger from '../../../../logger';
 import { toPriceSlots, startOfSlot } from '../../../../helpers/prices';
 import { registerPanel } from '../../registry';
 import { renderNoDataFrame } from '../../render/canvas';
@@ -70,11 +69,12 @@ nowAndSetCron(createBackgroundTransaction('eink:appliance-schedule:render', asyn
     consecutiveFailures = 0;
   } catch (e) {
     consecutiveFailures++;
-    logger.error(e, `eink appliance-schedule: render failed (${consecutiveFailures} in a row)`);
 
     if (consecutiveFailures >= FAILURES_BEFORE_FALLBACK) {
       cachedPng = renderNoDataFrame(WIDTH, HEIGHT, 'No data - check karen');
     }
+
+    throw e;
   }
 }), config.eink.appliance_schedule.render_cron);
 
