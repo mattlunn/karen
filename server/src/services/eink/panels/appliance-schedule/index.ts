@@ -1,0 +1,67 @@
+import { Device } from '../../../../models';
+import config from '../../../../config/app';
+import dayjs from '../../../../dayjs';
+import nowAndSetCron from '../../../../helpers/now-and-set-cron';
+import { createBackgroundTransaction } from '../../../../helpers/newrelic';
+import { toPriceSlots, startOfSlot } from '../../../../helpers/prices';
+import { registerPanel } from '../../registry';
+import { planAppliance } from './plan';
+import { loadApplianceProfiles } from './profiles';
+import { renderAppliancePanel, AppliancePanelData, AppliancePanelRow, WIDTH, HEIGHT } from './render';
+
+const PANEL_ID = 'appliance-schedule';
+
+// Only ~31h of Agile prices are ever published; asking further ahead just
+// returns whatever exists, same rationale as services/octopus's own window.
+const FORECAST_HORIZON_HOURS = 48;
+
+async function getEnergyCostCapability() {
+  const devices = await Device.findByCapability('ENERGY_COST');
+
+  return devices.length === 0 ? null : devices[0].getEnergyCostCapability();
+}
+
+let cachedPng: Buffer | null = null;
+let cachedJson: unknown = null;
+
+async function render(): Promise<void> {
+  const energyCost = await getEnergyCostCapability();
+
+  if (energyCost === null) {
+    throw new Error('No ENERGY_COST device found to plan appliance runs against');
+  }
+
+  const now = new Date();
+  const since = startOfSlot(now);
+  const until = dayjs(now).add(FORECAST_HORIZON_HOURS, 'hour').toDate();
+  const events = await energyCost.getUnitRateHistory({ since, until });
+  const slots = toPriceSlots(events, since, until);
+  const profiles = loadApplianceProfiles();
+
+  const rows: AppliancePanelRow[] = profiles.map(profile => ({
+    profile,
+    plan: planAppliance({ slots, now, profile }),
+  }));
+
+  const data: AppliancePanelData = { now, priceSlots: slots, rows };
+
+  cachedPng = renderAppliancePanel(data);
+  cachedJson = {
+    now: data.now.toISOString(),
+    rows: data.rows.map(row => ({
+      id: row.profile.id,
+      label: row.profile.label,
+      plan: row.plan,
+    })),
+  };
+}
+
+nowAndSetCron(createBackgroundTransaction('eink:appliance-schedule:render', render), config.eink.appliance_schedule.render_cron);
+
+registerPanel({
+  id: PANEL_ID,
+  width: WIDTH,
+  height: HEIGHT,
+  renderPng: () => cachedPng,
+  renderJson: () => cachedJson,
+});
