@@ -12,16 +12,16 @@ export interface ApplianceProfile {
   // physical dial - equal to cycleMinutes for a standalone appliance, but
   // just the washer's own duration for a composed wash-then-dry profile,
   // since the washer's "finished in N hours" control has no idea a dryer
-  // runs afterward. This is what the hours<->start conversion must use:
-  // using the full combined duration there would both mislabel the result
-  // (dialing it into the washer would finish 4h46, not 12h, from now) and
-  // silently shrink the range of starts ever considered, since the same
-  // [delayMinHours, delayMaxHours] then maps to an earlier band of starts.
+  // runs afterward. Used to find which price window a given dial setting
+  // actually costs.
   dialCycleMinutes: number;
   // kWh consumed per 30-minute slot from the start of the cycle.
   powerProfileKwh: number[];
-  // Neither machine offers a delay under a few hours, so a delay setting is
-  // only ever chosen from [delayMinHours, delayMaxHours].
+  // The dial's own physical range, e.g. neither machine offers a delay
+  // under a few hours. Also doubles as the window the columns promise the
+  // whole run will finish within (see BUCKET_COUNT) - the two coincide for
+  // a standalone appliance, since dial setting and whole-run completion are
+  // the same number when there's no downstream leg.
   delayMinHours: number;
   delayMaxHours: number;
 }
@@ -34,16 +34,24 @@ export interface ApplianceProfile {
 const BUCKET_COUNT = 3;
 
 export interface DelayOption {
+  // The dial setting - what to actually turn the knob to. For wash-then-dry
+  // this is the washer's own setting; the dryer isn't dialed at all, it's
+  // just started once the wash is done.
   hours: number;
   costPence: number;
   savingPercent: number;
 }
 
 export interface DelayBucket {
+  // The window of "whole run finishes in [from, to] hours from now" this
+  // column represents - not a range of dial settings. They're the same
+  // thing for a standalone appliance, but for wash-then-dry the dial
+  // setting inside `option` is earlier than `to` by the dryer's own
+  // duration, since the dryer still has to run after the dial's own cycle.
   from: number;
   to: number;
-  // null when no whole hour in [from, to] can be costed - the panel renders
-  // this as "£££" rather than leaving the column blank.
+  // null when nothing in [from, to] can be costed - the panel renders this
+  // as "£££" rather than leaving the column blank.
   option: DelayOption | null;
 }
 
@@ -109,7 +117,12 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
     return null;
   }
 
-  const cycleHours = profile.dialCycleMinutes / 60;
+  const dialCycleHours = profile.dialCycleMinutes / 60;
+  // Time from the dial leg finishing to the whole run finishing - zero for a
+  // standalone appliance, the dryer's own duration for wash-then-dry. Added
+  // to the dial setting, this is what the bucket the column headers show
+  // ("this bucket is when the whole run finishes") actually needs.
+  const downstreamHours = profile.cycleMinutes / 60 - dialCycleHours;
   const span = profile.delayMaxHours - profile.delayMinHours;
   const buckets: DelayBucket[] = Array.from({ length: BUCKET_COUNT }, (_, i) => ({
     from: Math.round(profile.delayMinHours + (span / BUCKET_COUNT) * i),
@@ -117,16 +130,25 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
     option: null,
   }));
 
-  for (let hours = profile.delayMinHours; hours <= profile.delayMaxHours; hours++) {
-    const start = startOfSlot(dayjs(now).add(hours, 'hour').subtract(cycleHours, 'hour').toDate());
+  for (let dial = profile.delayMinHours; dial <= profile.delayMaxHours; dial++) {
+    const start = startOfSlot(dayjs(now).add(dial, 'hour').subtract(dialCycleHours, 'hour').toDate());
     const costPence = costOfWindow(pool, indexOfSlotStarting(pool, start), profile);
 
     if (costPence === null) {
       continue;
     }
 
-    const bucket = buckets[Math.min(BUCKET_COUNT - 1, Math.floor((hours - profile.delayMinHours) / (span / BUCKET_COUNT)))];
-    const option = { hours, costPence, savingPercent: Math.round((costNowPence - costPence) / costNowPence * 100) };
+    const wholeRunFinishesIn = dial + downstreamHours;
+
+    // A dial setting whose downstream leg would finish outside the window
+    // the columns promise ("done within delayMaxHours") isn't a genuine
+    // option for that window, even though the dial itself is in range.
+    if (wholeRunFinishesIn > profile.delayMaxHours) {
+      continue;
+    }
+
+    const bucket = buckets[Math.min(BUCKET_COUNT - 1, Math.floor((wholeRunFinishesIn - profile.delayMinHours) / (span / BUCKET_COUNT)))];
+    const option = { hours: dial, costPence, savingPercent: Math.round((costNowPence - costPence) / costNowPence * 100) };
 
     if (bucket.option === null || option.costPence < bucket.option.costPence) {
       bucket.option = option;

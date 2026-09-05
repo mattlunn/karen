@@ -126,31 +126,51 @@ describe('composeProfiles', () => {
     expect(composed.powerProfileKwh).toEqual([...washer.powerProfileKwh, 0, ...dryer.powerProfileKwh]);
     expect(composed.cycleMinutes).toBe(440);
   });
-
 });
 
-describe('composeProfiles - dial uses the settable leg\'s own duration, not the combined one', () => {
-  // Uniform per-slot weights, so a window's cost depends only on whether it
-  // happens to include the one cheap slot below - isolating the effect of
-  // *which* start times get explored, not how they're weighted.
+describe('composeProfiles - buckets are keyed by when the whole run finishes, not by the dial value', () => {
+  // A 2h dial leg (the washer) followed by a 2h downstream leg (the dryer) -
+  // uniform per-slot weights, so cost depends only on whether a window
+  // happens to include the one cheap slot below, isolating which start
+  // times get explored from how they're priced.
   const washer: ApplianceProfile = {
-    id: 'washer', label: 'Washer', cycleMinutes: 120, dialCycleMinutes: 120, powerProfileKwh: [1, 1, 1, 1], delayMinHours: 3, delayMaxHours: 6,
+    id: 'washer', label: 'Washer', cycleMinutes: 120, dialCycleMinutes: 120, powerProfileKwh: [1, 1, 1, 1], delayMinHours: 3, delayMaxHours: 9,
   };
   const dryer: ApplianceProfile = {
-    id: 'dryer', label: 'Dryer', cycleMinutes: 180, dialCycleMinutes: 180, powerProfileKwh: [1, 1, 1, 1, 1, 1], delayMinHours: 3, delayMaxHours: 6,
+    id: 'dryer', label: 'Dryer', cycleMinutes: 120, dialCycleMinutes: 120, powerProfileKwh: [1, 1, 1, 1], delayMinHours: 3, delayMaxHours: 9,
   };
+  const composed = composeProfiles('wash_then_dry', 'Wash → dry', [washer, dryer], 0);
 
-  it('reaches a start time the combined duration would put out of range', () => {
-    // Only reachable at hours=6 if the dial math uses the washer's own 2h
-    // duration (start = now + 6h - 2h = now + 4h, a window of 10 slots
-    // ending at now + 9h, which covers this slot). The bug being fixed used
-    // the combined 5h duration instead (start = now + 6h - 5h = now + 1h, a
-    // window ending at now + 6h) - which could never reach this slot at any
-    // hours setting up to the 6h max.
-    const composed = composeProfiles('wash_then_dry', 'Wash → dry', [washer, dryer], 0);
+  it('excludes a dial setting whose downstream leg would finish after delayMaxHours, even though the dial itself is in range', () => {
+    // Dialing 8h or 9h into the washer is mechanically valid (it's within
+    // [delayMinHours, delayMaxHours]), but the dryer's own 2h afterward
+    // would finish at 10h/11h - past the 9h the columns promise the whole
+    // run finishes within. Neither should appear as an option anywhere.
+    const { buckets } = planAppliance({ slots: run(0, 24, 10), now: at(0), profile: composed })!;
+    const hoursShown = buckets.flatMap(b => (b.option ? [b.option.hours] : []));
+
+    expect(hoursShown).not.toContain(8);
+    expect(hoursShown).not.toContain(9);
+  });
+
+  it('leaves the earliest bucket empty when even the minimum dial setting finishes too late for it', () => {
+    // Minimum completion is delayMinHours (3) + the dryer's 2h = 5h, so
+    // nothing can complete within the first bucket's 3-5h window.
+    const { buckets } = planAppliance({ slots: run(0, 24, 10), now: at(0), profile: composed })!;
+
+    expect(buckets[0].to).toBe(5);
+    expect(buckets[0].option).toBeNull();
+  });
+
+  it('picks the cheapest dial setting whose whole run still finishes within the bucket, leaving room for the downstream leg', () => {
+    // Only reachable by dialing 7h into the washer (completes the whole run
+    // at 7h + 2h = 9h, the edge of what's shown) - start = now + 7h - 2h =
+    // now + 5h, a window ending at now + 9h. Dialing 5h or 6h - the other
+    // candidates whose completion also lands in this bucket - can't reach
+    // this slot at all.
     const slots = run(0, 24, 10).map(s => (s.start.getTime() === at(8.5).getTime() ? { ...s, pence: 0 } : s));
     const { buckets } = planAppliance({ slots, now: at(0), profile: composed })!;
 
-    expect(buckets[2].option).toEqual({ hours: 6, costPence: 90, savingPercent: 10 });
+    expect(buckets[2]).toEqual({ from: 7, to: 9, option: { hours: 7, costPence: 70, savingPercent: 13 } });
   });
 });
