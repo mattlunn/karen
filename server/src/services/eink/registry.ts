@@ -4,7 +4,8 @@ export interface EinkPanel {
   height: number;
   // Both read whatever the panel's own cron last rendered - neither computes
   // on the request path, so a slow render never holds up the HTTP response.
-  renderPng(): Buffer;
+  // null before the panel's first successful render has completed.
+  renderPng(): Buffer | null;
   renderJson(): unknown;
 }
 

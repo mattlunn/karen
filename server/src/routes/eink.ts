@@ -12,8 +12,16 @@ router.get('/:panelId.png', (req, res) => {
     return;
   }
 
+  const png = panel.renderPng();
+
+  if (!png) {
+    res.sendStatus(503);
+
+    return;
+  }
+
   res.set('Cache-Control', 'no-cache');
-  res.type('png').send(panel.renderPng());
+  res.type('png').send(png);
 });
 
 router.get('/:panelId.json', (req, res) => {
@@ -25,8 +33,16 @@ router.get('/:panelId.json', (req, res) => {
     return;
   }
 
+  const json = panel.renderJson();
+
+  if (!json) {
+    res.sendStatus(503);
+
+    return;
+  }
+
   res.set('Cache-Control', 'no-cache');
-  res.json(panel.renderJson());
+  res.json(json);
 });
 
 export default router;

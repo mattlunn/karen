@@ -5,7 +5,6 @@ import nowAndSetCron from '../../../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../../../helpers/newrelic';
 import { toPriceSlots, startOfSlot } from '../../../../helpers/prices';
 import { registerPanel } from '../../registry';
-import { renderNoDataFrame } from '../../render/canvas';
 import { planAppliance } from './plan';
 import { loadApplianceProfiles } from './profiles';
 import { renderAppliancePanel, AppliancePanelData, AppliancePanelRow, WIDTH, HEIGHT } from './render';
@@ -22,7 +21,7 @@ async function getEnergyCostCapability() {
   return devices.length === 0 ? null : devices[0].getEnergyCostCapability();
 }
 
-let cachedPng: Buffer = renderNoDataFrame(WIDTH, HEIGHT, 'No data yet');
+let cachedPng: Buffer | null = null;
 let cachedJson: unknown = null;
 
 async function render(): Promise<void> {

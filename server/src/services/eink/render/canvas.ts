@@ -47,19 +47,3 @@ export function ditherFill(ctx: SKRSContext2D, x: number, y: number, w: number, 
 export function hairline(ctx: SKRSContext2D, x1: number, y: number, x2: number) {
   ctx.fillRect(x1, y, x2 - x1, 1);
 }
-
-/**
- * A frame telling the viewer the panel itself is fine but its data is stale -
- * e-ink holds its last image forever, so a silently frozen render is worse
- * than an obvious one. Drawn over the last good frame's dimensions.
- */
-export function renderNoDataFrame(width: number, height: number, message: string): Buffer {
-  const { ctx, toPng } = createPanelCanvas(width, height);
-
-  ctx.font = '24px "DejaVu Sans Bold"';
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'center';
-  ctx.fillText(message, width / 2, height / 2);
-
-  return toPng();
-}
