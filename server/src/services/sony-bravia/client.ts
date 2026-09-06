@@ -1,3 +1,4 @@
+import { request } from 'http';
 import sleep from '../../helpers/sleep';
 
 type PowerStatus = 'active' | 'standby';
@@ -37,6 +38,36 @@ const IRCC_CODES: Record<string, string> = {
   Power: 'AAAAAQAAAAEAAAAVAw==',
 };
 
+interface HttpResponse {
+  status: number;
+  body: string;
+}
+
+// node:http rather than fetch (undici): a Bravia is powered off most of the day,
+// and undici re-surfaces the failed connect as a second, un-awaited socket error
+// that escapes every try/catch and lands in New Relic against whichever
+// background transaction is live. node:http has no connection pool and delivers
+// a connect failure exactly once, on the request's 'error' event.
+function httpPost(url: string, headers: Record<string, string>, body: string, timeoutMs: number): Promise<HttpResponse> {
+  return new Promise((resolve, reject) => {
+    const req = request(url, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Length': Buffer.byteLength(body) },
+      agent: false,
+      timeout: timeoutMs,
+    }, (res) => {
+      const chunks: Buffer[] = [];
+
+      res.on('data', (chunk: Buffer) => chunks.push(chunk));
+      res.on('end', () => resolve({ status: res.statusCode ?? 0, body: Buffer.concat(chunks).toString('utf-8') }));
+    });
+
+    req.on('timeout', () => req.destroy(new Error(`Bravia request to ${url} timed out after ${timeoutMs}ms`)));
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
 export default class BraviaClient {
   #host: string;
   #psk: string;
@@ -49,24 +80,18 @@ export default class BraviaClient {
   }
 
   async #request<T>(path: string, method: string, params: object[] = []): Promise<SonyEnvelope<T>> {
-    const url = `http://${this.#host}${path}`;
     const body = JSON.stringify({ method, params, id: 1, version: '1.0' });
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Auth-PSK': this.#psk,
-      },
-      body,
-      signal: AbortSignal.timeout(this.#timeoutMs),
-    });
+    const res = await httpPost(`http://${this.#host}${path}`, {
+      'Content-Type': 'application/json',
+      'X-Auth-PSK': this.#psk,
+    }, body, this.#timeoutMs);
 
-    if (!res.ok) {
+    if (res.status < 200 || res.status >= 300) {
       throw new Error(`Bravia ${path}.${method} HTTP ${res.status}`);
     }
 
-    const envelope = await res.json() as SonyEnvelope<T>;
+    const envelope = JSON.parse(res.body) as SonyEnvelope<T>;
 
     if (envelope.error) {
       const [code, message] = envelope.error;
@@ -169,18 +194,13 @@ export default class BraviaClient {
     const code = IRCC_CODES[name];
     const body = `<?xml version="1.0"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><u:X_SendIRCC xmlns:u="urn:schemas-sony-com:service:IRCC:1"><IRCCCode>${code}</IRCCCode></u:X_SendIRCC></s:Body></s:Envelope>`;
 
-    const res = await fetch(`http://${this.#host}/sony/ircc`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/xml; charset=UTF-8',
-        'SOAPACTION': '"urn:schemas-sony-com:service:IRCC:1#X_SendIRCC"',
-        'X-Auth-PSK': this.#psk,
-      },
-      body,
-      signal: AbortSignal.timeout(this.#timeoutMs),
-    });
+    const res = await httpPost(`http://${this.#host}/sony/ircc`, {
+      'Content-Type': 'text/xml; charset=UTF-8',
+      'SOAPACTION': '"urn:schemas-sony-com:service:IRCC:1#X_SendIRCC"',
+      'X-Auth-PSK': this.#psk,
+    }, body, this.#timeoutMs);
 
-    if (!res.ok) {
+    if (res.status < 200 || res.status >= 300) {
       throw new Error(`Bravia IRCC ${name} HTTP ${res.status}`);
     }
   }
