@@ -119,9 +119,7 @@ function drawBucket(ctx: SKRSContext2D, index: number, top: number, bucket: Dela
   // either direction. Checked ahead of the "more expensive" case below, so a
   // tiny loss reads as "Same" rather than the same £££ as a real one.
   if (option.negligible) {
-    drawCentered(ctx, `${option.hours}h`, centerX, top + 20, '16px "DejaVu Sans Bold"');
-    drawCentered(ctx, 'Same', centerX, top + 46, '22px "DejaVu Sans Bold"');
-    drawCentered(ctx, `(${Math.round(option.penceDifference)}p)`, centerX, top + 62, '14px "DejaVu Sans"');
+    drawCentered(ctx, 'Same', centerX, top + 46, '28px "DejaVu Sans Bold"');
 
     return;
   }
