@@ -142,7 +142,7 @@ export default function (config: z.infer<typeof parameters>) {
       });
     } catch (e) {
       bus.emit(NOTIFICATION_TO_ADMINS, {
-        message: `‼️⚠️ No-one is home, but there was a problem securing the house, turning off the heating and lights, or turning on the alarm!`
+        message: `💥‼️⚠️ No-one is home, but there was a problem securing the house, turning off the heating and lights, or turning on the alarm!`
       });
 
       throw e;
