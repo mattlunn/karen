@@ -4,6 +4,8 @@ export interface PriceSlot {
   start: Date;
   end: Date;
   pence: number;
+  // Set by a caller that backfilled this slot from a prior period; toPriceSlots never sets it.
+  isEstimated?: boolean;
 }
 
 // The shape `toPriceSlots` needs from a unit-rate event series - a subset of

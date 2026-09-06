@@ -109,22 +109,23 @@ function drawBucket(ctx: SKRSContext2D, index: number, top: number, bucket: Dela
   }
 
   const { option } = bucket;
+  const prefix = option.isEstimated ? '~' : '';
 
   // Checked ahead of "more expensive" below, so a tiny loss reads as "Same".
   if (option.isBelowNegligibleSavingsPence) {
-    drawCentered(ctx, 'Same', centerX, top + 46, '28px "DejaVu Sans Bold"');
+    drawCentered(ctx, `${prefix}Same`, centerX, top + 46, '28px "DejaVu Sans Bold"');
 
     return;
   }
 
   if (option.savingPercent < 0) {
-    drawCentered(ctx, '£££', centerX, top + 46, '28px "DejaVu Sans Bold"');
+    drawCentered(ctx, `${prefix}£££`, centerX, top + 46, '28px "DejaVu Sans Bold"');
 
     return;
   }
 
   drawCentered(ctx, `${option.dialHours}h`, centerX, top + 20, '16px "DejaVu Sans Bold"');
-  drawCentered(ctx, `${option.savingPercent}%`, centerX, top + 46, '28px "DejaVu Sans Bold"');
+  drawCentered(ctx, `${prefix}${option.savingPercent}%`, centerX, top + 46, '28px "DejaVu Sans Bold"');
   drawCentered(ctx, 'saved', centerX, top + 62, '14px "DejaVu Sans"');
 }
 
