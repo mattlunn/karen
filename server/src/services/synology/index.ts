@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import sleep from '../../helpers/sleep';
 import { enqueueWorkItem } from '../../queue';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
+import setCron from '../../helpers/set-cron';
 import bus, { NOTIFICATION_TO_ALL } from '../../bus';
 
 export { makeSynologyRequest };
@@ -133,7 +134,7 @@ export async function onDoorbellRing(cameraId: string) {
   await s3.store(event!.id.toString(), image, 'image/jpeg');
 }
 
-setInterval(createBackgroundTransaction('synology:clear-old-recordings', async () => {
+setCron(createBackgroundTransaction('synology:clear-old-recordings', async () => {
   if (typeof config.days_to_keep_recordings_while_home === 'number') {
     const cutoffForUnarmedRecordings = dayjs().subtract(config.days_to_keep_recordings_while_home, 'days');
     const recordings = await Recording.findAll({
@@ -156,7 +157,7 @@ setInterval(createBackgroundTransaction('synology:clear-old-recordings', async (
 
     logger.info('Old recordings removed. See you again tomorrow...');
   }
-}), dayjs.duration(1, 'day').asMilliseconds());
+}), '0 0 * * *');
 
 
 async function updateCamerasConnectivity(cameras: SynologyCamera[]) {

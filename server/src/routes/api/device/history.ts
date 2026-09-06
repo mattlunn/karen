@@ -39,8 +39,8 @@ export type HistoryBarResponse = {
 
 export type HistoryResponse = {
   lines: HistoryLineResponse[];
-  modes?: HistoryModesResponse;
-  bar?: HistoryBarResponse;
+  modes?: HistoryModesResponse[];
+  bars?: HistoryBarResponse[];
 };
 
 type HistoryFetcher = (device: Device, selector: TimeRangeSelector) => Promise<HistoryResponse>;
@@ -73,7 +73,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), selector)
           .then(data => ({ data, label: 'Power' }))
       ]),
-      modes: mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), selector).then(data => ({
+      modes: mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), selector).then(data => [{
         data,
         details: [
           { value: 'HEATING', label: 'Heating' },
@@ -81,7 +81,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
           { value: 'FROST_PROTECTION', label: 'Frost Protection' },
           { value: 'DHW', label: 'Hot Water' }
         ]
-      }))
+      }])
     });
   }],
 
@@ -196,8 +196,10 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     const heatPump = device.getHeatPumpCapability();
 
     return awaitPromises({
-      bar: mapNumericHistoryToResponse((hs) => heatPump.getDayCoPHistory(hs), selector)
-        .then(data => ({ data, label: 'CoP', yAxisID: 'yCoP', period: 'day' as const })),
+      bars: Promise.all([
+        mapNumericHistoryToResponse((hs) => heatPump.getDayCoPHistory(hs), selector)
+          .then(data => ({ data, label: 'CoP', yAxisID: 'yCoP', period: 'day' as const }))
+      ]),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => heatPump.getDayPowerHistory(hs), selector)
           .then(data => ({ data, label: 'Power (kWh)', yAxisID: 'yEnergy', period: 'day' as const })),
@@ -212,8 +214,10 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     const heatPump = device.getHeatPumpCapability();
 
     return awaitPromises({
-      bar: mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCoPHistory(hs), selector)
-        .then(data => ({ data, label: 'Heating CoP', yAxisID: 'yCoP', period: 'day' as const })),
+      bars: Promise.all([
+        mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCoPHistory(hs), selector)
+          .then(data => ({ data, label: 'Heating CoP', yAxisID: 'yCoP', period: 'day' as const }))
+      ]),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingPowerHistory(hs), selector)
           .then(data => ({ data, label: 'Heating Power (kWh)', yAxisID: 'yEnergy', period: 'day' as const })),
@@ -228,8 +232,10 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     const heatPump = device.getHeatPumpCapability();
 
     return awaitPromises({
-      bar: mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCoPHistory(hs), selector)
-        .then(data => ({ data, label: 'DHW CoP', yAxisID: 'yCoP', period: 'day' as const })),
+      bars: Promise.all([
+        mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCoPHistory(hs), selector)
+          .then(data => ({ data, label: 'DHW CoP', yAxisID: 'yCoP', period: 'day' as const }))
+      ]),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => heatPump.getDayDHWPowerHistory(hs), selector)
           .then(data => ({ data, label: 'DHW Power (kWh)', yAxisID: 'yEnergy', period: 'day' as const })),
@@ -250,8 +256,10 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         mapNumericHistoryToResponse((hs) => thermostat.getTargetTemperatureHistory(hs), selector)
           .then(data => ({ data, label: 'Target Temperature', yAxisID: 'yTemperature' }))
       ]),
-      bar: mapNumericHistoryToResponse((hs) => thermostat.getPowerHistory(hs), selector)
-        .then(data => ({ data, label: 'Power', yAxisID: 'yPercentage' }))
+      bars: Promise.all([
+        mapNumericHistoryToResponse((hs) => thermostat.getPowerHistory(hs), selector)
+          .then(data => ({ data, label: 'Power', yAxisID: 'yPercentage' }))
+      ])
     });
   }],
 
@@ -265,12 +273,12 @@ const historyFetchers = new Map<string, HistoryFetcher>([
           .then(data => ({ data, label: 'Brightness' }))
       ]),
       modes: mapBooleanHistoryToResponse((hs) => light.getIsOnHistory(hs), selector)
-        .then(data => ({
+        .then(data => [{
           data,
           details: [
             { value: true as const, label: 'On', fillColor: 'rgba(255, 165, 0, 0.3)' }
           ]
-        }))
+        }])
     });
   }],
 
@@ -286,12 +294,12 @@ const historyFetchers = new Map<string, HistoryFetcher>([
           .then(data => ({ data, label: 'Charge Limit' }))
       ]),
       modes: mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), selector)
-        .then(data => ({
+        .then(data => [{
           data,
           details: [
             { value: true as const, label: 'Charging', fillColor: 'rgba(46, 204, 113, 0.3)' }
           ]
-        }))
+        }])
     });
   }],
 
@@ -302,12 +310,12 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     return {
       lines: [],
       modes: await mapBooleanHistoryToResponse((hs) => sensor.getIsTriggeredHistory(hs), selector)
-        .then(data => ({
+        .then(data => [{
           data,
           details: [
             { value: true as const, label: 'Triggered', fillColor: 'rgba(231, 76, 60, 0.35)' }
           ]
-        }))
+        }])
     };
   }],
 
@@ -320,8 +328,10 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         mapNumericHistoryToResponse((hs) => ev.getMonthlyEfficiencyHistory(hs), selector)
           .then(data => ({ data, label: 'Efficiency (mi/kWh)', yAxisID: 'yEfficiency', period: 'month' as const }))
       ]),
-      bar: mapNumericHistoryToResponse((hs) => ev.getMonthlyMileageHistory(hs), selector)
-        .then(data => ({ data, label: 'Monthly Mileage (mi)', yAxisID: 'y', period: 'month' as const }))
+      bars: Promise.all([
+        mapNumericHistoryToResponse((hs) => ev.getMonthlyMileageHistory(hs), selector)
+          .then(data => ({ data, label: 'Monthly Mileage (mi)', yAxisID: 'y', period: 'month' as const }))
+      ])
     });
   }],
 
@@ -344,8 +354,10 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     const energyMonitor = device.getEnergyMonitorCapability();
 
     return awaitPromises({
-      bar: mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector)
-        .then(data => ({ data, label: 'Energy (kWh)', yAxisID: 'yEnergy', period: 'day' as const })),
+      bars: Promise.all([
+        mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector)
+          .then(data => ({ data, label: 'Energy (kWh)', yAxisID: 'yEnergy', period: 'day' as const }))
+      ]),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
           .then(data => ({ data, label: 'Cost (£)', yAxisID: 'yCost', period: 'day' as const }))

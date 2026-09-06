@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import bus, { FIRST_USER_HOME } from '../bus';
 import { Device, Stay } from '../models';
 import { createBackgroundTransaction } from '../helpers/newrelic';
@@ -11,18 +12,18 @@ const greetings: ((name: string) => string)[] = [
   (name) => `<voice name="Carla"><lang xml:lang="it-IT">Ciao ${name}</lang></voice>. That's how Italian's say hi!`,
   (name) => `<voice name="Camila"><lang xml:lang="pt-BR">Olá ${name}</lang></voice>. That's how the Portugese say hi!`,
   (name) => `<voice name="Lucia"><lang xml:lang="es-ES">Hola ${name}</lang></voice>. That's how the Spanish say hi!`,
-  (name) => `<voice name="Geraint"><amazon:emotion name="excited" intensity="high">Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch ${name}</amazon:emotion></voice>. That's G, saying hello!`
+  (name) => `<voice name="Geraint">Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch ${name}</voice>. <amazon:emotion name="excited" intensity="high">That's G, saying hello!</amazon:emotion>`
 ];
 
-type GreetingAutomationParameters = {
-  alexa_name: string;
-  greeting_window_minutes?: number;
-};
+export const parameters = z.object({
+  alexa_name: z.string(),
+  greeting_window_minutes: z.number().positive()
+});
 
 export default async function ({
   alexa_name: alexaName,
-  greeting_window_minutes: greetingWindowMinutes = 10,
-}: GreetingAutomationParameters) {
+  greeting_window_minutes: greetingWindowMinutes,
+}: z.infer<typeof parameters>) {
   let unannouncedStay: Stay | null = null;
 
   DeviceCapabilityEvents.onMotionSensorHasMotionStart(createBackgroundTransaction('automations:greeting', async (event) => {
@@ -41,7 +42,7 @@ export default async function ({
         stay.getUser()
       ]);
 
-      device.getSpeakerCapability().emitSound(greetings[Math.floor(Math.random() * greetings.length)](user.handle));
+      await device.getSpeakerCapability().emitSound(greetings[Math.floor(Math.random() * greetings.length)](user.handle));
     }
   }));
 

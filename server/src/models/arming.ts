@@ -11,6 +11,8 @@ export class Arming extends Model<InferAttributes<Arming>, InferCreationAttribut
   declare start: Date;
   declare end: CreationOptional<Date | null>;
   declare mode: CreationOptional<ArmingMode>;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
   declare getAlarmActivations: HasManyGetAssociationsMixin<AlarmActivation>;
 
@@ -55,17 +57,27 @@ export default function (sequelize: Sequelize) {
     },
 
     start: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE(3),
       allowNull: false
     },
 
     end: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE(3),
       allowNull: true
     },
 
     mode: {
       type: DataTypes.ENUM('NIGHT', 'AWAY'),
+      allowNull: false
+    },
+
+    createdAt: {
+      type: DataTypes.DATE(3),
+      allowNull: false
+    },
+
+    updatedAt: {
+      type: DataTypes.DATE(3),
       allowNull: false
     }
   }, {

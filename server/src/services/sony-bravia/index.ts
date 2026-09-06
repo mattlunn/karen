@@ -1,7 +1,7 @@
 import { Device } from '../../models';
 import { TelevisionSource } from '../../models/capabilities';
 import config from '../../config/app';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import BraviaClient from './client';
 
@@ -145,7 +145,7 @@ async function pollDevice(device: Device) {
   }
 }
 
-nowAndSetInterval(createBackgroundTransaction('sony-bravia:poll', async () => {
+nowAndSetCron(createBackgroundTransaction('sony-bravia:poll', async () => {
   const devices = await Device.findByProvider('sony-bravia');
 
   await Promise.all(devices.map(async device => {
@@ -160,4 +160,4 @@ nowAndSetInterval(createBackgroundTransaction('sony-bravia:poll', async () => {
       await device.getConnectivityCapability().setIsConnectedState(false);
     }
   }));
-}), Math.max(config.sony_bravia.poll_interval_seconds, 5) * 1000);
+}), config.sony_bravia.poll_cron);

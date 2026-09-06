@@ -1,7 +1,6 @@
 import js from '@eslint/js';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
-import babelPlugin from '@babel/eslint-plugin';
 import babelParser from '@babel/eslint-parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
@@ -45,7 +44,6 @@ export default [
     plugins: {
       react: reactPlugin,
       'react-hooks': reactHooksPlugin,
-      '@babel': babelPlugin,
     },
     settings: { react: { version: 'detect' } },
     rules: {
@@ -56,7 +54,7 @@ export default [
       'no-unused-vars': 0,
       'no-constant-binary-expression': 0,
       'react/prop-types': 0,
-      '@babel/semi': 1,
+      'semi': 1,
       'no-restricted-imports': dayjsRestriction,
     },
   },

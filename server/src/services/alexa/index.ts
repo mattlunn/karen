@@ -3,7 +3,7 @@ import { Device } from '../../models';
 import { DeviceCapabilityEvents } from '../../models/capabilities';
 import { sendSimpleEventSource, syncDiscovery } from './smarthome';
 import logger from '../../logger';
-import nowAndSetIntervalForTime from '../../helpers/now-and-set-interval-for-time';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 
 export const messages = new Map();
@@ -124,7 +124,7 @@ DeviceCapabilityEvents.onButtonPressed(async (event) => {
   await sendSimpleEventSource(device.id);
 });
 
-nowAndSetIntervalForTime(
+nowAndSetCron(
   createBackgroundTransaction('alexa:discovery-sync', syncDiscovery),
-  '00:00'
+  '0 0 * * *'
 );

@@ -1,12 +1,12 @@
 import bus, { FIRST_USER_HOME, LAST_USER_LEAVES } from '../bus';
 import { Stay } from '../models';
 import { isWithinTime } from '../helpers/time';
-import setIntervalForTime from '../helpers/set-interval-for-time';
+import scheduleDaily from './schedule-daily';
 
 export default function (start, end, onStart, onEnd) {
   let isActive = false;
   
-  setIntervalForTime(async () => {
+  scheduleDaily(async () => {
     const isSomeoneAtHome = await Stay.checkIfSomeoneHomeAt(Date.now());
 
     if (isSomeoneAtHome) {
@@ -15,7 +15,7 @@ export default function (start, end, onStart, onEnd) {
     }
   }, start);
 
-  setIntervalForTime(async () => {
+  scheduleDaily(async () => {
     if (isActive) {
       isActive = false;
       await onEnd();

@@ -5,7 +5,7 @@ import { promisify } from 'util';
 export default function (sequelize) {
   const token = sequelize.define('token', {
     expiresAt: {
-      type: Sequelize.DATE
+      type: Sequelize.DATE(3)
     },
     token: {
       type: Sequelize.STRING,
@@ -19,6 +19,12 @@ export default function (sequelize) {
         key: 'id'
       },
       allowNull: false
+    },
+    createdAt: {
+      type: Sequelize.DATE(3)
+    },
+    updatedAt: {
+      type: Sequelize.DATE(3)
     }
   });
 

@@ -13,8 +13,7 @@ import {
   TimeScale,
   Colors,
   Filler,
-  ChartDataset,
-  Point
+  ChartDataset
 } from 'chart.js';
 import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
@@ -96,6 +95,15 @@ function mapNumericDataToAggregateDataset(numericEventHistory: HistoryDetailsApi
   }, []);
 }
 
+export type ModeSeries = {
+  data: HistoryDetailsApiResponse<EnumEventApiResponse | BooleanEventApiResponse>,
+  details: {
+    value: string | true;
+    label: string;
+    fillColor?: string
+  }[]
+};
+
 export type CapabilityGraphProps = {
   lines: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
@@ -105,12 +113,14 @@ export type CapabilityGraphProps = {
     period?: 'day' | 'month'
   }[]
 
-  bar?: {
+  bars?: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
     yAxisID?: string,
     period?: 'day' | 'month'
-  }
+  }[]
+
+  stacked?: boolean
 
   zones?: {
     min?: number;
@@ -118,24 +128,22 @@ export type CapabilityGraphProps = {
     color: string;
   }[]
 
-  modes?: {
-    data: HistoryDetailsApiResponse<EnumEventApiResponse | BooleanEventApiResponse>,
-    details: {
-      value: string | true;
-      label: string;
-      fillColor?: string
-    }[]
-  }
+  markers?: {
+    at: string;
+    label?: string;
+    color: string;
+  }[]
+
+  modes?: ModeSeries[]
 
   yAxis?: Record<string, {
     position?: 'left' | 'right',
     max?: number,
     min?: number,
+    suggestedMin?: number,
     suggestedMax?: number,
   }>
 
-  yMin?: number
-  yMax?: number
   timeUnit?: TimeUnit
   height?: string
 };
@@ -154,12 +162,14 @@ function getMinMax(props: CapabilityGraphProps): { min: string; max: string } | 
     return { min, max };
   }
 
-  if (props.bar) {
-    return { min: props.bar.data.since, max: props.bar.data.until };
+  if (props.bars && props.bars.length > 0) {
+    return { min: props.bars[0].data.since, max: props.bars[0].data.until };
   }
 
-  if (props.modes) {
-    return { min: props.modes.data.since, max: props.modes.data.until };
+  const modeSeries = props.modes ?? [];
+
+  if (modeSeries.length > 0) {
+    return { min: modeSeries[0].data.since, max: modeSeries[0].data.until };
   }
 
   return null;
@@ -178,7 +188,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }
 
   const { min, max } = minMax;
-  const modesOnly = props.lines.length === 0;
+  const modesOnly = props.lines.length === 0 && !props.bars?.length;
 
   const datasets: (ChartDataset<"line", { x: string; y: number; }[]> | ChartDataset<"bar", { x: string; y: number; }[]>)[] = props.lines.map(x => ({
     type: 'line',
@@ -190,7 +200,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
-  const tickStepSize = (timeUnit === 'day' || timeUnit === 'month') ? 1 : 15;
+  const tickStepSize = timeUnit === 'day' || timeUnit === 'month' ? 1 : timeUnit === 'hour' ? 2 : 15;
 
   // TODO: Fixme any
   const chartOptions: any = {
@@ -256,22 +266,31 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     maintainAspectRatio: false
   };
 
-  if (props.bar) {
-    datasets.push({
-      type: 'bar',
-      data: mapNumericDataToAggregateDataset(props.bar.data, props.bar.period),
-      label: props.bar.label,
-      yAxisID: props.bar.yAxisID || 'y',
-      borderWidth: 1
-    });
+  if (props.stacked && props.bars) {
+    chartOptions.scales.x.stacked = true;
   }
 
-  if (props.modes) {
-    const sortedEvents = filterClampAndSortHistory(props.modes.data.history, props.modes.data.since, props.modes.data.until, true);
+  if (props.bars) {
+    for (const bar of props.bars) {
+      datasets.push({
+        type: 'bar',
+        data: mapNumericDataToAggregateDataset(bar.data, bar.period),
+        label: bar.label,
+        yAxisID: bar.yAxisID || 'y',
+        borderWidth: 1,
+        ...(props.stacked ? { stack: 'stack' } : {})
+      });
+    }
+  }
 
-    for (let i=0;i<props.modes.details.length;i++) {
-      const mode = props.modes.details[i];
-      const axisName = `yMode${i}`;
+  const modeSeries = props.modes ?? [];
+
+  modeSeries.forEach((series, seriesIndex) => {
+    const sortedEvents = filterClampAndSortHistory(series.data.history, series.data.since, series.data.until, true);
+
+    for (let i = 0; i < series.details.length; i++) {
+      const mode = series.details[i];
+      const axisName = `yMode${seriesIndex}_${i}`;
 
       datasets.push({
         type: 'line',
@@ -310,7 +329,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         display: false
       };
     }
-  }
+  });
 
   if (props.yAxis) {
     for (const [axisId, axisDetails] of Object.entries(props.yAxis)) {
@@ -322,6 +341,10 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       if (modesOnly) {
         scaleConfig.ticks = { color: 'transparent' };
         scaleConfig.grid = { display: false };
+      }
+
+      if (props.stacked) {
+        scaleConfig.stacked = true;
       }
 
       chartOptions.scales[axisId] = scaleConfig;
@@ -348,12 +371,25 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     };
   }
 
-  if (props.yMin || props.yMax) {
-    chartOptions.scales.y = {
-      type: 'linear',
-      min: props.yMin,
-      max: props.yMax,
-    };
+  if (props.markers) {
+    props.markers.forEach((marker, idx) => {
+      chartOptions.plugins.annotation.annotations[`marker${idx}`] = {
+        type: 'line',
+        xMin: marker.at,
+        xMax: marker.at,
+        borderColor: marker.color,
+        borderWidth: 2,
+        ...(marker.label ? {
+          label: {
+            display: true,
+            content: marker.label,
+            position: 'start',
+            backgroundColor: marker.color,
+            font: { size: 10 }
+          }
+        } : {})
+      };
+    });
   }
 
   if (props.zones) {

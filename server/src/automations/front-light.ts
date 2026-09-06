@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { timeRange } from './schema';
 import bus, { STAY_START } from '../bus';
 import { isWithinTime } from '../helpers/time';
 import { Device } from '../models';
@@ -10,14 +12,12 @@ let offTimeout: ReturnType<typeof setTimeout>;
 // call's pending turn-off without taking over responsibility for those lights.
 const devicesToTurnOff = new Map<number, Device>();
 
-type FrontLightAutomationParameters = {
-  offDelayInMinutes: number;
-  start: string;
-  end: string;
-  lightNames: string[];
-};
+export const parameters = timeRange.extend({
+  offDelayInMinutes: z.number().nonnegative(),
+  lightNames: z.array(z.string())
+});
 
-export default function ({ offDelayInMinutes, start, end, lightNames }: FrontLightAutomationParameters) {
+export default function ({ offDelayInMinutes, start, end, lightNames }: z.infer<typeof parameters>) {
   bus.on(STAY_START, createBackgroundTransaction('automations:front-light:stay-start', async () => {
     if (isWithinTime(start, end)) {
       const devices = await Promise.all(lightNames.map(lightName => Device.findByNameOrError(lightName)));

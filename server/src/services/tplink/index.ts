@@ -4,7 +4,7 @@ import config from '../../config/app';
 import sleep from '../../helpers/sleep';
 import newrelic from 'newrelic';
 import logger from '../../logger';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
 
 const client = new Client();
 
@@ -13,13 +13,17 @@ function getTpLinkDeviceFromDevice(device: Device): Promise<Plug | Bulb | null> 
     client.getDevice({ host: device.providerId }),
     sleep(Math.max(config.tplink.connect_timeout_milliseconds, 1)).then(() => null)
   ]).catch(e => {
-    newrelic.noticeError(e);
+    // A powered-off plug has no route on the network; the caller already
+    // reflects that via setIsConnectedState(false), so it isn't worth noticing.
+    if ((e as NodeJS.ErrnoException)?.code !== 'EHOSTUNREACH') {
+      newrelic.noticeError(e);
+    }
 
     return null;
   });
 }
 
-nowAndSetInterval(async () => {
+nowAndSetCron(async () => {
   const devices = await Device.findByProvider('tplink');
 
   for (const device of devices) {
@@ -33,7 +37,7 @@ nowAndSetInterval(async () => {
     await device.getLightCapability().setIsOnState(await tpLinkDevice.getPowerState());
     await device.getConnectivityCapability().setIsConnectedState(true);
   }
-}, Math.max(config.tplink.sync_interval_seconds, 60) * 1000);
+}, config.tplink.sync_cron);
 
 Device.registerProvider('tplink', {
   getCapabilities() {

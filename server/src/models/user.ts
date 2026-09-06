@@ -123,11 +123,11 @@ export default function (sequelize: Sequelize) {
       allowNull: true
     },
     createdAt: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE(3),
       allowNull: false
     },
     updatedAt: {
-      type: DataTypes.DATE,
+      type: DataTypes.DATE(3),
       allowNull: false
     }
   }, {

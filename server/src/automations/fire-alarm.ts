@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { BooleanEvent, Device, User } from '../models';
 import { callWithKarenMessage } from '../services/twilio';
 import bus, { NOTIFICATION_TO_ALL } from '../bus';
@@ -7,9 +8,9 @@ import { createBackgroundTransaction } from '../helpers/newrelic';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { joinWithAnd } from '../helpers/array';
 
-type FireAlarmAutomationParameters = {
-  deviceName: string;
-};
+export const parameters = z.object({
+  deviceName: z.string()
+});
 
 async function describeWhoIsHome(): Promise<string> {
   const handles = (await User.getUsersAtHome()).map(u => u.handle);
@@ -21,7 +22,7 @@ async function describeWhoIsHome(): Promise<string> {
   return `${joinWithAnd(handles)} ${handles.length === 1 ? 'is' : 'are'} home`;
 }
 
-export default function ({ deviceName }: FireAlarmAutomationParameters) {
+export default function ({ deviceName }: z.infer<typeof parameters>) {
   const isThisDevice = (d: Device) => d.name === deviceName;
 
   DeviceCapabilityEvents.onAlarmSensorIsTriggeredStart(isThisDevice, createBackgroundTransaction('automations:fire-alarm:triggered', async (event: BooleanEvent) => {

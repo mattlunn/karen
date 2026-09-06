@@ -41,7 +41,7 @@ declare namespace _default {
     const home_id: number;
     let refresh_token: string;
     const secret: string;
-    const sync_interval_seconds: number;
+    const sync_cron: string;
     const passive_zone_names: string[];
   }
   export namespace shelly {
@@ -60,11 +60,11 @@ declare namespace _default {
       psk: string;
       channels: { label: string; number: number; aliases?: string[] }[];
     }[];
-    const poll_interval_seconds: number;
+    const poll_cron: string;
     const connect_timeout_milliseconds: number;
   }
   export namespace tplink {
-    const sync_interval_seconds: number;
+    const sync_cron: string;
     const discovery_duration_seconds: number;
     const connect_timeout_milliseconds: number;
   }
@@ -76,7 +76,7 @@ declare namespace _default {
       ip: string;
       version: string;
     }[];
-    const poll_interval_seconds: number;
+    const poll_cron: string;
     const connect_timeout_milliseconds: number;
   }
   export namespace synology {
@@ -94,13 +94,23 @@ declare namespace _default {
     const username: string;
     const password: string;
     const device_considered_gone_after_in_seconds: number;
-    const device_check_interval_in_seconds: number;
+    const device_check_cron: string;
   }
   export namespace ebusd {
     const host: string;
     const port: number;
-    const poll_interval_minutes: number;
+    const poll_cron: string;
     const min_mode_duration_minutes: number | undefined;
+    const dhw_plan_mode: 'readonly' | 'readwrite' | undefined;
+    const dhw_planning_horizon_hours: number;
+    const dhw_check_cron: string;
+    const dhw_standard_target_temp: number;
+    const dhw_plunge_target_temp: number;
+    const dhw_legionella_target_temp: number;
+    const dhw_legionella_temp_tolerance: number;
+    const dhw_legionella_max_interval_days: number;
+    const dhw_legionella_alert_grace_days: number;
+    const dhw_legionella_alert_check_cron: string;
   }
   export namespace homeconnect {
     const client_id: string;
@@ -114,8 +124,9 @@ declare namespace _default {
   export namespace octopus {
     const api_key: string;
     const account_number: string;
-    const poll_rates_interval_minutes: number;
-    const poll_current_power_interval_minutes: number;
+    const poll_rates_cron: string;
+    const poll_current_power_cron: string;
+    const forward_price_check_cron: string;
     const mpan: string;
     const serial_number: string;
   }
@@ -127,6 +138,7 @@ declare namespace _default {
     let vehicle_id: string;
     const application_management_token: string;
     const secret: string;
+    const charge_plan_mode: 'readonly' | 'readwrite' | undefined;
     const default_charge_limit: number;
     const charge_power_watts: number;
     const battery_capacity_kwh: number;
@@ -137,6 +149,30 @@ declare namespace _default {
       anchor_date: string;
       interval_weeks: number;
     }[];
+    const charge_median_rate_days: number;
+    const charge_plunge_limit: number;
+    const charge_deadline_engage_fraction: number;
+  }
+  export namespace eink {
+    const secret: string;
+    export namespace appliance_schedule {
+      const render_cron: string;
+      const transfer_gap_minutes: number;
+      const negligible_saving_pence: number;
+      const appliances: {
+        id: string;
+        label: string;
+        cycle_minutes: number;
+        power_profile_kwh: number[];
+        delay_min_hours: number;
+        delay_max_hours: number;
+      }[];
+      const wash_then_dry: {
+        washer_id: string;
+        dryer_id: string;
+        label: string;
+      };
+    }
   }
   const bins: {
     overrides: {

@@ -88,6 +88,7 @@ export default function Device() {
                 yAxis={graph.yAxis}
                 yMin={graph.yMin}
                 yMax={graph.yMax}
+                suggestedYMin={graph.suggestedYMin}
                 zones={graph.zones}
                 overridePageDateRange={graph.overridePreset}
                 overridePageDateRangeStart={graph.overrideStart}

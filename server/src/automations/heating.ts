@@ -1,15 +1,16 @@
+import { z } from 'zod';
 import bus, { NOTIFICATION_TO_ADMINS } from '../bus';
 import { Device } from '../models';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { asyncFilterAndMap } from '../helpers/array';
 
-type HeatingAutomationParameters = {
-  heatingSwitchName: string;
-  temperatureDeltaSwitchOnThreshold: number;
-};
+export const parameters = z.object({
+  heatingSwitchName: z.string(),
+  temperatureDeltaSwitchOnThreshold: z.number()
+});
 
-export default function ({ heatingSwitchName, temperatureDeltaSwitchOnThreshold }: HeatingAutomationParameters) {
+export default function ({ heatingSwitchName, temperatureDeltaSwitchOnThreshold }: z.infer<typeof parameters>) {
   async function evaluateTurnOn(triggeringDevice: Device) {
     if (await triggeringDevice.getThermostatCapability().getIsPassive()) {
       return;

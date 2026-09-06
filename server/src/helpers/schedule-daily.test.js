@@ -1,6 +1,6 @@
 jest.mock('../config/app', () => ({}), { virtual: true });
 
-import setIntervalForTime from './set-interval-for-time';
+import scheduleDaily from './schedule-daily';
 
 function getTime(hour, minute, second = 0, millisecond = 0) {
   return new Date(2026, 0, 1, hour, minute, second, millisecond);
@@ -9,7 +9,7 @@ function getTime(hour, minute, second = 0, millisecond = 0) {
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
-describe('setIntervalForTime', () => {
+describe('scheduleDaily', () => {
   beforeEach(() => {
     jest.useFakeTimers();
   });
@@ -23,7 +23,7 @@ describe('setIntervalForTime', () => {
 
     const func = jest.fn();
 
-    setIntervalForTime(func, '17:00');
+    scheduleDaily(func, '17:00');
     jest.advanceTimersByTime(3000);
 
     expect(func).toHaveBeenCalledTimes(1);
@@ -39,7 +39,7 @@ describe('setIntervalForTime', () => {
 
     const func = jest.fn();
 
-    setIntervalForTime(func, '17:00');
+    scheduleDaily(func, '17:00');
     jest.advanceTimersByTime(advanceBy);
 
     expect(func).toHaveBeenCalledTimes(1);
@@ -50,7 +50,7 @@ describe('setIntervalForTime', () => {
 
     const func = jest.fn();
 
-    setIntervalForTime(func, '17:00');
+    scheduleDaily(func, '17:00');
     jest.advanceTimersByTime(3 * DAY);
 
     expect(func).toHaveBeenCalledTimes(3);
@@ -69,7 +69,7 @@ describe('setIntervalForTime', () => {
       const callTimes = [];
       const func = jest.fn(() => callTimes.push(Date.now()));
 
-      setIntervalForTime(func, '17:00');
+      scheduleDaily(func, '17:00');
       jest.advanceTimersByTime(3 * DAY);
 
       expect(callTimes).toHaveLength(3);

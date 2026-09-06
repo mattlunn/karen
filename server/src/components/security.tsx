@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Center, Loader, SimpleGrid, Title } from '@mantine/core';
-import nowAndSetInterval from '../helpers/now-and-set-interval';
 import styles from './security.module.css';
 
 interface Camera {
@@ -48,7 +47,10 @@ function useSnapshotData(cameras: Camera[]): SnapshotsMap {
       }
     }
 
-    const interval = nowAndSetInterval(() => cameras.forEach(refreshCamera), 5000);
+    cameras.forEach(refreshCamera);
+
+    const interval = setInterval(() => cameras.forEach(refreshCamera), 5000);
+
     return () => {
       clearInterval(interval);
 

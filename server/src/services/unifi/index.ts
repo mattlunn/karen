@@ -2,7 +2,7 @@ import { UnifiClient } from './lib';
 import config from '../../config/app';
 import { User, Stay } from '../../models';
 import { markUserAsAway, markUserAsHome } from '../../helpers/presence';
-import nowAndSetInterval from '../../helpers/now-and-set-interval';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import logger from '../../logger';
 
@@ -17,7 +17,7 @@ const client = new UnifiClient(
 
 client.login().catch((e: unknown) => logger.error({ err: e }, 'Initial UniFi login failed'));
 
-nowAndSetInterval(createBackgroundTransaction('unifi:check-presence', async () => {
+nowAndSetCron(createBackgroundTransaction('unifi:check-presence', async () => {
   const [
     users,
     unifiUsers,
@@ -56,4 +56,4 @@ nowAndSetInterval(createBackgroundTransaction('unifi:check-presence', async () =
       }
     }
   }
-}), config.unifi.device_check_interval_in_seconds * 1000);
+}), config.unifi.device_check_cron);

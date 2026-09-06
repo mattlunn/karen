@@ -12,8 +12,10 @@ import homeConnectRoutes from './routes/homeconnect';
 import tadoRoutes from './routes/tado';
 import vehicleRoutes from './routes/vehicle';
 import versionRoutes from './routes/version';
+import einkRoutes from './routes/eink';
 import auth from './middleware/auth';
 import buildVersion from './middleware/build-version';
+import setCron from './helpers/set-cron';
 import { Device } from './models';
 import config from './config/app';
 import cookieParser from 'cookie-parser';
@@ -37,6 +39,7 @@ require('./services/vehicle');
 require('./services/bins');
 require('./services/octopus');
 require('./services/energy');
+require('./services/eink');
 
 require('./automations');
 
@@ -61,15 +64,24 @@ app.use('/homeconnect', homeConnectRoutes);
 app.use('/tado', tadoRoutes);
 app.use('/vehicle', vehicleRoutes);
 app.use('/version', versionRoutes);
+app.use('/eink', einkRoutes);
 app.use('/', express.static(__dirname + '/static'));
 
-app.use((req, res) => res.sendFile('index.html', {
-  root: __dirname + '/static',
-  maxAge: dayjs.duration(1, 'year').asMilliseconds()
-}));
+app.use((req, res) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.sendStatus(404);
+
+    return;
+  }
+
+  res.sendFile('index.html', {
+    root: __dirname + '/static',
+    maxAge: dayjs.duration(1, 'year').asMilliseconds()
+  });
+});
 
 httpServer.listen(config.port, () => {
   logger.info(`Listening on ${config.port}`);
 });
 
-setInterval(createBackgroundTransaction('device:synchronize', () => Device.synchronize()), dayjs.duration(1, 'day').asMilliseconds());
+setCron(createBackgroundTransaction('device:synchronize', () => Device.synchronize()), '0 0 * * *');

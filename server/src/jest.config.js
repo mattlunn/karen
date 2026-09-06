@@ -1,8 +1,7 @@
 module.exports = {
   testEnvironment: 'node',
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', { tsconfig: { ignoreDeprecations: '6.0', rootDir: '.' } }],
-    '^.+\\.jsx?$': 'babel-jest',
+    '^.+\\.[jt]sx?$': 'babel-jest',
   },
   testMatch: [
     '**/*.test.ts',
