@@ -40,7 +40,10 @@ async function render(): Promise<void> {
 
   const rows: AppliancePanelRow[] = profiles.map(profile => ({
     profile,
-    plan: planAppliance({ slots, now, profile }),
+    plan: planAppliance({
+      slots, now, profile,
+      negligibleSavingPence: config.eink.appliance_schedule.negligible_saving_pence,
+    }),
   }));
 
   const data: AppliancePanelData = { now, priceSlots: slots, rows };

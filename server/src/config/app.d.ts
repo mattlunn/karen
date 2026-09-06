@@ -158,6 +158,7 @@ declare namespace _default {
     export namespace appliance_schedule {
       const render_cron: string;
       const transfer_gap_minutes: number;
+      const negligible_saving_pence: number;
       const appliances: {
         id: string;
         label: string;

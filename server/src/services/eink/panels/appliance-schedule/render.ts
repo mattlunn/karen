@@ -105,17 +105,36 @@ function drawSparkline(ctx: SKRSContext2D, x: number, y: number, w: number, h: n
 function drawBucket(ctx: SKRSContext2D, index: number, top: number, bucket: DelayBucket) {
   const centerX = optionColumnX(index) + OPTION_WIDTH / 2;
 
-  // No feasible option, or the cheapest one available still costs more than
-  // running right now - either way there's nothing worth showing a number
-  // for in this window.
-  if (bucket.option === null || bucket.option.savingPercent < 0) {
+  // No feasible option at all - nothing worth showing a number for.
+  if (bucket.option === null) {
     drawCentered(ctx, '£££', centerX, top + 46, '28px "DejaVu Sans Bold"');
 
     return;
   }
 
-  drawCentered(ctx, `${bucket.option.hours}h`, centerX, top + 20, '16px "DejaVu Sans Bold"');
-  drawCentered(ctx, `${bucket.option.savingPercent}%`, centerX, top + 46, '28px "DejaVu Sans Bold"');
+  const { option } = bucket;
+
+  // Close enough to running now that a percentage would just be noise - near
+  // a near-zero costNowPence, a few pence either way is a huge percent, in
+  // either direction. Checked ahead of the "more expensive" case below, so a
+  // tiny loss reads as "Same" rather than the same £££ as a real one.
+  if (option.negligible) {
+    drawCentered(ctx, `${option.hours}h`, centerX, top + 20, '16px "DejaVu Sans Bold"');
+    drawCentered(ctx, 'Same', centerX, top + 46, '22px "DejaVu Sans Bold"');
+    drawCentered(ctx, `(${Math.round(option.penceDifference)}p)`, centerX, top + 62, '14px "DejaVu Sans"');
+
+    return;
+  }
+
+  // The cheapest option available still costs more than running right now.
+  if (option.savingPercent < 0) {
+    drawCentered(ctx, '£££', centerX, top + 46, '28px "DejaVu Sans Bold"');
+
+    return;
+  }
+
+  drawCentered(ctx, `${option.hours}h`, centerX, top + 20, '16px "DejaVu Sans Bold"');
+  drawCentered(ctx, `${option.savingPercent}%`, centerX, top + 46, '28px "DejaVu Sans Bold"');
   drawCentered(ctx, 'saved', centerX, top + 62, '14px "DejaVu Sans"');
 }
 
@@ -132,9 +151,10 @@ function drawRow(ctx: SKRSContext2D, top: number, row: AppliancePanelRow) {
   }
 
   // best is just the lowest-cost bucket, regardless of whether that cost
-  // actually beats running now - only highlight it when it does, otherwise
-  // every bucket is showing £££ and there's nothing "cheapest" to point to.
-  const bestIndex = row.plan.best === null || row.plan.best.savingPercent < 0
+  // actually beats running now by a meaningful amount - only highlight it
+  // when it does, otherwise every bucket is showing £££ or "Same" and
+  // there's nothing genuinely "cheapest" to point to.
+  const bestIndex = row.plan.best === null || row.plan.best.negligible || row.plan.best.savingPercent < 0
     ? -1
     : row.plan.buckets.findIndex(b => b.option === row.plan!.best);
 

@@ -40,6 +40,13 @@ export interface DelayOption {
   hours: number;
   costPence: number;
   savingPercent: number;
+  // How many pence this differs from running now, always positive.
+  penceDifference: number;
+  // True when penceDifference is below negligibleSavingPence. Near a
+  // near-zero costNowPence, a genuinely tiny difference can still produce a
+  // huge savingPercent (a few pence either side of ~0 is a huge percentage
+  // of ~0) - the panel shows "Same" instead of that number in this case.
+  negligible: boolean;
 }
 
 export interface DelayBucket {
@@ -69,6 +76,7 @@ export interface PlanApplianceOptions {
   slots: PriceSlot[];
   now: Date;
   profile: ApplianceProfile;
+  negligibleSavingPence: number;
 }
 
 // Sums `profile.powerProfileKwh[i] * pool[startIndex + i].pence`. Returns null
@@ -106,7 +114,7 @@ function indexOfSlotStarting(pool: PriceSlot[], start: Date): number {
  * case, where the row has nothing to show rather than a guess.
  */
 export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
-  const { slots, now, profile } = options;
+  const { slots, now, profile, negligibleSavingPence } = options;
   const pool = slots
     .filter(s => s.end > now)
     .sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -153,7 +161,14 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
     // so "now" can already mean getting paid) - dividing by its magnitude
     // keeps a genuinely cheaper option positive and a genuinely pricier one
     // negative regardless of which side of zero the baseline sits on.
-    const option = { hours: dial, costPence, savingPercent: Math.round((costNowPence - costPence) / Math.abs(costNowPence) * 100) };
+    const penceDifference = Math.abs(costNowPence - costPence);
+    const option = {
+      hours: dial,
+      costPence,
+      savingPercent: Math.round((costNowPence - costPence) / Math.abs(costNowPence) * 100),
+      penceDifference,
+      negligible: penceDifference < negligibleSavingPence,
+    };
 
     if (bucket.option === null || option.costPence < bucket.option.costPence) {
       bucket.option = option;

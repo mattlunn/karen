@@ -24,7 +24,7 @@ const oneSlotProfile: ApplianceProfile = {
 
 function plan(slots: PriceSlot[], overrides: Partial<PlanApplianceOptions> = {}) {
   return planAppliance({
-    slots, now: at(0), profile: oneSlotProfile, ...overrides,
+    slots, now: at(0), profile: oneSlotProfile, negligibleSavingPence: 0, ...overrides,
   });
 }
 
@@ -75,7 +75,7 @@ describe('planAppliance - buckets', () => {
     const slots = run(0, 24, 10).map(s => (cheapStarts.has(s.start.getTime()) ? { ...s, pence: 1 } : s));
     const { best } = plan(slots)!;
 
-    expect(best).toEqual({ hours: 5, costPence: 1, savingPercent: 90 });
+    expect(best).toEqual({ hours: 5, costPence: 1, savingPercent: 90, penceDifference: 9, negligible: false });
   });
 
   it('sets best to null when every bucket is empty', () => {
@@ -104,8 +104,31 @@ describe('planAppliance - buckets', () => {
     const slots = [...run(0, 3.5, -2), ...run(3.5, 4, -5), ...run(4, 4.5, 10), ...run(4.5, 24, -2)];
     const { buckets } = plan(slots)!;
 
-    expect(buckets[0].option).toEqual({ hours: 4, costPence: -5, savingPercent: 150 }); // (-2 - -5) / 2 * 100
+    expect(buckets[0].option).toEqual({ hours: 4, costPence: -5, savingPercent: 150, penceDifference: 3, negligible: false }); // (-2 - -5) / 2 * 100
     expect(buckets[0].option!.savingPercent).toBeGreaterThan(0);
+  });
+
+  it('flags an option as negligible once it is within negligibleSavingPence of running now, however large the percentage looks', () => {
+    // costNow (1) is tiny, so even half a pence of difference produces a
+    // 50% savingPercent - negligible is what the panel actually keys "Same"
+    // off, independent of that percentage.
+    const profile: ApplianceProfile = { ...oneSlotProfile, delayMinHours: 1 };
+    const slots = [...run(0, 0.5, 1), ...run(0.5, 1, 0.5), ...run(1, 24, 1)];
+    const { buckets } = plan(slots, { profile, negligibleSavingPence: 10 })!;
+    const oneHour = buckets[0].option!;
+
+    expect(oneHour.hours).toBe(1);
+    expect(oneHour.savingPercent).toBe(50); // (1 - 0.5) / 1 * 100
+    expect(oneHour.penceDifference).toBe(0.5);
+    expect(oneHour.negligible).toBe(true);
+  });
+
+  it('does not flag an option as negligible once it clears the threshold', () => {
+    const slots = [...run(0, 2.5, 20), ...run(2.5, 3, 5), ...run(3, 24, 20)];
+    const { buckets } = plan(slots, { negligibleSavingPence: 10 })!;
+
+    expect(buckets[0].option!.penceDifference).toBe(15);
+    expect(buckets[0].option!.negligible).toBe(false);
   });
 });
 
@@ -158,7 +181,7 @@ describe('composeProfiles - buckets are keyed by when the whole run finishes, no
     // [delayMinHours, delayMaxHours]), but the dryer's own 2h afterward
     // would finish at 10h/11h - past the 9h the columns promise the whole
     // run finishes within. Neither should appear as an option anywhere.
-    const { buckets } = planAppliance({ slots: run(0, 24, 10), now: at(0), profile: composed })!;
+    const { buckets } = planAppliance({ slots: run(0, 24, 10), now: at(0), profile: composed, negligibleSavingPence: 0 })!;
     const hoursShown = buckets.flatMap(b => (b.option ? [b.option.hours] : []));
 
     expect(hoursShown).not.toContain(8);
@@ -168,7 +191,7 @@ describe('composeProfiles - buckets are keyed by when the whole run finishes, no
   it('leaves the earliest bucket empty when even the minimum dial setting finishes too late for it', () => {
     // Minimum completion is delayMinHours (3) + the dryer's 2h = 5h, so
     // nothing can complete within the first bucket's 3-5h window.
-    const { buckets } = planAppliance({ slots: run(0, 24, 10), now: at(0), profile: composed })!;
+    const { buckets } = planAppliance({ slots: run(0, 24, 10), now: at(0), profile: composed, negligibleSavingPence: 0 })!;
 
     expect(buckets[0].to).toBe(5);
     expect(buckets[0].option).toBeNull();
@@ -181,8 +204,10 @@ describe('composeProfiles - buckets are keyed by when the whole run finishes, no
     // candidates whose completion also lands in this bucket - can't reach
     // this slot at all.
     const slots = run(0, 24, 10).map(s => (s.start.getTime() === at(8.5).getTime() ? { ...s, pence: 0 } : s));
-    const { buckets } = planAppliance({ slots, now: at(0), profile: composed })!;
+    const { buckets } = planAppliance({ slots, now: at(0), profile: composed, negligibleSavingPence: 0 })!;
 
-    expect(buckets[2]).toEqual({ from: 7, to: 9, option: { hours: 7, costPence: 70, savingPercent: 13 } });
+    expect(buckets[2]).toEqual({
+      from: 7, to: 9, option: { hours: 7, costPence: 70, savingPercent: 13, penceDifference: 10, negligible: false },
+    });
   });
 });
