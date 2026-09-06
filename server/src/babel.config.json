@@ -1,23 +1,16 @@
 {
   "presets": [
-    [
-      "@babel/preset-typescript",
-      {
-        "allowDeclareFields": true
-      }
-    ],
+    "@babel/preset-typescript",
     [
       "@babel/preset-env",
       {
         "targets": {
           "node": "current"
-        }
+        },
+        "modules": "commonjs"
       }
     ],
     "@babel/preset-react"
-  ],
-  "plugins": [
-    "@babel/plugin-transform-optional-chaining"
   ],
   "ignore": [
     "node_modules"
