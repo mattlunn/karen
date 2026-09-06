@@ -114,24 +114,21 @@ function drawBucket(ctx: SKRSContext2D, index: number, top: number, bucket: Dela
 
   const { option } = bucket;
 
-  // Close enough to running now that a percentage would just be noise - near
-  // a near-zero costNowPence, a few pence either way is a huge percent, in
-  // either direction. Checked ahead of the "more expensive" case below, so a
-  // tiny loss reads as "Same" rather than the same £££ as a real one.
-  if (option.negligible) {
+  // Checked ahead of "more expensive" below, so a tiny loss reads as "Same"
+  // rather than £££.
+  if (option.isBelowNegligibleSavingsPence) {
     drawCentered(ctx, 'Same', centerX, top + 46, '28px "DejaVu Sans Bold"');
 
     return;
   }
 
-  // The cheapest option available still costs more than running right now.
   if (option.savingPercent < 0) {
     drawCentered(ctx, '£££', centerX, top + 46, '28px "DejaVu Sans Bold"');
 
     return;
   }
 
-  drawCentered(ctx, `${option.hours}h`, centerX, top + 20, '16px "DejaVu Sans Bold"');
+  drawCentered(ctx, `${option.dialHours}h`, centerX, top + 20, '16px "DejaVu Sans Bold"');
   drawCentered(ctx, `${option.savingPercent}%`, centerX, top + 46, '28px "DejaVu Sans Bold"');
   drawCentered(ctx, 'saved', centerX, top + 62, '14px "DejaVu Sans"');
 }
@@ -140,7 +137,7 @@ function drawRow(ctx: SKRSContext2D, top: number, row: AppliancePanelRow) {
   const totalKwh = row.profile.powerProfileKwh.reduce((sum, v) => sum + v, 0);
 
   drawLeft(ctx, row.profile.label, MARGIN, top + 28, '20px "DejaVu Sans Bold"');
-  drawLeft(ctx, `${formatDuration(row.profile.cycleMinutes)} · ${formatKwh(totalKwh)}`, MARGIN, top + 52, '18px "DejaVu Sans"');
+  drawLeft(ctx, `${formatDuration(row.profile.fullElapsedDuration)} · ${formatKwh(totalKwh)}`, MARGIN, top + 52, '18px "DejaVu Sans"');
 
   if (row.plan === null) {
     drawCentered(ctx, 'No price data for this cycle', (OPTIONS_START_X + OPTIONS_END_X) / 2, top + 40, '20px "DejaVu Sans"');
@@ -148,11 +145,9 @@ function drawRow(ctx: SKRSContext2D, top: number, row: AppliancePanelRow) {
     return;
   }
 
-  // best is just the lowest-cost bucket, regardless of whether that cost
-  // actually beats running now by a meaningful amount - only highlight it
-  // when it does, otherwise every bucket is showing £££ or "Same" and
-  // there's nothing genuinely "cheapest" to point to.
-  const bestIndex = row.plan.best === null || row.plan.best.negligible || row.plan.best.savingPercent < 0
+  // Only highlight best when it meaningfully beats running now - otherwise
+  // every bucket is £££ or "Same" and nothing is genuinely "cheapest".
+  const bestIndex = row.plan.best === null || row.plan.best.isBelowNegligibleSavingsPence || row.plan.best.savingPercent < 0
     ? -1
     : row.plan.buckets.findIndex(b => b.option === row.plan!.best);
 
@@ -174,11 +169,8 @@ export function renderAppliancePanel(data: AppliancePanelData): Buffer {
   drawSparkline(ctx, SPARKLINE_X, SPARKLINE_Y, SPARKLINE_WIDTH, SPARKLINE_HEIGHT, sparkline);
   hairline(ctx, MARGIN, HEADER_HEIGHT, WIDTH - MARGIN);
 
-  // Bucket ranges are identical across rows in practice (every appliance
-  // shares the same [delayMinHours, delayMaxHours]), so the header labels
-  // the columns once from whichever row has a plan, rather than per row.
-  // Shown as clock times ("02:30-05:30") rather than hours-from-now, since
-  // "when will the whole run finish" is the question the columns answer.
+  // Bucket ranges are identical across rows in practice, so the header
+  // labels the columns once from whichever row has a plan.
   const headerBuckets = data.rows.find(r => r.plan !== null)?.plan?.buckets;
 
   headerBuckets?.forEach((bucket, i) => {

@@ -5,7 +5,7 @@ function toProfile(a: typeof config.eink.appliance_schedule.appliances[number]):
   return {
     id: a.id,
     label: a.label,
-    cycleMinutes: a.cycle_minutes,
+    fullElapsedDuration: a.cycle_minutes,
     dialCycleMinutes: a.cycle_minutes,
     powerProfileKwh: a.power_profile_kwh,
     delayMinHours: a.delay_min_hours,
