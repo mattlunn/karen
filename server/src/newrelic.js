@@ -73,6 +73,22 @@ exports.config = {
   },
   
   slow_sql: {
-    enabled: true 
+    enabled: true
+  },
+
+  feature_flag: {
+    /**
+     * The undici/fetch subscriber reports every outbound connection failure as a
+     * transaction error, with no way to tell that the caller caught it (unlike
+     * the http/https instrumentation, which backs off when an 'error' listener
+     * is attached). That turns an expected "LAN device is powered off" poll
+     * failure (e.g. the Sony Bravia) into constant error noise. Disable it and
+     * notice outbound errors explicitly where they actually matter.
+     *
+     * This is a pre-release flag (agent lib/feature_flags.js -> exports.prerelease,
+     * defaults on). Re-check it on major agent upgrades: if it's removed or
+     * graduated, auto-capture comes back.
+     */
+    undici_error_tracking: false
   }
 };

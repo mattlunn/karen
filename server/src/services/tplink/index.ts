@@ -13,7 +13,11 @@ function getTpLinkDeviceFromDevice(device: Device): Promise<Plug | Bulb | null> 
     client.getDevice({ host: device.providerId }),
     sleep(Math.max(config.tplink.connect_timeout_milliseconds, 1)).then(() => null)
   ]).catch(e => {
-    newrelic.noticeError(e);
+    // A powered-off plug has no route on the network; the caller already
+    // reflects that via setIsConnectedState(false), so it isn't worth noticing.
+    if ((e as NodeJS.ErrnoException)?.code !== 'EHOSTUNREACH') {
+      newrelic.noticeError(e);
+    }
 
     return null;
   });
