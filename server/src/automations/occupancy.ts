@@ -9,9 +9,8 @@ export const parameters = z.object({
   timeout_for_last_user_leaves_tasks_to_execute: z.number().nonnegative()
 });
 
-async function turnOffLights() {
+async function turnOffLights(): Promise<Device[]> {
   const lights = await Device.findByCapability('LIGHT');
-  const turnedOff: Device[] = [];
   const failedToTurnOff: Device[] = [];
 
   await Promise.all(lights.map(async (light) => {
@@ -21,14 +20,12 @@ async function turnOffLights() {
 
     try {
       await light.getLightCapability().setIsOn(false);
-
-      turnedOff.push(light);
     } catch {
       failedToTurnOff.push(light);
     }
   }));
 
-  return { turnedOff, failedToTurnOff };
+  return failedToTurnOff;
 }
 
 async function getOpenContactSensors(): Promise<Device[]> {
@@ -110,7 +107,7 @@ export default function (config: z.infer<typeof parameters>) {
         locksUnsecured,
         openContactSensors,
         heating,
-        lights
+        lightsFailedToTurnOff
       ] = await Promise.all([
         promiseOrAbort(ensureActiveArming(), abortController.signal),
         promiseOrAbort(getUnsecuredLocks(), abortController.signal),
@@ -120,20 +117,12 @@ export default function (config: z.infer<typeof parameters>) {
       ]);
 
       const houseIsUnsecured = locksUnsecured.length > 0 || openContactSensors.length > 0;
-      const somethingCouldntBeTurnedOff = lights.failedToTurnOff.length > 0 || heating.failedToTurnOff;
+      const somethingCouldntBeTurnedOff = lightsFailedToTurnOff.length > 0 || heating.failedToTurnOff;
       const prefix = `${houseIsUnsecured ? '‼️' : ''}${somethingCouldntBeTurnedOff ? '⚠️' : ''}`;
 
-      const lightsStatus = (() => {
-        if (lights.failedToTurnOff.length) {
-          return `${lights.failedToTurnOff.length} light${pluralise(lights.failedToTurnOff)} could not be turned off,`;
-        }
-
-        if (lights.turnedOff.length) {
-          return `${joinWithAnd(lights.turnedOff.map(x => x.name))} light${pluralise(lights.turnedOff)} have been turned off,`;
-        }
-
-        return `All the lights are off,`;
-      })();
+      const lightsStatus = lightsFailedToTurnOff.length
+        ? `${lightsFailedToTurnOff.length} light${pluralise(lightsFailedToTurnOff)} could not be turned off,`
+        : 'All the lights are off,';
 
       const heatingStatus = heating.failedToTurnOff
         ? 'the heating could not be turned off, and'
