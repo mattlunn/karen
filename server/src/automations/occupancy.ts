@@ -11,17 +11,33 @@ export const parameters = z.object({
 
 async function turnOffLights() {
   const lights = await Device.findByCapability('LIGHT');
-  const lightsTurnedOff: Device[] = [];
+  const turnedOff: Device[] = [];
+  const failedToTurnOff: Device[] = [];
 
   await Promise.all(lights.map(async (light) => {
-    if (await light.getLightCapability().getIsOn()) {
-      await light.getLightCapability().setIsOn(false);
+    try {
+      if (await light.getLightCapability().getIsOn()) {
+        await light.getLightCapability().setIsOn(false);
 
-      lightsTurnedOff.push(light);
+        turnedOff.push(light);
+      }
+    } catch {
+      failedToTurnOff.push(light);
     }
   }));
 
-  return lightsTurnedOff;
+  return { turnedOff, failedToTurnOff };
+}
+
+async function getOpenContactSensors(): Promise<Device[]> {
+  const sensors = await Device.findByCapability('CONTACT_SENSOR');
+  const sensorStates = await Promise.allSettled(sensors.map(sensor => sensor.getContactSensorCapability().getIsOpen()));
+
+  return sensors.filter((_, i) => {
+    const state = sensorStates[i];
+
+    return state.status !== 'fulfilled' || state.value;
+  });
 }
 
 function promiseOrAbort<T>(promise: Promise<T>, abortSignal: AbortSignal): Promise<T> {
@@ -64,19 +80,25 @@ export default function (config: z.infer<typeof parameters>) {
   
     async function ensureHeatingOff() {
       const thermostats = await Device.findByCapability('THERMOSTAT');
-      const thermostatsThatWereTurnedBack = await Promise.all(thermostats.map(async (thermostat) => {
-        const targetTemperature = await thermostat.getThermostatCapability().getTargetTemperature();
-        const thermostatIsOn = targetTemperature > 0;
+      const results = await Promise.all(thermostats.map(async (thermostat) => {
+        try {
+          const targetTemperature = await thermostat.getThermostatCapability().getTargetTemperature();
 
-        if (thermostatIsOn) {
-          await thermostat.getThermostatCapability().setTargetTemperature(await thermostat.getThermostatCapability().getSetbackTemperature());
-          return true;
+          if (targetTemperature > 0) {
+            await thermostat.getThermostatCapability().setTargetTemperature(await thermostat.getThermostatCapability().getSetbackTemperature());
+            return { turnedBack: true, failedToTurnOff: false };
+          }
+
+          return { turnedBack: false, failedToTurnOff: false };
+        } catch {
+          return { turnedBack: false, failedToTurnOff: true };
         }
-
-        return false;
       }));
 
-      return thermostatsThatWereTurnedBack.some(x => x);
+      return {
+        turnedBack: results.some(x => x.turnedBack),
+        failedToTurnOff: results.some(x => x.failedToTurnOff)
+      };
     }
     
     try {
@@ -87,21 +109,44 @@ export default function (config: z.infer<typeof parameters>) {
       const [
         activeArming,
         locksUnsecured,
-        allThermostatsWereTurnedOff,
-        lightsTurnedOff
+        openContactSensors,
+        heating,
+        lights
       ] = await Promise.all([
         promiseOrAbort(ensureActiveArming(), abortController.signal),
         promiseOrAbort(getUnsecuredLocks(), abortController.signal),
+        promiseOrAbort(getOpenContactSensors(), abortController.signal),
         promiseOrAbort(ensureHeatingOff(), abortController.signal),
         promiseOrAbort(turnOffLights(), abortController.signal)
       ]);
 
+      const houseIsUnsecured = locksUnsecured.length > 0 || openContactSensors.length > 0;
+      const somethingCouldntBeTurnedOff = lights.failedToTurnOff.length > 0 || heating.failedToTurnOff;
+      const prefix = `${houseIsUnsecured ? '‼️' : ''}${somethingCouldntBeTurnedOff ? '⚠️' : ''}`;
+
+      const lightsStatus = (() => {
+        if (lights.failedToTurnOff.length) {
+          return `${joinWithAnd(lights.failedToTurnOff.map(x => x.name))} light${pluralise(lights.failedToTurnOff)} could not be turned off,`;
+        }
+
+        if (lights.turnedOff.length) {
+          return `${joinWithAnd(lights.turnedOff.map(x => x.name))} light${pluralise(lights.turnedOff)} have been turned off,`;
+        }
+
+        return `All the lights are off,`;
+      })();
+
+      const heatingStatus = heating.failedToTurnOff
+        ? 'the heating could not be turned off, and'
+        : `the heating ${heating.turnedBack ? 'has been turned off' : 'was already off'}, and`;
+
       const notification = [
-        `No-one is home.`,
-        lightsTurnedOff.length ? `${joinWithAnd(lightsTurnedOff.map(x => x.name))} light${pluralise(lightsTurnedOff)} have been turned off,` : `All the lights are off,`,
-        `the heating ${allThermostatsWereTurnedOff ? 'has been turned off' : 'was already off'}, and`,
+        `${prefix ? `${prefix} ` : ''}No-one is home.`,
+        lightsStatus,
+        heatingStatus,
         activeArming.mode === ArmingMode.AWAY ? 'the alarm is on.' : 'the alarm is already set to Night Mode.',
-        locksUnsecured.length === 0 ? 'All the doors are locked.' : `The ${joinWithAnd(locksUnsecured.map(x => x.name))} ${locksUnsecured.length === 1 ? 'is' : 'are'} not locked!`
+        locksUnsecured.length === 0 ? 'All the doors are locked.' : `The ${joinWithAnd(locksUnsecured.map(x => x.name))} ${locksUnsecured.length === 1 ? 'is' : 'are'} not locked!`,
+        openContactSensors.length === 0 ? 'All the doors and windows are shut.' : `The ${joinWithAnd(openContactSensors.map(x => x.name))} ${openContactSensors.length === 1 ? 'is' : 'are'} open!`
       ].join(' ');
 
       bus.emit(NOTIFICATION_TO_ADMINS, {
@@ -109,7 +154,7 @@ export default function (config: z.infer<typeof parameters>) {
       });
     } catch (e) {
       bus.emit(NOTIFICATION_TO_ADMINS, {
-        message: `No-one is home, but there was a problem turning off the heating and lights, or turning on the alarm!`
+        message: `‼️⚠️ No-one is home, but there was a problem securing the house, turning off the heating and lights, or turning on the alarm!`
       });
 
       throw e;
