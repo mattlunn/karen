@@ -74,7 +74,7 @@ describe('planAppliance - buckets', () => {
     const slots = run(0, 24, 10).map(s => (cheapStarts.has(s.start.getTime()) ? { ...s, pence: 1 } : s));
     const { best } = plan(slots)!;
 
-    expect(best).toEqual({ dialHours: 5, costPence: 1, savingPercent: 90, penceDifference: 9, isBelowNegligibleSavingsPence: false });
+    expect(best).toEqual({ dialHours: 5, costPence: 1, savingPercent: 90, penceDifference: 9, isBelowNegligibleSavingsPence: false, isEstimated: false });
   });
 
   it('sets best to null when every bucket is empty', () => {
@@ -102,7 +102,7 @@ describe('planAppliance - buckets', () => {
     const slots = [...run(0, 3.5, -2), ...run(3.5, 4, -5), ...run(4, 4.5, 10), ...run(4.5, 24, -2)];
     const { buckets } = plan(slots)!;
 
-    expect(buckets[0].option).toEqual({ dialHours: 4, costPence: -5, savingPercent: 150, penceDifference: 3, isBelowNegligibleSavingsPence: false }); // (-2 - -5) / 2 * 100
+    expect(buckets[0].option).toEqual({ dialHours: 4, costPence: -5, savingPercent: 150, penceDifference: 3, isBelowNegligibleSavingsPence: false, isEstimated: false }); // (-2 - -5) / 2 * 100
     expect(buckets[0].option!.savingPercent).toBeGreaterThan(0);
   });
 
@@ -127,6 +127,24 @@ describe('planAppliance - buckets', () => {
 
     expect(buckets[0].option!.penceDifference).toBe(15);
     expect(buckets[0].option!.isBelowNegligibleSavingsPence).toBe(false);
+  });
+});
+
+describe('planAppliance - estimated slots', () => {
+  it('flags an option as estimated when any slot in its window is backfilled', () => {
+    // Cheapest in bucket 2 is dial=9 (all slots tie on price, earliest wins),
+    // whose 30-minute window is the single slot starting at 8.5h.
+    const slots = run(0, 24, 10).map(s => (s.start.getTime() >= at(8.5).getTime() ? { ...s, isEstimated: true } : s));
+    const { buckets } = plan(slots)!;
+
+    expect(buckets[0].option!.isEstimated).toBe(false); // dial=3's window (2.5h) is entirely real
+    expect(buckets[2].option!.isEstimated).toBe(true);
+  });
+
+  it('does not flag an option as estimated when its window is entirely real', () => {
+    const { buckets } = plan(run(0, 24, 10))!;
+
+    expect(buckets.every(b => b.option!.isEstimated === false)).toBe(true);
   });
 });
 
@@ -200,7 +218,7 @@ describe('composeProfiles - buckets are keyed by when the whole run finishes, no
     const { buckets } = planAppliance({ slots, now: at(0), profile: composed, negligibleSavingPence: 0 })!;
 
     expect(buckets[2]).toEqual({
-      from: 7, to: 9, option: { dialHours: 7, costPence: 70, savingPercent: 13, penceDifference: 10, isBelowNegligibleSavingsPence: false },
+      from: 7, to: 9, option: { dialHours: 7, costPence: 70, savingPercent: 13, penceDifference: 10, isBelowNegligibleSavingsPence: false, isEstimated: false },
     });
   });
 });

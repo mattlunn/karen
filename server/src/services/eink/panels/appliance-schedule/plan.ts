@@ -21,6 +21,8 @@ export interface DelayOption {
   savingPercent: number;
   penceDifference: number;
   isBelowNegligibleSavingsPence: boolean;
+  // Costed against a prior day's prices backfilled for a slot Agile hasn't published yet.
+  isEstimated: boolean;
 }
 
 export interface DelayBucket {
@@ -45,8 +47,13 @@ export interface PlanApplianceOptions {
   negligibleSavingPence: number;
 }
 
+interface WindowCost {
+  pence: number;
+  isEstimated: boolean;
+}
+
 // Sums profile.powerProfileKwh against pool from startIndex, or null if it overruns pool or hits a gap.
-function costOfWindow(pool: PriceSlot[], startIndex: number, profile: ApplianceProfile): number | null {
+function costOfWindow(pool: PriceSlot[], startIndex: number, profile: ApplianceProfile): WindowCost | null {
   const len = profile.powerProfileKwh.length;
 
   if (startIndex < 0 || startIndex + len > pool.length) {
@@ -54,6 +61,7 @@ function costOfWindow(pool: PriceSlot[], startIndex: number, profile: ApplianceP
   }
 
   let pence = 0;
+  let isEstimated = false;
 
   for (let i = 0; i < len; i++) {
     const slot = pool[startIndex + i];
@@ -63,9 +71,10 @@ function costOfWindow(pool: PriceSlot[], startIndex: number, profile: ApplianceP
     }
 
     pence += profile.powerProfileKwh[i] * slot.pence;
+    isEstimated = isEstimated || slot.isEstimated === true;
   }
 
-  return pence;
+  return { pence, isEstimated };
 }
 
 function indexOfSlotStarting(pool: PriceSlot[], start: Date): number {
@@ -83,11 +92,13 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
     .filter(s => s.end > now)
     .sort((a, b) => a.start.getTime() - b.start.getTime());
 
-  const costNowPence = costOfWindow(pool, 0, profile);
+  const costNow = costOfWindow(pool, 0, profile);
 
-  if (costNowPence === null) {
+  if (costNow === null) {
     return null;
   }
+
+  const costNowPence = costNow.pence;
 
   const dialCycleHours = profile.dialCycleMinutes / 60;
   // Zero for a standalone appliance, the dryer's own duration for wash-then-dry.
@@ -101,11 +112,13 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
 
   for (let dial = profile.delayMinHours; dial <= profile.delayMaxHours; dial++) {
     const start = startOfSlot(dayjs(now).add(dial, 'hour').subtract(dialCycleHours, 'hour').toDate());
-    const costPence = costOfWindow(pool, indexOfSlotStarting(pool, start), profile);
+    const cost = costOfWindow(pool, indexOfSlotStarting(pool, start), profile);
 
-    if (costPence === null) {
+    if (cost === null) {
       continue;
     }
+
+    const costPence = cost.pence;
 
     const wholeRunFinishesIn = dial + downstreamHours;
 
@@ -124,6 +137,7 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
       savingPercent,
       penceDifference,
       isBelowNegligibleSavingsPence: penceDifference < negligibleSavingPence,
+      isEstimated: cost.isEstimated,
     };
 
     if (bucket.option === null || option.costPence < bucket.option.costPence) {
