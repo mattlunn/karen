@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, NOTIFICATION_TO_ADMINS } from '../bus';
 import { Device, Arming, Stay } from '../models';
-import { joinWithAnd, pluralise } from '../helpers/array';
+import { asyncFilter, joinWithAnd, pluralise } from '../helpers/array';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
 
@@ -15,12 +15,14 @@ async function turnOffLights() {
   const failedToTurnOff: Device[] = [];
 
   await Promise.all(lights.map(async (light) => {
-    try {
-      if (await light.getLightCapability().getIsOn()) {
-        await light.getLightCapability().setIsOn(false);
+    if (!await light.getLightCapability().getIsOn()) {
+      return;
+    }
 
-        turnedOff.push(light);
-      }
+    try {
+      await light.getLightCapability().setIsOn(false);
+
+      turnedOff.push(light);
     } catch {
       failedToTurnOff.push(light);
     }
@@ -31,13 +33,8 @@ async function turnOffLights() {
 
 async function getOpenContactSensors(): Promise<Device[]> {
   const sensors = await Device.findByCapability('CONTACT_SENSOR');
-  const sensorStates = await Promise.allSettled(sensors.map(sensor => sensor.getContactSensorCapability().getIsOpen()));
 
-  return sensors.filter((_, i) => {
-    const state = sensorStates[i];
-
-    return state.status !== 'fulfilled' || state.value;
-  });
+  return asyncFilter(sensors, sensor => sensor.getContactSensorCapability().getIsOpen());
 }
 
 function promiseOrAbort<T>(promise: Promise<T>, abortSignal: AbortSignal): Promise<T> {
@@ -81,15 +78,17 @@ export default function (config: z.infer<typeof parameters>) {
     async function ensureHeatingOff() {
       const thermostats = await Device.findByCapability('THERMOSTAT');
       const results = await Promise.all(thermostats.map(async (thermostat) => {
-        try {
-          const targetTemperature = await thermostat.getThermostatCapability().getTargetTemperature();
+        const capability = thermostat.getThermostatCapability();
+        const targetTemperature = await capability.getTargetTemperature();
 
-          if (targetTemperature > 0) {
-            await thermostat.getThermostatCapability().setTargetTemperature(await thermostat.getThermostatCapability().getSetbackTemperature());
-            return { turnedBack: true, failedToTurnOff: false };
-          }
-
+        if (targetTemperature <= 0) {
           return { turnedBack: false, failedToTurnOff: false };
+        }
+
+        try {
+          await capability.setTargetTemperature(await capability.getSetbackTemperature());
+
+          return { turnedBack: true, failedToTurnOff: false };
         } catch {
           return { turnedBack: false, failedToTurnOff: true };
         }
@@ -126,7 +125,7 @@ export default function (config: z.infer<typeof parameters>) {
 
       const lightsStatus = (() => {
         if (lights.failedToTurnOff.length) {
-          return `${joinWithAnd(lights.failedToTurnOff.map(x => x.name))} light${pluralise(lights.failedToTurnOff)} could not be turned off,`;
+          return `${lights.failedToTurnOff.length} light${pluralise(lights.failedToTurnOff)} could not be turned off,`;
         }
 
         if (lights.turnedOff.length) {
