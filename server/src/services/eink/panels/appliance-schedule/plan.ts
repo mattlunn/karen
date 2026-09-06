@@ -4,18 +4,11 @@ import { PriceSlot, startOfSlot } from '../../../../helpers/prices';
 export interface ApplianceProfile {
   id: string;
   label: string;
-  // Whole sequence for a composed profile (e.g. wash then dry), not just the
-  // leg with a settable delay - drives display and how many price slots
-  // powerProfileKwh implies.
+  // For a composed profile (e.g. wash then dry), the whole sequence, not just the settable leg.
   fullElapsedDuration: number;
-  // The settable leg's own duration - equal to fullElapsedDuration for a
-  // standalone appliance, but just the washer's own time for wash-then-dry,
-  // since its dial has no idea a dryer runs afterward.
+  // The settable leg's own duration - its dial has no idea what runs after it.
   dialCycleMinutes: number;
   powerProfileKwh: number[];
-  // The dial's own physical range. Also the window the columns promise the
-  // whole run finishes within (see BUCKET_COUNT) - the two coincide for a
-  // standalone appliance, since there's no downstream leg to push it later.
   delayMinHours: number;
   delayMaxHours: number;
 }
@@ -23,26 +16,18 @@ export interface ApplianceProfile {
 const BUCKET_COUNT = 3;
 
 export interface DelayOption {
-  // What to actually turn the dial to. For wash-then-dry this is the
-  // washer's own setting - the dryer isn't dialed, just started afterward.
   dialHours: number;
   costPence: number;
   savingPercent: number;
-  // Always positive.
   penceDifference: number;
-  // The panel shows "Same" instead of savingPercent below this threshold -
-  // near a near-zero costNowPence, a tiny penceDifference still produces a
-  // huge percentage.
   isBelowNegligibleSavingsPence: boolean;
 }
 
 export interface DelayBucket {
-  // A "whole run finishes within [from, to]" window, not a dial range - for
-  // wash-then-dry, option.dialHours is earlier than `to` by the dryer's own
-  // duration.
+  // A whole-run-finishes-within-[from, to] window, not a dial range.
   from: number;
   to: number;
-  // Null renders as "£££" rather than a blank column.
+  // Null renders as "£££".
   option: DelayOption | null;
 }
 
@@ -60,9 +45,7 @@ export interface PlanApplianceOptions {
   negligibleSavingPence: number;
 }
 
-// Sums `profile.powerProfileKwh[i] * pool[startIndex + i].pence`. Returns null
-// when the window runs past the end of `pool` or a gap breaks the run - both
-// mean the cycle can't actually be costed starting there.
+// Sums profile.powerProfileKwh against pool from startIndex, or null if it overruns pool or hits a gap.
 function costOfWindow(pool: PriceSlot[], startIndex: number, profile: ApplianceProfile): number | null {
   const len = profile.powerProfileKwh.length;
 
@@ -126,16 +109,14 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
 
     const wholeRunFinishesIn = dial + downstreamHours;
 
-    // Finishing outside the window the columns promise isn't a genuine
-    // option, even though the dial setting itself is in range.
+    // Finishing outside the promised window isn't a genuine option.
     if (wholeRunFinishesIn > profile.delayMaxHours) {
       continue;
     }
 
     const bucket = buckets[Math.min(BUCKET_COUNT - 1, Math.floor((wholeRunFinishesIn - profile.delayMinHours) / (span / BUCKET_COUNT)))];
     const penceDifference = Math.abs(costNowPence - costPence);
-    // Dividing by costNowPence's magnitude, not its signed value, so the
-    // result stays correctly signed when running now is itself a payout.
+    // costNowPence's magnitude, not its signed value, keeps this correctly signed when running now is a payout.
     const savingPercent = Math.round((costNowPence - costPence) / Math.abs(costNowPence) * 100);
     const option = {
       dialHours: dial,

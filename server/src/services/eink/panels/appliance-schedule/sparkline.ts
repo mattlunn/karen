@@ -9,8 +9,7 @@ export interface SparklinePoint {
 export interface SparklineData {
   // Empty when no slots fall within the window - nothing to draw.
   points: SparklinePoint[];
-  // Pixel y of the 0-pence line, or null when the window never crosses zero
-  // (nothing to mark - min-max scaling already uses the full height).
+  // Pixel y of the 0-pence line, or null when the window never crosses zero.
   zeroY: number | null;
 }
 

@@ -3,9 +3,7 @@ import { createCanvas, GlobalFonts, SKRSContext2D } from '@napi-rs/canvas';
 
 let fontsRegistered = false;
 
-// Registered once per process rather than per render - GlobalFonts is a
-// process-wide table and re-registering the same family is a no-op cost every
-// panel would otherwise pay on every tick.
+// Registered once per process - GlobalFonts is a process-wide table.
 function ensureFontsRegistered() {
   if (fontsRegistered) {
     return;
@@ -31,11 +29,7 @@ export function createPanelCanvas(width: number, height: number): { ctx: SKRSCon
   return { ctx, toPng: () => canvas.toBuffer('image/png') };
 }
 
-/**
- * Fills a rect with a sparse dot pattern (1px dot every `spacing`px) rather
- * than a grey fill - the panel is 1-bit at the driver, so a genuine grey
- * would just get thresholded away.
- */
+// A sparse dot pattern rather than a grey fill - the panel is 1-bit at the driver.
 export function ditherFill(ctx: SKRSContext2D, x: number, y: number, w: number, h: number, spacing = 4) {
   for (let py = y; py < y + h; py += spacing) {
     for (let px = x; px < x + w; px += spacing) {

@@ -13,9 +13,7 @@ function toProfile(a: typeof config.eink.appliance_schedule.appliances[number]):
   };
 }
 
-// The composed wash-then-dry row isn't itself in config.appliances - it's
-// built by referencing two of them, so a config edit to either leg (a new
-// cycle_minutes, a corrected power profile) only needs to happen once.
+// wash-then-dry isn't itself in config.appliances - it's built by referencing two of them.
 export function loadApplianceProfiles(): ApplianceProfile[] {
   const { appliances, wash_then_dry, transfer_gap_minutes } = config.eink.appliance_schedule;
   const base = appliances.map(toProfile);

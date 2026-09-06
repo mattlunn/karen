@@ -16,16 +16,12 @@ const OPTION_WIDTH = (OPTIONS_END_X - OPTIONS_START_X) / OPTION_COUNT;
 const ROW_HEIGHT = 68;
 const HEADER_HEIGHT = 64;
 
-// Rolling window both the delay buckets and the sparkline describe - kept in
-// sync so the line above the table always matches what the columns are
-// planning against.
+// Matches the delay buckets, so the sparkline always covers what they plan against.
 const SPARKLINE_WINDOW_HOURS = 12;
 const SPARKLINE_X = 560;
 const SPARKLINE_Y = 8;
 const SPARKLINE_WIDTH = OPTIONS_END_X - SPARKLINE_X;
-// Clock-time header labels ("08:47-11:47") sit right below this and need
-// clear vertical space above them, so the sparkline stays shorter than the
-// full available header height.
+// Leaves clearance above the clock-time header labels below it.
 const SPARKLINE_HEIGHT = 28;
 
 export interface AppliancePanelRow {
@@ -114,8 +110,7 @@ function drawBucket(ctx: SKRSContext2D, index: number, top: number, bucket: Dela
 
   const { option } = bucket;
 
-  // Checked ahead of "more expensive" below, so a tiny loss reads as "Same"
-  // rather than £££.
+  // Checked ahead of "more expensive" below, so a tiny loss reads as "Same".
   if (option.isBelowNegligibleSavingsPence) {
     drawCentered(ctx, 'Same', centerX, top + 46, '28px "DejaVu Sans Bold"');
 
@@ -145,8 +140,7 @@ function drawRow(ctx: SKRSContext2D, top: number, row: AppliancePanelRow) {
     return;
   }
 
-  // Only highlight best when it meaningfully beats running now - otherwise
-  // every bucket is £££ or "Same" and nothing is genuinely "cheapest".
+  // Only highlight best when it meaningfully beats running now.
   const bestIndex = row.plan.best === null || row.plan.best.isBelowNegligibleSavingsPence || row.plan.best.savingPercent < 0
     ? -1
     : row.plan.buckets.findIndex(b => b.option === row.plan!.best);
@@ -169,8 +163,7 @@ export function renderAppliancePanel(data: AppliancePanelData): Buffer {
   drawSparkline(ctx, SPARKLINE_X, SPARKLINE_Y, SPARKLINE_WIDTH, SPARKLINE_HEIGHT, sparkline);
   hairline(ctx, MARGIN, HEADER_HEIGHT, WIDTH - MARGIN);
 
-  // Bucket ranges are identical across rows in practice, so the header
-  // labels the columns once from whichever row has a plan.
+  // Bucket ranges are identical across rows in practice, so label once.
   const headerBuckets = data.rows.find(r => r.plan !== null)?.plan?.buckets;
 
   headerBuckets?.forEach((bucket, i) => {
