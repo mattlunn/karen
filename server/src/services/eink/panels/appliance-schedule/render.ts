@@ -131,7 +131,10 @@ function drawRow(ctx: SKRSContext2D, top: number, row: AppliancePanelRow) {
     return;
   }
 
-  const bestIndex = row.plan.best === null
+  // best is just the lowest-cost bucket, regardless of whether that cost
+  // actually beats running now - only highlight it when it does, otherwise
+  // every bucket is showing £££ and there's nothing "cheapest" to point to.
+  const bestIndex = row.plan.best === null || row.plan.best.savingPercent < 0
     ? -1
     : row.plan.buckets.findIndex(b => b.option === row.plan!.best);
 
