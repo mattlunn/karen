@@ -95,6 +95,18 @@ describe('planAppliance - buckets', () => {
     expect(threeHour.costPence).toBe(5);
     expect(threeHour.savingPercent).toBe(75); // (20 - 5) / 20 * 100
   });
+
+  it('keeps the saving\'s sign meaningful when running now is itself negative', () => {
+    // costNow (-2) is already a payout. A 4h delay (-5, a bigger payout)
+    // must read as a positive saving, and a 5h delay (10, an actual cost)
+    // must read as negative - dividing by the signed costNow would flip
+    // both of these the wrong way round.
+    const slots = [...run(0, 3.5, -2), ...run(3.5, 4, -5), ...run(4, 4.5, 10), ...run(4.5, 24, -2)];
+    const { buckets } = plan(slots)!;
+
+    expect(buckets[0].option).toEqual({ hours: 4, costPence: -5, savingPercent: 150 }); // (-2 - -5) / 2 * 100
+    expect(buckets[0].option!.savingPercent).toBeGreaterThan(0);
+  });
 });
 
 describe('composeProfiles', () => {

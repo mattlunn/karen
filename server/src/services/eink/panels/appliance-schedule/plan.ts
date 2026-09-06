@@ -148,7 +148,12 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
     }
 
     const bucket = buckets[Math.min(BUCKET_COUNT - 1, Math.floor((wholeRunFinishesIn - profile.delayMinHours) / (span / BUCKET_COUNT)))];
-    const option = { hours: dial, costPence, savingPercent: Math.round((costNowPence - costPence) / costNowPence * 100) };
+    // Dividing by the signed costNowPence would flip the sign of the result
+    // whenever running now is itself negative (Agile prices can go negative,
+    // so "now" can already mean getting paid) - dividing by its magnitude
+    // keeps a genuinely cheaper option positive and a genuinely pricier one
+    // negative regardless of which side of zero the baseline sits on.
+    const option = { hours: dial, costPence, savingPercent: Math.round((costNowPence - costPence) / Math.abs(costNowPence) * 100) };
 
     if (bucket.option === null || option.costPence < bucket.option.costPence) {
       bucket.option = option;

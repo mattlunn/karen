@@ -105,15 +105,18 @@ function drawSparkline(ctx: SKRSContext2D, x: number, y: number, w: number, h: n
 function drawBucket(ctx: SKRSContext2D, index: number, top: number, bucket: DelayBucket) {
   const centerX = optionColumnX(index) + OPTION_WIDTH / 2;
 
-  if (bucket.option === null) {
+  // No feasible option, or the cheapest one available still costs more than
+  // running right now - either way there's nothing worth showing a number
+  // for in this window.
+  if (bucket.option === null || bucket.option.savingPercent < 0) {
     drawCentered(ctx, '£££', centerX, top + 46, '28px "DejaVu Sans Bold"');
 
     return;
   }
 
   drawCentered(ctx, `${bucket.option.hours}h`, centerX, top + 20, '16px "DejaVu Sans Bold"');
-  drawCentered(ctx, `${Math.abs(bucket.option.savingPercent)}%`, centerX, top + 46, '28px "DejaVu Sans Bold"');
-  drawCentered(ctx, bucket.option.savingPercent >= 0 ? 'saved' : 'extra', centerX, top + 62, '14px "DejaVu Sans"');
+  drawCentered(ctx, `${bucket.option.savingPercent}%`, centerX, top + 46, '28px "DejaVu Sans Bold"');
+  drawCentered(ctx, 'saved', centerX, top + 62, '14px "DejaVu Sans"');
 }
 
 function drawRow(ctx: SKRSContext2D, top: number, row: AppliancePanelRow) {
