@@ -44,7 +44,6 @@ import { useQueryClient, QueryClient } from '@tanstack/react-query';
 import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, SwitchUpdateRequest, TelevisionUpdateRequest, MotionSensorUpdateRequest } from '../../api/types';
 import ThermostatModal from '../modals/thermostat-modal';
 import ChargeScheduleModal from '../modals/charge-schedule-modal';
-import ChargeLimitModal from '../modals/charge-limit-modal';
 import dayjs from '../../dayjs';
 import { humanDate, formatDuration } from '../../helpers/date';
 import type {
@@ -324,13 +323,15 @@ export const registry: CapabilityUIRegistry = {
         iconColor: '#2ecc71',
         iconHighlighted: (e) => e.value,
       }),
-      createCapability(cap.chargeLimit, {
+      createCapability(null, {
         icon: faGauge,
-        title: 'Charge Limit',
-        value: (e) => `${e.value.toFixed(0)}%`,
-        onIconClick: ({ openModal, closeModal }) => {
-          openModal(<ChargeLimitModal device={device} capability={cap} closeModal={closeModal} />);
-        },
+        title: 'Charge Type',
+        value: cap.chargeType === null
+          ? 'None'
+          : { BAU: 'BAU', DEADLINE: 'Deadline', PLUNGE: 'Plunge' }[cap.chargeType],
+        footer: cap.chargeSchedule && cap.chargeType !== null && cap.chargeType !== 'DEADLINE'
+          ? `deadline from ${dayjs(cap.chargeSchedule.startsAt).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.startsAt))}`
+          : undefined,
       }),
       createCapability(null, {
         icon: faCalendarCheck,
@@ -350,7 +351,7 @@ export const registry: CapabilityUIRegistry = {
     getGraphs: () => [
       {
         id: 'vehicle-charge',
-        title: 'Charge & Limit',
+        title: 'Charge',
         yMin: 0,
         yMax: 100,
         overridePreset: 'custom',
