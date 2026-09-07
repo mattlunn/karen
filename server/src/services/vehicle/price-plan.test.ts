@@ -1,5 +1,5 @@
 import { PriceSlot } from '../../helpers/prices';
-import { planCharge, isDeadlineEngaged, isWithinSlots, PlanOptions } from './price-plan';
+import { planCharge, isDeadlineEngaged, deadlineEngagesAt, isWithinSlots, PlanOptions } from './price-plan';
 
 const T0 = new Date('2026-01-01T00:00:00Z');
 
@@ -309,6 +309,39 @@ describe('isDeadlineEngaged', () => {
       ...base, now: at(10), chargePercentage: 20,
       schedule: { targetPercentage: 100, targetTime: at(5) },
     })).toBe(false);
+  });
+
+  it('engages exactly at the time deadlineEngagesAt reports', () => {
+    const options = {
+      ...base, chargePercentage: 20, schedule: { targetPercentage: 100, targetTime: at(40) },
+    };
+    const engagesAt = deadlineEngagesAt(options);
+
+    expect(isDeadlineEngaged({ ...options, now: new Date(engagesAt.getTime() - 1) })).toBe(false);
+    expect(isDeadlineEngaged({ ...options, now: engagesAt })).toBe(true);
+  });
+});
+
+describe('deadlineEngagesAt', () => {
+  const base = {
+    chargeRatePercentPerHour: RATE,
+    deadlineEngageFraction: 0.5,
+    startBufferHours: 0,
+  };
+
+  it('pulls the deadline back by the charge needed over the engage fraction', () => {
+    // 8h needed / 0.5 -> 16h before the deadline.
+    expect(deadlineEngagesAt({
+      ...base, chargePercentage: 20, schedule: { targetPercentage: 100, targetTime: at(16) },
+    })).toEqual(at(0));
+  });
+
+  it('counts the start buffer toward the charge needed', () => {
+    // (6h + 2h) / 0.5 -> 16h before the deadline.
+    expect(deadlineEngagesAt({
+      ...base, startBufferHours: 2, chargePercentage: 40,
+      schedule: { targetPercentage: 100, targetTime: at(16) },
+    })).toEqual(at(0));
   });
 });
 

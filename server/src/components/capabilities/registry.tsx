@@ -329,8 +329,8 @@ export const registry: CapabilityUIRegistry = {
         value: cap.chargeType === null
           ? 'None'
           : { BAU: 'BAU', DEADLINE: 'Deadline', PLUNGE: 'Plunge' }[cap.chargeType],
-        footer: cap.deadlineEngagesAt
-          ? `deadline from ${dayjs(cap.deadlineEngagesAt).format('HH:mm')} ${humanDate(dayjs(cap.deadlineEngagesAt))}`
+        footer: cap.chargeSchedule && cap.chargeType !== null && cap.chargeType !== 'DEADLINE'
+          ? `deadline from ${dayjs(cap.chargeSchedule.startsAt).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.startsAt))}`
           : undefined,
       }),
       createCapability(null, {
@@ -351,7 +351,7 @@ export const registry: CapabilityUIRegistry = {
     getGraphs: () => [
       {
         id: 'vehicle-charge',
-        title: 'Charge & Limit',
+        title: 'Charge',
         yMin: 0,
         yMax: 100,
         overridePreset: 'custom',

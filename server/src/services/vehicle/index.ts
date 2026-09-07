@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import { ElectricVehicleCapability, ChargeSchedule, ChargeType } from '../../models/capabilities';
+import { ElectricVehicleCapability, ChargeSchedule, NextChargeSchedule, ChargeType } from '../../models/capabilities';
 import config from '../../config/app';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
@@ -7,7 +7,7 @@ import * as client from './client';
 import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
-import { planCharge, isDeadlineEngaged, isWithinSlots, ChargePlan } from './price-plan';
+import { planCharge, isDeadlineEngaged, deadlineEngagesAt, isWithinSlots, ChargePlan } from './price-plan';
 import { toPriceSlots, medianPence, groupIntoBlocks, startOfSlot, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
@@ -113,20 +113,34 @@ Device.registerProvider('vehicle', {
         }
       },
 
-      getNextChargeSchedule(device: Device): ChargeSchedule | null {
+      async getNextChargeSchedule(device: Device): Promise<NextChargeSchedule | null> {
         const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
+        let targetPercentage: number;
+        let targetTime: string;
 
         if (stored) {
-          return stored;
+          ({ targetPercentage, targetTime } = stored);
+        } else {
+          const next = pickNextChargeSchedule(config.smartcar.charge_schedules ?? [], dayjs());
+
+          if (!next) {
+            return null;
+          }
+
+          targetPercentage = next.targetPercentage;
+          targetTime = next.targetTime.toISOString();
         }
 
-        const next = pickNextChargeSchedule(config.smartcar.charge_schedules ?? [], dayjs());
+        const chargePercentage = await device.getElectricVehicleCapability().getChargePercentage();
+        const startsAt = deadlineEngagesAt({
+          schedule: { targetPercentage, targetTime: new Date(targetTime) },
+          chargePercentage,
+          chargeRatePercentPerHour: chargeRatePercentPerHour(),
+          deadlineEngageFraction: config.smartcar.charge_deadline_engage_fraction,
+          startBufferHours: config.smartcar.charge_start_buffer_hours,
+        });
 
-        if (!next) {
-          return null;
-        }
-
-        return { targetPercentage: next.targetPercentage, targetTime: next.targetTime.toISOString() };
+        return { targetPercentage, targetTime, startsAt: startsAt.toISOString() };
       },
 
       async setManualChargeSchedule(device: Device, schedule: ChargeSchedule | null) {
@@ -169,23 +183,6 @@ Device.registerProvider('vehicle', {
         }
 
         return 'BAU';
-      },
-
-      async getDeadlineEngagesAt(device: Device): Promise<string | null> {
-        const plan = getPlan(device);
-        const schedule = getSchedule(device);
-
-        if (schedule === null || plan === null || plan.deadline !== null) {
-          return null;
-        }
-
-        const chargePercentage = await device.getElectricVehicleCapability().getChargePercentage();
-        const hoursToCharge = Math.max(0, schedule.targetPercentage - chargePercentage) / chargeRatePercentPerHour();
-        const hoursNeeded = hoursToCharge + config.smartcar.charge_start_buffer_hours;
-
-        return dayjs(schedule.targetTime)
-          .subtract(hoursNeeded / config.smartcar.charge_deadline_engage_fraction, 'hour')
-          .toISOString();
       },
     };
   },
