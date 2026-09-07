@@ -289,9 +289,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     return awaitPromises({
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => ev.getChargePercentageHistory(hs), selector)
-          .then(data => ({ data, label: 'Charge %' })),
-        mapNumericHistoryToResponse((hs) => ev.getChargeLimitHistory(hs), selector)
-          .then(data => ({ data, label: 'Charge Limit' }))
+          .then(data => ({ data, label: 'Charge %' }))
       ]),
       modes: mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), selector)
         .then(data => [{
