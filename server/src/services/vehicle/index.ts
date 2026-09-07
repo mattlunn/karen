@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import { ElectricVehicleCapability, ChargeSchedule } from '../../models/capabilities';
+import { ElectricVehicleCapability, ChargeSchedule, ChargeType } from '../../models/capabilities';
 import config from '../../config/app';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
@@ -151,6 +151,41 @@ Device.registerProvider('vehicle', {
           start: b.start.toISOString(),
           end: b.end.toISOString(),
         }));
+      },
+
+      getChargeType(device: Device): ChargeType | null {
+        const plan = getPlan(device);
+
+        if (plan === null) {
+          return null;
+        }
+
+        if (plan.deadline !== null) {
+          return 'DEADLINE';
+        }
+
+        if (plan.target > config.smartcar.default_charge_limit) {
+          return 'PLUNGE';
+        }
+
+        return 'BAU';
+      },
+
+      async getDeadlineEngagesAt(device: Device): Promise<string | null> {
+        const plan = getPlan(device);
+        const schedule = getSchedule(device);
+
+        if (schedule === null || plan === null || plan.deadline !== null) {
+          return null;
+        }
+
+        const chargePercentage = await device.getElectricVehicleCapability().getChargePercentage();
+        const hoursToCharge = Math.max(0, schedule.targetPercentage - chargePercentage) / chargeRatePercentPerHour();
+        const hoursNeeded = hoursToCharge + config.smartcar.charge_start_buffer_hours;
+
+        return dayjs(schedule.targetTime)
+          .subtract(hoursNeeded / config.smartcar.charge_deadline_engage_fraction, 'hour')
+          .toISOString();
       },
     };
   },

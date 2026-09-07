@@ -43,10 +43,17 @@ export interface ChargeSchedule {
   targetTime: string;
 }
 
+// Which pass of the charge planner the committed plan's slots came from: an
+// engaged recurring deadline, a negative-price top-up, or the opportunistic
+// fill toward default_charge_limit.
+export type ChargeType = 'BAU' | 'DEADLINE' | 'PLUNGE';
+
 export interface ProviderElectricVehicleCapability extends ProviderElectricVehicleCapabilityBase {
   getNextChargeSchedule(device: Device): ChargeSchedule | null;
   setManualChargeSchedule(device: Device, schedule: ChargeSchedule | null): Promise<void>;
   getPlannedChargeBlocks(device: Device): { start: string; end: string }[];
+  getChargeType(device: Device): ChargeType | null;
+  getDeadlineEngagesAt(device: Device): Promise<string | null>;
 }
 
 export interface ProviderMotionSensorSensitivityCapability extends ProviderMotionSensorSensitivityCapabilityBase {

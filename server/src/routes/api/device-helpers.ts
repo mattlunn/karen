@@ -281,6 +281,8 @@ export async function getCapabilityData(device: Device, capability: string, inst
         chargeLimit: mapNumericState(ev.getChargeLimitEvent(), device),
         odometer: mapNumericState(ev.getOdometerEvent(), device),
         chargeSchedule: ev.getNextChargeSchedule(),
+        chargeType: ev.getChargeType(),
+        deadlineEngagesAt: ev.getDeadlineEngagesAt(),
       });
     }
 

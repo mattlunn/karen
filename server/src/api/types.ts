@@ -93,6 +93,8 @@ export type CapabilityApiResponseBase = {
   chargeLimit: NumericStateApiResponse;
   odometer: NumericStateApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string } | null;
+  chargeType: 'BAU' | 'DEADLINE' | 'PLUNGE' | null;
+  deadlineEngagesAt: string | null;
 } | {
   type: 'ALARM_SENSOR';
   isTriggered: BooleanStateApiResponse;
