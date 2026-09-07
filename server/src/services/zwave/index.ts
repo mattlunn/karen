@@ -473,18 +473,18 @@ Device.registerProvider('zwave', {
             await knownDevice.getConnectivityCapability().setIsConnectedState(!isDead && !isStale);
 
             if (knownDevice.getCapabilities().includes('MOTION_SENSOR_SENSITIVITY')) {
-              const sensitivityEvent = await knownDevice.getMotionSensorSensitivityCapability().getSensitivityEvent();
+              // Read every sync rather than only when unset: nothing pushes a
+              // Configuration.1 report to us outside of our own writes (the
+              // device doesn't send one unprompted), so re-checking the cached
+              // value zwave-js already has is the only way a change made on the
+              // device itself (or by another controller) flows into Karen.
+              const sensitivityValue = node.values?.find((v: any) => v.commandClass === 112 && v.property === 1);
 
-              if (sensitivityEvent === null) {
-                const sensitivityValue = node.values?.find((v: any) => v.commandClass === 112 && v.property === 1);
+              if (typeof sensitivityValue?.value === 'number') {
+                const event = await knownDevice.getMotionSensorSensitivityCapability().setSensitivityState(zwaveToSensitivity(sensitivityValue.value));
 
-                if (typeof sensitivityValue?.value === 'number') {
-                  await knownDevice.getMotionSensorSensitivityCapability().setSensitivityState(
-                    zwaveToSensitivity(sensitivityValue.value),
-                    knownDevice.createdAt
-                  );
-
-                  logger.info(`Initialized sensitivity for zwave motion sensor device ${knownDevice.id}`);
+                if (event !== null) {
+                  logger.info(`Sensitivity for zwave motion sensor device ${knownDevice.id} is now ${event.value}%`);
                 }
               }
             }
