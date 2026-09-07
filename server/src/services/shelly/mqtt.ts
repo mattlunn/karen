@@ -5,6 +5,19 @@ import logger from '../../logger';
 
 const TOPIC_PREFIX = 'shellies';
 
+// Fixed "src" identifying this app instance to devices for RPC request/response
+// correlation - Shelly Gen2+ devices publish their reply to `${src}/rpc`.
+const RPC_SRC = 'karen';
+const RPC_TIMEOUT_MS = 10000;
+
+type PendingRpcRequest = {
+  resolve: (result: unknown) => void;
+  reject: (err: Error) => void;
+};
+
+const pendingRpcRequests = new Map<number, PendingRpcRequest>();
+let nextRpcRequestId = 1;
+
 let client: MqttClient | null = null;
 
 function getClient(): MqttClient {
@@ -23,6 +36,7 @@ function getClient(): MqttClient {
         `${TOPIC_PREFIX}/+/light/0/status`,
         `${TOPIC_PREFIX}/+/light/0/power`,
         `${TOPIC_PREFIX}/+/status/+`,
+        `${RPC_SRC}/rpc`,
       ], (err) => {
         if (err) {
           logger.error(err, 'Shelly MQTT subscribe failed');
@@ -35,6 +49,11 @@ function getClient(): MqttClient {
     });
 
     client.on('message', (topic, payload) => {
+      if (topic === `${RPC_SRC}/rpc`) {
+        handleRpcResponse(payload.toString());
+        return;
+      }
+
       handleMessage(topic, payload.toString()).catch((err) => {
         logger.error(err, `Shelly MQTT failed to handle ${topic}`);
       });
@@ -42,6 +61,23 @@ function getClient(): MqttClient {
   }
 
   return client;
+}
+
+function handleRpcResponse(payload: string): void {
+  const message = JSON.parse(payload);
+  const pending = pendingRpcRequests.get(message.id);
+
+  if (!pending) {
+    return;
+  }
+
+  pendingRpcRequests.delete(message.id);
+
+  if (message.error) {
+    pending.reject(new Error(message.error.message ?? JSON.stringify(message.error)));
+  } else {
+    pending.resolve(message.result);
+  }
 }
 
 async function handleMessage(topic: string, payload: string): Promise<void> {
@@ -156,6 +192,52 @@ export function publishCommand(topic: string, payload: string): Promise<void> {
       }
     });
   });
+}
+
+// Gen2+ JSON-RPC request/response over MQTT: publish a request to the device's
+// `/rpc` topic and wait for its reply on our own `${RPC_SRC}/rpc` topic,
+// correlated by request id. Kept private - callers use the named helpers below.
+function sendRpcRequest(deviceId: string, method: string, params?: object): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const id = nextRpcRequestId++;
+
+    const timeout = setTimeout(() => {
+      if (pendingRpcRequests.delete(id)) {
+        reject(new Error(`Timed out waiting for a response to ${method} on ${deviceId}`));
+      }
+    }, RPC_TIMEOUT_MS);
+
+    pendingRpcRequests.set(id, {
+      resolve: (result) => {
+        clearTimeout(timeout);
+        resolve(result);
+      },
+      reject: (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      },
+    });
+
+    getClient().publish(`${TOPIC_PREFIX}/${deviceId}/rpc`, JSON.stringify({ id, src: RPC_SRC, method, params }), { qos: 1 }, (err) => {
+      if (err) {
+        pendingRpcRequests.delete(id);
+        clearTimeout(timeout);
+        reject(err);
+      }
+    });
+  });
+}
+
+// The Presence sensor's SNR threshold: the minimum signal-over-noise required
+// to count as a detection. Lower is more sensitive; range 10-100.
+export async function getSensorSnr(deviceId: string): Promise<number | undefined> {
+  const config = await sendRpcRequest(deviceId, 'Shelly.GetConfig') as { presence?: { sensor?: { snr?: number } } };
+
+  return config.presence?.sensor?.snr;
+}
+
+export async function setSensorSnr(deviceId: string, snr: number): Promise<void> {
+  await sendRpcRequest(deviceId, 'Presence.SetConfig', { config: { sensor: { snr } } });
 }
 
 getClient();

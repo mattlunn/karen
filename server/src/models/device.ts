@@ -5,6 +5,7 @@ import {
   Capability,
   ProviderLightCapability,
   ProviderLockCapability,
+  ProviderMotionSensorSensitivityCapability,
   ProviderSpeakerCapability,
   ProviderThermostatCapability,
   ProviderSwitchCapability,
@@ -19,6 +20,7 @@ import {
   BatteryLowIndicatorCapability,
   LockCapability,
   MotionSensorCapability,
+  MotionSensorSensitivityCapability,
   TemperatureSensorCapability,
   ThermostatCapability,
   SwitchCapability,
@@ -91,6 +93,10 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   getMotionSensorCapability(instanceId: string | null = null): MotionSensorCapability {
     return new MotionSensorCapability(this, instanceId);
+  }
+
+  getMotionSensorSensitivityCapability(instanceId: string | null = null): MotionSensorSensitivityCapability {
+    return new MotionSensorSensitivityCapability(this, instanceId);
   }
 
   getTemperatureSensorCapability(instanceId: string | null = null): TemperatureSensorCapability {
@@ -303,6 +309,7 @@ export type CapabilityInstance = {
 type ProviderHandler = {
   provideLightCapability?(): ProviderLightCapability;
   provideLockCapability?(): ProviderLockCapability;
+  provideMotionSensorSensitivityCapability?(): ProviderMotionSensorSensitivityCapability;
   provideThermostatCapability?(): ProviderThermostatCapability;
   provideSwitchCapability?(): ProviderSwitchCapability;
   provideTelevisionCapability?(): ProviderTelevisionCapability;
