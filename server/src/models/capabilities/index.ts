@@ -1,4 +1,4 @@
-import { Device } from '../';
+import { Device, StringEvent } from '../';
 import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase, ProviderHeatPumpCapabilityBase } from './capabilities.gen';
 
 export { LightCapability } from './light';
@@ -9,6 +9,7 @@ export { ElectricVehicleCapability } from './electric-vehicle';
 export { HeatPumpCapability } from './heat-pump';
 export { TelevisionCapability } from './television';
 export { BinCollectionCapability } from './bin-collection';
+export { DishwasherCapability } from './dishwasher';
 export * from './capabilities.gen';
 
 export type DHWTargetReason = 'STANDARD' | 'PLUNGE' | 'LEGIONELLA';
@@ -59,4 +60,8 @@ export interface ProviderTelevisionCapability extends ProviderTelevisionCapabili
 
 export type ProviderSpeakerCapability = {
   emitSound(device: Device, sound: string | string[], ttlInSeconds?: number): Promise<void>;
+}
+
+export type ProviderDishwasherCapability = {
+  getLastMachineCareRun(device: Device): Promise<StringEvent | null>;
 }

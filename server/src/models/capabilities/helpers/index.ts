@@ -2,7 +2,7 @@ import { BooleanEvent, Device, Event, NumericEvent, StringEvent, Op } from "../.
 
 export type TimeRangeSelector = { since: Date; until: Date };
 export type ValueFilter =
-  | { eq: number }
+  | { eq: string | number }
   | { ne: number }
   | { gt: number }
   | { gte: number }
@@ -30,7 +30,10 @@ export async function getLatestNumericEvent(device: Device, propertyName: string
 
 export async function getLatestStringEvent(device: Device, propertyName: string, instanceId: string | null): Promise<StringEvent | null> {
   const event = await device.getLatestEvent(propertyName, instanceId);
-  return event ? new StringEvent(event) : null;
+
+  // A closed event means the property is no longer set (e.g. a Home Connect
+  // program that has finished), so treat it as "no current value".
+  return event && !event.end ? new StringEvent(event) : null;
 }
 
 export async function getStringProperty(device: Device, propertyName: string, instanceId: string | null, defaultValue = ''): Promise<string> {
@@ -230,7 +233,7 @@ async function getEventsInRange(device: Device, propertyName: string, instanceId
 
   if (selector.value) {
     const f = selector.value;
-    if ('eq'  in f) valueWhere = { value: f.eq };
+    if ('eq'  in f) valueWhere = typeof f.eq === 'string' ? { stringValue: f.eq } : { value: f.eq };
     else if ('ne'  in f) valueWhere = { value: { [Op.ne]:  f.ne  } };
     else if ('gt'  in f) valueWhere = { value: { [Op.gt]:  f.gt  } };
     else if ('gte' in f) valueWhere = { value: { [Op.gte]: f.gte } };
@@ -289,4 +292,18 @@ export async function getNumericPropertyHistory(device: Device, propertyName: st
 export async function getStringPropertyHistory(device: Device, propertyName: string, instanceId: string | null, timeRangeSelector: HistorySelector): Promise<StringEvent[]> {
   const events = await getEventsInRange(device, propertyName, instanceId, timeRangeSelector);
   return events.map((event) => new StringEvent(event));
+}
+
+export async function clearStringProperty(device: Device, eventName: string, endTime: Date, reportedAt: Date): Promise<StringEvent | null> {
+  const currentEvent = await Event.findOne({
+    where: { deviceId: device.id, type: eventName, end: null },
+    order: [['start', 'DESC']]
+  });
+
+  if (currentEvent) {
+    await currentEvent.update({ end: endTime, lastReported: reportedAt });
+    return new StringEvent(currentEvent);
+  }
+
+  return null;
 }
