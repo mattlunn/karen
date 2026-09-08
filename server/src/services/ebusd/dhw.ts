@@ -205,9 +205,26 @@ async function reconcile(): Promise<void> {
     ? plan.targetTemp
     : config.ebusd.dhw_standard_target_temp;
 
+  const currentTargetTemp = await client.getDHWTargetTemp();
+
+  // A live block is the only time a stalled charge matters, so this is the
+  // only time it's worth the extra ebus round trips - logged every cycle
+  // (not just on writes) so a run that silently falls short of its target
+  // still leaves a trail to diagnose from.
+  if (blockIsLive) {
+    const [cylinderTemp, detailedStatus, compressorBlockMinutes, currentError] = await Promise.all([
+      client.getHotWaterCylinderTemperature(),
+      client.getDetailedStatus(),
+      client.getCompressorBlockMinutes(),
+      client.getCurrentError(),
+    ]);
+
+    logger.info(`DHW: block live (${plan.reason} → ${plan.targetTemp}°C, ends ${plan.end.toISOString()}) - cylinder ${cylinderTemp}°C, controller target ${currentTargetTemp}°C, status "${detailedStatus}", compressor block ${compressorBlockMinutes}min, error "${currentError}"`);
+  }
+
   // Write the setpoint before enabling the circuit, so a raised-target block
   // heats towards it from the start rather than after the next reconcile.
-  if (await client.getDHWTargetTemp() !== desiredTargetTemp) {
+  if (currentTargetTemp !== desiredTargetTemp) {
     if (readonly) {
       logger.info(`DHW: [readonly] would set HwcTempDesired ${desiredTargetTemp}°C`);
     } else {

@@ -127,6 +127,25 @@ export default class EbusClient {
     return this.#read({ value: 'Statuscode', circuit: 'hmu' }, (v) => v.split(':')[0]);
   }
 
+  // The full Statuscode string, unlike getMode() which collapses everything
+  // after the colon - "Warm Water: Compressor active" and "Warm Water:
+  // Compressor blocked" are otherwise indistinguishable.
+  async getDetailedStatus(): Promise<string> {
+    return this.#read({ value: 'Statuscode', circuit: 'hmu' }, (v) => v);
+  }
+
+  // Minutes remaining before the compressor is allowed to start another DHW
+  // charge. A value in the tens of thousands indicates a corrupted read
+  // rather than a real anti-cycle wait.
+  async getCompressorBlockMinutes(): Promise<number> {
+    return this.#read({ value: 'CompressorBlocktime', circuit: 'hmu' }, toNumber);
+  }
+
+  // 5 dash-separated fault slots, e.g. "-;-;-;-;-" when nothing is active.
+  async getCurrentError(): Promise<string> {
+    return this.#read({ value: 'currenterror', circuit: 'ctlv3' }, (v) => v);
+  }
+
   async getDHWIsOn(): Promise<boolean> {
     return this.#read({ value: 'HwcOpMode', circuit: 'ctlv3' }, (v) => {
       if (v !== 'off' && v !== 'manual' && v !== 'time controlled') {
