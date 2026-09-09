@@ -171,7 +171,8 @@ export type CapabilityGraphProps = {
     label: string,
     yAxisID?: string,
     period?: 'day' | 'month',
-    hatched?: boolean
+    hatched?: boolean,
+    stack?: string
   }[]
 
   stacked?: boolean
@@ -342,7 +343,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         label: bar.label,
         yAxisID: bar.yAxisID || 'y',
         borderWidth: 1,
-        ...(props.stacked ? { stack: 'stack' } : {})
+        ...(props.stacked ? { stack: bar.stack ?? 'stack' } : {})
       });
     }
 

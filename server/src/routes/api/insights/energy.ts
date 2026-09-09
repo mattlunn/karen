@@ -1,7 +1,8 @@
-import { Device } from '../../../models';
+import { Device, NumericEvent } from '../../../models';
+import { HistorySelector } from '../../../models/capabilities/helpers';
 import { Request, Response } from 'express';
 import {
-  EnergyCostInsightsApiResponse,
+  EnergyDeviceUsageApiResponse,
   EnergyUsageInsightsApiResponse,
   EnergyScheduleApiResponse,
   HistoryDetailsApiResponse,
@@ -139,27 +140,34 @@ export async function usageHandler(req: Request, res: Response) {
   res.json({ series } satisfies EnergyUsageInsightsApiResponse);
 }
 
-export async function costHandler(req: Request, res: Response) {
-  const selector = {
-    since: new Date(req.query.since as string),
-    until: new Date(req.query.until as string)
-  };
+type DailyMetric = {
+  getHistory: (device: Device, hs: HistorySelector) => Promise<NumericEvent[]>;
+  transform?: (value: number) => number;
+};
 
-  const { meter, monitored } = await splitMeterFromMonitored();
-  const days = daysInRange(selector.since, selector.until);
+// Per-device stacked breakdown of one daily metric, topped by a hatched "Other"
+// residual (meter total minus everything individually metered). LIGHT-capable
+// devices collapse into a single "Lights" entry. "Other" is not clamped at 0 -
+// a sub-meter reading above the whole-house meter shows as a small negative bar.
+async function usageBreakdown(
+  metric: DailyMetric,
+  meter: Device | null,
+  monitored: Device[],
+  selector: { since: Date; until: Date },
+  days: string[]
+): Promise<{ series: HistoryLineApiResponse[] }> {
   const since = selector.since.toISOString();
   const until = selector.until.toISOString();
+
+  const bucketFor = (device: Device) =>
+    mapNumericHistoryToResponse((hs) => metric.getHistory(device, hs), selector, metric.transform).then(bucketByDay);
 
   const toSeries = (label: string, byDay: Map<string, number>): HistoryLineApiResponse => ({
     label,
     data: daysToLineData(days, since, until, (day) => byDay.get(day) ?? 0)
   });
 
-  const costByDay = (device: Device) =>
-    mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100)
-      .then(bucketByDay);
-
-  const buckets = await asyncMap(monitored, costByDay);
+  const buckets = await asyncMap(monitored, bucketFor);
 
   const lights: Map<string, number>[] = [];
   const series: HistoryLineApiResponse[] = [];
@@ -177,11 +185,9 @@ export async function costHandler(req: Request, res: Response) {
   }
 
   if (meter) {
-    const meterByDay = await costByDay(meter);
+    const meterByDay = await bucketFor(meter);
     const monitoredByDay = mergeSum(buckets);
 
-    // Not clamped at 0: a sub-meter reading slightly above the whole-house
-    // meter should show as a small negative bar, not silently vanish.
     series.push({
       label: 'Other',
       role: 'residual',
@@ -189,5 +195,28 @@ export async function costHandler(req: Request, res: Response) {
     });
   }
 
-  res.json({ series } satisfies EnergyCostInsightsApiResponse);
+  return { series };
+}
+
+export async function deviceUsageHandler(req: Request, res: Response) {
+  const selector = {
+    since: new Date(req.query.since as string),
+    until: new Date(req.query.until as string)
+  };
+
+  const { meter, monitored } = await splitMeterFromMonitored();
+  const days = daysInRange(selector.since, selector.until);
+
+  const [cost, energy] = await Promise.all([
+    usageBreakdown(
+      { getHistory: (device, hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), transform: (v) => v / 100 },
+      meter, monitored, selector, days
+    ),
+    usageBreakdown(
+      { getHistory: (device, hs) => device.getEnergyMonitorCapability().getDayEnergyHistory(hs) },
+      meter, monitored, selector, days
+    )
+  ]);
+
+  res.json({ cost, energy } satisfies EnergyDeviceUsageApiResponse);
 }

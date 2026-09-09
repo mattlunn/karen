@@ -20,7 +20,7 @@ import deviceTelevisionRouter from './device/television';
 import eventsRouter from './events';
 import insightsHeatingHandler from './insights/heating';
 import insightsSecurityHandler from './insights/security';
-import { usageHandler as insightsEnergyUsageHandler, costHandler as insightsEnergyCostHandler, scheduleHandler as insightsEnergyScheduleHandler } from './insights/energy';
+import { usageHandler as insightsEnergyUsageHandler, deviceUsageHandler as insightsEnergyDeviceUsageHandler, scheduleHandler as insightsEnergyScheduleHandler } from './insights/energy';
 
 const router = express.Router();
 
@@ -42,7 +42,7 @@ router.use('/device/:id/television', deviceTelevisionRouter);
 router.get('/insights/heating', insightsHeatingHandler);
 router.get('/insights/security', insightsSecurityHandler);
 router.get('/insights/energy/usage', insightsEnergyUsageHandler);
-router.get('/insights/energy/cost', insightsEnergyCostHandler);
+router.get('/insights/energy/device-usage', insightsEnergyDeviceUsageHandler);
 router.get('/insights/energy/schedule', insightsEnergyScheduleHandler);
 
 router.get('/snapshot/:id', async (req, res) => {

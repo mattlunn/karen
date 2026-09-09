@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Group, Title } from '@mantine/core';
-import { useEnergyCostInsights, useEnergyScheduleInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
+import { Box, Chip, Group, Title } from '@mantine/core';
+import { useEnergyDeviceUsageInsights, useEnergyScheduleInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { useDeviceHistory } from '../../hooks/queries/use-device-history';
+import type { EnergyDeviceUsageApiResponse, HistoryLineApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector, getPresetRange } from '../date-range';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
@@ -13,15 +14,6 @@ const yAxisPower = {
   yPower: {
     position: 'left' as const,
     min: 0
-  }
-};
-
-const yAxisCost = {
-  yCost: {
-    position: 'left' as const,
-    // Not min: 0 - the "Other" residual can go slightly negative when a
-    // sub-meter briefly reads above the whole-house meter, and that should show.
-    suggestedMin: 0
   }
 };
 
@@ -51,6 +43,22 @@ const yAxisMeterDaily = {
     label: 'Unit rate (p/kWh)',
     display: 'auto' as const
   }
+};
+
+type UsageMetric = '£' | 'kWh';
+
+const usageMetricOrder: UsageMetric[] = ['£', 'kWh'];
+
+const usageMetricConfig: Record<UsageMetric, {
+  axisId: string;
+  // suggestedMin rather than min: 0 - the "Other" residual can go slightly
+  // negative when a sub-meter briefly reads above the whole-house meter.
+  axis: { position: 'left' | 'right'; suggestedMin: number; label: string };
+  stack: string;
+  pick: (data: EnergyDeviceUsageApiResponse) => HistoryLineApiResponse[];
+}> = {
+  '£': { axisId: 'yCost', axis: { position: 'left', suggestedMin: 0, label: 'Cost (£)' }, stack: 'cost', pick: (data) => data.cost.series },
+  'kWh': { axisId: 'yEnergy', axis: { position: 'right', suggestedMin: 0, label: 'Energy (kWh)' }, stack: 'energy', pick: (data) => data.energy.series }
 };
 
 function useLocalRange(defaultPreset: DateRangePreset, initialRange?: DateRange) {
@@ -147,31 +155,58 @@ function MeterDailyGraphBody({ deviceId, params }: { deviceId: number; params: {
   );
 }
 
-function CostGraph() {
+function DeviceUsageGraph() {
   const { preset, setPreset, range, setRange, params } = useLocalRange('lastMonth');
-  const { data, isPending, isError } = useEnergyCostInsights(params);
+  const { data, isPending, isError } = useEnergyDeviceUsageInsights(params);
+  const [metrics, setMetrics] = useState<UsageMetric[]>(['£']);
+
+  const selected = usageMetricOrder.filter(metric => metrics.includes(metric));
+
+  const bars = data ? selected.flatMap(metric => {
+    const config = usageMetricConfig[metric];
+
+    return config.pick(data).map(series => ({
+      data: series.data,
+      label: selected.length > 1 ? `${series.label} (${metric})` : series.label,
+      yAxisID: config.axisId,
+      stack: config.stack,
+      period: 'day' as const,
+      hatched: series.role === 'residual'
+    }));
+  }) : [];
+
+  const yAxis = Object.fromEntries(selected.map(metric => [usageMetricConfig[metric].axisId, usageMetricConfig[metric].axis]));
 
   return (
     <>
       <Group justify="space-between" mt="lg">
-        <Title order={4}>Cost (£ per day)</Title>
-        <DateRangeSelector
-          preset={preset}
-          range={range}
-          onPresetChange={setPreset}
-          onRangeChange={setRange}
-        />
+        <Title order={4}>Device Usage</Title>
+        <Group gap="sm">
+          <Chip.Group multiple value={metrics} onChange={(value) => setMetrics(value as UsageMetric[])}>
+            <Group gap="xs">
+              {usageMetricOrder.map(metric => <Chip key={metric} value={metric} size="sm">{metric}</Chip>)}
+            </Group>
+          </Chip.Group>
+          <DateRangeSelector
+            preset={preset}
+            range={range}
+            onPresetChange={setPreset}
+            onRangeChange={setRange}
+          />
+        </Group>
       </Group>
 
       {isPending ? <PageLoader /> : isError ? (
         <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
+      ) : selected.length === 0 ? (
+        <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Select a metric to display</Box>
       ) : (
         <CapabilityGraph
           lines={[]}
-          bars={data.series.map(series => ({ data: series.data, label: series.label, yAxisID: 'yCost', period: 'day' as const, hatched: series.role === 'residual' }))}
+          bars={bars}
           stacked
           timeUnit="day"
-          yAxis={yAxisCost}
+          yAxis={yAxis}
         />
       )}
     </>
@@ -231,7 +266,7 @@ export default function EnergyInsights() {
         <UsageGraph />
         <ScheduleGraph />
         <MeterDailyGraph />
-        <CostGraph />
+        <DeviceUsageGraph />
       </DateRangeProvider>
     </>
   );

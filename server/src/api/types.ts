@@ -404,13 +404,14 @@ export type EnergyUsageInsightsApiResponse = {
   series: HistoryLineApiResponse[];
 };
 
-// /api/insights/energy/cost endpoint - per-day cost of each sub-metered device
-// (all LIGHT-capable devices summed into one "Lights" entry) as a stacked bar
-// breakdown, topped by a hatched "Other" residual (role: 'residual') = the
-// whole-house meter's daily total minus everything individually metered, so the
-// stack sums to the true house total.
-export type EnergyCostInsightsApiResponse = {
-  series: HistoryLineApiResponse[];
+// /api/insights/energy/device-usage endpoint - per-day breakdown of each
+// sub-metered device (all LIGHT-capable devices summed into one "Lights" entry)
+// as a stacked bar breakdown, each metric topped by a hatched "Other" residual
+// (role: 'residual') = the whole-house meter's daily total minus everything
+// individually metered, so each stack sums to the true house total.
+export type EnergyDeviceUsageApiResponse = {
+  cost: { series: HistoryLineApiResponse[] };
+  energy: { series: HistoryLineApiResponse[] };
 };
 
 // /api/insights/energy/schedule endpoint - unit rate as a line with EV and DHW
