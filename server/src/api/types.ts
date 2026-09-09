@@ -202,6 +202,9 @@ export type HistoryLineApiResponse = {
   yAxisID?: string;
   borderDash?: number[];
   period?: 'day' | 'month';
+  // A computed catch-all (whole-house total minus everything individually
+  // metered), drawn with a diagonal hatch so it reads as different in kind.
+  role?: 'residual';
 };
 
 export type HistoryModeDetailApiResponse = {
@@ -220,6 +223,7 @@ export type HistoryBarApiResponse = {
   label: string;
   yAxisID?: string;
   period?: 'day' | 'month';
+  role?: 'residual';
 };
 
 export type HistoryApiResponse = {
@@ -402,11 +406,11 @@ export type EnergyUsageInsightsApiResponse = {
 
 // /api/insights/energy/cost endpoint - per-day cost of each sub-metered device
 // (all LIGHT-capable devices summed into one "Lights" entry) as a stacked bar
-// breakdown, plus the whole-house meter's own daily total as a separate overlay
-// line. The gap between the stack and the line is the unmetered remainder.
+// breakdown, topped by a hatched "Other" residual (role: 'residual') = the
+// whole-house meter's daily total minus everything individually metered, so the
+// stack sums to the true house total.
 export type EnergyCostInsightsApiResponse = {
   series: HistoryLineApiResponse[];
-  total: HistoryLineApiResponse;
 };
 
 // /api/insights/energy/schedule endpoint - unit rate as a line with EV and DHW
