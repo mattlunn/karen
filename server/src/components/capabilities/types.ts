@@ -116,7 +116,14 @@ export type CreateCapabilityConfig<E extends CapabilityEvent | null> = {
 export interface GraphConfig {
   id: string;
   title: string;
-  yAxis?: Record<string, { position: 'left' | 'right'; min?: number; max?: number }>;
+  yAxis?: Record<string, {
+    position: 'left' | 'right';
+    min?: number;
+    max?: number;
+    suggestedMin?: number;
+    label?: string;
+    display?: boolean | 'auto';
+  }>;
   yMin?: number;
   yMax?: number;
   suggestedYMin?: number;

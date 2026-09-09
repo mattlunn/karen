@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Group, Title } from '@mantine/core';
 import { useEnergyCostInsights, useEnergyScheduleInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
+import { useDevices } from '../../hooks/queries/use-devices';
+import { useDeviceHistory } from '../../hooks/queries/use-device-history';
 import { DateRangeProvider, DateRangeSelector, getPresetRange } from '../date-range';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
@@ -25,6 +27,27 @@ const yAxisRate = {
   yRate: {
     position: 'left' as const,
     suggestedMin: 0
+  }
+};
+
+const yAxisMeterDaily = {
+  yEnergy: {
+    position: 'left' as const,
+    min: 0,
+    label: 'Energy (kWh)',
+    display: 'auto' as const
+  },
+  yCost: {
+    position: 'right' as const,
+    min: 0,
+    label: 'Cost (£)',
+    display: 'auto' as const
+  },
+  yRate: {
+    position: 'right' as const,
+    suggestedMin: 0,
+    label: 'Unit rate (p/kWh)',
+    display: 'auto' as const
   }
 };
 
@@ -65,6 +88,60 @@ function UsageGraph() {
         />
       )}
     </>
+  );
+}
+
+// The whole-house total is just the smart meter's own per-device daily graph -
+// the ENERGY_MONITOR device that also reports ENERGY_COST - so this renders
+// /device/<meter>/history?id=energy-daily rather than a bespoke endpoint.
+function MeterDailyGraph() {
+  const { preset, setPreset, range, setRange, params } = useLocalRange('lastMonth');
+  const { data: devicesData } = useDevices();
+
+  const meterId = devicesData?.devices.find(device =>
+    device.capabilities.some(c => c.type === 'ENERGY_MONITOR') &&
+    device.capabilities.some(c => c.type === 'ENERGY_COST')
+  )?.id;
+
+  return (
+    <>
+      <Group justify="space-between" mt="lg">
+        <Title order={4}>House total (per day)</Title>
+        <DateRangeSelector
+          preset={preset}
+          range={range}
+          onPresetChange={setPreset}
+          onRangeChange={setRange}
+        />
+      </Group>
+
+      {meterId == null ? <PageLoader /> : <MeterDailyGraphBody deviceId={meterId} params={params} />}
+    </>
+  );
+}
+
+function MeterDailyGraphBody({ deviceId, params }: { deviceId: number; params: { since: string; until: string } }) {
+  const historyParams = useMemo(
+    () => ({ id: 'energy-daily', since: params.since, until: params.until }),
+    [params.since, params.until]
+  );
+  const { data, isPending, isError } = useDeviceHistory(deviceId, historyParams);
+
+  if (isPending || !data) {
+    return <PageLoader />;
+  }
+
+  if (isError) {
+    return <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>;
+  }
+
+  return (
+    <CapabilityGraph
+      lines={data.lines}
+      bars={data.bars}
+      timeUnit="day"
+      yAxis={yAxisMeterDaily}
+    />
   );
 }
 
@@ -151,6 +228,7 @@ export default function EnergyInsights() {
       <DateRangeProvider>
         <UsageGraph />
         <ScheduleGraph />
+        <MeterDailyGraph />
         <CostGraph />
       </DateRangeProvider>
     </>

@@ -858,13 +858,14 @@ export const registry: CapabilityUIRegistry = {
       { id: 'energy-power', title: 'Power', yMin: 0 },
       {
         id: 'energy-daily',
-        title: 'Daily Energy & Cost',
+        title: 'Daily Energy, Cost & Unit Rate',
         overridePreset: 'custom',
         overrideStart: dayjs().subtract(1, 'month').startOf('day').toISOString(),
         overrideEnd: dayjs().toISOString(),
         yAxis: {
-          yEnergy: { position: 'left', min: 0 },
-          yCost: { position: 'right', min: 0 },
+          yEnergy: { position: 'left', min: 0, label: 'Energy (kWh)', display: 'auto' },
+          yCost: { position: 'right', min: 0, label: 'Cost (£)', display: 'auto' },
+          yRate: { position: 'right', suggestedMin: 0, label: 'Unit rate (p/kWh)', display: 'auto' },
         },
       },
     ],

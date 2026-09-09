@@ -8,14 +8,17 @@ import {
   HistoryLineApiResponse,
   HistoryModesApiResponse,
   BooleanEventApiResponse,
-  NumericEventApiResponse,
 } from '../../../api/types';
-import { mapNumericHistoryToResponse, mapBooleanHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
+import {
+  mapNumericHistoryToResponse,
+  mapBooleanHistoryToResponse,
+  mapStringHistoryToResponse,
+  bucketByDay,
+  daysInRange,
+  daysToLineData,
+} from '../history-helpers';
 import { asyncMap } from '../../../helpers/array';
-import { filterClampAndSortHistory } from '../../../helpers/history';
 import dayjs from '../../../dayjs';
-
-type NumericHistory = HistoryDetailsApiResponse<NumericEventApiResponse>;
 
 // The one ENERGY_MONITOR device that also reports ENERGY_COST is the whole-house
 // smart meter; every other is an individually-metered load beneath it.
@@ -24,37 +27,6 @@ async function splitMeterFromMonitored() {
   const meter = devices.find((device) => device.getCapabilities().includes('ENERGY_COST')) ?? null;
 
   return { meter, monitored: devices.filter((device) => device !== meter) };
-}
-
-// DayCost events are keyed to Europe/London midnight, but setNumericProperty
-// collapses a run of equal-cost days into a single spanning event. Expand back
-// to one { day-start ISO -> cost } entry per calendar day the event covers.
-function bucketCostByDay(history: NumericHistory): Map<string, number> {
-  const events = filterClampAndSortHistory(history.history, history.since, history.until, true);
-  const byDay = new Map<string, number>();
-
-  for (const event of events) {
-    const end = Date.parse(event.end ?? history.until);
-
-    for (let day = dayjs(event.start).startOf('day'); day.valueOf() < end; day = day.add(1, 'day')) {
-      byDay.set(day.toISOString(), event.value);
-    }
-  }
-
-  return byDay;
-}
-
-// Every calendar-day start (ISO) in the range. Each series carries a value for
-// every one of these - 0 where a device had no reading - so the stacked bars
-// line up on x and share a uniform width.
-function daysInRange(since: Date, until: Date): string[] {
-  const days: string[] = [];
-
-  for (let day = dayjs(since).startOf('day'); day.valueOf() < until.getTime(); day = day.add(1, 'day')) {
-    days.push(day.toISOString());
-  }
-
-  return days;
 }
 
 // Adds several { day -> value } maps together, day by day.
@@ -180,19 +152,12 @@ export async function costHandler(req: Request, res: Response) {
 
   const toSeries = (label: string, byDay: Map<string, number>): HistoryLineApiResponse => ({
     label,
-    data: {
-      since,
-      until,
-      history: days.map((day) => {
-        const end = dayjs(day).add(1, 'day').toISOString();
-        return { start: day, end, lastReported: end, value: byDay.get(day) ?? 0 };
-      })
-    }
+    data: daysToLineData(days, since, until, (day) => byDay.get(day) ?? 0)
   });
 
   const costByDay = (device: Device) =>
     mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100)
-      .then(bucketCostByDay);
+      .then(bucketByDay);
 
   const buckets = await asyncMap(monitored, costByDay);
 

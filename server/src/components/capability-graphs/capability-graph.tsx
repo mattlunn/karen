@@ -142,6 +142,10 @@ export type CapabilityGraphProps = {
     min?: number,
     suggestedMin?: number,
     suggestedMax?: number,
+    label?: string,
+    // 'auto' hides the axis whenever every dataset assigned to it is toggled
+    // off in the legend.
+    display?: boolean | 'auto',
   }>
 
   timeUnit?: TimeUnit
@@ -333,9 +337,11 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
   if (props.yAxis) {
     for (const [axisId, axisDetails] of Object.entries(props.yAxis)) {
+      const { label, ...scale } = axisDetails;
       const scaleConfig: any = {
         type: 'linear',
-        ...axisDetails
+        ...scale,
+        ...(label ? { title: { display: true, text: label } } : {})
       };
 
       if (modesOnly) {
