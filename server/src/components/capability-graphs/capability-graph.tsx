@@ -341,7 +341,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         data: mapNumericDataToAggregateDataset(bar.data, bar.period),
         label: bar.label,
         yAxisID: bar.yAxisID || 'y',
-        borderWidth: bar.hatched ? 0 : 1,
+        borderWidth: 1,
         ...(props.stacked ? { stack: 'stack' } : {})
       });
     }
