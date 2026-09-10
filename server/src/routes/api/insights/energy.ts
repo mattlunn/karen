@@ -140,63 +140,9 @@ export async function usageHandler(req: Request, res: Response) {
   res.json({ series } satisfies EnergyUsageInsightsApiResponse);
 }
 
-export async function costHandler(req: Request, res: Response) {
-  const selector = {
-    since: new Date(req.query.since as string),
-    until: new Date(req.query.until as string)
-  };
-
-  const { meter, monitored } = await splitMeterFromMonitored();
-  const days = daysInRange(selector.since, selector.until);
-  const since = selector.since.toISOString();
-  const until = selector.until.toISOString();
-
-  const toSeries = (label: string, byDay: Map<string, number>): HistoryLineApiResponse => ({
-    label,
-    data: daysToLineData(days, since, until, (day) => byDay.get(day) ?? 0)
-  });
-
-  const costByDay = (device: Device) =>
-    mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100)
-      .then(bucketByDay);
-
-  const buckets = await asyncMap(monitored, costByDay);
-
-  const lights: Map<string, number>[] = [];
-  const series: HistoryLineApiResponse[] = [];
-
-  monitored.forEach((device, i) => {
-    if (device.getCapabilities().includes('LIGHT')) {
-      lights.push(buckets[i]);
-    } else {
-      series.push(toSeries(device.name, buckets[i]));
-    }
-  });
-
-  if (lights.length > 0) {
-    series.unshift(toSeries('Lights', mergeSum(lights)));
-  }
-
-  if (meter) {
-    const meterByDay = await costByDay(meter);
-    const monitoredByDay = mergeSum(buckets);
-
-    // Not clamped at 0: a sub-meter reading slightly above the whole-house
-    // meter should show as a small negative bar, not silently vanish.
-    series.push({
-      label: 'Other',
-      role: 'residual',
-      data: daysToLineData(days, since, until, (day) => (meterByDay.get(day) ?? 0) - (monitoredByDay.get(day) ?? 0))
-    });
-  }
-
-  res.json({ series } satisfies EnergyCostInsightsApiResponse);
-}
-
 type Bucketed = { label: string; byDay: Map<string, number> };
 
-// Each monitored device's daily metric as a { day -> value } map, with every
-// LIGHT-capable device collapsed into a single "Lights" entry (unshifted first).
+// Every LIGHT-capable device collapses into a single "Lights" entry, listed first.
 async function bucketByEntity(
   bucketFor: (device: Device) => Promise<Map<string, number>>,
   monitored: Device[]
@@ -219,6 +165,45 @@ async function bucketByEntity(
   }
 
   return named;
+}
+
+export async function costHandler(req: Request, res: Response) {
+  const selector = {
+    since: new Date(req.query.since as string),
+    until: new Date(req.query.until as string)
+  };
+
+  const { meter, monitored } = await splitMeterFromMonitored();
+  const days = daysInRange(selector.since, selector.until);
+  const since = selector.since.toISOString();
+  const until = selector.until.toISOString();
+
+  const costFor = (device: Device) =>
+    mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100)
+      .then(bucketByDay);
+
+  const toSeries = (label: string, byDay: Map<string, number>): HistoryLineApiResponse => ({
+    label,
+    data: daysToLineData(days, since, until, (day) => byDay.get(day) ?? 0)
+  });
+
+  const costByEntity = await bucketByEntity(costFor, monitored);
+  const series = costByEntity.map(({ label, byDay }) => toSeries(label, byDay));
+
+  if (meter) {
+    const meterByDay = await costFor(meter);
+    const monitoredByDay = mergeSum(costByEntity.map((entity) => entity.byDay));
+
+    // Not clamped at 0: a sub-meter reading slightly above the whole-house
+    // meter should show as a small negative bar, not silently vanish.
+    series.push({
+      label: 'Other',
+      role: 'residual',
+      data: daysToLineData(days, since, until, (day) => (meterByDay.get(day) ?? 0) - (monitoredByDay.get(day) ?? 0))
+    });
+  }
+
+  res.json({ series } satisfies EnergyCostInsightsApiResponse);
 }
 
 export async function unitRateDailyHandler(req: Request, res: Response) {
