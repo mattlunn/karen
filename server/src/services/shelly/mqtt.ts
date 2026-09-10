@@ -111,7 +111,7 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
 
   if (subtopic === 'light/0/power') {
     if (capabilities.includes('ENERGY_MONITOR')) {
-      await device.getEnergyMonitorCapability().setCurrentPowerState(Math.round(parseFloat(payload) * 10) / 10);
+      await device.getEnergyMonitorCapability().setCurrentPowerState(parseFloat(payload));
     }
 
     return;
@@ -125,7 +125,7 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
     }
 
     if (capabilities.includes('ENERGY_MONITOR')) {
-      await device.getEnergyMonitorCapability().setCurrentPowerState(Math.round(data.apower * 10) / 10);
+      await device.getEnergyMonitorCapability().setCurrentPowerState(data.apower);
     }
 
     return;

@@ -18,7 +18,10 @@ type PropertyDescriptor = {
   eventName: string;
   isMomentary?: boolean;
 } & ({
-  type: 'boolean' | 'number';
+  type: 'boolean';
+} | {
+  type: 'number';
+  precision?: number;
 } | {
   type: 'string';
   enum?: string[];
@@ -32,6 +35,7 @@ function describeProperty(capabilityName: string, p: PropertyDescriptor) {
   let eventType: string;
   let typeAlias: string | null = null;
   let enumValues: string[] | null = null;
+  let precision: number | null = null;
 
   switch (p.type) {
     case 'boolean':
@@ -41,6 +45,7 @@ function describeProperty(capabilityName: string, p: PropertyDescriptor) {
     case 'number':
       valueType = 'number';
       eventType = 'NumericEvent';
+      precision = p.precision ?? null;
       break;
     case 'string':
       eventType = 'StringEvent';
@@ -67,6 +72,8 @@ function describeProperty(capabilityName: string, p: PropertyDescriptor) {
     valueType,
     typeAlias,
     enumValues,
+    hasPrecision: precision !== null,
+    precision: precision ?? 0,
     fieldName: p.eventName,
   };
 }
