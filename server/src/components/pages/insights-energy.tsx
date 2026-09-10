@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Group, Title } from '@mantine/core';
-import { useEnergyCostInsights, useEnergyScheduleInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
+import { useEnergyCostInsights, useEnergyScheduleInsights, useEnergyUnitRateDailyInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { useDeviceHistory } from '../../hooks/queries/use-device-history';
 import { DateRangeProvider, DateRangeSelector, getPresetRange } from '../date-range';
@@ -178,6 +178,35 @@ function CostGraph() {
   );
 }
 
+function UnitRateDailyGraph() {
+  const { preset, setPreset, range, setRange, params } = useLocalRange('lastMonth');
+  const { data, isPending, isError } = useEnergyUnitRateDailyInsights(params);
+
+  return (
+    <>
+      <Group justify="space-between" mt="lg">
+        <Title order={4}>Effective unit rate (p/kWh per day)</Title>
+        <DateRangeSelector
+          preset={preset}
+          range={range}
+          onPresetChange={setPreset}
+          onRangeChange={setRange}
+        />
+      </Group>
+
+      {isPending ? <PageLoader /> : isError ? (
+        <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
+      ) : (
+        <CapabilityGraph
+          lines={data.lines}
+          timeUnit="day"
+          yAxis={yAxisRate}
+        />
+      )}
+    </>
+  );
+}
+
 function ScheduleGraph() {
   const { preset, setPreset, range, setRange, params } = useLocalRange('custom', {
     since: dayjs().startOf('day'),
@@ -232,6 +261,7 @@ export default function EnergyInsights() {
         <ScheduleGraph />
         <MeterDailyGraph />
         <CostGraph />
+        <UnitRateDailyGraph />
       </DateRangeProvider>
     </>
   );
