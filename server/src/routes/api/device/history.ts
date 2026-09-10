@@ -8,7 +8,7 @@ import {
   HistoryDetailsApiResponse,
   NumericEventApiResponse
 } from '../../../api/types';
-import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapStringHistoryToResponse, bucketByDay, daysInRange, daysToLineData } from '../history-helpers';
+import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapStringHistoryToResponse, bucketByDay, daysInRange, daysToLineData, MIN_DAILY_KWH_FOR_RATE } from '../history-helpers';
 
 // Types
 
@@ -380,7 +380,11 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         data: daysToLineData(days, selector.since.toISOString(), selector.until.toISOString(), (day) => {
           const energy = energyByDay.get(day);
 
-          return energy ? (costPenceByDay.get(day) ?? 0) / energy : undefined;
+          // Below the metering floor the day's cost and energy are both noise
+          // (the plug's own standby draw) and their ratio is garbage.
+          return energy !== undefined && energy >= MIN_DAILY_KWH_FOR_RATE
+            ? (costPenceByDay.get(day) ?? 0) / energy
+            : undefined;
         }),
         label: 'Unit rate (p/kWh)', period: 'day' as const
       }]

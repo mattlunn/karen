@@ -114,3 +114,9 @@ export function daysToLineData(
 
   return { since, until, history };
 }
+
+// An effective unit rate (day cost / day energy) is only meaningful once a day's
+// energy is above the metering floor. Below this, a sub-meter is reporting its
+// own standby draw (~0.01 kWh) and both cost and energy are rounding noise, so
+// their ratio is garbage (e.g. 0.13p / 0.01kWh = 13 p/kWh out of nowhere).
+export const MIN_DAILY_KWH_FOR_RATE = 0.1;

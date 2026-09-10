@@ -17,6 +17,7 @@ import {
   bucketByDay,
   daysInRange,
   daysToLineData,
+  MIN_DAILY_KWH_FOR_RATE,
 } from '../history-helpers';
 import { asyncMap } from '../../../helpers/array';
 import dayjs from '../../../dayjs';
@@ -229,14 +230,14 @@ export async function unitRateDailyHandler(req: Request, res: Response) {
 
   const energyByLabel = new Map(energyByEntity.map((entity) => [entity.label, entity.byDay]));
 
-  // p/kWh = day cost (pence) / day energy (kWh); a day with no energy yields no
-  // point, so the line reads as a gap there rather than dividing by zero.
+  // p/kWh = day cost (pence) / day energy (kWh). Days below the metering floor
+  // yield no point (a gap), so a standby-only day doesn't plot a garbage ratio.
   const rateFor = (cost: Map<string, number>, energy: Map<string, number> | undefined) =>
     daysToLineData(days, since, until, (day) => {
       const kwh = energy?.get(day);
       const pence = cost.get(day);
 
-      return kwh && pence !== undefined ? pence / kwh : undefined;
+      return kwh !== undefined && kwh >= MIN_DAILY_KWH_FOR_RATE && pence !== undefined ? pence / kwh : undefined;
     });
 
   const lines: HistoryLineApiResponse[] = costByEntity.map(({ label, byDay }) => ({
