@@ -36,20 +36,12 @@ const yAxisMeterDaily = {
   yEnergy: {
     position: 'left' as const,
     min: 0,
-    label: 'Energy (kWh)',
-    display: 'auto' as const
+    label: 'Energy (kWh)'
   },
   yCost: {
     position: 'right' as const,
     min: 0,
-    label: 'Cost (£)',
-    display: 'auto' as const
-  },
-  yRate: {
-    position: 'right' as const,
-    suggestedMin: 0,
-    label: 'Unit rate (p/kWh)',
-    display: 'auto' as const
+    label: 'Cost (£)'
   }
 };
 

@@ -197,9 +197,6 @@ export type CapabilityGraphProps = {
     suggestedMin?: number,
     suggestedMax?: number,
     label?: string,
-    // 'auto' hides the axis whenever every dataset assigned to it is toggled
-    // off in the legend.
-    display?: boolean | 'auto',
   }>
 
   timeUnit?: TimeUnit

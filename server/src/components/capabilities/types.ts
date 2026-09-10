@@ -122,7 +122,6 @@ export interface GraphConfig {
     max?: number;
     suggestedMin?: number;
     label?: string;
-    display?: boolean | 'auto';
   }>;
   yMin?: number;
   yMax?: number;
