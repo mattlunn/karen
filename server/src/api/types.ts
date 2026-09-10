@@ -413,6 +413,13 @@ export type EnergyCostInsightsApiResponse = {
   series: HistoryLineApiResponse[];
 };
 
+// /api/insights/energy/unit-rate-daily endpoint - effective p/kWh per day (day
+// cost / day energy) as one line per sub-metered entity ("Lights" rolled up),
+// plus a dashed "Total" reference line for the whole house. No residual line.
+export type EnergyUnitRateDailyApiResponse = {
+  lines: HistoryLineApiResponse[];
+};
+
 // /api/insights/energy/schedule endpoint - unit rate as a line with EV and DHW
 // run windows (actual and planned) shaded beneath it. Each band is its own
 // mode series so overlapping EV/DHW windows render honestly.
