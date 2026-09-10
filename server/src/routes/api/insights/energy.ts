@@ -176,7 +176,18 @@ export async function costHandler(req: Request, res: Response) {
     series.unshift(toSeries('Lights', mergeSum(lights)));
   }
 
-  const total = toSeries('Total', meter ? await costByDay(meter) : new Map());
+  if (meter) {
+    const meterByDay = await costByDay(meter);
+    const monitoredByDay = mergeSum(buckets);
 
-  res.json({ series, total } satisfies EnergyCostInsightsApiResponse);
+    // Not clamped at 0: a sub-meter reading slightly above the whole-house
+    // meter should show as a small negative bar, not silently vanish.
+    series.push({
+      label: 'Other',
+      role: 'residual',
+      data: daysToLineData(days, since, until, (day) => (meterByDay.get(day) ?? 0) - (monitoredByDay.get(day) ?? 0))
+    });
+  }
+
+  res.json({ series } satisfies EnergyCostInsightsApiResponse);
 }
