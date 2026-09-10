@@ -506,6 +506,7 @@
       "name": "CurrentPower",
       "isWriteable": false,
       "type": "number",
+      "precision": 0,
       "eventName": "energy_current_power"
     },
     {
