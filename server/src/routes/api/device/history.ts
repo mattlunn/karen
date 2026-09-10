@@ -8,7 +8,7 @@ import {
   HistoryDetailsApiResponse,
   NumericEventApiResponse
 } from '../../../api/types';
-import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
+import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapStringHistoryToResponse, bucketByDay, daysInRange, daysToLineData } from '../history-helpers';
 
 // Types
 
@@ -349,20 +349,38 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     };
   }],
 
-  // Energy Monitor - Daily Energy & Cost
+  // Energy Monitor - Daily Energy, Cost & Unit Rate
   ['energy-daily', async (device, selector) => {
     const energyMonitor = device.getEnergyMonitorCapability();
+    const [costPenceByDay, energyByDay] = await Promise.all([
+      mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector).then(bucketByDay),
+      mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector).then(bucketByDay)
+    ]);
 
-    return awaitPromises({
-      bars: Promise.all([
-        mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector)
-          .then(data => ({ data, label: 'Energy (kWh)', yAxisID: 'yEnergy', period: 'day' as const }))
-      ]),
-      lines: Promise.all([
-        mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
-          .then(data => ({ data, label: 'Cost (£)', yAxisID: 'yCost', period: 'day' as const }))
-      ])
-    });
+    const days = daysInRange(selector.since, selector.until);
+    const since = selector.since.toISOString();
+    const until = selector.until.toISOString();
+
+    return {
+      bars: [{
+        data: daysToLineData(days, since, until, (day) => energyByDay.get(day) ?? 0),
+        label: 'Energy (kWh)', yAxisID: 'yEnergy', period: 'day' as const
+      }],
+      lines: [
+        {
+          data: daysToLineData(days, since, until, (day) => (costPenceByDay.get(day) ?? 0) / 100),
+          label: 'Cost (£)', yAxisID: 'yCost', period: 'day' as const
+        },
+        {
+          data: daysToLineData(days, since, until, (day) => {
+            const energy = energyByDay.get(day);
+
+            return energy ? (costPenceByDay.get(day) ?? 0) / energy : undefined;
+          }),
+          label: 'Unit rate (p/kWh)', yAxisID: 'yRate', period: 'day' as const
+        }
+      ]
+    };
   }],
 
   // Energy Cost - Unit Rate
