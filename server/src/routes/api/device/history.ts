@@ -349,8 +349,24 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     };
   }],
 
-  // Energy Monitor - Daily Energy, Cost & Unit Rate
+  // Energy Monitor - Daily Energy & Cost
   ['energy-daily', async (device, selector) => {
+    const energyMonitor = device.getEnergyMonitorCapability();
+
+    return awaitPromises({
+      bars: Promise.all([
+        mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector)
+          .then(data => ({ data, label: 'Energy (kWh)', yAxisID: 'yEnergy', period: 'day' as const }))
+      ]),
+      lines: Promise.all([
+        mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
+          .then(data => ({ data, label: 'Cost (£)', yAxisID: 'yCost', period: 'day' as const }))
+      ])
+    });
+  }],
+
+  // Energy Monitor - Effective Unit Rate (p/kWh per day = day cost / day energy)
+  ['energy-unit-rate-daily', async (device, selector) => {
     const energyMonitor = device.getEnergyMonitorCapability();
     const [costPenceByDay, energyByDay] = await Promise.all([
       mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector).then(bucketByDay),
@@ -358,28 +374,16 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     ]);
 
     const days = daysInRange(selector.since, selector.until);
-    const since = selector.since.toISOString();
-    const until = selector.until.toISOString();
 
     return {
-      bars: [{
-        data: daysToLineData(days, since, until, (day) => energyByDay.get(day) ?? 0),
-        label: 'Energy (kWh)', yAxisID: 'yEnergy', period: 'day' as const
-      }],
-      lines: [
-        {
-          data: daysToLineData(days, since, until, (day) => (costPenceByDay.get(day) ?? 0) / 100),
-          label: 'Cost (£)', yAxisID: 'yCost', period: 'day' as const
-        },
-        {
-          data: daysToLineData(days, since, until, (day) => {
-            const energy = energyByDay.get(day);
+      lines: [{
+        data: daysToLineData(days, selector.since.toISOString(), selector.until.toISOString(), (day) => {
+          const energy = energyByDay.get(day);
 
-            return energy ? (costPenceByDay.get(day) ?? 0) / energy : undefined;
-          }),
-          label: 'Unit rate (p/kWh)', yAxisID: 'yRate', period: 'day' as const
-        }
-      ]
+          return energy ? (costPenceByDay.get(day) ?? 0) / energy : undefined;
+        }),
+        label: 'Unit rate (p/kWh)', period: 'day' as const
+      }]
     };
   }],
 
