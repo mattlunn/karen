@@ -49,6 +49,18 @@ type UsageMetric = '£' | 'kWh';
 
 const usageMetricOrder: UsageMetric[] = ['£', 'kWh'];
 
+// Fixed per-device colours so a device is the same colour in the £ and the kWh
+// stack (Chart.js's auto palette would offset the two).
+const usageSeriesColors = [
+  'rgb(54, 162, 235)',
+  'rgb(255, 99, 132)',
+  'rgb(255, 159, 64)',
+  'rgb(255, 205, 86)',
+  'rgb(75, 192, 192)',
+  'rgb(153, 102, 255)',
+  'rgb(201, 203, 207)'
+];
+
 const usageMetricConfig: Record<UsageMetric, {
   axisId: string;
   // suggestedMin rather than min: 0 - the "Other" residual can go slightly
@@ -162,12 +174,18 @@ function DeviceUsageGraph() {
 
   const selected = usageMetricOrder.filter(metric => metrics.includes(metric));
 
+  const deviceOrder = data ? data.cost.series.filter(series => series.role !== 'residual').map(series => series.label) : [];
+
   const bars = data ? selected.flatMap(metric => {
     const config = usageMetricConfig[metric];
 
     return config.pick(data).map(series => ({
       data: series.data,
-      label: selected.length > 1 ? `${series.label} (${metric})` : series.label,
+      label: `${series.label} (${metric})`,
+      legendGroup: series.label,
+      color: series.role === 'residual'
+        ? undefined
+        : usageSeriesColors[deviceOrder.indexOf(series.label) % usageSeriesColors.length],
       yAxisID: config.axisId,
       stack: config.stack,
       period: 'day' as const,

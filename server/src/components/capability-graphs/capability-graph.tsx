@@ -172,7 +172,11 @@ export type CapabilityGraphProps = {
     yAxisID?: string,
     period?: 'day' | 'month',
     hatched?: boolean,
-    stack?: string
+    stack?: string,
+    color?: string,
+    // Bars sharing a legendGroup get a single legend entry (labelled with the
+    // group name) that toggles all of them together.
+    legendGroup?: string
   }[]
 
   stacked?: boolean
@@ -331,10 +335,18 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
   if (props.bars) {
     const hatchedBarIndexes: number[] = [];
+    const legendGroups = new Map<string, number[]>();
 
     for (const bar of props.bars) {
       if (bar.hatched) {
         hatchedBarIndexes.push(datasets.length);
+      }
+
+      if (bar.legendGroup) {
+        const group = legendGroups.get(bar.legendGroup) ?? [];
+
+        group.push(datasets.length);
+        legendGroups.set(bar.legendGroup, group);
       }
 
       datasets.push({
@@ -343,11 +355,71 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         label: bar.label,
         yAxisID: bar.yAxisID || 'y',
         borderWidth: 1,
+        ...(bar.color ? { backgroundColor: bar.color, borderColor: bar.color } : {}),
         ...(props.stacked ? { stack: bar.stack ?? 'stack' } : {})
       });
     }
 
     chartOptions.plugins.hatchedBar = { datasetIndexes: hatchedBarIndexes };
+
+    // Explicit per-bar colours only stick if the auto-colour plugin (registered
+    // with forceOverride) is off. Safe to disable here since there are no lines
+    // relying on it.
+    if (props.lines.length === 0 && props.bars.some(bar => bar.color)) {
+      chartOptions.plugins.colors = { enabled: false };
+    }
+
+    if (legendGroups.size > 0) {
+      const groups = [...legendGroups.values()];
+      const groupOf = (datasetIndex: number) => groups.find(group => group.includes(datasetIndex));
+      const isGroupVisible = (chart: any, group: number[]) => group.some((i: number) => chart.isDatasetVisible(i));
+      const setGroupVisible = (chart: any, group: number[], visible: boolean) =>
+        group.forEach((i: number) => chart.setDatasetVisibility(i, visible));
+
+      chartOptions.plugins.legend.labels = {
+        generateLabels: (chart: any) => [...legendGroups.entries()].map(([text, indexes]) => {
+          const dataset = chart.data.datasets[indexes[0]];
+
+          return {
+            text,
+            fillStyle: dataset.backgroundColor,
+            strokeStyle: dataset.borderColor,
+            lineWidth: 1,
+            hidden: indexes.every((i: number) => !chart.isDatasetVisible(i)),
+            datasetIndex: indexes[0]
+          };
+        })
+      };
+
+      // Same isolate/restore behaviour as the default handler below, but a
+      // "unit" is a whole legend group rather than one dataset.
+      chartOptions.plugins.legend.onClick = (_e: unknown, legendItem: { datasetIndex: number }, legend: { chart: any }) => {
+        const chart = legend.chart;
+        const clicked = groupOf(legendItem.datasetIndex);
+
+        if (!clicked) {
+          return;
+        }
+
+        const visibleGroups = groups.filter(group => isGroupVisible(chart, group));
+
+        if (visibleGroups.length === groups.length) {
+          for (const group of groups) {
+            setGroupVisible(chart, group, group === clicked);
+          }
+        } else if (!isGroupVisible(chart, clicked)) {
+          setGroupVisible(chart, clicked, true);
+        } else if (visibleGroups.length === 1) {
+          for (const group of groups) {
+            setGroupVisible(chart, group, true);
+          }
+        } else {
+          setGroupVisible(chart, clicked, false);
+        }
+
+        chart.update();
+      };
+    }
   }
 
   const modeSeries = props.modes ?? [];
