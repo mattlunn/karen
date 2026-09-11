@@ -1,4 +1,5 @@
 import { Device } from '../../../models';
+import { EnergyMonitorCapability } from '../../../models/capabilities';
 import { TimeRangeSelector } from '../../../models/capabilities/helpers';
 import { Request, Response, NextFunction } from 'express';
 import dayjs from '../../../dayjs';
@@ -57,6 +58,11 @@ async function awaitPromises<T extends Record<string, unknown>>(obj: T): Promise
   );
 
   return Object.fromEntries(entries) as AwaitedObject<T>;
+}
+
+function energyBars(energyMonitor: EnergyMonitorCapability, selector: TimeRangeSelector): Promise<HistoryBarResponse[]> {
+  return mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector)
+    .then(data => [{ data, label: 'Energy (kWh)', yAxisID: 'yEnergy', period: 'day' as const }]);
 }
 
 // Registry
@@ -354,10 +360,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     const energyMonitor = device.getEnergyMonitorCapability();
 
     return awaitPromises({
-      bars: Promise.all([
-        mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector)
-          .then(data => ({ data, label: 'Energy (kWh)', yAxisID: 'yEnergy', period: 'day' as const }))
-      ]),
+      bars: energyBars(energyMonitor, selector),
       lines: Promise.all([
         mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
           .then(data => ({ data, label: 'Cost (£)', yAxisID: 'yCost', period: 'day' as const }))
@@ -368,7 +371,8 @@ const historyFetchers = new Map<string, HistoryFetcher>([
   // Energy Monitor - Effective Unit Rate (p/kWh per day = day cost / day energy)
   ['energy-unit-rate-daily', async (device, selector) => {
     const energyMonitor = device.getEnergyMonitorCapability();
-    const [costPenceByDay, energyByDay] = await Promise.all([
+    const [bars, costPenceByDay, energyByDay] = await Promise.all([
+      energyBars(energyMonitor, selector),
       mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector).then(bucketByDay),
       mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector).then(bucketByDay)
     ]);
@@ -376,13 +380,14 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     const days = daysInRange(selector.since, selector.until);
 
     return {
+      bars,
       lines: [{
         data: daysToLineData(days, selector.since.toISOString(), selector.until.toISOString(), (day) => {
           const energy = energyByDay.get(day);
 
           return energy ? (costPenceByDay.get(day) ?? 0) / energy : undefined;
         }),
-        label: 'Unit rate (p/kWh)', period: 'day' as const
+        label: 'Unit rate (p/kWh)', yAxisID: 'yRate', period: 'day' as const
       }]
     };
   }],
