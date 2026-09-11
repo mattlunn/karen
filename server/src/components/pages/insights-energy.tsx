@@ -6,6 +6,7 @@ import { useDeviceHistory } from '../../hooks/queries/use-device-history';
 import { DateRangeProvider, DateRangeSelector, getPresetRange } from '../date-range';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
+import { usePillToggle } from '../capability-graphs/pill-toggle';
 import PageLoader from '../page-loader';
 import dayjs from '../../dayjs';
 
@@ -32,6 +33,8 @@ const yAxisRate = {
   }
 };
 
+// Cost and rate are suggestedMin rather than min: plunge pricing pays us to
+// import, so both genuinely go negative.
 const yAxisMeterDaily = {
   yEnergy: {
     position: 'left' as const,
@@ -40,8 +43,17 @@ const yAxisMeterDaily = {
   },
   yCost: {
     position: 'right' as const,
-    min: 0,
+    suggestedMin: 0,
     label: 'Cost (£)'
+  }
+};
+
+const yAxisMeterDailyRate = {
+  yEnergy: yAxisMeterDaily.yEnergy,
+  yRate: {
+    position: 'right' as const,
+    suggestedMin: 0,
+    label: 'Unit rate (p/kWh)'
   }
 };
 
@@ -85,12 +97,19 @@ function UsageGraph() {
   );
 }
 
-// The whole-house total is just the smart meter's own per-device daily graph -
+const METER_DAILY_TOGGLE_OPTIONS = [
+  { value: 'energy-daily', label: 'Total cost' },
+  { value: 'energy-unit-rate-daily', label: 'Avg unit price' }
+];
+
+// The whole-house total is just the smart meter's own per-device daily graphs -
 // the ENERGY_MONITOR device that also reports ENERGY_COST - so this renders
-// /device/<meter>/history?id=energy-daily rather than a bespoke endpoint.
+// /device/<meter>/history?id=energy-daily|energy-unit-rate-daily rather than a
+// bespoke endpoint.
 function MeterDailyGraph() {
   const { preset, setPreset, range, setRange, params } = useLocalRange('lastMonth');
   const { data: devicesData } = useDevices();
+  const { value: activeId, control } = usePillToggle(METER_DAILY_TOGGLE_OPTIONS);
 
   const meterId = devicesData?.devices.find(device =>
     device.capabilities.some(c => c.type === 'ENERGY_MONITOR') &&
@@ -101,23 +120,27 @@ function MeterDailyGraph() {
     <>
       <Group justify="space-between" mt="lg">
         <Title order={4}>House total (per day)</Title>
-        <DateRangeSelector
-          preset={preset}
-          range={range}
-          onPresetChange={setPreset}
-          onRangeChange={setRange}
-        />
+        <Group gap="sm">
+          {control}
+          <DateRangeSelector
+            preset={preset}
+            range={range}
+            onPresetChange={setPreset}
+            onRangeChange={setRange}
+          />
+        </Group>
       </Group>
 
-      {meterId == null ? <PageLoader /> : <MeterDailyGraphBody deviceId={meterId} params={params} />}
+      {meterId == null ? <PageLoader /> : <MeterDailyGraphBody deviceId={meterId} params={params} activeId={activeId} />}
     </>
   );
 }
 
-function MeterDailyGraphBody({ deviceId, params }: { deviceId: number; params: { since: string; until: string } }) {
+function MeterDailyGraphBody({ deviceId, params, activeId }: { deviceId: number; params: { since: string; until: string }; activeId: string | undefined }) {
+  const graphId = activeId ?? 'energy-daily';
   const historyParams = useMemo(
-    () => ({ id: 'energy-daily', since: params.since, until: params.until }),
-    [params.since, params.until]
+    () => ({ id: graphId, since: params.since, until: params.until }),
+    [graphId, params.since, params.until]
   );
   const { data, isPending, isError } = useDeviceHistory(deviceId, historyParams);
 
@@ -131,10 +154,11 @@ function MeterDailyGraphBody({ deviceId, params }: { deviceId: number; params: {
 
   return (
     <CapabilityGraph
+      key={graphId}
       lines={data.lines}
       bars={data.bars}
       timeUnit="day"
-      yAxis={yAxisMeterDaily}
+      yAxis={graphId === 'energy-unit-rate-daily' ? yAxisMeterDailyRate : yAxisMeterDaily}
     />
   );
 }
