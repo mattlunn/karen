@@ -3,7 +3,9 @@ import { Checkbox, Group, Title } from '@mantine/core';
 import { useDeviceHistory } from '../../hooks/queries/use-device-history';
 import { useDateRange, DateRangeSelector, getPresetRange } from '../date-range';
 import { CapabilityGraph, CapabilityGraphProps } from './capability-graph';
+import { usePillToggle } from './pill-toggle';
 import { DateRange, DateRangePreset } from '../date-range/types';
+import type { GraphConfig } from '../capabilities/types';
 import dayjs from '../../dayjs';
 
 type DeviceGraphProps = {
@@ -15,6 +17,7 @@ type DeviceGraphProps = {
   yMax?: number;
   suggestedYMin?: number;
   yAxis?: CapabilityGraphProps['yAxis'];
+  toggle?: GraphConfig['toggle'];
   overridePageDateRange?: DateRangePreset;
   overridePageDateRangeStart?: string;
   overridePageDateRangeEnd?: string;
@@ -44,6 +47,7 @@ export function DeviceGraph({
   yMax,
   suggestedYMin,
   yAxis,
+  toggle,
   overridePageDateRange,
   overridePageDateRangeStart,
   overridePageDateRangeEnd,
@@ -55,14 +59,17 @@ export function DeviceGraph({
   const [localRange, setLocalRange] = useState<DateRange | null>(
     () => getInitialRange(overridePageDateRange, overridePageDateRangeStart, overridePageDateRangeEnd)
   );
+  const { value: activeId, control } = usePillToggle(toggle?.map(t => ({ value: t.id, label: t.pillLabel })));
 
   const effectiveRange = usePageRange ? globalRange : (localRange ?? globalRange);
+  const effectiveGraphId = activeId ?? graphId;
+  const effectiveYAxis = toggle?.find(t => t.id === activeId)?.yAxis ?? yAxis;
 
   const params = useMemo(() => ({
-    id: graphId,
+    id: effectiveGraphId,
     since: effectiveRange.since.toISOString(),
     until: effectiveRange.until.toISOString()
-  }), [graphId, effectiveRange.since, effectiveRange.until]);
+  }), [effectiveGraphId, effectiveRange.since, effectiveRange.until]);
 
   const { data, isPending, isError } = useDeviceHistory(deviceId, params);
 
@@ -86,8 +93,8 @@ export function DeviceGraph({
   }
 
   const mergedYAxis = (yMin === undefined && yMax === undefined && suggestedYMin === undefined)
-    ? yAxis
-    : { ...yAxis, y: { ...yAxis?.y, min: yMin, max: yMax, suggestedMin: suggestedYMin } };
+    ? effectiveYAxis
+    : { ...effectiveYAxis, y: { ...effectiveYAxis?.y, min: yMin, max: yMax, suggestedMin: suggestedYMin } };
 
   const graphProps: CapabilityGraphProps = {
     lines: data.lines,
@@ -101,7 +108,10 @@ export function DeviceGraph({
   return (
     <div className="device-graph">
       <Group justify="space-between" className="device-graph__controls" mt="lg">
-        <Title order={4}>{title}</Title>
+        <Group gap="sm">
+          <Title order={4}>{title}</Title>
+          {control}
+        </Group>
         <Group gap="sm">
         {!usePageRange && localRange && (
           <DateRangeSelector
@@ -120,7 +130,7 @@ export function DeviceGraph({
         </Group>
       </Group>
 
-      <CapabilityGraph {...graphProps} />
+      <CapabilityGraph key={effectiveGraphId} {...graphProps} />
     </div>
   );
 }

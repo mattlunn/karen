@@ -131,6 +131,9 @@ export interface GraphConfig {
   overrideStart?: string;
   overrideEnd?: string;
   timeUnit?: TimeUnit;
+  // Alternate history ids the user can pill-toggle between - when present, the
+  // selected option's `id`/`yAxis` are used instead of this graph's own.
+  toggle?: { id: string; pillLabel: string; yAxis?: GraphConfig['yAxis'] }[];
 }
 
 // ============================================================================
