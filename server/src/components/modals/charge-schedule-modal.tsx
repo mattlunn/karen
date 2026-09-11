@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Box, Button, Group, Slider, Text, Title } from '@mantine/core';
-import { DateTimePicker } from '@mantine/dates';
 import { useVehicleMutation } from '../../hooks/mutations/use-device-mutations';
 import { formatValueOrUnknown as v } from '../../helpers/format';
 import type { RestDeviceResponse, CapabilityApiResponse } from '../../api/types';
-import dayjs from '../../dayjs';
+import dayjs, { Dayjs } from '../../dayjs';
+import DateTimeSelect from '../date-time-select';
 
 type ElectricVehicleCapability = Extract<CapabilityApiResponse, { type: 'ELECTRIC_VEHICLE' }>;
 
@@ -16,14 +16,14 @@ interface ChargeScheduleModalProps {
 
 export default function ChargeScheduleModal({ device, capability, closeModal }: ChargeScheduleModalProps) {
   const [targetPercentage, setTargetPercentage] = useState<number>(100);
-  const [targetTime, setTargetTime] = useState<string>(dayjs().add(1, 'day').hour(7).minute(0).second(0).format('YYYY-MM-DD HH:mm:ss'));
+  const [targetTime, setTargetTime] = useState<Dayjs>(dayjs().add(1, 'day').hour(7).minute(0).second(0));
   const { mutate: updateVehicle, isPending } = useVehicleMutation(device.id);
 
   const handleSubmit = () => {
     updateVehicle({
       manualChargeSchedule: {
         targetPercentage,
-        targetTime: dayjs(targetTime).toISOString()
+        targetTime: targetTime.toISOString()
       }
     }, {
       onSuccess: () => closeModal()
@@ -63,11 +63,7 @@ export default function ChargeScheduleModal({ device, capability, closeModal }: 
 
       <Box my="xl">
         <Text size="sm" fw={500} mb="xs">Target Time</Text>
-        <DateTimePicker
-          value={targetTime}
-          onChange={(val) => val && setTargetTime(val)}
-          clearable={false}
-        />
+        <DateTimeSelect value={targetTime} onChange={setTargetTime} minDate={new Date()} />
       </Box>
 
       <Group justify="flex-end" mt="xl">
