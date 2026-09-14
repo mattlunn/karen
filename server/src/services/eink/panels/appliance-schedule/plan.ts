@@ -36,7 +36,11 @@ export interface DelayBucket {
   // A whole-run-finishes-within-[from, to] window, not a dial range.
   from: number;
   to: number;
-  // Null renders as empty - nothing in this window could be costed.
+  // Null when nothing finishing in [from, to) is costable - either the
+  // forecast is too short, or (for a composed profile) the downstream leg
+  // pushes every candidate dial's finish time out of this window. Renders
+  // as £££, the same as a genuinely pricier option - not worth
+  // distinguishing "unknown" from "not worth it" to the viewer.
   option: DelayOption | null;
 }
 

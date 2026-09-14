@@ -156,7 +156,10 @@ function drawCell(ctx: SKRSContext2D, cx: number, top: number, cell: BaselineCom
   ctx.fillText(numText, startX + arrowSize * 2 + arrowGap, valueY);
 }
 
-function drawEmptyBucketCell(ctx: SKRSContext2D, cx: number, top: number) {
+// bucket.option is null when nothing finishing in this window was costable
+// (short forecast, or a composed profile's downstream leg pushing every
+// candidate out of range) - shown as £££, same as a genuinely pricier option.
+function drawUncostableBucketCell(ctx: SKRSContext2D, cx: number, top: number) {
   drawCentered(ctx, '£££', cx, top + VALUE_BASELINE_Y_OFFSET, VALUE_FONT);
 }
 
@@ -188,7 +191,7 @@ function drawRow(ctx: SKRSContext2D, top: number, row: AppliancePanelRow) {
     const cx = bucketColumnX(i);
 
     if (bucket.option === null) {
-      drawEmptyBucketCell(ctx, cx, top);
+      drawUncostableBucketCell(ctx, cx, top);
     } else {
       drawCell(ctx, cx, top, bucket.option, bucket.option.dialHours);
     }
