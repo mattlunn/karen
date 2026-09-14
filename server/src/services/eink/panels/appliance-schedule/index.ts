@@ -51,15 +51,10 @@ async function fillUnpublishedTail(energyCost: EnergyCostCapability, publishedSl
 
 // Flat average pence/kWh over the trailing window - what this appliance
 // "normally" costs to run, against which Now and every bucket are judged.
-// Null when there isn't a week of history yet (e.g. a fresh install).
-async function getBaselinePencePerKwh(energyCost: EnergyCostCapability, now: Date): Promise<number | null> {
+async function getBaselinePencePerKwh(energyCost: EnergyCostCapability, now: Date): Promise<number> {
   const since = dayjs(now).subtract(BASELINE_WINDOW_DAYS, 'day').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until: now });
   const slots = toPriceSlots(events, since, now);
-
-  if (slots.length === 0) {
-    return null;
-  }
 
   return slots.reduce((sum, slot) => sum + slot.pence, 0) / slots.length;
 }
@@ -82,7 +77,7 @@ async function render(): Promise<void> {
 
   const rows: AppliancePanelRow[] = profiles.map(profile => ({
     profile,
-    plan: baselinePencePerKwh === null ? null : planAppliance({
+    plan: planAppliance({
       slots, now, profile, baselinePencePerKwh,
       negligibleSavingPence: config.eink.appliance_schedule.negligible_saving_pence,
       normalBandPercent: config.eink.appliance_schedule.normal_band_percent,
