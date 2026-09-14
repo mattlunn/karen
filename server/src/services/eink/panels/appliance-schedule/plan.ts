@@ -36,11 +36,13 @@ export interface DelayBucket {
   // A whole-run-finishes-within-[from, to] window, not a dial range.
   from: number;
   to: number;
-  // Null when nothing finishing in [from, to) is costable - either the
-  // forecast is too short, or (for a composed profile) the downstream leg
-  // pushes every candidate dial's finish time out of this window. Renders
-  // as £££, the same as a genuinely pricier option - not worth
-  // distinguishing "unknown" from "not worth it" to the viewer.
+  // Null when no dial's full run both finishes in [from, to) and is costable
+  // against `slots` - index.ts always backfills slots with the prior day's
+  // prices far enough to cover every profile's delayMaxHours plus downstream
+  // leg, so in practice this only happens when a composed profile's
+  // downstream leg pushes every candidate's finish time out of this
+  // particular bucket. Renders as £££, the same as a genuinely pricier
+  // option - not worth distinguishing "unreachable" from "not worth it".
   option: DelayOption | null;
 }
 
