@@ -15,6 +15,7 @@ const PANEL_ID = 'appliance-schedule';
 // Only ~31h of Agile prices are ever published; asking further ahead just
 // returns whatever exists, same rationale as services/octopus's own window.
 const FORECAST_HORIZON_HOURS = 48;
+const BASELINE_WINDOW_DAYS = 7;
 
 async function getEnergyCostCapability() {
   const devices = await Device.findByCapability('ENERGY_COST');
@@ -48,6 +49,21 @@ async function fillUnpublishedTail(energyCost: EnergyCostCapability, publishedSl
   return [...publishedSlots, ...estimateSlots];
 }
 
+// Flat average pence/kWh over the trailing window - what this appliance
+// "normally" costs to run, against which Now and every bucket are judged.
+// Null when there isn't a week of history yet (e.g. a fresh install).
+async function getBaselinePencePerKwh(energyCost: EnergyCostCapability, now: Date): Promise<number | null> {
+  const since = dayjs(now).subtract(BASELINE_WINDOW_DAYS, 'day').toDate();
+  const events = await energyCost.getUnitRateHistory({ since, until: now });
+  const slots = toPriceSlots(events, since, now);
+
+  if (slots.length === 0) {
+    return null;
+  }
+
+  return slots.reduce((sum, slot) => sum + slot.pence, 0) / slots.length;
+}
+
 async function render(): Promise<void> {
   const energyCost = await getEnergyCostCapability();
 
@@ -61,13 +77,15 @@ async function render(): Promise<void> {
   const events = await energyCost.getUnitRateHistory({ since, until });
   const publishedSlots = toPriceSlots(events, since, until);
   const slots = await fillUnpublishedTail(energyCost, publishedSlots, since, until);
+  const baselinePencePerKwh = await getBaselinePencePerKwh(energyCost, now);
   const profiles = loadApplianceProfiles();
 
   const rows: AppliancePanelRow[] = profiles.map(profile => ({
     profile,
-    plan: planAppliance({
-      slots, now, profile,
+    plan: baselinePencePerKwh === null ? null : planAppliance({
+      slots, now, profile, baselinePencePerKwh,
       negligibleSavingPence: config.eink.appliance_schedule.negligible_saving_pence,
+      normalBandPercent: config.eink.appliance_schedule.normal_band_percent,
     }),
   }));
 

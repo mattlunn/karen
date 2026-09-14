@@ -2,17 +2,18 @@ import { SKRSContext2D } from '@napi-rs/canvas';
 import dayjs from '../../../../dayjs';
 import { PriceSlot } from '../../../../helpers/prices';
 import { createPanelCanvas, ditherFill, hairline } from '../../render/canvas';
-import { ApplianceProfile, RowPlan, DelayBucket } from './plan';
+import { ApplianceProfile, RowPlan, BaselineComparison } from './plan';
 import { scaleSparkline, SparklineData } from './sparkline';
 
 export const WIDTH = 792;
 export const HEIGHT = 272;
 
 const MARGIN = 24;
-const OPTIONS_START_X = 248;
+const LABEL_END_X = 214;
+const NOW_END_X = 334;
 const OPTIONS_END_X = WIDTH - MARGIN;
-const OPTION_COUNT = 3;
-const OPTION_WIDTH = (OPTIONS_END_X - OPTIONS_START_X) / OPTION_COUNT;
+const BUCKET_COUNT = 3;
+const BUCKET_WIDTH = (OPTIONS_END_X - NOW_END_X) / BUCKET_COUNT;
 const ROW_HEIGHT = 68;
 const HEADER_HEIGHT = 64;
 
@@ -60,8 +61,12 @@ function drawLeft(ctx: SKRSContext2D, text: string, x: number, baselineY: number
   ctx.fillText(text, x, baselineY);
 }
 
-function optionColumnX(index: number): number {
-  return OPTIONS_START_X + index * OPTION_WIDTH;
+function nowColumnX(): number {
+  return (LABEL_END_X + NOW_END_X) / 2;
+}
+
+function bucketColumnX(index: number): number {
+  return NOW_END_X + index * BUCKET_WIDTH + BUCKET_WIDTH / 2;
 }
 
 function drawSparkline(ctx: SKRSContext2D, x: number, y: number, w: number, h: number, data: SparklineData) {
@@ -98,59 +103,94 @@ function drawSparkline(ctx: SKRSContext2D, x: number, y: number, w: number, h: n
   ctx.fill();
 }
 
-function drawBucket(ctx: SKRSContext2D, index: number, top: number, bucket: DelayBucket) {
-  const centerX = optionColumnX(index) + OPTION_WIDTH / 2;
+// A manual chevron - safer to render on an eInk font than relying on a
+// Unicode arrow glyph being present in DejaVu Sans at small sizes.
+function drawArrowDown(ctx: SKRSContext2D, cx: number, cy: number, size: number) {
+  ctx.beginPath();
+  ctx.moveTo(cx - size, cy - size * 0.55);
+  ctx.lineTo(cx + size, cy - size * 0.55);
+  ctx.lineTo(cx, cy + size * 0.7);
+  ctx.closePath();
+  ctx.fill();
+}
 
-  // No feasible option at all - nothing worth showing a number for.
-  if (bucket.option === null) {
-    drawCentered(ctx, '£££', centerX, top + 46, '28px "DejaVu Sans Bold"');
+// Renders one cell of the grid - shared by the Now column (no dialHours) and
+// each bucket column. £££ covers both "pricier than normal" and "nothing
+// feasible in this window" (bucket.option === null), same as running now
+// being a bad idea either way - no separate treatment needed.
+function drawCell(ctx: SKRSContext2D, cx: number, top: number, cell: BaselineComparison, dialHours?: number) {
+  const prefix = cell.isEstimated ? '~' : '';
+
+  if (dialHours !== undefined) {
+    drawCentered(ctx, `+${dialHours}h`, cx, top + 18, '14px "DejaVu Sans"');
+  }
+
+  if (cell.isWithinNormalBand) {
+    drawCentered(ctx, `${prefix}Normal`, cx, top + 48, '22px "DejaVu Sans Bold"');
 
     return;
   }
 
-  const { option } = bucket;
-  const prefix = option.isEstimated ? '~' : '';
-
-  // Checked ahead of "more expensive" below, so a tiny loss reads as "Same".
-  if (option.isBelowNegligibleSavingsPence) {
-    drawCentered(ctx, `${prefix}Same`, centerX, top + 46, '28px "DejaVu Sans Bold"');
+  if (cell.pctVsBaseline > 0) {
+    drawCentered(ctx, `${prefix}£££`, cx, top + 52, '28px "DejaVu Sans Bold"');
 
     return;
   }
 
-  if (option.savingPercent < 0) {
-    drawCentered(ctx, `${prefix}£££`, centerX, top + 46, '28px "DejaVu Sans Bold"');
+  const magY = top + 50;
 
-    return;
-  }
+  ctx.font = '27px "DejaVu Sans Bold"';
 
-  drawCentered(ctx, `${option.dialHours}h`, centerX, top + 20, '16px "DejaVu Sans Bold"');
-  drawCentered(ctx, `${prefix}${option.savingPercent}%`, centerX, top + 46, '28px "DejaVu Sans Bold"');
-  drawCentered(ctx, 'saved', centerX, top + 62, '14px "DejaVu Sans"');
+  const numText = `${prefix}${Math.abs(cell.pctVsBaseline)}%`;
+  const numWidth = ctx.measureText(numText).width;
+  const arrowGap = 7;
+  const arrowSize = 7;
+  const totalWidth = numWidth + arrowGap + arrowSize * 2;
+  const startX = cx - totalWidth / 2;
+
+  drawArrowDown(ctx, startX + arrowSize, magY - 10, arrowSize);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(numText, startX + arrowSize * 2 + arrowGap, magY);
+}
+
+function drawEmptyBucketCell(ctx: SKRSContext2D, cx: number, top: number) {
+  drawCentered(ctx, '£££', cx, top + 52, '28px "DejaVu Sans Bold"');
 }
 
 function drawRow(ctx: SKRSContext2D, top: number, row: AppliancePanelRow) {
   const totalKwh = row.profile.powerProfileKwh.reduce((sum, v) => sum + v, 0);
 
-  drawLeft(ctx, row.profile.label, MARGIN, top + 28, '20px "DejaVu Sans Bold"');
+  drawLeft(ctx, row.profile.label, MARGIN, top + 28, '18px "DejaVu Sans Bold"');
   drawLeft(ctx, `${formatDuration(row.profile.fullElapsedDuration)} · ${formatKwh(totalKwh)}`, MARGIN, top + 52, '18px "DejaVu Sans"');
 
   if (row.plan === null) {
-    drawCentered(ctx, 'No price data for this cycle', (OPTIONS_START_X + OPTIONS_END_X) / 2, top + 40, '20px "DejaVu Sans"');
+    drawCentered(ctx, 'No price data for this cycle', (LABEL_END_X + OPTIONS_END_X) / 2, top + 40, '20px "DejaVu Sans"');
 
     return;
   }
 
-  // Only highlight best when it meaningfully beats running now.
-  const bestIndex = row.plan.best === null || row.plan.best.isBelowNegligibleSavingsPence || row.plan.best.savingPercent < 0
-    ? -1
-    : row.plan.buckets.findIndex(b => b.option === row.plan!.best);
+  const { plan } = row;
+  const bestIsNow = plan.best !== null && plan.best === plan.now;
+  const bestBucketIndex = plan.best === null ? -1 : plan.buckets.findIndex(b => b.option === plan.best);
 
-  if (bestIndex !== -1) {
-    ditherFill(ctx, optionColumnX(bestIndex), top, OPTION_WIDTH, ROW_HEIGHT);
+  if (bestIsNow) {
+    ditherFill(ctx, LABEL_END_X, top, NOW_END_X - LABEL_END_X, ROW_HEIGHT);
+  } else if (bestBucketIndex !== -1) {
+    ditherFill(ctx, NOW_END_X + bestBucketIndex * BUCKET_WIDTH, top, BUCKET_WIDTH, ROW_HEIGHT);
   }
 
-  row.plan.buckets.forEach((bucket, i) => drawBucket(ctx, i, top, bucket));
+  drawCell(ctx, nowColumnX(), top, plan.now);
+
+  plan.buckets.forEach((bucket, i) => {
+    const cx = bucketColumnX(i);
+
+    if (bucket.option === null) {
+      drawEmptyBucketCell(ctx, cx, top);
+    } else {
+      drawCell(ctx, cx, top, bucket.option, bucket.option.dialHours);
+    }
+  });
 }
 
 export function renderAppliancePanel(data: AppliancePanelData): Buffer {
@@ -164,6 +204,8 @@ export function renderAppliancePanel(data: AppliancePanelData): Buffer {
   drawSparkline(ctx, SPARKLINE_X, SPARKLINE_Y, SPARKLINE_WIDTH, SPARKLINE_HEIGHT, sparkline);
   hairline(ctx, MARGIN, HEADER_HEIGHT, WIDTH - MARGIN);
 
+  drawCentered(ctx, 'Now', nowColumnX(), 54, '16px "DejaVu Sans"');
+
   // Bucket ranges are identical across rows in practice, so label once.
   const headerBuckets = data.rows.find(r => r.plan !== null)?.plan?.buckets;
 
@@ -171,7 +213,7 @@ export function renderAppliancePanel(data: AppliancePanelData): Buffer {
     const from = dayjs(data.now).add(bucket.from, 'hour').format('HH:mm');
     const to = dayjs(data.now).add(bucket.to, 'hour').format('HH:mm');
 
-    drawCentered(ctx, `${from}-${to}`, optionColumnX(i) + OPTION_WIDTH / 2, 54, '16px "DejaVu Sans"');
+    drawCentered(ctx, `${from}-${to}`, bucketColumnX(i), 54, '16px "DejaVu Sans"');
   });
 
   data.rows.forEach((row, i) => {

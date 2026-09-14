@@ -24,7 +24,7 @@ const oneSlotProfile: ApplianceProfile = {
 
 function plan(slots: PriceSlot[], overrides: Partial<PlanApplianceOptions> = {}) {
   return planAppliance({
-    slots, now: at(0), profile: oneSlotProfile, negligibleSavingPence: 0, ...overrides,
+    slots, now: at(0), profile: oneSlotProfile, baselinePencePerKwh: 10, negligibleSavingPence: 0, normalBandPercent: 0, ...overrides,
   });
 }
 
@@ -33,7 +33,7 @@ describe('planAppliance - cost now', () => {
     const profile: ApplianceProfile = { id: 't', label: 'T', fullElapsedDuration: 60, dialCycleMinutes: 60, powerProfileKwh: [2, 1], delayMinHours: 3, delayMaxHours: 12 };
     const slots = [{ start: at(0), end: at(0.5), pence: 5 }, { start: at(0.5), end: at(1), pence: 3 }];
 
-    expect(plan(slots, { profile })!.costNowPence).toBe(2 * 5 + 1 * 3);
+    expect(plan(slots, { profile })!.now.costPence).toBe(2 * 5 + 1 * 3);
   });
 
   it('returns null when the cycle cannot even be costed starting immediately', () => {
@@ -69,64 +69,77 @@ describe('planAppliance - buckets', () => {
     expect(buckets[0].option).not.toBeNull();
   });
 
-  it('sets best to the cheapest option across all buckets', () => {
+  it('sets best to the cheapest genuine saving across now and all buckets', () => {
     const cheapStarts = new Set([4.5, 7.5].map(h => at(h).getTime()));
     const slots = run(0, 24, 10).map(s => (cheapStarts.has(s.start.getTime()) ? { ...s, pence: 1 } : s));
     const { best } = plan(slots)!;
 
-    expect(best).toEqual({ dialHours: 5, costPence: 1, savingPercent: 90, penceDifference: 9, isBelowNegligibleSavingsPence: false, isEstimated: false });
+    expect(best).toEqual({ dialHours: 5, costPence: 1, pctVsBaseline: -90, isWithinNormalBand: false, isEstimated: false });
   });
 
-  it('sets best to null when every bucket is empty', () => {
+  it('sets best to null when neither now nor any bucket is a genuine saving', () => {
     const profile: ApplianceProfile = { ...oneSlotProfile, delayMinHours: 20, delayMaxHours: 24 };
 
-    // costNowPence is costable (hour 0 is in range), but nothing at 20-24h is.
-    expect(plan(run(0, 10, 5), { profile })!.best).toBeNull();
+    // costNow (5) exactly matches the baseline - a wash, not a saving - and nothing at 20-24h is even costable.
+    expect(plan(run(0, 10, 5), { profile, baselinePencePerKwh: 5 })!.best).toBeNull();
   });
 
-  it('computes each option\'s saving relative to running immediately', () => {
+  it('picks now as best when it is the cheapest, genuine saving - nothing in a bucket needs to beat it', () => {
+    const slots = [{ start: at(0), end: at(0.5), pence: 1 }, ...run(0.5, 24, 10)];
+    const result = plan(slots, { baselinePencePerKwh: 10 })!;
+
+    expect(result.best).toBe(result.now);
+  });
+
+  it('computes each option\'s pct vs baseline', () => {
     // A 3h delay (the earliest allowed) starts at 2.5h (3h minus the 30-minute cycle).
     const slots = [...run(0, 2.5, 20), ...run(2.5, 3, 5), ...run(3, 24, 20)];
-    const { buckets } = plan(slots)!;
+    const { buckets } = plan(slots, { baselinePencePerKwh: 20 })!;
     const threeHour = buckets[0].option!;
 
     expect(threeHour.dialHours).toBe(3);
     expect(threeHour.costPence).toBe(5);
-    expect(threeHour.savingPercent).toBe(75); // (20 - 5) / 20 * 100
+    expect(threeHour.pctVsBaseline).toBe(-75); // (5 - 20) / 20 * 100
   });
 
-  it('keeps the saving\'s sign meaningful when running now is itself negative', () => {
-    // costNow (-2) is already a payout. A cheaper option (-5) must read
-    // positive, a pricier one (10) negative - dividing by the signed
-    // costNow would flip both the wrong way round.
+  it('keeps the sign meaningful when the baseline itself is negative', () => {
+    // baselineCostPence (-2) is a payout. A cheaper option (-5) must read
+    // negative (a bigger saving), a pricier one positive - dividing by the
+    // signed baseline would flip both the wrong way round.
     const slots = [...run(0, 3.5, -2), ...run(3.5, 4, -5), ...run(4, 4.5, 10), ...run(4.5, 24, -2)];
-    const { buckets } = plan(slots)!;
+    const { buckets } = plan(slots, { baselinePencePerKwh: -2 })!;
 
-    expect(buckets[0].option).toEqual({ dialHours: 4, costPence: -5, savingPercent: 150, penceDifference: 3, isBelowNegligibleSavingsPence: false, isEstimated: false }); // (-2 - -5) / 2 * 100
-    expect(buckets[0].option!.savingPercent).toBeGreaterThan(0);
+    expect(buckets[0].option).toEqual({ dialHours: 4, costPence: -5, pctVsBaseline: -150, isWithinNormalBand: false, isEstimated: false });
+    expect(buckets[0].option!.pctVsBaseline).toBeLessThan(0);
   });
 
-  it('flags an option as negligible once it is within negligibleSavingPence of running now, however large the percentage looks', () => {
-    // costNow (1) is tiny, so half a pence of difference produces a 50%
-    // savingPercent - isBelowNegligibleSavingsPence is what "Same" actually
-    // keys off, independent of that percentage.
+  it('flags an option as within the normal band once it is within negligibleSavingPence of baseline, however large the percentage looks', () => {
+    // baselineCostPence (1) is tiny, so half a pence of difference produces a
+    // 50% pctVsBaseline - isWithinNormalBand is what "Normal" actually keys
+    // off, independent of that percentage.
     const profile: ApplianceProfile = { ...oneSlotProfile, delayMinHours: 1 };
     const slots = [...run(0, 0.5, 1), ...run(0.5, 1, 0.5), ...run(1, 24, 1)];
-    const { buckets } = plan(slots, { profile, negligibleSavingPence: 10 })!;
+    const { buckets } = plan(slots, { profile, baselinePencePerKwh: 1, negligibleSavingPence: 10 })!;
     const oneHour = buckets[0].option!;
 
     expect(oneHour.dialHours).toBe(1);
-    expect(oneHour.savingPercent).toBe(50); // (1 - 0.5) / 1 * 100
-    expect(oneHour.penceDifference).toBe(0.5);
-    expect(oneHour.isBelowNegligibleSavingsPence).toBe(true);
+    expect(oneHour.pctVsBaseline).toBe(-50); // (0.5 - 1) / 1 * 100
+    expect(oneHour.isWithinNormalBand).toBe(true);
   });
 
-  it('does not flag an option as negligible once it clears the threshold', () => {
+  it('does not flag an option as within the normal band once the pence floor is cleared and the percentage band misses', () => {
     const slots = [...run(0, 2.5, 20), ...run(2.5, 3, 5), ...run(3, 24, 20)];
-    const { buckets } = plan(slots, { negligibleSavingPence: 10 })!;
+    const { buckets } = plan(slots, { baselinePencePerKwh: 20, negligibleSavingPence: 10 })!;
 
-    expect(buckets[0].option!.penceDifference).toBe(15);
-    expect(buckets[0].option!.isBelowNegligibleSavingsPence).toBe(false);
+    expect(buckets[0].option!.pctVsBaseline).toBe(-75);
+    expect(buckets[0].option!.isWithinNormalBand).toBe(false);
+  });
+
+  it('flags now as within the normal band via the percentage threshold even when the pence floor is cleared', () => {
+    const { now } = plan(run(0, 24, 97), { baselinePencePerKwh: 100, negligibleSavingPence: 1, normalBandPercent: 5 })!;
+
+    expect(now.pctVsBaseline).toBe(-3);
+    expect(now.isWithinNormalBand).toBe(true);
   });
 });
 
@@ -194,7 +207,7 @@ describe('composeProfiles - buckets are keyed by when the whole run finishes, no
   it('excludes a dial setting whose downstream leg would finish after delayMaxHours, even though the dial itself is in range', () => {
     // 8h/9h are valid washer dial settings, but the dryer's 2h afterward
     // finishes at 10h/11h - past the 9h promised. Neither should appear.
-    const { buckets } = planAppliance({ slots: run(0, 24, 10), now: at(0), profile: composed, negligibleSavingPence: 0 })!;
+    const { buckets } = planAppliance({ slots: run(0, 24, 10), now: at(0), profile: composed, baselinePencePerKwh: 10, negligibleSavingPence: 0, normalBandPercent: 0 })!;
     const dialHoursShown = buckets.flatMap(b => (b.option ? [b.option.dialHours] : []));
 
     expect(dialHoursShown).not.toContain(8);
@@ -204,7 +217,7 @@ describe('composeProfiles - buckets are keyed by when the whole run finishes, no
   it('leaves the earliest bucket empty when even the minimum dial setting finishes too late for it', () => {
     // Minimum completion is delayMinHours (3) + the dryer's 2h = 5h, so
     // nothing can complete within the first bucket's 3-5h window.
-    const { buckets } = planAppliance({ slots: run(0, 24, 10), now: at(0), profile: composed, negligibleSavingPence: 0 })!;
+    const { buckets } = planAppliance({ slots: run(0, 24, 10), now: at(0), profile: composed, baselinePencePerKwh: 10, negligibleSavingPence: 0, normalBandPercent: 0 })!;
 
     expect(buckets[0].to).toBe(5);
     expect(buckets[0].option).toBeNull();
@@ -215,10 +228,10 @@ describe('composeProfiles - buckets are keyed by when the whole run finishes, no
     // window ending at now + 9h) - 5h/6h, the bucket's other candidates,
     // can't reach this slot.
     const slots = run(0, 24, 10).map(s => (s.start.getTime() === at(8.5).getTime() ? { ...s, pence: 0 } : s));
-    const { buckets } = planAppliance({ slots, now: at(0), profile: composed, negligibleSavingPence: 0 })!;
+    const { buckets } = planAppliance({ slots, now: at(0), profile: composed, baselinePencePerKwh: 10, negligibleSavingPence: 0, normalBandPercent: 0 })!;
 
     expect(buckets[2]).toEqual({
-      from: 7, to: 9, option: { dialHours: 7, costPence: 70, savingPercent: 13, penceDifference: 10, isBelowNegligibleSavingsPence: false, isEstimated: false },
+      from: 7, to: 9, option: { dialHours: 7, costPence: 70, pctVsBaseline: -12, isWithinNormalBand: false, isEstimated: false },
     });
   });
 });

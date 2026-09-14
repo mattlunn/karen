@@ -15,36 +15,47 @@ export interface ApplianceProfile {
 
 const BUCKET_COUNT = 3;
 
-export interface DelayOption {
-  dialHours: number;
+export interface BaselineComparison {
   costPence: number;
-  savingPercent: number;
-  penceDifference: number;
-  isBelowNegligibleSavingsPence: boolean;
+  // Signed: positive means pricier than baseline, negative means cheaper.
+  // Divides by the baseline's magnitude, not its signed value, so this stays
+  // correctly signed even when the baseline itself is a payout.
+  pctVsBaseline: number;
+  // Either the pence or the percent difference from baseline is negligible -
+  // renders as "Normal" rather than £££ or a saving figure.
+  isWithinNormalBand: boolean;
   // Costed against a prior day's prices backfilled for a slot Agile hasn't published yet.
   isEstimated: boolean;
+}
+
+export interface DelayOption extends BaselineComparison {
+  dialHours: number;
 }
 
 export interface DelayBucket {
   // A whole-run-finishes-within-[from, to] window, not a dial range.
   from: number;
   to: number;
-  // Null renders as "£££".
+  // Null renders as empty - nothing in this window could be costed.
   option: DelayOption | null;
 }
 
 export interface RowPlan {
-  costNowPence: number;
+  now: BaselineComparison;
   buckets: DelayBucket[];
-  // Null only when every bucket is empty.
-  best: DelayOption | null;
+  // The cheapest of now/buckets, if it's a genuine saving vs baseline - the
+  // same object as `now` or a bucket's `option`, so callers can find which
+  // cell it is by reference. Null when nothing clears the normal band.
+  best: BaselineComparison | null;
 }
 
 export interface PlanApplianceOptions {
   slots: PriceSlot[];
   now: Date;
   profile: ApplianceProfile;
+  baselinePencePerKwh: number;
   negligibleSavingPence: number;
+  normalBandPercent: number;
 }
 
 interface WindowCost {
@@ -81,13 +92,30 @@ function indexOfSlotStarting(pool: PriceSlot[], start: Date): number {
   return pool.findIndex(s => s.start.getTime() === start.getTime());
 }
 
+function compareToBaseline(
+  cost: WindowCost,
+  baselineCostPence: number,
+  negligibleSavingPence: number,
+  normalBandPercent: number
+): BaselineComparison {
+  const penceDifference = cost.pence - baselineCostPence;
+  const pctVsBaseline = Math.round(penceDifference / Math.abs(baselineCostPence) * 100);
+  const isWithinNormalBand = Math.abs(penceDifference) < negligibleSavingPence || Math.abs(pctVsBaseline) < normalBandPercent;
+
+  return { costPence: cost.pence, pctVsBaseline, isWithinNormalBand, isEstimated: cost.isEstimated };
+}
+
+function isGenuineSaving(comparison: BaselineComparison): boolean {
+  return !comparison.isWithinNormalBand && comparison.pctVsBaseline < 0;
+}
+
 /**
  * Plans one appliance against the published price forecast. Returns null when
  * the cycle can't even be costed starting immediately - the "no price data"
  * case, where the row has nothing to show rather than a guess.
  */
 export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
-  const { slots, now, profile, negligibleSavingPence } = options;
+  const { slots, now, profile, baselinePencePerKwh, negligibleSavingPence, normalBandPercent } = options;
   const pool = slots
     .filter(s => s.end > now)
     .sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -98,7 +126,9 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
     return null;
   }
 
-  const costNowPence = costNow.pence;
+  const totalKwh = profile.powerProfileKwh.reduce((sum, kwh) => sum + kwh, 0);
+  const baselineCostPence = totalKwh * baselinePencePerKwh;
+  const nowComparison = compareToBaseline(costNow, baselineCostPence, negligibleSavingPence, normalBandPercent);
 
   const dialCycleHours = profile.dialCycleMinutes / 60;
   // Zero for a standalone appliance, the dryer's own duration for wash-then-dry.
@@ -118,8 +148,6 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
       continue;
     }
 
-    const costPence = cost.pence;
-
     const wholeRunFinishesIn = dial + downstreamHours;
 
     // Finishing outside the promised window isn't a genuine option.
@@ -128,16 +156,9 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
     }
 
     const bucket = buckets[Math.min(BUCKET_COUNT - 1, Math.floor((wholeRunFinishesIn - profile.delayMinHours) / (span / BUCKET_COUNT)))];
-    const penceDifference = Math.abs(costNowPence - costPence);
-    // costNowPence's magnitude, not its signed value, keeps this correctly signed when running now is a payout.
-    const savingPercent = Math.round((costNowPence - costPence) / Math.abs(costNowPence) * 100);
-    const option = {
+    const option: DelayOption = {
       dialHours: dial,
-      costPence,
-      savingPercent,
-      penceDifference,
-      isBelowNegligibleSavingsPence: penceDifference < negligibleSavingPence,
-      isEstimated: cost.isEstimated,
+      ...compareToBaseline(cost, baselineCostPence, negligibleSavingPence, normalBandPercent),
     };
 
     if (bucket.option === null || option.costPence < bucket.option.costPence) {
@@ -145,11 +166,12 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
     }
   }
 
-  const best = buckets.reduce<DelayOption | null>((min, bucket) => (
-    bucket.option && (min === null || bucket.option.costPence < min.costPence) ? bucket.option : min
+  const candidates: BaselineComparison[] = [nowComparison, ...buckets.flatMap(b => (b.option ? [b.option] : []))];
+  const best = candidates.reduce<BaselineComparison | null>((min, candidate) => (
+    isGenuineSaving(candidate) && (min === null || candidate.costPence < min.costPence) ? candidate : min
   ), null);
 
-  return { costNowPence, buckets, best };
+  return { now: nowComparison, buckets, best };
 }
 
 /**
