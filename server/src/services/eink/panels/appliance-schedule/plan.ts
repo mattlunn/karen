@@ -21,8 +21,8 @@ export interface BaselineComparison {
   // Divides by the baseline's magnitude, not its signed value, so this stays
   // correctly signed even when the baseline itself is a payout.
   pctVsBaseline: number;
-  // Either the pence or the percent difference from baseline is negligible -
-  // renders as "Normal" rather than £££ or a saving figure.
+  // The pence difference from baseline is negligible - renders as "Normal"
+  // rather than £££ or a saving figure.
   isWithinNormalBand: boolean;
   // Costed against a prior day's prices backfilled for a slot Agile hasn't published yet.
   isEstimated: boolean;
@@ -55,7 +55,6 @@ export interface PlanApplianceOptions {
   profile: ApplianceProfile;
   baselinePencePerKwh: number;
   negligibleSavingPence: number;
-  normalBandPercent: number;
 }
 
 interface WindowCost {
@@ -92,15 +91,10 @@ function indexOfSlotStarting(pool: PriceSlot[], start: Date): number {
   return pool.findIndex(s => s.start.getTime() === start.getTime());
 }
 
-function compareToBaseline(
-  cost: WindowCost,
-  baselineCostPence: number,
-  negligibleSavingPence: number,
-  normalBandPercent: number
-): BaselineComparison {
+function compareToBaseline(cost: WindowCost, baselineCostPence: number, negligibleSavingPence: number): BaselineComparison {
   const penceDifference = cost.pence - baselineCostPence;
   const pctVsBaseline = Math.round(penceDifference / Math.abs(baselineCostPence) * 100);
-  const isWithinNormalBand = Math.abs(penceDifference) < negligibleSavingPence || Math.abs(pctVsBaseline) < normalBandPercent;
+  const isWithinNormalBand = Math.abs(penceDifference) < negligibleSavingPence;
 
   return { costPence: cost.pence, pctVsBaseline, isWithinNormalBand, isEstimated: cost.isEstimated };
 }
@@ -115,7 +109,7 @@ function isGenuineSaving(comparison: BaselineComparison): boolean {
  * case, where the row has nothing to show rather than a guess.
  */
 export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
-  const { slots, now, profile, baselinePencePerKwh, negligibleSavingPence, normalBandPercent } = options;
+  const { slots, now, profile, baselinePencePerKwh, negligibleSavingPence } = options;
   const pool = slots
     .filter(s => s.end > now)
     .sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -128,7 +122,7 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
 
   const totalKwh = profile.powerProfileKwh.reduce((sum, kwh) => sum + kwh, 0);
   const baselineCostPence = totalKwh * baselinePencePerKwh;
-  const nowComparison = compareToBaseline(costNow, baselineCostPence, negligibleSavingPence, normalBandPercent);
+  const nowComparison = compareToBaseline(costNow, baselineCostPence, negligibleSavingPence);
 
   const dialCycleHours = profile.dialCycleMinutes / 60;
   // Zero for a standalone appliance, the dryer's own duration for wash-then-dry.
@@ -158,7 +152,7 @@ export function planAppliance(options: PlanApplianceOptions): RowPlan | null {
     const bucket = buckets[Math.min(BUCKET_COUNT - 1, Math.floor((wholeRunFinishesIn - profile.delayMinHours) / (span / BUCKET_COUNT)))];
     const option: DelayOption = {
       dialHours: dial,
-      ...compareToBaseline(cost, baselineCostPence, negligibleSavingPence, normalBandPercent),
+      ...compareToBaseline(cost, baselineCostPence, negligibleSavingPence),
     };
 
     if (bucket.option === null || option.costPence < bucket.option.costPence) {

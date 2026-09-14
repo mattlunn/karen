@@ -80,7 +80,6 @@ async function render(): Promise<void> {
     plan: planAppliance({
       slots, now, profile, baselinePencePerKwh,
       negligibleSavingPence: config.eink.appliance_schedule.negligible_saving_pence,
-      normalBandPercent: config.eink.appliance_schedule.normal_band_percent,
     }),
   }));
 

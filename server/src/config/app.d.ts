@@ -159,7 +159,6 @@ declare namespace _default {
       const render_cron: string;
       const transfer_gap_minutes: number;
       const negligible_saving_pence: number;
-      const normal_band_percent: number;
       const appliances: {
         id: string;
         label: string;
