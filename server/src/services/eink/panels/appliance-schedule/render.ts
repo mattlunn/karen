@@ -118,44 +118,46 @@ function drawArrowDown(ctx: SKRSContext2D, cx: number, cy: number, size: number)
 // each bucket column. £££ covers both "pricier than normal" and "nothing
 // feasible in this window" (bucket.option === null), same as running now
 // being a bad idea either way - no separate treatment needed.
+const VALUE_FONT = '22px "DejaVu Sans Bold"';
+const VALUE_BASELINE_Y_OFFSET = 48;
+
 function drawCell(ctx: SKRSContext2D, cx: number, top: number, cell: BaselineComparison, dialHours?: number) {
   const prefix = cell.isEstimated ? '~' : '';
+  const valueY = top + VALUE_BASELINE_Y_OFFSET;
 
   if (dialHours !== undefined) {
     drawCentered(ctx, `+${dialHours}h`, cx, top + 18, '14px "DejaVu Sans"');
   }
 
   if (cell.isWithinNormalBand) {
-    drawCentered(ctx, `${prefix}Normal`, cx, top + 48, '22px "DejaVu Sans Bold"');
+    drawCentered(ctx, `${prefix}Normal`, cx, valueY, VALUE_FONT);
 
     return;
   }
 
   if (cell.pctVsBaseline > 0) {
-    drawCentered(ctx, `${prefix}£££`, cx, top + 52, '28px "DejaVu Sans Bold"');
+    drawCentered(ctx, `${prefix}£££`, cx, valueY, VALUE_FONT);
 
     return;
   }
 
-  const magY = top + 50;
-
-  ctx.font = '27px "DejaVu Sans Bold"';
+  ctx.font = VALUE_FONT;
 
   const numText = `${prefix}${Math.abs(cell.pctVsBaseline)}%`;
   const numWidth = ctx.measureText(numText).width;
-  const arrowGap = 7;
-  const arrowSize = 7;
+  const arrowGap = 6;
+  const arrowSize = 6;
   const totalWidth = numWidth + arrowGap + arrowSize * 2;
   const startX = cx - totalWidth / 2;
 
-  drawArrowDown(ctx, startX + arrowSize, magY - 10, arrowSize);
+  drawArrowDown(ctx, startX + arrowSize, valueY - 8, arrowSize);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(numText, startX + arrowSize * 2 + arrowGap, magY);
+  ctx.fillText(numText, startX + arrowSize * 2 + arrowGap, valueY);
 }
 
 function drawEmptyBucketCell(ctx: SKRSContext2D, cx: number, top: number) {
-  drawCentered(ctx, '£££', cx, top + 52, '28px "DejaVu Sans Bold"');
+  drawCentered(ctx, '£££', cx, top + VALUE_BASELINE_Y_OFFSET, VALUE_FONT);
 }
 
 function drawRow(ctx: SKRSContext2D, top: number, row: AppliancePanelRow) {
