@@ -1,6 +1,30 @@
 import { createConnection } from 'net';
 import sleep from '../../helpers/sleep';
 
+export type Weekday = 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+
+const WEEKDAYS: readonly Weekday[] = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// HwcLegionellaDay's own enum uses 3-letter tokens, distinct from the full
+// weekday names hwcTimer.<Day> is addressed by.
+const LEGIONELLA_DAY_TOKENS: Record<Weekday, string> = {
+  Sunday: 'Sun',
+  Monday: 'Mon',
+  Tuesday: 'Tue',
+  Wednesday: 'Wed',
+  Thursday: 'Thu',
+  Friday: 'Fri',
+  Saturday: 'Sat',
+};
+
+export function weekdayOf(date: Date): Weekday {
+  return WEEKDAYS[date.getDay()];
+}
+
+export function legionellaDayToken(day: Weekday): string {
+  return LEGIONELLA_DAY_TOKENS[day];
+}
+
 function toNumber(value: string): number {
   const num = Number(value);
 
@@ -176,7 +200,7 @@ export default class EbusClient {
     return this.#read({ value: 'CopHwc', circuit: 'hmu' }, toNumber);
   }
 
-  async setDHWOpMode(mode: 'off' | 'manual') {
+  async setDHWOpMode(mode: 'off' | 'manual' | 'time controlled') {
     await this.#write('ctlv3', 'HwcOpMode', mode);
   }
 
@@ -189,5 +213,40 @@ export default class EbusClient {
   // and the controller reverts HwcSFMode to `auto` itself once done.
   async setDHWSpecialFunction(mode: 'auto' | 'load') {
     await this.#write('ctlv3', 'HwcSFMode', mode);
+  }
+
+  // The controller's own weekly pasteurising schedule - `off` disables it,
+  // any weekday re-arms it for every future occurrence of that day until
+  // changed again.
+  async getDHWLegionellaDay(): Promise<string> {
+    return this.#read({ value: 'HwcLegionellaDay', circuit: 'ctlv3' }, (v) => v);
+  }
+
+  async setDHWLegionellaDay(day: Weekday | 'off') {
+    await this.#write('ctlv3', 'HwcLegionellaDay', day === 'off' ? 'off' : legionellaDayToken(day));
+  }
+
+  async setDHWLegionellaTime(hhMmSs: string) {
+    await this.#write('ctlv3', 'HwcLegionellaTime', hhMmSs);
+  }
+
+  // The weekly HWC comfort timer's single Karen-managed slot for `day`: a
+  // bare [from, to) time-of-day window with no temperature of its own -
+  // HwcTempDesired supplies that, same as it always has.
+  //
+  // UNVERIFIED: the field name and argument layout are inferred from the
+  // ebusd-configuration TypeSpec source (vaillant/15.ctlv2.tsp,
+  // HwcTimer_<Day>'s wTimeSlotWithoutTemp: slotIndex, slotCount,
+  // slotTimeFrame.from, slotTimeFrame.to, then a fixed 0xffff filler) rather
+  // than confirmed against a live `find -f`, since the currently-loaded
+  // ebusd config predates the fix that makes these fields decodable at all.
+  // Confirm with `find -f -c ctlv3 hwcTimer.Monday` once the ebusd config is
+  // updated, and correct the argument list below if it differs.
+  async setDHWComfortSchedule(day: Weekday, from: string, to: string) {
+    await this.#write('ctlv3', `hwcTimer.${day}`, `0;1;${from};${to};65535`);
+  }
+
+  async clearDHWComfortSchedule(day: Weekday) {
+    await this.#write('ctlv3', `hwcTimer.${day}`, `0;0;00:00;00:00;65535`);
   }
 }
