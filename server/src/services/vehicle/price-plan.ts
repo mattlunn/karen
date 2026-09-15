@@ -46,20 +46,26 @@ function hoursToCharge(from: number, to: number, ratePercentPerHour: number): nu
 }
 
 /**
- * Whether a scheduled charge is close enough to take over from opportunistic
- * charging: when it would need `deadlineEngageFraction` of the time still left.
- * That scales with how much charge is actually needed, so an 80%->100% top-up
- * engages far later than a 15%->100% charge with the same deadline.
- *
- * Also consulted between plans, since a plan fixed while a deadline was still
- * far off must not sit frozen while it creeps into range.
+ * The instant opportunistic charging must hand over to the deadline: the
+ * deadline pulled back by the charge still needed (plus the start buffer), over
+ * `deadlineEngageFraction`. The charge needed scales with the gap to
+ * `targetPercentage`, so an 80%->100% top-up hands over far later than a
+ * 15%->100% charge with the same deadline.
+ */
+export function deadlineEngagesAt(options: Omit<EngagementOptions, 'now'>): Date {
+  const { schedule, chargePercentage, chargeRatePercentPerHour, startBufferHours, deadlineEngageFraction } = options;
+  const hoursNeeded = hoursToCharge(chargePercentage, schedule.targetPercentage, chargeRatePercentPerHour) + startBufferHours;
+
+  return dayjs(schedule.targetTime).subtract(hoursNeeded / deadlineEngageFraction, 'hour').toDate();
+}
+
+/**
+ * Whether the deadline has taken over from opportunistic charging. Also consulted
+ * between plans, since a plan fixed while a deadline was still far off must not
+ * sit frozen while it creeps into range.
  */
 export function isDeadlineEngaged(options: EngagementOptions): boolean {
-  const { schedule, now, chargePercentage, chargeRatePercentPerHour, startBufferHours } = options;
-  const hoursNeeded = hoursToCharge(chargePercentage, schedule.targetPercentage, chargeRatePercentPerHour) + startBufferHours;
-  const hoursToDeadline = dayjs(schedule.targetTime).diff(now, 'hour', true);
-
-  return hoursToDeadline > 0 && hoursNeeded / hoursToDeadline >= options.deadlineEngageFraction;
+  return options.now < options.schedule.targetTime && options.now >= deadlineEngagesAt(options);
 }
 
 /**
