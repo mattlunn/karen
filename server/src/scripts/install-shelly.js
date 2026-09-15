@@ -5,6 +5,7 @@ const DEVICE_TYPES = [
   { label: 'Switch / Plug', kind: 'wifi' },
   { label: 'Dimmer', kind: 'wifi' },
   { label: 'Fire alarm sensor', kind: 'wifi' },
+  { label: 'Energy meter (power monitoring only)', kind: 'wifi' },
   { label: 'Presence sensor (motion, multi-zone)', kind: 'presence' },
   { label: 'Energy meter (CT clamps)', kind: 'energy-meter' },
   { label: 'BLU door/window sensor (via BLE gateway)', kind: 'blu' },

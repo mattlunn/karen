@@ -31,6 +31,9 @@ Device.registerProvider('shelly', {
       case 'S4SW-001X8EU': // Shelly 1 Mini Gen4 (Fire Alarm)
         return ['ALARM_SENSOR', 'CONNECTIVITY'];
 
+      case 'S3PM-001PCEU16': // Shelly PM Mini Gen3
+        return ['ENERGY_MONITOR', 'CONNECTIVITY'];
+
       case 'SBDW-002C':    // Shelly BLU Door/Window (via BLE gateway)
         return ['CONTACT_SENSOR', 'BATTERY_LEVEL_INDICATOR'];
 
