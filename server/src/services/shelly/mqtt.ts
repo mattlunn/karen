@@ -124,8 +124,23 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
       await device.getSwitchCapability().setIsOnState(data.output);
     }
 
-    if (capabilities.includes('ENERGY_MONITOR')) {
+    // Not every switch is metered, so apower is absent on some models.
+    if (capabilities.includes('ENERGY_MONITOR') && typeof data.apower === 'number') {
       await device.getEnergyMonitorCapability().setCurrentPowerState(data.apower);
+    }
+
+    return;
+  }
+
+  if (subtopic.startsWith('status/em1:')) {
+    const instanceId = `channel${subtopic.slice('status/em1:'.length)}`;
+    const data = JSON.parse(payload);
+
+    // Status notifications carry only what changed, so act_power isn't always present.
+    if (capabilities.includes('ENERGY_MONITOR') && typeof data.act_power === 'number') {
+      // A clamp around an appliance circuit can't see export, so a negative reading is a
+      // phase-error artefact of reactive standby current near the bottom of the clamp's range.
+      await device.getEnergyMonitorCapability(instanceId).setCurrentPowerState(Math.max(0, data.act_power));
     }
 
     return;

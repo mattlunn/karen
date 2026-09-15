@@ -115,6 +115,7 @@ export type CreateCapabilityConfig<E extends CapabilityEvent | null> = {
  */
 export interface GraphConfig {
   id: string;
+  instanceId?: string | null;
   title: string;
   yAxis?: Record<string, {
     position: 'left' | 'right';

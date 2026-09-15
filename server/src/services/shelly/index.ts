@@ -34,6 +34,9 @@ Device.registerProvider('shelly', {
       case 'SBDW-002C':    // Shelly BLU Door/Window (via BLE gateway)
         return ['CONTACT_SENSOR', 'BATTERY_LEVEL_INDICATOR'];
 
+      case 'S3EM-002CXCEU': // Shelly EM Gen3 (two CT clamp channels)
+        return ['ENERGY_MONITOR', 'CONNECTIVITY'];
+
       case 'S4SN-0U61X': // Shelly Presence Gen4 (mmWave, multi-zone)
         return ['MOTION_SENSOR', 'MOTION_SENSOR_SENSITIVITY', 'CONNECTIVITY'];
 
@@ -46,6 +49,11 @@ Device.registerProvider('shelly', {
     // For Shelly Presence Gen4.
     if (capability === 'MOTION_SENSOR' && Array.isArray(device.meta.zones)) {
       return (device.meta.zones as { id: string; name: string }[]).map(({ id, name }) => ({ id, name }));
+    }
+
+    // For Shelly EM Gen3.
+    if (capability === 'ENERGY_MONITOR' && Array.isArray(device.meta.channels)) {
+      return (device.meta.channels as { id: string; name: string }[]).map(({ id, name }) => ({ id, name }));
     }
 
     return [{ id: null, name: null }];

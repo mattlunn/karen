@@ -37,7 +37,7 @@ function calculateDayCost(
   return Math.round(pence * 100) / 100;
 }
 
-async function storeDailyEnergyForDevice(
+async function storeDailyEnergyForMonitor(
   device: Device,
   energyMonitor: EnergyMonitorCapability,
   energyCost: EnergyCostCapability
@@ -85,10 +85,12 @@ export async function storeDailyEnergy(): Promise<void> {
   const energyCost = costDevices[0].getEnergyCostCapability();
 
   for (const device of monitorDevices) {
-    try {
-      await storeDailyEnergyForDevice(device, device.getEnergyMonitorCapability(), energyCost);
-    } catch (e) {
-      logger.error(e, `Failed to store daily energy for device ${device.id} (${device.name})`);
+    for (const instance of device.getCapabilityInstances('ENERGY_MONITOR')) {
+      try {
+        await storeDailyEnergyForMonitor(device, device.getEnergyMonitorCapability(instance.id), energyCost);
+      } catch (e) {
+        logger.error(e, `Failed to store daily energy for device ${device.id} (${instance.name ?? device.name})`);
+      }
     }
   }
 }

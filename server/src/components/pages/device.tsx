@@ -79,11 +79,12 @@ export default function Device() {
           <div>
             <Title order={3} className={styles.sectionHeader}>Graph</Title>
 
-            {graphs.map((graph) => (
+            {graphs.map((graph, idx) => (
               <DeviceGraph
-                key={graph.id}
+                key={idx}
                 title={graph.title}
                 graphId={graph.id}
+                instanceId={graph.instanceId}
                 deviceId={device.id}
                 yAxis={graph.yAxis}
                 yMin={graph.yMin}

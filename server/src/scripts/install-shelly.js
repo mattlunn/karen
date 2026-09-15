@@ -1,11 +1,12 @@
 import { createInterface } from 'readline/promises';
-import { installWifiDevice, installBluSensor, installPresenceZones } from '../services/shelly/install';
+import { installWifiDevice, installBluSensor, installPresenceZones, installEnergyMeterChannels } from '../services/shelly/install';
 
 const DEVICE_TYPES = [
   { label: 'Switch / Plug', kind: 'wifi' },
   { label: 'Dimmer', kind: 'wifi' },
   { label: 'Fire alarm sensor', kind: 'wifi' },
   { label: 'Presence sensor (motion, multi-zone)', kind: 'presence' },
+  { label: 'Energy meter (CT clamps)', kind: 'energy-meter' },
   { label: 'BLU door/window sensor (via BLE gateway)', kind: 'blu' },
 ];
 
@@ -56,6 +57,17 @@ async function main() {
       const zones = withZones.meta.zones;
 
       console.log(`Detected ${zones.length} zone(s) from the device: ${zones.map((zone) => zone.name).join(', ')}`);
+    } else if (type.kind === 'energy-meter') {
+      const ip = await rl.question('IP address: ');
+      const device = await installWifiDevice(ip);
+
+      console.log(`Installed device ${device.id} (${device.model}) as "${device.name}"`);
+      console.log('Waiting for the device to come back online after reboot...');
+
+      const withChannels = await withRetries(() => installEnergyMeterChannels(ip));
+      const channels = withChannels.meta.channels;
+
+      console.log(`Detected ${channels.length} channel(s) from the device: ${channels.map((channel) => channel.name).join(', ')}`);
     } else if (type.kind === 'blu') {
       const ip = await rl.question('Gateway IP address: ');
       const mac = await rl.question('Sensor BLE MAC: ');
