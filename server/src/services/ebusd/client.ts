@@ -232,7 +232,7 @@ export default class EbusClient {
 
   // The weekly HWC comfort timer's single Karen-managed slot for `day`: a
   // bare [from, to) time-of-day window with no temperature of its own -
-  // HwcTempDesired supplies that, same as it always has.
+  // HwcTempDesired supplies that.
   //
   // UNVERIFIED: the field name and argument layout are inferred from the
   // ebusd-configuration TypeSpec source (vaillant/15.ctlv2.tsp,

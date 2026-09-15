@@ -132,7 +132,7 @@ async function cancelStaleLegionellaSchedule(day: Weekday, client: EbusClient, r
 // pasteurising-grade charge, and PROD's plunge target already matches the
 // legionella one); a standard block gets one slot in the weekly comfort
 // timer, charging to whatever HwcTempDesired holds (which reconcile keeps
-// pinned at the standard target). Neither is bounded by `plan.end` any more -
+// pinned at the standard target). Neither is bounded by `plan.end` -
 // completion is the controller's job, not Karen's.
 async function applyScheduleFor(plan: DHWPlan, client: EbusClient, readonly: boolean): Promise<void> {
   const day = weekdayOf(plan.start);
@@ -181,8 +181,8 @@ async function standDownForToday(client: EbusClient, readonly: boolean): Promise
 // Ensures a plan exists for the current price horizon, planning a fresh
 // block only when we hold a full horizon of forward prices. A plan, once
 // pushed into the controller's own schedule, is left to run as-is - Karen
-// doesn't revisit HwcOpMode/HwcTempDesired minute-to-minute the way it used
-// to, so the block can't drift and can't be second-guessed mid-charge.
+// doesn't revisit HwcOpMode/HwcTempDesired minute-to-minute, so the block
+// can't drift and can't be second-guessed mid-charge.
 async function syncPlan(device: Device, heatPump: HeatPumpCapability, client: EbusClient, readonly: boolean): Promise<void> {
   const now = new Date();
   const plan = getPlan(device);
@@ -238,10 +238,9 @@ async function setOpMode(client: EbusClient, readonly: boolean, mode: 'off' | 't
 
 // The single writer of HwcOpMode outside of a boost. `time controlled` is
 // what lets the controller's own weekly schedules (HwcLegionellaDay/Time,
-// the comfort timer) actually execute - Karen no longer forces a live block
-// by holding HwcOpMode in `manual`, so this and HwcTempDesired are asserted
-// unconditionally each cycle (cheap, and self-heals e.g. after a boost ends
-// leaves HwcOpMode in `manual`) rather than only on change.
+// the comfort timer) actually execute, so this and HwcTempDesired are
+// asserted unconditionally each cycle (cheap, and self-heals e.g. after a
+// boost ends leaves HwcOpMode in `manual`) rather than only on change.
 //
 // dhw_plan_mode=readonly lets a non-prod instance run this loop against the
 // shared physical heat pump without writing to it - it still resolves the
