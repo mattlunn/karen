@@ -8,6 +8,7 @@ import dayjs from '../../dayjs';
 
 type DeviceGraphProps = {
   graphId: string;
+  instanceId?: string | null;
   deviceId: number;
   title: string;
   zones?: CapabilityGraphProps['zones'];
@@ -37,6 +38,7 @@ function getInitialRange(
 
 export function DeviceGraph({
   graphId,
+  instanceId,
   deviceId,
   title,
   zones,
@@ -60,9 +62,10 @@ export function DeviceGraph({
 
   const params = useMemo(() => ({
     id: graphId,
+    ...(instanceId ? { instance: instanceId } : {}),
     since: effectiveRange.since.toISOString(),
     until: effectiveRange.until.toISOString()
-  }), [graphId, effectiveRange.since, effectiveRange.until]);
+  }), [graphId, instanceId, effectiveRange.since, effectiveRange.until]);
 
   const { data, isPending, isError } = useDeviceHistory(deviceId, params);
 

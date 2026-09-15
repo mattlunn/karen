@@ -82,6 +82,43 @@ export async function installBluSensor(ip: string, mac: string, name: string): P
   return device;
 }
 
+// Records the CT clamp channels for an energy meter that's already been installed via
+// installWifiDevice. The clamps measure separate appliances but are one device with one
+// MQTT connection, so they're stored as instances of its ENERGY_MONITOR capability rather
+// than as devices of their own.
+export async function installEnergyMeterChannels(ip: string): Promise<Device> {
+  const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
+
+  if (!(client instanceof Gen2PlusDeviceClient)) {
+    throw new Error(`${ip} is expected to be a Gen2+ device`);
+  }
+
+  const mqttId = await client.getMqttId();
+  const device = await Device.findByProviderId('shelly', mqttId);
+
+  if (!device) {
+    throw new Error(`No device found for ${mqttId}. Install it via the WiFi/MQTT flow first.`);
+  }
+
+  const channels = await client.getEnergyMeterChannels() as { id: string; name: string | null }[];
+
+  if (channels.length === 0) {
+    throw new Error(`No energy meter channels found on ${ip}.`);
+  }
+
+  const unnamed = channels.filter((channel) => !channel.name);
+
+  if (unnamed.length > 0) {
+    throw new Error(`${unnamed.length} channel(s) on ${ip} have no name. Name each one after the appliance its clamp is around, in the Shelly app.`);
+  }
+
+  device.meta.channels = channels;
+
+  await device.save();
+
+  return device;
+}
+
 // Records the zone layout for a Presence sensor that's already been installed via
 // installWifiDevice. Zones are regions of one sensor's field of view rather than separate
 // hardware, so they're stored as instances of this device's MOTION_SENSOR capability rather

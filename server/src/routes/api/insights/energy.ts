@@ -1,4 +1,5 @@
 import { Device } from '../../../models';
+import { EnergyMonitorCapability } from '../../../models/capabilities';
 import { Request, Response } from 'express';
 import {
   EnergyCostInsightsApiResponse,
@@ -21,13 +22,29 @@ import {
 import { asyncMap } from '../../../helpers/array';
 import dayjs from '../../../dayjs';
 
+// One device can meter several loads independently (e.g. an energy meter with a CT clamp
+// per appliance), so each instance of its ENERGY_MONITOR capability is its own entity here.
+type MonitoredLoad = {
+  device: Device;
+  label: string;
+  energyMonitor: EnergyMonitorCapability;
+};
+
+function monitoredLoadsFor(device: Device): MonitoredLoad[] {
+  return device.getCapabilityInstances('ENERGY_MONITOR').map((instance) => ({
+    device,
+    label: instance.name ?? device.name,
+    energyMonitor: device.getEnergyMonitorCapability(instance.id)
+  }));
+}
+
 // The one ENERGY_MONITOR device that also reports ENERGY_COST is the whole-house
 // smart meter; every other is an individually-metered load beneath it.
 async function splitMeterFromMonitored() {
   const devices = await Device.findByCapability('ENERGY_MONITOR');
   const meter = devices.find((device) => device.getCapabilities().includes('ENERGY_COST')) ?? null;
 
-  return { meter, monitored: devices.filter((device) => device !== meter) };
+  return { meter, monitored: devices.filter((device) => device !== meter).flatMap(monitoredLoadsFor) };
 }
 
 // Adds several { day -> value } maps together, day by day.
@@ -132,9 +149,9 @@ export async function usageHandler(req: Request, res: Response) {
 
   const devices = await Device.findByCapability('ENERGY_MONITOR');
 
-  const series = await asyncMap(devices, async (device) => ({
-    data: await mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getCurrentPowerHistory(hs), selector),
-    label: device.name
+  const series = await asyncMap(devices.flatMap(monitoredLoadsFor), async ({ label, energyMonitor }) => ({
+    data: await mapNumericHistoryToResponse((hs) => energyMonitor.getCurrentPowerHistory(hs), selector),
+    label
   }));
 
   res.json({ series } satisfies EnergyUsageInsightsApiResponse);
@@ -144,19 +161,19 @@ type Bucketed = { label: string; byDay: Map<string, number> };
 
 // Every LIGHT-capable device collapses into a single "Lights" entry, listed first.
 async function bucketByEntity(
-  bucketFor: (device: Device) => Promise<Map<string, number>>,
-  monitored: Device[]
+  bucketFor: (energyMonitor: EnergyMonitorCapability) => Promise<Map<string, number>>,
+  monitored: MonitoredLoad[]
 ): Promise<Bucketed[]> {
-  const buckets = await asyncMap(monitored, bucketFor);
+  const buckets = await asyncMap(monitored, ({ energyMonitor }) => bucketFor(energyMonitor));
 
   const lights: Map<string, number>[] = [];
   const named: Bucketed[] = [];
 
-  monitored.forEach((device, i) => {
+  monitored.forEach(({ device, label }, i) => {
     if (device.getCapabilities().includes('LIGHT')) {
       lights.push(buckets[i]);
     } else {
-      named.push({ label: device.name, byDay: buckets[i] });
+      named.push({ label, byDay: buckets[i] });
     }
   });
 
@@ -178,8 +195,8 @@ export async function costHandler(req: Request, res: Response) {
   const since = selector.since.toISOString();
   const until = selector.until.toISOString();
 
-  const costFor = (device: Device) =>
-    mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100)
+  const costFor = (energyMonitor: EnergyMonitorCapability) =>
+    mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
       .then(bucketByDay);
 
   const toSeries = (label: string, byDay: Map<string, number>): HistoryLineApiResponse => ({
@@ -191,7 +208,7 @@ export async function costHandler(req: Request, res: Response) {
   const series = costByEntity.map(({ label, byDay }) => toSeries(label, byDay));
 
   if (meter) {
-    const meterByDay = await costFor(meter);
+    const meterByDay = await costFor(meter.getEnergyMonitorCapability());
     const monitoredByDay = mergeSum(costByEntity.map((entity) => entity.byDay));
 
     // Not clamped at 0: a sub-meter reading slightly above the whole-house
@@ -217,10 +234,10 @@ export async function unitRateDailyHandler(req: Request, res: Response) {
   const since = selector.since.toISOString();
   const until = selector.until.toISOString();
 
-  const costFor = (device: Device) =>
-    mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), selector).then(bucketByDay);
-  const energyFor = (device: Device) =>
-    mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayEnergyHistory(hs), selector).then(bucketByDay);
+  const costFor = (energyMonitor: EnergyMonitorCapability) =>
+    mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector).then(bucketByDay);
+  const energyFor = (energyMonitor: EnergyMonitorCapability) =>
+    mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector).then(bucketByDay);
 
   const [costByEntity, energyByEntity] = await Promise.all([
     bucketByEntity(costFor, monitored),
@@ -248,8 +265,8 @@ export async function unitRateDailyHandler(req: Request, res: Response) {
 
   if (meter) {
     const [meterCost, meterEnergy] = await Promise.all([
-      costFor(meter),
-      energyFor(meter)
+      costFor(meter.getEnergyMonitorCapability()),
+      energyFor(meter.getEnergyMonitorCapability())
     ]);
 
     lines.push({

@@ -75,11 +75,9 @@ export function getDeviceGraphs(device: RestDeviceResponse): GraphConfig[] {
     const config = registry[capability.type];
 
     if (config.getGraphs) {
-      // Graph ids are fixed per capability type, so they'd collide across
-      // instances of the same capability - qualify them by instance.
       graphs.push(...config.getGraphs().map((graph) => capability.instanceId === null ? graph : {
         ...graph,
-        id: `${graph.id}:${capability.instanceId}`,
+        instanceId: capability.instanceId,
         title: capability.instanceName ? `${graph.title} · ${capability.instanceName}` : graph.title
       }));
     }

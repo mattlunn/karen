@@ -43,7 +43,7 @@ export type HistoryResponse = {
   bars?: HistoryBarResponse[];
 };
 
-type HistoryFetcher = (device: Device, selector: TimeRangeSelector) => Promise<HistoryResponse>;
+type HistoryFetcher = (device: Device, selector: TimeRangeSelector, instanceId: string | null) => Promise<HistoryResponse>;
 
 // Helpers
 
@@ -336,8 +336,8 @@ const historyFetchers = new Map<string, HistoryFetcher>([
   }],
 
   // Energy Monitor - Power
-  ['energy-power', async (device, selector) => {
-    const energyMonitor = device.getEnergyMonitorCapability();
+  ['energy-power', async (device, selector, instanceId) => {
+    const energyMonitor = device.getEnergyMonitorCapability(instanceId);
 
     return {
       lines: [
@@ -350,8 +350,8 @@ const historyFetchers = new Map<string, HistoryFetcher>([
   }],
 
   // Energy Monitor - Daily Energy & Cost
-  ['energy-daily', async (device, selector) => {
-    const energyMonitor = device.getEnergyMonitorCapability();
+  ['energy-daily', async (device, selector, instanceId) => {
+    const energyMonitor = device.getEnergyMonitorCapability(instanceId);
 
     return awaitPromises({
       bars: Promise.all([
@@ -366,8 +366,8 @@ const historyFetchers = new Map<string, HistoryFetcher>([
   }],
 
   // Energy Monitor - Effective Unit Rate (p/kWh per day = day cost / day energy)
-  ['energy-unit-rate-daily', async (device, selector) => {
-    const energyMonitor = device.getEnergyMonitorCapability();
+  ['energy-unit-rate-daily', async (device, selector, instanceId) => {
+    const energyMonitor = device.getEnergyMonitorCapability(instanceId);
     const [costPenceByDay, energyByDay] = await Promise.all([
       mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector).then(bucketByDay),
       mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector).then(bucketByDay)
@@ -406,6 +406,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
 
 export default async function (req: Request<{ id: string }>, res: Response, next: NextFunction) {
   const graphId = req.query.id as string | undefined;
+  const instanceId = (req.query.instance as string | undefined) ?? null;
 
   if (!graphId) {
     return res.status(400).json({ error: 'Missing required query parameter: id' });
@@ -431,6 +432,6 @@ export default async function (req: Request<{ id: string }>, res: Response, next
     until: untilParam ? new Date(untilParam) : new Date()
   };
 
-  const response = await fetcher(device, historySelector);
+  const response = await fetcher(device, historySelector, instanceId);
   res.json(response);
 }
