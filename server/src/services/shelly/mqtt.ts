@@ -146,6 +146,16 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
     return;
   }
 
+  if (subtopic === 'status/pm1:0') {
+    const data = JSON.parse(payload);
+
+    if (capabilities.includes('ENERGY_MONITOR') && typeof data.apower === 'number') {
+      await device.getEnergyMonitorCapability().setCurrentPowerState(data.apower);
+    }
+
+    return;
+  }
+
   if (subtopic === 'status/input:0' && capabilities.includes('ALARM_SENSOR')) {
     const data = JSON.parse(payload);
 
