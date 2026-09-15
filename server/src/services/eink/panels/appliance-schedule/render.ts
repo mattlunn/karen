@@ -119,14 +119,23 @@ function drawArrowDown(ctx: SKRSContext2D, cx: number, cy: number, size: number)
 // feasible in this window" (bucket.option === null), same as running now
 // being a bad idea either way - no separate treatment needed.
 const VALUE_FONT = '22px "DejaVu Sans Bold"';
-const VALUE_BASELINE_Y_OFFSET = 48;
+
+// A bucket cell stacks a delay line above the value; a Now/uncostable cell is
+// just the value alone. Each case is centered as its own block within the
+// row, rather than the value sitting at a fixed offset regardless of what's
+// above it.
+function centeredValueY(top: number, hasDialLine: boolean): number {
+  const rowCenterY = top + ROW_HEIGHT / 2;
+
+  return hasDialLine ? rowCenterY + 16 : rowCenterY + 8;
+}
 
 function drawCell(ctx: SKRSContext2D, cx: number, top: number, cell: BaselineComparison, dialHours?: number) {
   const prefix = cell.isEstimated ? '~' : '';
-  const valueY = top + VALUE_BASELINE_Y_OFFSET;
+  const valueY = centeredValueY(top, dialHours !== undefined);
 
   if (dialHours !== undefined) {
-    drawCentered(ctx, `+${dialHours}h`, cx, top + 18, '14px "DejaVu Sans"');
+    drawCentered(ctx, `+${dialHours}h`, cx, top + ROW_HEIGHT / 2 - 8, '14px "DejaVu Sans"');
   }
 
   if (cell.isWithinNormalBand) {
@@ -161,7 +170,7 @@ function drawCell(ctx: SKRSContext2D, cx: number, top: number, cell: BaselineCom
 // backfills slots far enough that a short forecast isn't the cause) - shown
 // as £££, same as a genuinely pricier option.
 function drawUncostableBucketCell(ctx: SKRSContext2D, cx: number, top: number) {
-  drawCentered(ctx, '£££', cx, top + VALUE_BASELINE_Y_OFFSET, VALUE_FONT);
+  drawCentered(ctx, '£££', cx, centeredValueY(top, false), VALUE_FONT);
 }
 
 function drawRow(ctx: SKRSContext2D, top: number, row: AppliancePanelRow) {
