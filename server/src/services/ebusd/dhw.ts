@@ -7,9 +7,8 @@ import setCron from '../../helpers/set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
-import EbusClient from './client';
+import EbusClient, { Weekday, weekdayOf, legionellaDayToken } from './client';
 import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow } from '../../helpers/prices';
-import { isWithinWindow } from '../../helpers/date';
 
 // The current Auto plan: a single cheap block, written once and never revised
 // until it rolls over. Persisted on device.meta rather than held in memory,
@@ -112,18 +111,66 @@ async function resolveTarget(device: Device, window: CheapestWindow): Promise<{ 
   return { targetTemp: config.ebusd.dhw_standard_target_temp, reason: 'STANDARD' };
 }
 
-// Whether Auto wants DHW enabled right now, planning a fresh block only when we
-// hold a full horizon of forward prices. A plan, once written, is run as-is and
-// never recalculated - so the block can't drift.
-async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): Promise<boolean> {
+// Cancels a leftover HwcLegionellaDay from a previous week's plan, but only
+// when it's still pointing at `day` - a different day may be a genuinely
+// pending legionella/plunge run and shouldn't be touched.
+async function cancelStaleLegionellaSchedule(day: Weekday, client: EbusClient): Promise<void> {
+  if (await client.getDHWLegionellaDay() !== legionellaDayToken(day)) {
+    return;
+  }
+
+  logger.info(`DHW: cancelling stale HwcLegionellaDay=${day}`);
+  await client.setDHWLegionellaDay('off');
+}
+
+// Pushes a freshly-resolved plan into whichever native schedule executes it.
+// A raised-target block rides the controller's own weekly legionella
+// function (same mechanism for PLUNGE and LEGIONELLA - both just want a full
+// pasteurising-grade charge, and PROD's plunge target already matches the
+// legionella one); a standard block gets one slot in the weekly comfort
+// timer, charging to whatever HwcTempDesired holds (which reconcile keeps
+// pinned at the standard target). Neither is bounded by `plan.end` -
+// completion is the controller's job, not Karen's.
+async function applyScheduleFor(plan: DHWPlan, client: EbusClient): Promise<void> {
+  const day = weekdayOf(plan.start);
+
+  if (plan.reason === 'LEGIONELLA' || plan.reason === 'PLUNGE') {
+    await client.setDHWLegionellaDay(day);
+    await client.setDHWLegionellaTime(dayjs(plan.start).format('HH:mm:ss'));
+
+    return;
+  }
+
+  await client.setDHWComfortSchedule(day, dayjs(plan.start).format('HH:mm'), dayjs(plan.end).format('HH:mm'));
+  await cancelStaleLegionellaSchedule(day, client);
+}
+
+// No forecast yet (or nothing worth planning) - stay off rather than run
+// blind, and cancel anything today's weekday was left scheduled to do from a
+// previous week's plan, so a transient forecast gap can't leave a stale
+// charge running on the controller's own clock.
+async function standDownForToday(client: EbusClient): Promise<void> {
+  const today = weekdayOf(new Date());
+
+  logger.info(`DHW: no plan - standing down ${today}'s schedule`);
+  await client.clearDHWComfortSchedule(today);
+  await cancelStaleLegionellaSchedule(today, client);
+}
+
+// Ensures a plan exists for the current price horizon, planning a fresh
+// block only when we hold a full horizon of forward prices. A plan, once
+// pushed into the controller's own schedule, is left to run as-is - Karen
+// doesn't revisit HwcOpMode/HwcTempDesired minute-to-minute, so the block
+// can't drift and can't be second-guessed mid-charge.
+async function syncPlan(device: Device, heatPump: HeatPumpCapability, client: EbusClient): Promise<void> {
   const now = new Date();
   const plan = getPlan(device);
 
-  if (plan !== null) {
-    if (now < plan.end) {
-      return isWithinWindow(plan, now);
-    }
+  if (plan !== null && now < plan.end) {
+    return;
+  }
 
+  if (plan !== null) {
     await clearPlan(device);
   }
 
@@ -136,39 +183,46 @@ async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): P
   // No full forward-price window yet - stay off. The octopus service raises the
   // admin alert if Agile prices are genuinely overdue.
   if (!haveForecastThrough(events, until)) {
-    return false;
+    return standDownForToday(client);
   }
 
   const blockMinutes = await heatPump.getDHWMaxChargeTime();
 
   if (blockMinutes <= 0) {
-    return false;
+    return standDownForToday(client);
   }
 
   const window = findCheapestWindow(toPriceSlots(events, now, until), blockMinutes, now, until);
 
   if (window === null) {
-    return false;
+    return standDownForToday(client);
   }
 
   const { targetTemp, reason } = await resolveTarget(device, window);
+  const newPlan: DHWPlan = { start: window.start, end: window.end, targetTemp, reason };
 
-  await setPlan(device, { start: window.start, end: window.end, targetTemp, reason });
+  await setPlan(device, newPlan);
+  await applyScheduleFor(newPlan, client);
+
   logger.info(`DHW: scheduled ${reason} block ${window.start.toISOString()} - ${window.end.toISOString()} @ ${window.averagePence.toFixed(2)}p/kWh, target ${targetTemp}°C`);
-
-  return isWithinWindow(window, now);
 }
 
-// The single writer of HwcOpMode and HwcTempDesired. Resolves the desired state
-// in priority order and issues one ebusd write each, only when it differs from
-// the controller.
+function createEbusClient(): EbusClient {
+  return new EbusClient(config.ebusd.host, config.ebusd.port, config.ebusd.write_mode === 'readonly');
+}
+
+// The single writer of HwcOpMode outside of a boost. `time controlled` is
+// what lets the controller's own weekly schedules (HwcLegionellaDay/Time,
+// the comfort timer) actually execute, so this and HwcTempDesired are
+// asserted unconditionally each cycle (cheap, and self-heals e.g. after a
+// boost ends leaves HwcOpMode in `manual`) rather than only on change.
 //
-// dhw_plan_mode=readonly lets a non-prod instance run this loop against the
-// shared physical heat pump without writing to it - it still resolves the plan
-// (so the UI / insights reflect what it *would* do), it just doesn't touch the
-// controller.
+// write_mode=readonly lets a non-prod instance run this loop against the
+// shared physical heat pump without writing to it - EbusClient logs what it
+// would have written instead of touching the controller. The plan is still
+// resolved either way, so the UI / insights reflect what it *would* do.
 async function reconcile(): Promise<void> {
-  const client = new EbusClient(config.ebusd.host, config.ebusd.port);
+  const client = createEbusClient();
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const heatPump = device.getHeatPumpCapability();
 
@@ -177,68 +231,22 @@ async function reconcile(): Promise<void> {
     heatPump.getDHWBoost(),
   ]);
 
-  let shouldBeOn: boolean;
-
   if (isBoosting) {
-    // A one-time load is running: hold the circuit enabled and leave the
-    // controller to revert HwcSFMode to `auto` itself when it's done. The plan
-    // stands - a boost is a transient override of what's happening now, not a
-    // change to the day's schedule, and a boost only reaches the standard
-    // setpoint so it can't stand in for a raised-target block.
-    shouldBeOn = true;
-  } else if (mode === 'OFF') {
-    shouldBeOn = false;
+    // A one-time load is running under its own control - setDHWBoost owns
+    // HwcOpMode/HwcSFMode for the duration and reverts them itself. Leave it.
+    return;
+  }
 
+  if (mode === 'OFF') {
     await clearPlan(device);
-  } else {
-    shouldBeOn = await resolveAutoState(device, heatPump);
+    await client.setDHWOpMode('off');
+
+    return;
   }
 
-  const readonly = config.ebusd.dhw_plan_mode === 'readonly';
-  const plan = getPlan(device);
-  const blockIsLive = plan !== null && isWithinWindow(plan, new Date());
-
-  // The plan's setpoint applies only while its block is live. Outside it - a
-  // block still ahead, a finished block, or a boost running on its own -
-  // HwcTempDesired drops back to standard rather than sitting at plunge/legionella temp.
-  const desiredTargetTemp = (shouldBeOn && blockIsLive)
-    ? plan.targetTemp
-    : config.ebusd.dhw_standard_target_temp;
-
-  const currentTargetTemp = await client.getDHWTargetTemp();
-
-  // A live block is the only time a stalled charge matters, so this is the
-  // only time it's worth the extra ebus round trips - logged every cycle
-  // (not just on writes) so a run that silently falls short of its target
-  // still leaves a trail to diagnose from.
-  if (blockIsLive) {
-    const [cylinderTemp, detailedStatus, compressorBlockMinutes, currentError] = await Promise.all([
-      client.getHotWaterCylinderTemperature(),
-      client.getDetailedStatus(),
-      client.getCompressorBlockMinutes(),
-      client.getCurrentError(),
-    ]);
-
-    logger.info(`DHW: block live (${plan.reason} → ${plan.targetTemp}°C, ends ${plan.end.toISOString()}) - cylinder ${cylinderTemp}°C, controller target ${currentTargetTemp}°C, status "${detailedStatus}", compressor block ${compressorBlockMinutes}min, error "${currentError}"`);
-  }
-
-  // Write the setpoint before enabling the circuit, so a raised-target block
-  // heats towards it from the start rather than after the next reconcile.
-  if (currentTargetTemp !== desiredTargetTemp) {
-    if (readonly) {
-      logger.info(`DHW: [readonly] would set HwcTempDesired ${desiredTargetTemp}°C`);
-    } else {
-      await client.setDHWTargetTemp(desiredTargetTemp);
-    }
-  }
-
-  if (await heatPump.getDHWIsOn() !== shouldBeOn) {
-    if (readonly) {
-      logger.info(`DHW: [readonly] would set HwcOpMode ${shouldBeOn ? 'manual' : 'off'}`);
-    } else {
-      await client.setDHWOpMode(shouldBeOn ? 'manual' : 'off');
-    }
-  }
+  await client.setDHWOpMode('time controlled');
+  await client.setDHWTargetTemp(config.ebusd.dhw_standard_target_temp);
+  await syncPlan(device, heatPump, client);
 }
 
 // Recovery is resolveTarget retrying a legionella block on each Auto cycle until
@@ -281,9 +289,10 @@ export async function setDHWMode(mode: HeatPumpDHWMode): Promise<void> {
 // button triggers. HwcOpMode is forced to `manual` first so the circuit runs
 // even when the base mode is OFF. The controller owns completion (it reverts
 // HwcSFMode to `auto` at setpoint or when HwcMaxChargeTime expires), so there's
-// no target, timeout or persisted state; `off` just hands it back.
+// no target, timeout or persisted state; `off` just hands it back to reconcile,
+// which returns HwcOpMode to `time controlled` on its next run.
 export async function setDHWBoost(on: boolean): Promise<void> {
-  const client = new EbusClient(config.ebusd.host, config.ebusd.port);
+  const client = createEbusClient();
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const heatPump = device.getHeatPumpCapability();
 
