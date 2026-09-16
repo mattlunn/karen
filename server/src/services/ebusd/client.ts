@@ -1,5 +1,6 @@
 import { createConnection } from 'net';
 import sleep from '../../helpers/sleep';
+import logger from '../../logger';
 
 export type Weekday = 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
 
@@ -38,10 +39,15 @@ function toNumber(value: string): number {
 export default class EbusClient {
   #host: string;
   #port: number;
+  #readonly: boolean;
 
-  constructor(host: string, port: number) {
+  // `readonly` gates every write through this instance - set it for a Karen
+  // instance that shares physical hardware with another instance that owns
+  // writing to it. Reads are never affected.
+  constructor(host: string, port: number, readonly = false) {
     this.#host = host;
     this.#port = port;
+    this.#readonly = readonly;
   }
 
   #command(command: string): Promise<string> {
@@ -72,7 +78,15 @@ export default class EbusClient {
     });
   }
 
-  async #write(circuit: string, key: string, value = ''): Promise<string> {
+  // No caller uses the echoed value (only whether the write succeeded), so
+  // there's nothing to hand back in readonly mode - it's void either way.
+  async #write(circuit: string, key: string, value = ''): Promise<void> {
+    if (this.#readonly) {
+      logger.info(`ebusd: [readonly] would write '${value}' to ${circuit} ${key}`);
+
+      return;
+    }
+
     const result = await this.#command(`write -c ${circuit} ${key} ${value}`);
 
     // ebusd echoes the decoded value back for some messages and replies with the
@@ -85,8 +99,6 @@ export default class EbusClient {
     if (result !== value && result !== 'done' && !echoedSameNumber) {
       throw new Error(`Unable to write '${value}' to ${key}. Result was ${result}`);
     }
-
-    return result;
   }
 
   async #read<T>(descriptor: { value: string, circuit: string, field?: string }, formatter: (raw: string) => T): Promise<T> {

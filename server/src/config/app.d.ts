@@ -101,7 +101,7 @@ declare namespace _default {
     const port: number;
     const poll_cron: string;
     const min_mode_duration_minutes: number | undefined;
-    const dhw_plan_mode: 'readonly' | 'readwrite' | undefined;
+    const write_mode: 'readonly' | 'readwrite' | undefined;
     const dhw_planning_horizon_hours: number;
     const dhw_check_cron: string;
     const dhw_standard_target_temp: number;
