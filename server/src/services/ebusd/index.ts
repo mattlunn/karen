@@ -48,9 +48,7 @@ Device.registerProvider('ebusd', {
 });
 
 nowAndSetCron(createBackgroundTransaction('ebusd:poll', async () => {
-  // This loop only ever reads, so write_mode makes no difference here - passed
-  // for consistency, so every EbusClient in the codebase is readonly-aware.
-  const client = new EbusClient(config.ebusd.host, config.ebusd.port, config.ebusd.write_mode === 'readonly');
+  const client = new EbusClient(config.ebusd.host, config.ebusd.port);
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const heatPumpCapability = device.getHeatPumpCapability();
   const energyMonitorCapability = device.getEnergyMonitorCapability();

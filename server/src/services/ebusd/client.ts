@@ -78,8 +78,6 @@ export default class EbusClient {
     });
   }
 
-  // No caller uses the echoed value (only whether the write succeeded), so
-  // there's nothing to hand back in readonly mode - it's void either way.
   async #write(circuit: string, key: string, value = ''): Promise<void> {
     if (this.#readonly) {
       logger.info(`ebusd: [readonly] would write '${value}' to ${circuit} ${key}`);
