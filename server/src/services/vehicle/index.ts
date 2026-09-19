@@ -19,7 +19,7 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 // that have since moved.
 interface StoredChargePlan {
   end: string;
-  slots: { start: string; end: string }[];
+  slots: { start: string; end: string; isEstimated: boolean }[];
   target: number;
   deadline: string | null;
 }
@@ -29,7 +29,7 @@ function getPlan(device: Device): ChargePlan | null {
 
   return stored === undefined ? null : {
     end: new Date(stored.end),
-    slots: stored.slots.map(s => ({ start: new Date(s.start), end: new Date(s.end) })),
+    slots: stored.slots.map(s => ({ start: new Date(s.start), end: new Date(s.end), isEstimated: s.isEstimated })),
     target: stored.target,
     deadline: stored.deadline === null ? null : new Date(stored.deadline),
   };
@@ -222,8 +222,20 @@ async function getForwardPriceSlots(now: Date) {
   const since = startOfSlot(now);
   const until = dayjs(now).add(FORWARD_WINDOW_HOURS, 'hour').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until });
+  const actualSlots = toPriceSlots(events, since, until);
 
-  return toPriceSlots(events, since, until);
+  // The deadline pass can engage up to this many days out, and real prices
+  // never reach that far - extend with forecast prices to the same horizon.
+  const forecastUntil = dayjs(now).add(config.smartcar.charge_deadline_engage_days, 'day').toDate();
+  const actualEnd = actualSlots.at(-1)?.end ?? since;
+
+  if (!(forecastUntil > actualEnd)) {
+    return actualSlots;
+  }
+
+  const forecastSlots = await energyCost.getForecastSlots(actualEnd, forecastUntil);
+
+  return [...actualSlots, ...forecastSlots];
 }
 
 async function getBaselinePence(now: Date): Promise<number | null> {
@@ -310,13 +322,13 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
     chargeRatePercentPerHour: chargeRatePercentPerHour(),
     defaultLimit: config.smartcar.default_charge_limit,
     plungeLimit: config.smartcar.charge_plunge_limit,
-    deadlineEngageFraction: config.smartcar.charge_deadline_engage_fraction,
+    deadlineEngageDays: config.smartcar.charge_deadline_engage_days,
     startBufferHours: config.smartcar.charge_start_buffer_hours,
   });
 
   device.meta.chargePlan = {
     end: plan.end.toISOString(),
-    slots: plan.slots.map(s => ({ start: s.start.toISOString(), end: s.end.toISOString() })),
+    slots: plan.slots.map(s => ({ start: s.start.toISOString(), end: s.end.toISOString(), isEstimated: s.isEstimated })),
     target: plan.target,
     deadline: plan.deadline === null ? null : plan.deadline.toISOString(),
   } satisfies StoredChargePlan;
@@ -360,7 +372,7 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
     now: now.toDate(),
     chargePercentage,
     chargeRatePercentPerHour: chargeRatePercentPerHour(),
-    deadlineEngageFraction: config.smartcar.charge_deadline_engage_fraction,
+    deadlineEngageDays: config.smartcar.charge_deadline_engage_days,
     startBufferHours: config.smartcar.charge_start_buffer_hours,
   });
 }

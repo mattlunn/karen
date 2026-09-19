@@ -6,9 +6,10 @@ import setCron from '../../helpers/set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
-import { haveForecastThrough } from '../../helpers/prices';
+import { haveForecastThrough, PriceSlot, SLOT_MINUTES } from '../../helpers/prices';
 import type { Capability } from '../../models/capabilities';
-import { getAgreements, getUnitRates, getStandingCharges, getSmartMeterDeviceId, getTelemetry } from './client';
+import { getAgreements, getUnitRates, getStandingCharges, getSmartMeterDeviceId, getTelemetry } from './clients/octopus';
+import { getForecastRates } from './clients/agileforecast';
 
 const PROVIDER_ID = 'electricity-meter';
 
@@ -21,6 +22,27 @@ const FORWARD_WINDOW_HOURS = 48;
 Device.registerProvider('octopus', {
   getCapabilities(): Capability[] {
     return ['ENERGY_MONITOR', 'ENERGY_COST'];
+  },
+
+  // Beyond the ~31h Octopus itself ever publishes, forecast prices from
+  // AgilePredict extend the horizon the EV deadline planner can see. Fetched
+  // live per call rather than persisted as events, so a forecast can never be
+  // mistaken for - or contaminate the trailing median built from - a settled
+  // price.
+  provideEnergyCostCapability() {
+    return {
+      async getForecastSlots(_device: Device, since: Date, until: Date): Promise<PriceSlot[]> {
+        const agreements = await getAgreements();
+        const rates = await getForecastRates(agreements, since, until);
+
+        return rates.map(r => ({
+          start: r.start,
+          end: dayjs(r.start).add(SLOT_MINUTES, 'minute').toDate(),
+          pence: r.value,
+          isEstimated: true,
+        }));
+      },
+    };
   },
 
   async synchronize() {

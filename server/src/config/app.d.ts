@@ -151,7 +151,7 @@ declare namespace _default {
     }[];
     const charge_median_rate_days: number;
     const charge_plunge_limit: number;
-    const charge_deadline_engage_fraction: number;
+    const charge_deadline_engage_days: number;
   }
   export namespace eink {
     const secret: string;
