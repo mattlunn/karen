@@ -12,7 +12,7 @@ function run(fromHour: number, toHour: number, pence: number): PriceSlot[] {
   const slots: PriceSlot[] = [];
 
   for (let h = fromHour; h < toHour; h += 0.5) {
-    slots.push({ start: at(h), end: at(h + 0.5), pence });
+    slots.push({ start: at(h), end: at(h + 0.5), pence, isEstimated: false });
   }
 
   return slots;
@@ -94,7 +94,7 @@ describe('planCharge - business as usual', () => {
     const slots: PriceSlot[] = [];
 
     for (let h = 0; h < 6; h += 0.5) {
-      slots.push({ start: at(h), end: at(h + 0.5), pence: h % 1 === 0 ? 5 : 9 });
+      slots.push({ start: at(h), end: at(h + 0.5), pence: h % 1 === 0 ? 5 : 9, isEstimated: false });
     }
 
     const { slots: picked } = plan({ slots, baselinePence: 20, chargePercentage: 70 });

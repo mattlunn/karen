@@ -21,6 +21,7 @@ function slots(startMin: number, pences: number[]): PriceSlot[] {
     start: at(startMin + i * 30),
     end: at(startMin + (i + 1) * 30),
     pence,
+    isEstimated: false,
   }));
 }
 

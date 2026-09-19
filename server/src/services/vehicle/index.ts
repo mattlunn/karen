@@ -340,21 +340,16 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
   return plan;
 }
 
-// A plan is fixed so it can't jitter as prices are restated, with three exceptions.
+// A plan is fixed so it can't jitter as prices are restated, with two exceptions.
 //
 // Prices reaching past where the plan ends are strictly more information than it
 // was built from. Agile publishes early afternoon for a plan running to midnight,
 // so holding the old one spends the evening on slots the new day beats outright.
 //
-// A plan made while a deadline was still far off must not sit frozen while
+// And a plan made while a deadline was still far off must not sit frozen while
 // that deadline creeps into engagement range, or it is missed outright. A
 // publication reaches further than a typical deadline lead time, so this is the
 // common case rather than an edge one.
-//
-// And a plan still holding a future estimated slot must keep being rebuilt from
-// fresh data, since AgilePredict revises its forecast for a given slot in place
-// rather than only ever publishing further ahead - unlike Octopus's own prices,
-// nothing here else would notice the forecast moved.
 function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: Dayjs, chargePercentage: number): boolean {
   if (!now.isBefore(plan.end)) {
     return true;
@@ -363,10 +358,6 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
   const publishedEnd = slots.at(-1)?.end;
 
   if (publishedEnd !== undefined && publishedEnd > plan.end) {
-    return true;
-  }
-
-  if (plan.slots.some(s => s.isEstimated && s.start > now.toDate())) {
     return true;
   }
 

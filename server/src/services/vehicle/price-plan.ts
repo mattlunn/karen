@@ -72,9 +72,9 @@ export function isDeadlineEngaged(options: EngagementOptions): boolean {
  * always has real or forecast prices for its whole window.
  *
  * 1. Deadline, when engaged: the cheapest slots falling before the deadline, up
- *    to exactly the hours of charge still needed. Slots this picks that are
- *    still estimated get re-picked from fresh data on every replan, so nothing
- *    is truly committed until real prices supersede the forecast.
+ *    to exactly the hours of charge still needed. A picked slot that's still
+ *    estimated isn't acted on until it's current, so nothing actually charges
+ *    off a forecast price before real prices have had a chance to supersede it.
  * 2. Business as usual, otherwise: the cheapest slots priced under the trailing
  *    median, up to what reaches `defaultLimit`. Judging cheap against recent
  *    history rather than a percentile of the publication means a uniformly cheap day
@@ -151,7 +151,7 @@ export function planCharge(options: PlanOptions): ChargePlan {
     end,
     slots: [...picked]
       .sort((a, b) => a.start.getTime() - b.start.getTime())
-      .map(s => ({ start: s.start, end: s.end, isEstimated: s.isEstimated ?? false })),
+      .map(s => ({ start: s.start, end: s.end, isEstimated: s.isEstimated })),
     target,
     deadline,
   };

@@ -12,7 +12,7 @@ function run(fromHour: number, toHour: number, pence: number): PriceSlot[] {
   const slots: PriceSlot[] = [];
 
   for (let h = fromHour; h < toHour; h += 0.5) {
-    slots.push({ start: at(h), end: at(h + 0.5), pence });
+    slots.push({ start: at(h), end: at(h + 0.5), pence, isEstimated: false });
   }
 
   return slots;
@@ -31,7 +31,7 @@ function plan(slots: PriceSlot[], overrides: Partial<PlanApplianceOptions> = {})
 describe('planAppliance - cost now', () => {
   it('weights each slot in the cycle by its own power-profile entry', () => {
     const profile: ApplianceProfile = { id: 't', label: 'T', fullElapsedDuration: 60, dialCycleMinutes: 60, powerProfileKwh: [2, 1], delayMinHours: 3, delayMaxHours: 12 };
-    const slots = [{ start: at(0), end: at(0.5), pence: 5 }, { start: at(0.5), end: at(1), pence: 3 }];
+    const slots = [{ start: at(0), end: at(0.5), pence: 5, isEstimated: false }, { start: at(0.5), end: at(1), pence: 3, isEstimated: false }];
 
     expect(plan(slots, { profile })!.now.costPence).toBe(2 * 5 + 1 * 3);
   });
@@ -85,7 +85,7 @@ describe('planAppliance - buckets', () => {
   });
 
   it('picks now as best when it is the cheapest, genuine saving - nothing in a bucket needs to beat it', () => {
-    const slots = [{ start: at(0), end: at(0.5), pence: 1 }, ...run(0.5, 24, 10)];
+    const slots = [{ start: at(0), end: at(0.5), pence: 1, isEstimated: false }, ...run(0.5, 24, 10)];
     const result = plan(slots, { baselinePencePerKwh: 10 })!;
 
     expect(result.best).toBe(result.now);

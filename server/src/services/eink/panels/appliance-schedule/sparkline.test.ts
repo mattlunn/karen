@@ -11,7 +11,7 @@ function run(fromHour: number, toHour: number, pence: number): PriceSlot[] {
   const slots: PriceSlot[] = [];
 
   for (let h = fromHour; h < toHour; h += 0.5) {
-    slots.push({ start: at(h), end: at(h + 0.5), pence });
+    slots.push({ start: at(h), end: at(h + 0.5), pence, isEstimated: false });
   }
 
   return slots;
@@ -36,7 +36,7 @@ describe('scaleSparkline', () => {
   });
 
   it('min-max scales to the window\'s own range, not a fixed axis', () => {
-    const slots = [{ start: at(0), end: at(0.5), pence: 0 }, { start: at(0.5), end: at(1), pence: 20 }];
+    const slots = [{ start: at(0), end: at(0.5), pence: 0, isEstimated: false }, { start: at(0.5), end: at(1), pence: 20, isEstimated: false }];
     const { points } = scaleSparkline(slots, NOW, 12, 200, 40);
 
     expect(points[0].y).toBe(40); // cheapest -> bottom
@@ -50,7 +50,7 @@ describe('scaleSparkline', () => {
   });
 
   it('marks the zero line only when the window actually crosses zero', () => {
-    const crossing = scaleSparkline([{ start: at(0), end: at(0.5), pence: -5 }, { start: at(0.5), end: at(1), pence: 5 }], NOW, 12, 200, 40);
+    const crossing = scaleSparkline([{ start: at(0), end: at(0.5), pence: -5, isEstimated: false }, { start: at(0.5), end: at(1), pence: 5, isEstimated: false }], NOW, 12, 200, 40);
     const allPositive = scaleSparkline(run(0, 2, 10), NOW, 12, 200, 40);
     const allNegative = scaleSparkline(run(0, 2, -10), NOW, 12, 200, 40);
 

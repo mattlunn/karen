@@ -4,8 +4,9 @@ export interface PriceSlot {
   start: Date;
   end: Date;
   pence: number;
-  // Set by a caller that backfilled this slot from a prior period; toPriceSlots never sets it.
-  isEstimated?: boolean;
+  // True for a slot backfilled from a forecast rather than a settled price;
+  // toPriceSlots always produces false, since it only ever expands real events.
+  isEstimated: boolean;
 }
 
 // The shape `toPriceSlots` needs from a unit-rate event series - a subset of
@@ -66,7 +67,7 @@ export function toPriceSlots(
     const limit = Math.min(end.getTime(), until.getTime());
 
     while (cursor + slotMs <= limit) {
-      slots.push({ start: new Date(cursor), end: new Date(cursor + slotMs), pence: event.value });
+      slots.push({ start: new Date(cursor), end: new Date(cursor + slotMs), pence: event.value, isEstimated: false });
       cursor += slotMs;
     }
   }
