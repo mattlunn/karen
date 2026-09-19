@@ -524,6 +524,7 @@
   ]
 }, {
   "name": "EnergyCost",
+  "capabilityModelClassName": "EnergyCostBase",
   "properties": [
     {
       "name": "UnitRate",

@@ -1,5 +1,6 @@
 import { Device } from '../';
 import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase, ProviderHeatPumpCapabilityBase, ProviderMotionSensorSensitivityCapabilityBase } from './capabilities.gen';
+import { PriceSlot } from '../../helpers/prices';
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
@@ -10,6 +11,7 @@ export { ElectricVehicleCapability } from './electric-vehicle';
 export { HeatPumpCapability } from './heat-pump';
 export { TelevisionCapability } from './television';
 export { BinCollectionCapability } from './bin-collection';
+export { EnergyCostCapability } from './energy-cost';
 export * from './capabilities.gen';
 
 export type DHWTargetReason = 'STANDARD' | 'PLUNGE' | 'LEGIONELLA';
@@ -69,4 +71,8 @@ export interface ProviderTelevisionCapability extends ProviderTelevisionCapabili
 
 export type ProviderSpeakerCapability = {
   emitSound(device: Device, sound: string | string[], ttlInSeconds?: number): Promise<void>;
+}
+
+export type ProviderEnergyCostCapability = {
+  getForecastSlots(device: Device, since: Date, until: Date): Promise<PriceSlot[]>;
 }

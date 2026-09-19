@@ -19,7 +19,7 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 // that have since moved.
 interface StoredChargePlan {
   end: string;
-  slots: { start: string; end: string }[];
+  slots: { start: string; end: string; isEstimated: boolean }[];
   target: number;
   deadline: string | null;
 }
@@ -29,7 +29,7 @@ function getPlan(device: Device): ChargePlan | null {
 
   return stored === undefined ? null : {
     end: new Date(stored.end),
-    slots: stored.slots.map(s => ({ start: new Date(s.start), end: new Date(s.end) })),
+    slots: stored.slots.map(s => ({ start: new Date(s.start), end: new Date(s.end), isEstimated: s.isEstimated })),
     target: stored.target,
     deadline: stored.deadline === null ? null : new Date(stored.deadline),
   };
@@ -222,8 +222,20 @@ async function getForwardPriceSlots(now: Date) {
   const since = startOfSlot(now);
   const until = dayjs(now).add(FORWARD_WINDOW_HOURS, 'hour').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until });
+  const actualSlots = toPriceSlots(events, since, until);
 
-  return toPriceSlots(events, since, until);
+  // The deadline pass can engage up to this many days out, and real prices
+  // never reach that far - extend with forecast prices to the same horizon.
+  const forecastUntil = dayjs(now).add(config.smartcar.charge_deadline_engage_days, 'day').toDate();
+  const actualEnd = actualSlots.at(-1)?.end ?? since;
+
+  if (!(forecastUntil > actualEnd)) {
+    return actualSlots;
+  }
+
+  const forecastSlots = await energyCost.getForecastSlots(actualEnd, forecastUntil);
+
+  return [...actualSlots, ...forecastSlots];
 }
 
 async function getBaselinePence(now: Date): Promise<number | null> {
@@ -310,13 +322,13 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
     chargeRatePercentPerHour: chargeRatePercentPerHour(),
     defaultLimit: config.smartcar.default_charge_limit,
     plungeLimit: config.smartcar.charge_plunge_limit,
-    deadlineEngageFraction: config.smartcar.charge_deadline_engage_fraction,
+    deadlineEngageDays: config.smartcar.charge_deadline_engage_days,
     startBufferHours: config.smartcar.charge_start_buffer_hours,
   });
 
   device.meta.chargePlan = {
     end: plan.end.toISOString(),
-    slots: plan.slots.map(s => ({ start: s.start.toISOString(), end: s.end.toISOString() })),
+    slots: plan.slots.map(s => ({ start: s.start.toISOString(), end: s.end.toISOString(), isEstimated: s.isEstimated })),
     target: plan.target,
     deadline: plan.deadline === null ? null : plan.deadline.toISOString(),
   } satisfies StoredChargePlan;
@@ -328,16 +340,21 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
   return plan;
 }
 
-// A plan is fixed so it can't jitter as prices are restated, with two exceptions.
+// A plan is fixed so it can't jitter as prices are restated, with three exceptions.
 //
 // Prices reaching past where the plan ends are strictly more information than it
 // was built from. Agile publishes early afternoon for a plan running to midnight,
 // so holding the old one spends the evening on slots the new day beats outright.
 //
-// And a plan made while a deadline was still far off must not sit frozen while
+// A plan made while a deadline was still far off must not sit frozen while
 // that deadline creeps into engagement range, or it is missed outright. A
 // publication reaches further than a typical deadline lead time, so this is the
 // common case rather than an edge one.
+//
+// And a plan still holding a future estimated slot must keep being rebuilt from
+// fresh data, since AgilePredict revises its forecast for a given slot in place
+// rather than only ever publishing further ahead - unlike Octopus's own prices,
+// nothing here else would notice the forecast moved.
 function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: Dayjs, chargePercentage: number): boolean {
   if (!now.isBefore(plan.end)) {
     return true;
@@ -346,6 +363,10 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
   const publishedEnd = slots.at(-1)?.end;
 
   if (publishedEnd !== undefined && publishedEnd > plan.end) {
+    return true;
+  }
+
+  if (plan.slots.some(s => s.isEstimated && s.start > now.toDate())) {
     return true;
   }
 
@@ -360,7 +381,7 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
     now: now.toDate(),
     chargePercentage,
     chargeRatePercentPerHour: chargeRatePercentPerHour(),
-    deadlineEngageFraction: config.smartcar.charge_deadline_engage_fraction,
+    deadlineEngageDays: config.smartcar.charge_deadline_engage_days,
     startBufferHours: config.smartcar.charge_start_buffer_hours,
   });
 }

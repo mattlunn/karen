@@ -5,6 +5,7 @@ import { PriceSlot } from '../../helpers/prices';
 export interface PlanSlot {
   start: Date;
   end: Date;
+  isEstimated: boolean;
 }
 
 export interface ChargeDeadline {
@@ -33,7 +34,7 @@ export interface PlanOptions {
   chargeRatePercentPerHour: number;
   defaultLimit: number;
   plungeLimit: number;
-  deadlineEngageFraction: number;
+  deadlineEngageDays: number;
   startBufferHours: number;
 }
 
@@ -47,31 +48,33 @@ function hoursToCharge(from: number, to: number, ratePercentPerHour: number): nu
 
 /**
  * Whether a scheduled charge is close enough to take over from opportunistic
- * charging: when it would need `deadlineEngageFraction` of the time still left.
- * That scales with how much charge is actually needed, so an 80%->100% top-up
- * engages far later than a 15%->100% charge with the same deadline.
+ * charging: within `deadlineEngageDays` of the deadline. Fixed rather than
+ * scaled to the charge needed, since the point isn't price visibility (that's
+ * covered by forecast prices out to the same horizon) but capping how long
+ * the car sits at its target before departure.
  *
  * Also consulted between plans, since a plan fixed while a deadline was still
  * far off must not sit frozen while it creeps into range.
  */
 export function isDeadlineEngaged(options: EngagementOptions): boolean {
-  const { schedule, now, chargePercentage, chargeRatePercentPerHour, startBufferHours } = options;
-  const hoursNeeded = hoursToCharge(chargePercentage, schedule.targetPercentage, chargeRatePercentPerHour) + startBufferHours;
+  const { schedule, now, deadlineEngageDays } = options;
   const hoursToDeadline = dayjs(schedule.targetTime).diff(now, 'hour', true);
 
-  return hoursToDeadline > 0 && hoursNeeded / hoursToDeadline >= options.deadlineEngageFraction;
+  return hoursToDeadline > 0 && hoursToDeadline <= deadlineEngageDays * 24;
 }
 
 /**
  * Builds the plan for one publication, as up to three passes over a single pool of
  * forward price slots sorted cheapest-first. Each pass tops the same plan up to
  * its own quota, so a slot one pass has already taken counts toward the next.
+ * Slots beyond the ~31h Octopus itself publishes come from forecast prices
+ * (`isEstimated: true`) out to `deadlineEngageDays`, so the deadline pass below
+ * always has real or forecast prices for its whole window.
  *
  * 1. Deadline, when engaged: the cheapest slots falling before the deadline, up
- *    to a pro-rata share of the work. Only ~31h of Agile prices are ever
- *    published, so a deadline beyond them is charged a publication at a time.
- *    With no slack left the share saturates and this takes every slot before the
- *    deadline, which is the deadline beating cost.
+ *    to exactly the hours of charge still needed. Slots this picks that are
+ *    still estimated get re-picked from fresh data on every replan, so nothing
+ *    is truly committed until real prices supersede the forecast.
  * 2. Business as usual, otherwise: the cheapest slots priced under the trailing
  *    median, up to what reaches `defaultLimit`. Judging cheap against recent
  *    history rather than a percentile of the publication means a uniformly cheap day
@@ -94,10 +97,10 @@ export function planCharge(options: PlanOptions): ChargePlan {
     return { end: now, slots: [], target: defaultLimit, deadline: null };
   }
 
-  // Only ~31h of Agile prices are ever published, and the cable can go in at any
-  // point in that cycle. The plan runs exactly as far as the prices do and is
-  // rebuilt when they extend, so placement within it is genuinely optimal: the
-  // unknown future only sets the length.
+  // The pool only ever reaches as far as real prices plus, when a deadline is
+  // in range, forecast prices out to it. The plan runs exactly as far as that
+  // and is rebuilt when it extends, so placement within it is genuinely
+  // optimal: the unknown future only sets the length.
   const end = slots.at(-1)!.end;
 
   const slotHours = dayjs(pool[0].end).diff(pool[0].start, 'hour', true);
@@ -129,11 +132,8 @@ export function planCharge(options: PlanOptions): ChargePlan {
 
   if (schedule !== null && isDeadlineEngaged({ ...options, schedule })) {
     const hoursNeeded = hoursToCharge(chargePercentage, schedule.targetPercentage, chargeRatePercentPerHour) + startBufferHours;
-    const hoursToDeadline = dayjs(schedule.targetTime).diff(now, 'hour', true);
-    const planHours = dayjs(end).diff(now, 'hour', true);
-    const share = hoursNeeded * Math.min(1, planHours / hoursToDeadline);
 
-    take(s => s.end <= schedule.targetTime, Math.ceil(share / slotHours));
+    take(s => s.end <= schedule.targetTime, Math.ceil(hoursNeeded / slotHours));
 
     target = schedule.targetPercentage;
     deadline = schedule.targetTime;
@@ -151,7 +151,7 @@ export function planCharge(options: PlanOptions): ChargePlan {
     end,
     slots: [...picked]
       .sort((a, b) => a.start.getTime() - b.start.getTime())
-      .map(s => ({ start: s.start, end: s.end })),
+      .map(s => ({ start: s.start, end: s.end, isEstimated: s.isEstimated ?? false })),
     target,
     deadline,
   };
