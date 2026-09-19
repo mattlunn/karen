@@ -1,7 +1,7 @@
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faQuestion } from '@fortawesome/free-solid-svg-icons';
 import type { RestDeviceResponse } from '../../api/types';
-import type { CapabilityType, CapabilityUIConfig, CapabilityMetric, GraphSectionConfig } from './types';
+import type { CapabilityType, CapabilityUIConfig, CapabilityMetric, GraphConfig, GraphSectionConfig } from './types';
 import { registry } from './registry';
 
 /**
@@ -84,6 +84,16 @@ export function getDeviceGraphSections(device: RestDeviceResponse): GraphSection
   }
 
   return sections;
+}
+
+// Finds the section a given history id belongs to, so a page outside the device
+// details page can render one of its graphs without redeclaring the config.
+export function getDeviceGraphSection(device: RestDeviceResponse, graphId: string): GraphSectionConfig | undefined {
+  return getDeviceGraphSections(device).find((section) => {
+    const graphs: GraphConfig[] = section.graphs;
+
+    return graphs.some((graph) => graph.id === graphId);
+  });
 }
 
 /**

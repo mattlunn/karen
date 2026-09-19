@@ -17,6 +17,7 @@ export {
   getDeviceMetrics,
   getDeviceIcon,
   getDeviceGraphSections,
+  getDeviceGraphSection,
   getDeviceIssues,
   getMetricIconColor,
   getMetricButtonBackgroundColor,
