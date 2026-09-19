@@ -53,6 +53,7 @@ import type {
   CapabilityMetric,
   CapabilityEvent,
   CreateCapabilityConfig,
+  GraphConfig,
 } from './types';
 
 // ============================================================================
@@ -273,6 +274,18 @@ function createCapability<E extends CapabilityEvent | null>(
 // ============================================================================
 // Registry
 // ============================================================================
+
+// Cost and rate are suggestedMin rather than min: plunge pricing pays us to
+// import, so both genuinely go negative.
+const ENERGY_DAILY_COST_YAXIS: GraphConfig['yAxis'] = {
+  yEnergy: { position: 'left', min: 0, label: 'Energy (kWh)' },
+  yCost: { position: 'right', suggestedMin: 0, label: 'Cost (£)' },
+};
+
+const ENERGY_DAILY_RATE_YAXIS: GraphConfig['yAxis'] = {
+  yEnergy: { position: 'left', min: 0, label: 'Energy (kWh)' },
+  yRate: { position: 'right', suggestedMin: 0, label: 'Unit rate (p/kWh)' },
+};
 
 export const registry: CapabilityUIRegistry = {
   CAMERA: {
@@ -862,18 +875,10 @@ export const registry: CapabilityUIRegistry = {
         overridePreset: 'custom',
         overrideStart: dayjs().subtract(1, 'month').startOf('day').toISOString(),
         overrideEnd: dayjs().toISOString(),
-        yAxis: {
-          yEnergy: { position: 'left', min: 0, label: 'Energy (kWh)' },
-          yCost: { position: 'right', min: 0, label: 'Cost (£)' },
-        },
-      },
-      {
-        id: 'energy-unit-rate-daily',
-        title: 'Effective unit rate (p/kWh per day)',
-        overridePreset: 'custom',
-        overrideStart: dayjs().subtract(1, 'month').startOf('day').toISOString(),
-        overrideEnd: dayjs().toISOString(),
-        suggestedYMin: 0,
+        toggle: [
+          { id: 'energy-daily', pillLabel: 'Total cost', yAxis: ENERGY_DAILY_COST_YAXIS },
+          { id: 'energy-unit-rate-daily', pillLabel: 'Avg unit price', yAxis: ENERGY_DAILY_RATE_YAXIS },
+        ],
       },
     ],
   },
