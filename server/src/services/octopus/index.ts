@@ -8,7 +8,8 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
 import { haveForecastThrough, PriceSlot, SLOT_MINUTES } from '../../helpers/prices';
 import type { Capability } from '../../models/capabilities';
-import { getAgreements, getUnitRates, getStandingCharges, getSmartMeterDeviceId, getTelemetry, getForecastRates } from './client';
+import { getAgreements, getUnitRates, getStandingCharges, getSmartMeterDeviceId, getTelemetry } from './clients/octopus';
+import { getForecastRates } from './clients/agileforecast';
 
 const PROVIDER_ID = 'electricity-meter';
 

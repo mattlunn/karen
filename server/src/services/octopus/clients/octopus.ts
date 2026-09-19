@@ -1,4 +1,4 @@
-import config from '../../config/app';
+import config from '../../../config/app';
 
 export interface TelemetryReading {
   readAt: Date;
@@ -183,55 +183,6 @@ async function requestAllPages<T>(url: string): Promise<T[]> {
 // (strip the `E-1R-` prefix and the trailing `-<GSP>` region letter).
 function productCodeFromTariff(tariffCode: string): string {
   return tariffCode.replace(/^E-1R-/, '').replace(/-[A-Z]$/, '');
-}
-
-// The same trailing letter identifies the GSP region AgilePredict expects,
-// e.g. `E-1R-AGILE-FLEX-22-11-25-C` -> region `C`.
-function regionCodeFromTariff(tariffCode: string): string {
-  return tariffCode.slice(-1);
-}
-
-export interface ForecastRate {
-  start: Date;
-  value: number; // pence, predicted
-}
-
-const FORECAST_BASE_URL = 'https://agilepredict.com/api';
-
-// A separate unauthenticated fetch, deliberately not routed through `request()`
-// above - that always attaches Octopus's own API key, which has no business
-// being sent to this unrelated third-party forecast service.
-async function requestForecast<T>(url: string): Promise<T> {
-  let response;
-
-  try {
-    response = await fetch(url);
-  } catch (e: any) {
-    throw new Error(`AgilePredict request to ${url} failed: ${e.message}`);
-  }
-
-  if (!response.ok) {
-    throw new Error(`AgilePredict request to ${url} failed with HTTP status ${response.status}`);
-  }
-
-  return response.json() as Promise<T>;
-}
-
-export async function getForecastRates(agreements: TariffAgreement[], since: Date, until: Date): Promise<ForecastRate[]> {
-  const current = agreements.find(a => a.validTo === null) ?? agreements.at(-1);
-
-  if (current === undefined) {
-    return [];
-  }
-
-  const region = regionCodeFromTariff(current.tariffCode);
-  const days = Math.max(1, Math.ceil((until.getTime() - since.getTime()) / (24 * 60 * 60 * 1000)));
-  const url = `${FORECAST_BASE_URL}/${region}?days=${days}&high_low=false`;
-  const [forecast] = await requestForecast<{ prices: { date_time: string; agile_pred: number }[] }[]>(url);
-
-  return forecast.prices
-    .map(p => ({ start: new Date(p.date_time), value: p.agile_pred }))
-    .filter(r => r.start.getTime() >= since.getTime() && r.start.getTime() < until.getTime());
 }
 
 export async function getAgreements(): Promise<TariffAgreement[]> {
