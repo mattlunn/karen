@@ -360,27 +360,27 @@ export const registry: CapabilityUIRegistry = {
         },
       }),
     ],
-    getGraphs: () => [
+    getGraphSections: () => [
       {
-        id: 'vehicle-charge',
         title: 'Charge & Limit',
-        yMin: 0,
-        yMax: 100,
         overridePreset: 'custom',
         overrideStart: dayjs().subtract(1, 'week').toISOString(),
         overrideEnd: dayjs().toISOString(),
+        graphs: [{ id: 'vehicle-charge', yMin: 0, yMax: 100 }],
       },
       {
-        id: 'vehicle-monthly-mileage',
         title: 'Monthly Mileage & Efficiency',
-        timeUnit: 'month',
         overridePreset: 'custom',
         overrideStart: dayjs().subtract(1, 'year').startOf('month').toISOString(),
         overrideEnd: dayjs().toISOString(),
-        yAxis: {
-          y: { position: 'left', min: 0 },
-          yEfficiency: { position: 'right', min: 0 },
-        },
+        graphs: [{
+          id: 'vehicle-monthly-mileage',
+          timeUnit: 'month',
+          yAxis: {
+            y: { position: 'left', min: 0 },
+            yEfficiency: { position: 'right', min: 0 },
+          },
+        }],
       },
     ],
   },
@@ -418,14 +418,16 @@ export const registry: CapabilityUIRegistry = {
         value: (e) => e.value ? 'Yes' : 'No',
       }),
     ],
-    getGraphs: () => [
+    getGraphSections: () => [
       {
-        id: 'thermostat',
         title: 'Temperature & Power',
-        yAxis: {
-          yTemperature: { position: 'left', min: 0, suggestedMax: 30 },
-          yPercentage: { position: 'right', min: 0, max: 100 },
-        },
+        graphs: [{
+          id: 'thermostat',
+          yAxis: {
+            yTemperature: { position: 'left', min: 0, suggestedMax: 30 },
+            yPercentage: { position: 'right', min: 0, max: 100 },
+          },
+        }],
       },
     ],
   },
@@ -534,56 +536,46 @@ export const registry: CapabilityUIRegistry = {
         value: (e) => `${e.value.toFixed(1)} bar`,
       }),
     ],
-    getGraphs: () => [
-      { id: 'heatpump-power', title: 'Power' },
-      { id: 'heatpump-compressor-power', title: 'Compressor Power', yMin: 0 },
-      { id: 'heatpump-compressor-modulation', title: 'Compressor Modulation', yMin: 0, yMax: 100 },
-      { id: 'heatpump-cumulative-energy', title: 'Cumulative Energy (kWh)', yMin: 0 },
-      { id: 'heatpump-outside-temp', title: 'Outside Temperature', yMin: -10 },
-      { id: 'heatpump-dhw-temp', title: 'DHW Temperature' },
-      { id: 'heatpump-flow-temp', title: 'Flow/ Return Temperatures' },
+    getGraphSections: () => [
+      { title: 'Power', graphs: [{ id: 'heatpump-power' }] },
+      { title: 'Compressor Power', graphs: [{ id: 'heatpump-compressor-power', yMin: 0 }] },
+      { title: 'Compressor Modulation', graphs: [{ id: 'heatpump-compressor-modulation', yMin: 0, yMax: 100 }] },
+      { title: 'Cumulative Energy (kWh)', graphs: [{ id: 'heatpump-cumulative-energy', yMin: 0 }] },
+      { title: 'Outside Temperature', graphs: [{ id: 'heatpump-outside-temp', yMin: -10 }] },
+      { title: 'DHW Temperature', graphs: [{ id: 'heatpump-dhw-temp' }] },
+      { title: 'Flow/ Return Temperatures', graphs: [{ id: 'heatpump-flow-temp' }] },
       {
-        id: 'heatpump-pressure',
         title: 'System Pressure',
-        zones: [
-          { min: 0, max: 1, color: 'rgba(255, 0, 55, 0.25)' },
-          { min: 1, max: 2, color: 'rgba(31, 135, 0, 0.25)' },
-        ],
-        yMin: 0,
-        yMax: 2,
+        graphs: [{
+          id: 'heatpump-pressure',
+          zones: [
+            { min: 0, max: 1, color: 'rgba(255, 0, 55, 0.25)' },
+            { min: 1, max: 2, color: 'rgba(31, 135, 0, 0.25)' },
+          ],
+          yMin: 0,
+          yMax: 2,
+        }],
       },
       {
-        id: 'heatpump-daily-metrics',
         title: 'Daily Overall Metrics',
         overridePreset: 'custom',
         overrideStart: dayjs().subtract(14, 'days').startOf('day').toISOString(),
         overrideEnd: dayjs().toISOString(),
-        yAxis: {
-          yCoP: { position: 'left' },
-          yEnergy: { position: 'right' },
-        },
+        graphs: [{ id: 'heatpump-daily-metrics', yAxis: { yCoP: { position: 'left' }, yEnergy: { position: 'right' } } }],
       },
       {
-        id: 'heatpump-daily-heating',
         title: 'Daily Heating Metrics',
         overridePreset: 'custom',
         overrideStart: dayjs().subtract(14, 'days').startOf('day').toISOString(),
         overrideEnd: dayjs().toISOString(),
-        yAxis: {
-          yCoP: { position: 'left' },
-          yEnergy: { position: 'right' },
-        },
+        graphs: [{ id: 'heatpump-daily-heating', yAxis: { yCoP: { position: 'left' }, yEnergy: { position: 'right' } } }],
       },
       {
-        id: 'heatpump-daily-dhw',
         title: 'Daily DHW Metrics',
         overridePreset: 'custom',
         overrideStart: dayjs().subtract(14, 'days').startOf('day').toISOString(),
         overrideEnd: dayjs().toISOString(),
-        yAxis: {
-          yCoP: { position: 'left' },
-          yEnergy: { position: 'right' },
-        },
+        graphs: [{ id: 'heatpump-daily-dhw', yAxis: { yCoP: { position: 'left' }, yEnergy: { position: 'right' } } }],
       },
     ],
   },
@@ -608,8 +600,8 @@ export const registry: CapabilityUIRegistry = {
         value: <NumericControl deviceId={device.id} selectedValue={cap.brightness.value ?? 100} min={0} max={100} increment={5} formatLabel={(i) => `${i}%`} onClick={(value) => updateLight(device.id, { brightness: value })} />,
       }),
     ],
-    getGraphs: () => [
-      { id: 'light', title: 'Activity' },
+    getGraphSections: () => [
+      { title: 'Activity', graphs: [{ id: 'light' }] },
     ],
   },
 
@@ -728,8 +720,8 @@ export const registry: CapabilityUIRegistry = {
 
       return metrics;
     },
-    getGraphs: () => [
-      { id: 'alarm-sensor', title: 'Activity' },
+    getGraphSections: () => [
+      { title: 'Activity', graphs: [{ id: 'alarm-sensor' }] },
     ],
   },
 
@@ -867,17 +859,16 @@ export const registry: CapabilityUIRegistry = {
         value: (e) => `£${(e.value / 100).toFixed(2)}`,
       }),
     ],
-    getGraphs: () => [
-      { id: 'energy-power', title: 'Power', yMin: 0 },
+    getGraphSections: () => [
+      { title: 'Power', graphs: [{ id: 'energy-power', yMin: 0 }] },
       {
-        id: 'energy-daily',
         title: 'Daily Energy & Cost',
         overridePreset: 'custom',
         overrideStart: dayjs().subtract(1, 'month').startOf('day').toISOString(),
         overrideEnd: dayjs().toISOString(),
-        toggle: [
-          { id: 'energy-daily', pillLabel: 'Total cost', yAxis: ENERGY_DAILY_COST_YAXIS },
-          { id: 'energy-unit-rate-daily', pillLabel: 'Avg unit price', yAxis: ENERGY_DAILY_RATE_YAXIS },
+        graphs: [
+          { id: 'energy-daily', name: 'Total cost', yAxis: ENERGY_DAILY_COST_YAXIS },
+          { id: 'energy-unit-rate-daily', name: 'Avg unit price', yAxis: ENERGY_DAILY_RATE_YAXIS },
         ],
       },
     ],
@@ -892,8 +883,8 @@ export const registry: CapabilityUIRegistry = {
         value: (e) => `${e.value.toFixed(2)}p/day`,
       }),
     ],
-    getGraphs: () => [
-      { id: 'energy-unit-rate', title: 'Unit Rate (p/kWh)', suggestedYMin: 0 },
+    getGraphSections: () => [
+      { title: 'Unit Rate (p/kWh)', graphs: [{ id: 'energy-unit-rate', suggestedYMin: 0 }] },
     ],
   },
 

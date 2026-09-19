@@ -6,7 +6,7 @@ import { useDeviceHistory } from '../../hooks/queries/use-device-history';
 import { DateRangeProvider, DateRangeSelector, getPresetRange } from '../date-range';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
-import { usePillToggle } from '../capability-graphs/pill-toggle';
+import { usePillToggle } from '../pill-toggle';
 import PageLoader from '../page-loader';
 import dayjs from '../../dayjs';
 

@@ -1,7 +1,7 @@
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { faQuestion } from '@fortawesome/free-solid-svg-icons';
 import type { RestDeviceResponse } from '../../api/types';
-import type { CapabilityType, CapabilityUIConfig, CapabilityMetric, GraphConfig } from './types';
+import type { CapabilityType, CapabilityUIConfig, CapabilityMetric, GraphSectionConfig } from './types';
 import { registry } from './registry';
 
 /**
@@ -62,10 +62,10 @@ export function getDeviceIcon(device: RestDeviceResponse): IconDefinition {
 }
 
 /**
- * Get all graphs for a device.
+ * Get all graph sections for a device.
  */
-export function getDeviceGraphs(device: RestDeviceResponse): GraphConfig[] {
-  const graphs: GraphConfig[] = [];
+export function getDeviceGraphSections(device: RestDeviceResponse): GraphSectionConfig[] {
+  const sections: GraphSectionConfig[] = [];
 
   for (const capability of device.capabilities) {
     if (capability.type === null) {
@@ -74,16 +74,16 @@ export function getDeviceGraphs(device: RestDeviceResponse): GraphConfig[] {
 
     const config = registry[capability.type];
 
-    if (config.getGraphs) {
-      graphs.push(...config.getGraphs().map((graph) => capability.instanceId === null ? graph : {
-        ...graph,
+    if (config.getGraphSections) {
+      sections.push(...config.getGraphSections().map((section) => capability.instanceId === null ? section : {
+        ...section,
         instanceId: capability.instanceId,
-        title: capability.instanceName ? `${graph.title} · ${capability.instanceName}` : graph.title
+        title: capability.instanceName ? `${section.title} · ${capability.instanceName}` : section.title
       }));
     }
   }
 
-  return graphs;
+  return sections;
 }
 
 /**

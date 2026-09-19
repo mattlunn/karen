@@ -5,14 +5,14 @@ import styles from './device.module.css';
 
 import type { CapabilityApiResponse } from '../../api/types';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
-import { DeviceGraph } from '../capability-graphs/device-graph';
+import { GraphSection } from '../capability-graphs/graph-section';
 import { DeviceTimeline } from '../device-timeline';
 import { Box, Grid, Paper, SimpleGrid, Title } from '@mantine/core';
 import PageLoader from '../page-loader';
 import { StatusItem } from '../status-item';
 import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
-import { getDeviceMetrics, getDeviceGraphs, MetricDisplayProvider } from '../capabilities';
+import { getDeviceMetrics, getDeviceGraphSections, MetricDisplayProvider } from '../capabilities';
 import BinScheduleCalendar from '../bin-schedule-calendar';
 
 export default function Device() {
@@ -26,7 +26,7 @@ export default function Device() {
   const device = data.device;
   const lastSeen = dayjs(device.lastSeen);
   const metrics = getDeviceMetrics(device);
-  const graphs = getDeviceGraphs(device);
+  const sections = getDeviceGraphSections(device);
   const binCap = device.capabilities.find((c): c is Extract<CapabilityApiResponse, { type: 'BIN_COLLECTION' }> => c.type === 'BIN_COLLECTION');
 
   return (
@@ -75,28 +75,12 @@ export default function Device() {
           <DateRangeSelector />
         </Box>
 
-        {graphs.length > 0 && (
+        {sections.length > 0 && (
           <div>
             <Title order={3} className={styles.sectionHeader}>Graph</Title>
 
-            {graphs.map((graph, idx) => (
-              <DeviceGraph
-                key={idx}
-                title={graph.title}
-                graphId={graph.id}
-                instanceId={graph.instanceId}
-                deviceId={device.id}
-                yAxis={graph.yAxis}
-                yMin={graph.yMin}
-                yMax={graph.yMax}
-                suggestedYMin={graph.suggestedYMin}
-                zones={graph.zones}
-                toggle={graph.toggle}
-                overridePageDateRange={graph.overridePreset}
-                overridePageDateRangeStart={graph.overrideStart}
-                overridePageDateRangeEnd={graph.overrideEnd}
-                timeUnit={graph.timeUnit}
-              />
+            {sections.map((section, idx) => (
+              <GraphSection key={idx} section={section} deviceId={device.id} />
             ))}
           </div>
         )}
