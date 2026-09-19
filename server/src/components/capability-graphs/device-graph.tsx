@@ -115,7 +115,7 @@ export function DeviceGraph({
         <div style={{ marginLeft: 'auto' }}>{control}</div>
       </Group>
 
-      <Group justify="flex-end" gap="sm">
+      <Group justify="flex-end" gap="sm" mt="sm">
         {!usePageRange && localRange && (
           <DateRangeSelector
             preset={localPreset}

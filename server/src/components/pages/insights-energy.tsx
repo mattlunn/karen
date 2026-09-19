@@ -123,7 +123,7 @@ function MeterDailyGraph() {
         <div style={{ marginLeft: 'auto' }}>{control}</div>
       </Group>
 
-      <Group justify="flex-end">
+      <Group justify="flex-end" mt="sm">
         <DateRangeSelector
           preset={preset}
           range={range}
