@@ -112,24 +112,24 @@ export function DeviceGraph({
     <div className="device-graph">
       <Group justify="space-between" className="device-graph__controls" mt="lg">
         <Title order={4}>{title}</Title>
-        <Group gap="sm">
-          {control}
+        {control}
+      </Group>
 
-          {!usePageRange && localRange && (
-            <DateRangeSelector
-              preset={localPreset}
-              range={localRange}
-              onPresetChange={setLocalPreset}
-              onRangeChange={setLocalRange}
-            />
-          )}
-
-          <Checkbox
-            label="Use page date range"
-            checked={usePageRange}
-            onChange={(e) => handleUsePageRangeChange(e.currentTarget.checked)}
+      <Group justify="flex-end" gap="sm">
+        {!usePageRange && localRange && (
+          <DateRangeSelector
+            preset={localPreset}
+            range={localRange}
+            onPresetChange={setLocalPreset}
+            onRangeChange={setLocalRange}
           />
-        </Group>
+        )}
+
+        <Checkbox
+          label="Use page date range"
+          checked={usePageRange}
+          onChange={(e) => handleUsePageRangeChange(e.currentTarget.checked)}
+        />
       </Group>
 
       <CapabilityGraph key={effectiveGraphId} {...graphProps} />

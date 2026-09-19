@@ -120,15 +120,16 @@ function MeterDailyGraph() {
     <>
       <Group justify="space-between" mt="lg">
         <Title order={4}>House total (per day)</Title>
-        <Group gap="sm">
-          {control}
-          <DateRangeSelector
-            preset={preset}
-            range={range}
-            onPresetChange={setPreset}
-            onRangeChange={setRange}
-          />
-        </Group>
+        {control}
+      </Group>
+
+      <Group justify="flex-end">
+        <DateRangeSelector
+          preset={preset}
+          range={range}
+          onPresetChange={setPreset}
+          onRangeChange={setRange}
+        />
       </Group>
 
       {meterId == null ? <PageLoader /> : <MeterDailyGraphBody deviceId={meterId} params={params} activeId={activeId} />}
