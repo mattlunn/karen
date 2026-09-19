@@ -1,80 +1,25 @@
-import React, { useState, useMemo } from 'react';
-import { Checkbox, Group, Title } from '@mantine/core';
+import React, { useMemo } from 'react';
 import { useDeviceHistory } from '../../hooks/queries/use-device-history';
-import { useDateRange, DateRangeSelector, getPresetRange } from '../date-range';
-import { CapabilityGraph, CapabilityGraphProps } from './capability-graph';
-import { DateRange, DateRangePreset } from '../date-range/types';
-import dayjs from '../../dayjs';
+import { CapabilityGraph } from './capability-graph';
+import type { GraphConfig } from '../capabilities/types';
 
 type DeviceGraphProps = {
-  graphId: string;
-  instanceId?: string | null;
   deviceId: number;
-  title: string;
-  zones?: CapabilityGraphProps['zones'];
-  yMin?: number;
-  yMax?: number;
-  suggestedYMin?: number;
-  yAxis?: CapabilityGraphProps['yAxis'];
-  overridePageDateRange?: DateRangePreset;
-  overridePageDateRangeStart?: string;
-  overridePageDateRangeEnd?: string;
-  timeUnit?: CapabilityGraphProps['timeUnit'];
+  graph: GraphConfig;
+  instanceId?: string | null;
+  since: string;
+  until: string;
 };
 
-function getInitialRange(
-  override?: DateRangePreset,
-  start?: string,
-  end?: string
-): DateRange | null {
-  if (!override) return null;
-
-  if (override === 'custom' && start && end) {
-    return { since: dayjs(start), until: dayjs(end) };
-  }
-
-  return getPresetRange(override);
-}
-
-export function DeviceGraph({
-  graphId,
-  instanceId,
-  deviceId,
-  title,
-  zones,
-  yMin,
-  yMax,
-  suggestedYMin,
-  yAxis,
-  overridePageDateRange,
-  overridePageDateRangeStart,
-  overridePageDateRangeEnd,
-  timeUnit
-}: DeviceGraphProps) {
-  const { globalRange } = useDateRange();
-  const [usePageRange, setUsePageRange] = useState(!overridePageDateRange);
-  const [localPreset, setLocalPreset] = useState<DateRangePreset>(overridePageDateRange ?? 'last6hours');
-  const [localRange, setLocalRange] = useState<DateRange | null>(
-    () => getInitialRange(overridePageDateRange, overridePageDateRangeStart, overridePageDateRangeEnd)
-  );
-
-  const effectiveRange = usePageRange ? globalRange : (localRange ?? globalRange);
-
+export function DeviceGraph({ deviceId, graph, instanceId, since, until }: DeviceGraphProps) {
   const params = useMemo(() => ({
-    id: graphId,
+    id: graph.id,
     ...(instanceId ? { instance: instanceId } : {}),
-    since: effectiveRange.since.toISOString(),
-    until: effectiveRange.until.toISOString()
-  }), [graphId, instanceId, effectiveRange.since, effectiveRange.until]);
+    since,
+    until
+  }), [graph.id, instanceId, since, until]);
 
   const { data, isPending, isError } = useDeviceHistory(deviceId, params);
-
-  const handleUsePageRangeChange = (checked: boolean) => {
-    if (!checked && !localRange) {
-      setLocalRange(globalRange);
-    }
-    setUsePageRange(checked);
-  };
 
   if (isPending) {
     return <div style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
@@ -88,42 +33,18 @@ export function DeviceGraph({
     return null;
   }
 
-  const mergedYAxis = (yMin === undefined && yMax === undefined && suggestedYMin === undefined)
-    ? yAxis
-    : { ...yAxis, y: { ...yAxis?.y, min: yMin, max: yMax, suggestedMin: suggestedYMin } };
-
-  const graphProps: CapabilityGraphProps = {
-    lines: data.lines,
-    modes: data.modes,
-    bars: data.bars,
-    zones,
-    yAxis: mergedYAxis,
-    timeUnit
-  };
+  const mergedYAxis = (graph.yMin === undefined && graph.yMax === undefined && graph.suggestedYMin === undefined)
+    ? graph.yAxis
+    : { ...graph.yAxis, y: { ...graph.yAxis?.y, min: graph.yMin, max: graph.yMax, suggestedMin: graph.suggestedYMin } };
 
   return (
-    <div className="device-graph">
-      <Group justify="space-between" className="device-graph__controls" mt="lg">
-        <Title order={4}>{title}</Title>
-        <Group gap="sm">
-        {!usePageRange && localRange && (
-          <DateRangeSelector
-            preset={localPreset}
-            range={localRange}
-            onPresetChange={setLocalPreset}
-            onRangeChange={setLocalRange}
-          />
-        )}
-
-        <Checkbox
-          label="Use page date range"
-          checked={usePageRange}
-          onChange={(e) => handleUsePageRangeChange(e.currentTarget.checked)}
-        />
-        </Group>
-      </Group>
-
-      <CapabilityGraph {...graphProps} />
-    </div>
+    <CapabilityGraph
+      lines={data.lines}
+      modes={data.modes}
+      bars={data.bars}
+      zones={graph.zones}
+      yAxis={mergedYAxis}
+      timeUnit={graph.timeUnit}
+    />
   );
 }

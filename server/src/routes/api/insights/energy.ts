@@ -1,4 +1,5 @@
 import { Device } from '../../../models';
+import { TimeRangeSelector } from '../../../models/capabilities/helpers';
 import { EnergyMonitorCapability } from '../../../models/capabilities';
 import { Request, Response } from 'express';
 import {
@@ -18,6 +19,7 @@ import {
   bucketByDay,
   daysInRange,
   daysToLineData,
+  dailyUnitRate,
 } from '../history-helpers';
 import { asyncMap } from '../../../helpers/array';
 import dayjs from '../../../dayjs';
@@ -141,11 +143,15 @@ export async function scheduleHandler(req: Request, res: Response) {
   res.json({ lines, modes } satisfies EnergyScheduleApiResponse);
 }
 
-export async function usageHandler(req: Request, res: Response) {
-  const selector = {
+function selectorFromQuery(req: Request): TimeRangeSelector {
+  return {
     since: new Date(req.query.since as string),
     until: new Date(req.query.until as string)
   };
+}
+
+export async function usageHandler(req: Request, res: Response) {
+  const selector = selectorFromQuery(req);
 
   const devices = await Device.findByCapability('ENERGY_MONITOR');
 
@@ -185,10 +191,7 @@ async function bucketByEntity(
 }
 
 export async function costHandler(req: Request, res: Response) {
-  const selector = {
-    since: new Date(req.query.since as string),
-    until: new Date(req.query.until as string)
-  };
+  const selector = selectorFromQuery(req);
 
   const { meter, monitored } = await splitMeterFromMonitored();
   const days = daysInRange(selector.since, selector.until);
@@ -224,10 +227,7 @@ export async function costHandler(req: Request, res: Response) {
 }
 
 export async function unitRateDailyHandler(req: Request, res: Response) {
-  const selector = {
-    since: new Date(req.query.since as string),
-    until: new Date(req.query.until as string)
-  };
+  const selector = selectorFromQuery(req);
 
   const { meter, monitored } = await splitMeterFromMonitored();
   const days = daysInRange(selector.since, selector.until);
@@ -246,15 +246,8 @@ export async function unitRateDailyHandler(req: Request, res: Response) {
 
   const energyByLabel = new Map(energyByEntity.map((entity) => [entity.label, entity.byDay]));
 
-  // p/kWh = day cost (pence) / day energy (kWh); a day with no energy yields no
-  // point, so the line reads as a gap there rather than dividing by zero.
   const rateFor = (cost: Map<string, number>, energy: Map<string, number> | undefined) =>
-    daysToLineData(days, since, until, (day) => {
-      const kwh = energy?.get(day);
-      const pence = cost.get(day);
-
-      return kwh && pence !== undefined ? pence / kwh : undefined;
-    });
+    dailyUnitRate(cost, energy ?? new Map(), days, since, until);
 
   const lines: HistoryLineApiResponse[] = costByEntity.map(({ label, byDay }) => ({
     label,

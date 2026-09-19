@@ -111,12 +111,12 @@ export type CreateCapabilityConfig<E extends CapabilityEvent | null> = {
 };
 
 /**
- * Configuration for a graph on the device details page.
+ * One chart: which history to fetch and how to draw it.
  */
 export interface GraphConfig {
   id: string;
-  instanceId?: string | null;
-  title: string;
+  // Pill label. Required by GraphSectionConfig when a section has several graphs.
+  name?: string;
   yAxis?: Record<string, {
     position: 'left' | 'right';
     min?: number;
@@ -128,11 +128,25 @@ export interface GraphConfig {
   yMax?: number;
   suggestedYMin?: number;
   zones?: { min: number; max: number; color: string }[];
+  timeUnit?: TimeUnit;
+}
+
+type GraphSectionChrome = {
+  title: string;
+  instanceId?: string | null;
   overridePreset?: DateRangePreset;
   overrideStart?: string;
   overrideEnd?: string;
-  timeUnit?: TimeUnit;
-}
+};
+
+/**
+ * One panel on the device page. Its chrome - title, date range - is shared by
+ * every graph in it, and several graphs render as a pill toggle between them.
+ */
+export type GraphSectionConfig = GraphSectionChrome & (
+  | { graphs: [GraphConfig] }
+  | { graphs: (GraphConfig & { name: string })[] }
+);
 
 // ============================================================================
 // Registry Types
@@ -158,7 +172,7 @@ export interface CapabilityUIConfig<T extends CapabilityType> {
     capability: ExtractCapability<T>,
     device: RestDeviceResponse
   ) => CapabilityMetric[];
-  getGraphs?: () => GraphConfig[];
+  getGraphSections?: () => GraphSectionConfig[];
 }
 
 /**

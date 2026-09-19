@@ -249,16 +249,18 @@ export const registry: CapabilityUIRegistry = {
         onIconClick: async ({ queryClient }) => { /* toggle action */ },
       },
     ],
-    getGraphs: () => [{ id: 'light', title: 'Activity' }],
+    getGraphSections: () => [{ title: 'Activity', graphs: [{ id: 'light' }] }],
   },
   // ... other capabilities
 };
 ```
 
+A section with several `graphs` renders a pill toggle between them, labelled by each graph's `name`.
+
 The registry provides:
 - `getDeviceMetrics(device)` - Returns all metrics sorted by priority
 - `getDeviceIcon(device)` - Returns the primary icon
-- `getDeviceGraphs(device)` - Returns graph configurations
+- `getDeviceGraphSections(device)` - Returns graph section configurations
 - `MetricDisplayProvider` - Context for compact/full display variants
 
 Interactive controls use `onIconClick` which receives `{ openModal, closeModal, queryClient }`. The `value` field can be a React component for interactive controls (e.g., brightness dropdown).

@@ -1,11 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Group, Title } from '@mantine/core';
+import React, { useEffect } from 'react';
+import { Box, Title } from '@mantine/core';
 import { useEnergyCostInsights, useEnergyScheduleInsights, useEnergyUnitRateDailyInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
 import { useDevices } from '../../hooks/queries/use-devices';
-import { useDeviceHistory } from '../../hooks/queries/use-device-history';
-import { DateRangeProvider, DateRangeSelector, getPresetRange } from '../date-range';
+import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DateRange, DateRangePreset } from '../date-range/types';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
+import { GraphSection } from '../capability-graphs/graph-section';
+import { GraphChrome } from '../graph-chrome';
+import { getDeviceGraphSection } from '../capabilities';
 import PageLoader from '../page-loader';
 import dayjs from '../../dayjs';
 
@@ -32,96 +34,8 @@ const yAxisRate = {
   }
 };
 
-const yAxisMeterDaily = {
-  yEnergy: {
-    position: 'left' as const,
-    min: 0,
-    label: 'Energy (kWh)'
-  },
-  yCost: {
-    position: 'right' as const,
-    min: 0,
-    label: 'Cost (£)'
-  }
-};
-
-function useLocalRange(defaultPreset: DateRangePreset, initialRange?: DateRange) {
-  const [preset, setPreset] = useState<DateRangePreset>(defaultPreset);
-  const [range, setRange] = useState<DateRange>(() => initialRange ?? getPresetRange(defaultPreset));
-
-  const params = useMemo(() => ({
-    since: range.since.toISOString(),
-    until: range.until.toISOString()
-  }), [range.since, range.until]);
-
-  return { preset, setPreset, range, setRange, params };
-}
-
-function UsageGraph() {
-  const { preset, setPreset, range, setRange, params } = useLocalRange('last6hours');
-  const { data, isPending, isError } = useEnergyUsageInsights(params);
-
-  return (
-    <>
-      <Group justify="space-between" mt="lg">
-        <Title order={4}>Usage (W)</Title>
-        <DateRangeSelector
-          preset={preset}
-          range={range}
-          onPresetChange={setPreset}
-          onRangeChange={setRange}
-        />
-      </Group>
-
-      {isPending ? <PageLoader /> : isError ? (
-        <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
-      ) : (
-        <CapabilityGraph
-          lines={data.series.map(line => ({ ...line, yAxisID: 'yPower' }))}
-          yAxis={yAxisPower}
-        />
-      )}
-    </>
-  );
-}
-
-// The whole-house total is just the smart meter's own per-device daily graph -
-// the ENERGY_MONITOR device that also reports ENERGY_COST - so this renders
-// /device/<meter>/history?id=energy-daily rather than a bespoke endpoint.
-function MeterDailyGraph() {
-  const { preset, setPreset, range, setRange, params } = useLocalRange('lastMonth');
-  const { data: devicesData } = useDevices();
-
-  const meterId = devicesData?.devices.find(device =>
-    device.capabilities.some(c => c.type === 'ENERGY_MONITOR') &&
-    device.capabilities.some(c => c.type === 'ENERGY_COST')
-  )?.id;
-
-  return (
-    <>
-      <Group justify="space-between" mt="lg">
-        <Title order={4}>House total (per day)</Title>
-        <DateRangeSelector
-          preset={preset}
-          range={range}
-          onPresetChange={setPreset}
-          onRangeChange={setRange}
-        />
-      </Group>
-
-      {meterId == null ? <PageLoader /> : <MeterDailyGraphBody deviceId={meterId} params={params} />}
-    </>
-  );
-}
-
-function MeterDailyGraphBody({ deviceId, params }: { deviceId: number; params: { since: string; until: string } }) {
-  const historyParams = useMemo(
-    () => ({ id: 'energy-daily', since: params.since, until: params.until }),
-    [params.since, params.until]
-  );
-  const { data, isPending, isError } = useDeviceHistory(deviceId, historyParams);
-
-  if (isPending || !data) {
+function GraphState({ isPending, isError, children }: { isPending: boolean; isError: boolean; children: React.ReactNode }) {
+  if (isPending) {
     return <PageLoader />;
   }
 
@@ -129,35 +43,65 @@ function MeterDailyGraphBody({ deviceId, params }: { deviceId: number; params: {
     return <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>;
   }
 
+  return <>{children}</>;
+}
+
+function UsageGraph() {
   return (
-    <CapabilityGraph
-      lines={data.lines}
-      bars={data.bars}
-      timeUnit="day"
-      yAxis={yAxisMeterDaily}
-    />
+    <GraphChrome title="Usage (W)" localPreset="last6hours">
+      {({ since, until }) => <UsageGraphBody since={since} until={until} />}
+    </GraphChrome>
   );
 }
 
-function CostGraph() {
-  const { preset, setPreset, range, setRange, params } = useLocalRange('lastMonth');
-  const { data, isPending, isError } = useEnergyCostInsights(params);
+function UsageGraphBody({ since, until }: { since: string; until: string }) {
+  const { data, isPending, isError } = useEnergyUsageInsights({ since, until });
 
   return (
-    <>
-      <Group justify="space-between" mt="lg">
-        <Title order={4}>Cost (£ per day)</Title>
-        <DateRangeSelector
-          preset={preset}
-          range={range}
-          onPresetChange={setPreset}
-          onRangeChange={setRange}
+    <GraphState isPending={isPending} isError={isError}>
+      {data && (
+        <CapabilityGraph
+          lines={data.series.map(line => ({ ...line, yAxisID: 'yPower' }))}
+          yAxis={yAxisPower}
         />
-      </Group>
+      )}
+    </GraphState>
+  );
+}
 
-      {isPending ? <PageLoader /> : isError ? (
-        <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
-      ) : (
+// The whole-house total is the smart meter's own device-page section - the
+// ENERGY_MONITOR device that also reports ENERGY_COST - rendered here from the
+// same registry config so the two stay identical.
+function MeterDailyGraph() {
+  const { data: devicesData } = useDevices();
+
+  const meter = devicesData?.devices.find(device =>
+    device.capabilities.some(c => c.type === 'ENERGY_MONITOR') &&
+    device.capabilities.some(c => c.type === 'ENERGY_COST')
+  );
+  const section = meter && getDeviceGraphSection(meter, 'energy-daily');
+
+  if (!meter || !section) {
+    return <PageLoader />;
+  }
+
+  return <GraphSection section={section} deviceId={meter.id} linkedToPageRangeByDefault />;
+}
+
+function CostGraph() {
+  return (
+    <GraphChrome title="Cost (£ per day)" localPreset="lastMonth" linkedToPageRangeByDefault>
+      {({ since, until }) => <CostGraphBody since={since} until={until} />}
+    </GraphChrome>
+  );
+}
+
+function CostGraphBody({ since, until }: { since: string; until: string }) {
+  const { data, isPending, isError } = useEnergyCostInsights({ since, until });
+
+  return (
+    <GraphState isPending={isPending} isError={isError}>
+      {data && (
         <CapabilityGraph
           lines={[]}
           bars={data.series.map(series => ({ data: series.data, label: series.label, yAxisID: 'yCost', period: 'day' as const, hatched: series.role === 'residual' }))}
@@ -166,71 +110,79 @@ function CostGraph() {
           yAxis={yAxisCost}
         />
       )}
-    </>
+    </GraphState>
   );
 }
 
 function UnitRateDailyGraph() {
-  const { preset, setPreset, range, setRange, params } = useLocalRange('lastMonth');
-  const { data, isPending, isError } = useEnergyUnitRateDailyInsights(params);
+  return (
+    <GraphChrome title="Effective unit rate (p/kWh per day)" localPreset="lastMonth" linkedToPageRangeByDefault>
+      {({ since, until }) => <UnitRateDailyGraphBody since={since} until={until} />}
+    </GraphChrome>
+  );
+}
+
+function UnitRateDailyGraphBody({ since, until }: { since: string; until: string }) {
+  const { data, isPending, isError } = useEnergyUnitRateDailyInsights({ since, until });
 
   return (
-    <>
-      <Group justify="space-between" mt="lg">
-        <Title order={4}>Effective unit rate (p/kWh per day)</Title>
-        <DateRangeSelector
-          preset={preset}
-          range={range}
-          onPresetChange={setPreset}
-          onRangeChange={setRange}
-        />
-      </Group>
-
-      {isPending ? <PageLoader /> : isError ? (
-        <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
-      ) : (
+    <GraphState isPending={isPending} isError={isError}>
+      {data && (
         <CapabilityGraph
           lines={data.lines}
           timeUnit="day"
           yAxis={yAxisRate}
         />
       )}
-    </>
+    </GraphState>
   );
 }
 
 function ScheduleGraph() {
-  const { preset, setPreset, range, setRange, params } = useLocalRange('custom', {
-    since: dayjs().startOf('day'),
-    until: dayjs().endOf('day'),
-  });
-  const { data, isPending, isError } = useEnergyScheduleInsights(params);
+  return (
+    <GraphChrome
+      title="Price &amp; run windows"
+      localPreset="custom"
+      localRange={{ since: dayjs().startOf('day'), until: dayjs().endOf('day') }}
+    >
+      {({ since, until, range, setRange, preset, isLinkedToPageRange }) => (
+        <ScheduleGraphBody
+          since={since}
+          until={until}
+          range={range}
+          setRange={setRange}
+          preset={preset}
+          isLinkedToPageRange={isLinkedToPageRange}
+        />
+      )}
+    </GraphChrome>
+  );
+}
+
+function ScheduleGraphBody({ since, until, range, setRange, preset, isLinkedToPageRange }: {
+  since: string;
+  until: string;
+  range: DateRange;
+  setRange: (range: DateRange) => void;
+  preset: DateRangePreset;
+  isLinkedToPageRange: boolean;
+}) {
+  const { data, isPending, isError } = useEnergyScheduleInsights({ since, until });
 
   // The server ends the view at the last published price - reflect that in the
-  // Custom range's `until` so the selector matches what's shown.
+  // Custom range's `until` so the selector matches what's shown. Only while
+  // unlinked, since the page range is not this graph's to move.
   const dataUntil = data?.lines[0]?.data.until;
 
   useEffect(() => {
-    if (preset === 'custom' && dataUntil && dataUntil !== range.until.toISOString()) {
+    if (!isLinkedToPageRange && preset === 'custom' && dataUntil && dataUntil !== range.until.toISOString()) {
       setRange({ since: range.since, until: dayjs(dataUntil) });
     }
-  }, [dataUntil, preset, range.since, range.until, setRange]);
+  }, [dataUntil, preset, isLinkedToPageRange, range.since, range.until, setRange]);
 
   return (
-    <>
-      <Group justify="space-between" mt="lg">
-        <Title order={4}>Price &amp; run windows</Title>
-        <DateRangeSelector
-          preset={preset}
-          range={range}
-          onPresetChange={setPreset}
-          onRangeChange={setRange}
-        />
-      </Group>
-
-      {isPending ? <PageLoader /> : isError ? (
-        <Box style={{ height: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Error loading data</Box>
-      ) : (
+    <GraphState isPending={isPending} isError={isError}>
+      {data && (
         <CapabilityGraph
           lines={data.lines}
           modes={data.modes}
@@ -239,7 +191,7 @@ function ScheduleGraph() {
           markers={[{ at: dayjs().toISOString(), label: 'Now', color: '#fa5252' }]}
         />
       )}
-    </>
+    </GraphState>
   );
 }
 
@@ -248,7 +200,11 @@ export default function EnergyInsights() {
     <>
       <Title order={2}>Energy</Title>
 
-      <DateRangeProvider>
+      <DateRangeProvider defaultPreset="lastMonth">
+        <Box mt="md">
+          <DateRangeSelector />
+        </Box>
+
         <UsageGraph />
         <ScheduleGraph />
         <MeterDailyGraph />
