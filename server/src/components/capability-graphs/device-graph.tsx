@@ -112,7 +112,7 @@ export function DeviceGraph({
     <div className="device-graph">
       <Group justify="space-between" className="device-graph__controls" mt="lg">
         <Title order={4}>{title}</Title>
-        {control}
+        <div style={{ marginLeft: 'auto' }}>{control}</div>
       </Group>
 
       <Group justify="flex-end" gap="sm">

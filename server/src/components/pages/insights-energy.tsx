@@ -120,7 +120,7 @@ function MeterDailyGraph() {
     <>
       <Group justify="space-between" mt="lg">
         <Title order={4}>House total (per day)</Title>
-        {control}
+        <div style={{ marginLeft: 'auto' }}>{control}</div>
       </Group>
 
       <Group justify="flex-end">
