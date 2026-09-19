@@ -114,3 +114,21 @@ export function daysToLineData(
 
   return { since, until, history };
 }
+
+// Effective p/kWh for each day: that day's cost (pence) over its energy (kWh).
+// A day missing either side yields no point rather than a zero, since neither a
+// day with no energy nor a day with no cost reading has a meaningful rate.
+export function dailyUnitRate(
+  costPenceByDay: Map<string, number>,
+  energyByDay: Map<string, number>,
+  days: string[],
+  since: string,
+  until: string
+): NumericHistory {
+  return daysToLineData(days, since, until, (day) => {
+    const kwh = energyByDay.get(day);
+    const pence = costPenceByDay.get(day);
+
+    return kwh && pence !== undefined ? pence / kwh : undefined;
+  });
+}

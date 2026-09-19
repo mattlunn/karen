@@ -9,7 +9,7 @@ import {
   HistoryDetailsApiResponse,
   NumericEventApiResponse
 } from '../../../api/types';
-import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapStringHistoryToResponse, bucketByDay, daysInRange, daysToLineData } from '../history-helpers';
+import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapStringHistoryToResponse, bucketByDay, daysInRange, dailyUnitRate } from '../history-helpers';
 
 // Types
 
@@ -382,11 +382,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     return {
       bars,
       lines: [{
-        data: daysToLineData(days, selector.since.toISOString(), selector.until.toISOString(), (day) => {
-          const energy = energyByDay.get(day);
-
-          return energy ? (costPenceByDay.get(day) ?? 0) / energy : undefined;
-        }),
+        data: dailyUnitRate(costPenceByDay, energyByDay, days, selector.since.toISOString(), selector.until.toISOString()),
         label: 'Unit rate (p/kWh)', yAxisID: 'yRate', period: 'day' as const
       }]
     };
