@@ -200,18 +200,17 @@ let deadlineNotChargingSince: Dayjs | null = null;
 let deadlineAlertSent = false;
 
 async function getEnergyCostCapability() {
-  const devices = await Device.findByCapability('ENERGY_COST');
+  const [device] = await Device.findByCapability('ENERGY_COST');
 
-  return devices.length === 0 ? null : devices[0].getEnergyCostCapability();
+  if (device === undefined) {
+    throw new Error('No ENERGY_COST device found to price charging against');
+  }
+
+  return device.getEnergyCostCapability();
 }
 
 async function getBaselinePence(now: Date): Promise<number | null> {
   const energyCost = await getEnergyCostCapability();
-
-  if (energyCost === null) {
-    return null;
-  }
-
   const since = dayjs(now).subtract(config.smartcar.charge_median_rate_days, 'day').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until: now });
 
@@ -361,7 +360,7 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
   const energyCost = await getEnergyCostCapability();
   // The deadline pass can engage up to this many days out, well past where
   // published prices reach, so the tail comes back forecast.
-  const slots = energyCost === null ? [] : await energyCost.getForwardUnitRates(
+  const slots = await energyCost.getForwardUnitRates(
     dayjs(now).add(config.smartcar.charge_deadline_engage_days, 'day').toDate()
   );
 
