@@ -8,7 +8,7 @@ import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
 import { planCharge, isDeadlineEngaged, isWithinSlots, ChargePlan } from './price-plan';
-import { toPriceSlots, medianPence, groupIntoBlocks, startOfSlot, PriceSlot } from '../../helpers/prices';
+import { toPriceSlots, medianPence, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
@@ -205,10 +205,6 @@ async function getEnergyCostCapability() {
   return devices.length === 0 ? null : devices[0].getEnergyCostCapability();
 }
 
-// Octopus fetches 48h of forward rates, so this bounds the query rather than the
-// plan - on Agile the published prices always run out first.
-const FORWARD_WINDOW_HOURS = 48;
-
 async function getForwardPriceSlots(now: Date) {
   const energyCost = await getEnergyCostCapability();
 
@@ -216,26 +212,9 @@ async function getForwardPriceSlots(now: Date) {
     return [];
   }
 
-  // Aligned to the slot boundary rather than `now`, so plugging in mid-slot can
-  // still take the rest of the slot it lands in: `toPriceSlots` drops a partial
-  // at the edge, and that slot is often the cheapest of the day.
-  const since = startOfSlot(now);
-  const until = dayjs(now).add(FORWARD_WINDOW_HOURS, 'hour').toDate();
-  const events = await energyCost.getUnitRateHistory({ since, until });
-  const actualSlots = toPriceSlots(events, since, until);
-
-  // The deadline pass can engage up to this many days out, and real prices
-  // never reach that far - extend with forecast prices to the same horizon.
-  const forecastUntil = dayjs(now).add(config.smartcar.charge_deadline_engage_days, 'day').toDate();
-  const actualEnd = actualSlots.at(-1)?.end ?? since;
-
-  if (!(forecastUntil > actualEnd)) {
-    return actualSlots;
-  }
-
-  const forecastSlots = await energyCost.getForecastSlots(actualEnd, forecastUntil);
-
-  return [...actualSlots, ...forecastSlots];
+  // The deadline pass can engage up to this many days out, well past where
+  // published prices reach, so the tail comes back forecast.
+  return energyCost.getForwardUnitRates(dayjs(now).add(config.smartcar.charge_deadline_engage_days, 'day').toDate());
 }
 
 async function getBaselinePence(now: Date): Promise<number | null> {

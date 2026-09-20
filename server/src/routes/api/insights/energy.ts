@@ -11,7 +11,9 @@ import {
   HistoryLineApiResponse,
   HistoryModesApiResponse,
   BooleanEventApiResponse,
+  NumericEventApiResponse,
 } from '../../../api/types';
+import { PriceSlot } from '../../../helpers/prices';
 import {
   mapNumericHistoryToResponse,
   mapBooleanHistoryToResponse,
@@ -23,6 +25,7 @@ import {
 } from '../history-helpers';
 import { asyncMap } from '../../../helpers/array';
 import dayjs from '../../../dayjs';
+import logger from '../../../logger';
 
 // One device can meter several loads independently (e.g. an energy meter with a CT clamp
 // per appliance), so each instance of its ENERGY_MONITOR capability is its own entity here.
@@ -67,6 +70,25 @@ const EV_PLANNED_COLOR = 'rgba(46, 204, 113, 0.15)';
 const DHW_ACTUAL_COLOR = 'rgba(52, 152, 219, 0.35)';
 const DHW_PLANNED_COLOR = 'rgba(52, 152, 219, 0.15)';
 
+const FORECAST_HORIZON_DAYS = 7;
+
+function forecastLineData(
+  slots: PriceSlot[],
+  since: Date,
+  until: Date
+): HistoryDetailsApiResponse<NumericEventApiResponse> {
+  return {
+    since: since.toISOString(),
+    until: until.toISOString(),
+    history: slots.map(s => ({
+      start: s.start.toISOString(),
+      end: s.end.toISOString(),
+      lastReported: s.start.toISOString(),
+      value: s.pence,
+    })),
+  };
+}
+
 function blocksToModeData(
   blocks: { start: string; end: string }[],
   since: Date,
@@ -89,17 +111,31 @@ export async function scheduleHandler(req: Request, res: Response) {
 
   const energyCost = costDevice.getEnergyCostCapability();
 
-  // The view ends where the published prices do (the whole point of the graph)
-  // - not at a fixed +24h. Fetch generously (Agile's horizon peaks at ~31h).
+  // Published prices run out ~31h ahead on Agile; past that the line continues
+  // as forecast, so the view reaches a week out rather than stopping dead. The
+  // forecast is a third-party service, so losing it drops the dashed tail
+  // rather than the whole graph.
+  const forecastSlots = await energyCost
+    .getForwardUnitRates(dayjs(now).add(FORECAST_HORIZON_DAYS, 'day').toDate())
+    .then((slots) => slots.filter((slot) => slot.isEstimated))
+    .catch((e) => {
+      logger.warn(`Unable to extend the price graph with forecast rates: ${e.message}`);
+
+      return [];
+    });
+
   const latestRate = await energyCost.getUnitRateEvent();
-  const until = latestRate
+  const publishedUntil = latestRate
     ? new Date(Math.max(now.getTime(), latestRate.start.getTime() + 30 * 60 * 1000))
     : now;
-  const rateSelector = { since, until: dayjs(now).add(48, 'hour').toDate() };
+  const until = forecastSlots.at(-1)?.end ?? publishedUntil;
+  const rateSelector = { since, until: publishedUntil };
   // Actual (what ran) is history up to now; planned bands cover now onwards.
   const actualSelector = { since, until: now };
 
   const rateData = await mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), rateSelector);
+  // Every line has to span the same window - the settled series simply has no
+  // points past the published frontier, where the forecast one takes over.
   rateData.until = until.toISOString();
 
   const lines: HistoryLineApiResponse[] = [{
@@ -107,6 +143,15 @@ export async function scheduleHandler(req: Request, res: Response) {
     label: 'Unit rate (p/kWh)',
     yAxisID: 'yRate',
   }];
+
+  if (forecastSlots.length > 0) {
+    lines.push({
+      data: forecastLineData(forecastSlots, since, until),
+      label: 'Unit rate (forecast)',
+      yAxisID: 'yRate',
+      borderDash: [5, 5],
+    });
+  }
 
   const modes: HistoryModesApiResponse[] = [];
 

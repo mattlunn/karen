@@ -133,8 +133,9 @@ async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): P
   const energyCost = await getEnergyCostCapability();
   const events = await energyCost.getUnitRateHistory({ since: now, until });
 
-  // No full forward-price window yet - stay off. The octopus service raises the
-  // admin alert if Agile prices are genuinely overdue.
+  // Settled prices only, never `getForwardUnitRates` - a real immersion run
+  // shouldn't be committed against a forecast. No full forward window yet means
+  // stay off; the octopus service raises the admin alert if prices are overdue.
   if (!haveForecastThrough(events, until)) {
     return false;
   }

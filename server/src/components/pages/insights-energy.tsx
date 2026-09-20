@@ -169,7 +169,7 @@ function ScheduleGraphBody({ since, until, range, setRange, preset, isLinkedToPa
 }) {
   const { data, isPending, isError } = useEnergyScheduleInsights({ since, until });
 
-  // The server ends the view at the last published price - reflect that in the
+  // The server ends the view where the forecast runs out - reflect that in the
   // Custom range's `until` so the selector matches what's shown. Only while
   // unlinked, since the page range is not this graph's to move.
   const dataUntil = data?.lines[0]?.data.until;

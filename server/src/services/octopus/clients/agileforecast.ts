@@ -1,3 +1,4 @@
+import dayjs from '../../../dayjs';
 import { TariffAgreement } from './octopus';
 
 export interface ForecastRate {
@@ -34,6 +35,37 @@ async function requestForecast<T>(url: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+// Always fetched over the full horizon and cached per region, so one upstream
+// call serves every consumer's window rather than each re-requesting this free
+// third-party service for its own.
+const FORECAST_DAYS = 7;
+const CACHE_TTL_MINUTES = 30;
+
+let cached: { region: string; expiresAt: number; rates: Promise<ForecastRate[]> } | null = null;
+
+function fetchRegionForecast(region: string): Promise<ForecastRate[]> {
+  // Trailing slash matters - without it the API 301s to this same URL.
+  const url = `${FORECAST_BASE_URL}/${region}/?days=${FORECAST_DAYS}&high_low=false`;
+
+  return requestForecast<{ prices: { date_time: string; agile_pred: number }[] }[]>(url)
+    .then(([forecast]) => forecast.prices.map(p => ({ start: new Date(p.date_time), value: p.agile_pred })));
+}
+
+// The in-flight promise is cached, not just the result, so concurrent callers
+// coalesce onto one request instead of all missing at once.
+function getRegionForecast(region: string): Promise<ForecastRate[]> {
+  if (cached !== null && cached.region === region && cached.expiresAt > Date.now()) {
+    return cached.rates;
+  }
+
+  const rates = fetchRegionForecast(region);
+
+  cached = { region, expiresAt: dayjs().add(CACHE_TTL_MINUTES, 'minute').valueOf(), rates };
+  rates.catch(() => { cached = null; });
+
+  return rates;
+}
+
 export async function getForecastRates(agreements: TariffAgreement[], since: Date, until: Date): Promise<ForecastRate[]> {
   const current = agreements.find(a => a.validTo === null) ?? agreements.at(-1);
 
@@ -41,12 +73,7 @@ export async function getForecastRates(agreements: TariffAgreement[], since: Dat
     return [];
   }
 
-  const region = regionCodeFromTariff(current.tariffCode);
-  const days = Math.max(1, Math.ceil((until.getTime() - since.getTime()) / (24 * 60 * 60 * 1000)));
-  const url = `${FORECAST_BASE_URL}/${region}?days=${days}&high_low=false`;
-  const [forecast] = await requestForecast<{ prices: { date_time: string; agile_pred: number }[] }[]>(url);
+  const rates = await getRegionForecast(regionCodeFromTariff(current.tariffCode));
 
-  return forecast.prices
-    .map(p => ({ start: new Date(p.date_time), value: p.agile_pred }))
-    .filter(r => r.start.getTime() >= since.getTime() && r.start.getTime() < until.getTime());
+  return rates.filter(r => r.start.getTime() >= since.getTime() && r.start.getTime() < until.getTime());
 }
