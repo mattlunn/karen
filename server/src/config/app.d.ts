@@ -152,8 +152,6 @@ declare namespace _default {
     const charge_median_rate_days: number;
     const charge_plunge_limit: number;
     const charge_deadline_engage_days: number;
-    // Trailing-history percentile BAU will accept, scaled linearly between these
-    // as chargePercentage runs 0 -> default_charge_limit.
     const charge_baseline_min_percentile: number;
     const charge_baseline_max_percentile: number;
   }
