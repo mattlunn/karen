@@ -34,6 +34,9 @@ const yAxisRate = {
   }
 };
 
+// Matches the schedule endpoint's own horizon, which clamps anything longer.
+const FORECAST_HORIZON_DAYS = 7;
+
 function GraphState({ isPending, isError, children }: { isPending: boolean; isError: boolean; children: React.ReactNode }) {
   if (isPending) {
     return <PageLoader />;
@@ -143,7 +146,7 @@ function ScheduleGraph() {
     <GraphChrome
       title="Price &amp; run windows"
       localPreset="custom"
-      localRange={{ since: dayjs().startOf('day'), until: dayjs().endOf('day') }}
+      localRange={{ since: dayjs().startOf('day'), until: dayjs().add(FORECAST_HORIZON_DAYS, 'day') }}
     >
       {({ since, until, range, setRange, preset, isLinkedToPageRange }) => (
         <ScheduleGraphBody

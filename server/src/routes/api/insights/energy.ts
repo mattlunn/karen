@@ -110,16 +110,24 @@ export async function scheduleHandler(req: Request, res: Response) {
 
   const energyCost = costDevice.getEnergyCostCapability();
 
-  // Published prices run out ~31h ahead on Agile; past that the line continues
-  // as forecast, so the view reaches a week out rather than stopping dead.
-  const forwardRates = await energyCost.getForwardUnitRates(dayjs(now).add(FORECAST_HORIZON_DAYS, 'day').toDate());
-  const forecastSlots = forwardRates.filter((slot) => slot.isEstimated);
-
   const latestRate = await energyCost.getUnitRateEvent();
   const publishedUntil = latestRate
     ? new Date(Math.max(now.getTime(), latestRate.start.getTime() + 30 * 60 * 1000))
     : now;
-  const until = forecastSlots.at(-1)?.end ?? publishedUntil;
+
+  // Published prices run out ~31h ahead on Agile; past that the line continues
+  // as forecast. The view honours the range asked for, but never ends before
+  // the published prices do, nor past where the forecast reaches.
+  const requestedUntil = new Date(req.query.until as string);
+  const until = new Date(Math.min(
+    Math.max(requestedUntil.getTime() || 0, publishedUntil.getTime()),
+    dayjs(now).add(FORECAST_HORIZON_DAYS, 'day').valueOf()
+  ));
+
+  const forecastSlots = until > publishedUntil
+    ? (await energyCost.getForwardUnitRates(until)).filter((slot) => slot.isEstimated)
+    : [];
+
   const rateSelector = { since, until: publishedUntil };
   // Actual (what ran) is history up to now; planned bands cover now onwards.
   const actualSelector = { since, until: now };
