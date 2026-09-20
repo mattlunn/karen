@@ -34,6 +34,9 @@ const yAxisRate = {
   }
 };
 
+// Matches the schedule endpoint's own horizon, which clamps anything longer.
+const FORECAST_HORIZON_DAYS = 7;
+
 function GraphState({ isPending, isError, children }: { isPending: boolean; isError: boolean; children: React.ReactNode }) {
   if (isPending) {
     return <PageLoader />;
@@ -143,7 +146,7 @@ function ScheduleGraph() {
     <GraphChrome
       title="Price &amp; run windows"
       localPreset="custom"
-      localRange={{ since: dayjs().startOf('day'), until: dayjs().endOf('day') }}
+      localRange={{ since: dayjs().startOf('day'), until: dayjs().add(FORECAST_HORIZON_DAYS, 'day') }}
     >
       {({ since, until, range, setRange, preset, isLinkedToPageRange }) => (
         <ScheduleGraphBody
@@ -169,7 +172,7 @@ function ScheduleGraphBody({ since, until, range, setRange, preset, isLinkedToPa
 }) {
   const { data, isPending, isError } = useEnergyScheduleInsights({ since, until });
 
-  // The server ends the view at the last published price - reflect that in the
+  // The server ends the view where the forecast runs out - reflect that in the
   // Custom range's `until` so the selector matches what's shown. Only while
   // unlinked, since the page range is not this graph's to move.
   const dataUntil = data?.lines[0]?.data.until;
@@ -188,7 +191,10 @@ function ScheduleGraphBody({ since, until, range, setRange, preset, isLinkedToPa
           modes={data.modes}
           yAxis={yAxisRate}
           timeUnit="hour"
-          markers={[{ at: dayjs().toISOString(), label: 'Now', color: '#fa5252' }]}
+          markers={[
+            { at: dayjs().toISOString(), label: 'Now', color: '#fa5252' },
+            ...(data.forecastFrom ? [{ at: data.forecastFrom, label: 'Forecast', color: '#868e96' }] : []),
+          ]}
         />
       )}
     </GraphState>

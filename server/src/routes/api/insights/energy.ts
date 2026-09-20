@@ -11,7 +11,9 @@ import {
   HistoryLineApiResponse,
   HistoryModesApiResponse,
   BooleanEventApiResponse,
+  NumericEventApiResponse,
 } from '../../../api/types';
+import { PriceSlot } from '../../../helpers/prices';
 import {
   mapNumericHistoryToResponse,
   mapBooleanHistoryToResponse,
@@ -67,6 +69,17 @@ const EV_PLANNED_COLOR = 'rgba(46, 204, 113, 0.15)';
 const DHW_ACTUAL_COLOR = 'rgba(52, 152, 219, 0.35)';
 const DHW_PLANNED_COLOR = 'rgba(52, 152, 219, 0.15)';
 
+const FORECAST_HORIZON_DAYS = 7;
+
+function slotToEvent(slot: PriceSlot): NumericEventApiResponse {
+  return {
+    start: slot.start.toISOString(),
+    end: slot.end.toISOString(),
+    lastReported: slot.start.toISOString(),
+    value: slot.pence,
+  };
+}
+
 function blocksToModeData(
   blocks: { start: string; end: string }[],
   since: Date,
@@ -89,17 +102,31 @@ export async function scheduleHandler(req: Request, res: Response) {
 
   const energyCost = costDevice.getEnergyCostCapability();
 
-  // The view ends where the published prices do (the whole point of the graph)
-  // - not at a fixed +24h. Fetch generously (Agile's horizon peaks at ~31h).
   const latestRate = await energyCost.getUnitRateEvent();
-  const until = latestRate
+  const publishedUntil = latestRate
     ? new Date(Math.max(now.getTime(), latestRate.start.getTime() + 30 * 60 * 1000))
     : now;
-  const rateSelector = { since, until: dayjs(now).add(48, 'hour').toDate() };
+
+  // Published prices run out ~31h ahead on Agile; past that the line continues
+  // as forecast. The view honours the range asked for, but never ends before
+  // the published prices do, nor past where the forecast reaches.
+  const requestedUntil = new Date(req.query.until as string);
+  const until = new Date(Math.min(
+    Math.max(requestedUntil.getTime() || 0, publishedUntil.getTime()),
+    dayjs(now).add(FORECAST_HORIZON_DAYS, 'day').valueOf()
+  ));
+
+  const forecastSlots = until > publishedUntil
+    ? (await energyCost.getForwardUnitRates(until)).filter((slot) => slot.isEstimated)
+    : [];
+
+  const rateSelector = { since, until: publishedUntil };
   // Actual (what ran) is history up to now; planned bands cover now onwards.
   const actualSelector = { since, until: now };
 
   const rateData = await mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), rateSelector);
+
+  rateData.history = [...rateData.history, ...forecastSlots.map(slotToEvent)];
   rateData.until = until.toISOString();
 
   const lines: HistoryLineApiResponse[] = [{
@@ -140,7 +167,11 @@ export async function scheduleHandler(req: Request, res: Response) {
     });
   }
 
-  res.json({ lines, modes } satisfies EnergyScheduleApiResponse);
+  res.json({
+    lines,
+    modes,
+    forecastFrom: forecastSlots.length > 0 ? publishedUntil.toISOString() : null,
+  } satisfies EnergyScheduleApiResponse);
 }
 
 function selectorFromQuery(req: Request): TimeRangeSelector {

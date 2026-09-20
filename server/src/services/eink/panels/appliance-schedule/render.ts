@@ -18,7 +18,6 @@ const ROW_HEIGHT = 68;
 const HEADER_HEIGHT = 64;
 
 // Matches the delay buckets, so the sparkline always covers what they plan against.
-const SPARKLINE_WINDOW_HOURS = 12;
 const SPARKLINE_X = 560;
 const SPARKLINE_Y = 8;
 const SPARKLINE_WIDTH = OPTIONS_END_X - SPARKLINE_X;
@@ -33,6 +32,7 @@ export interface AppliancePanelRow {
 export interface AppliancePanelData {
   now: Date;
   priceSlots: PriceSlot[];
+  sparklineWindowHours: number;
   rows: AppliancePanelRow[];
 }
 
@@ -214,7 +214,7 @@ export function renderAppliancePanel(data: AppliancePanelData): Buffer {
   drawLeft(ctx, 'Cheapest times to run', MARGIN, 34, '30px "DejaVu Sans Bold"');
   drawLeft(ctx, 'Finishing at', MARGIN, 56, '18px "DejaVu Sans"');
 
-  const sparkline = scaleSparkline(data.priceSlots, data.now, SPARKLINE_WINDOW_HOURS, SPARKLINE_WIDTH, SPARKLINE_HEIGHT);
+  const sparkline = scaleSparkline(data.priceSlots, data.now, data.sparklineWindowHours, SPARKLINE_WIDTH, SPARKLINE_HEIGHT);
 
   drawSparkline(ctx, SPARKLINE_X, SPARKLINE_Y, SPARKLINE_WIDTH, SPARKLINE_HEIGHT, sparkline);
   hairline(ctx, MARGIN, HEADER_HEIGHT, WIDTH - MARGIN);

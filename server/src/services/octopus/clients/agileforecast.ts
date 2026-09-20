@@ -1,3 +1,5 @@
+import dayjs from '../../../dayjs';
+import logger from '../../../logger';
 import { TariffAgreement } from './octopus';
 
 export interface ForecastRate {
@@ -34,6 +36,59 @@ async function requestForecast<T>(url: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+// Always fetched over the full horizon and cached per region, so one upstream
+// call serves every consumer's window rather than each re-requesting this free
+// third-party service for its own.
+const FORECAST_DAYS = 7;
+const CACHE_TTL_HOURS = 6;
+
+let cached: { region: string; fetchedAt: Date; rates: ForecastRate[] } | null = null;
+let inFlight: { region: string; rates: Promise<ForecastRate[]> } | null = null;
+
+function fetchRegionForecast(region: string): Promise<ForecastRate[]> {
+  // Trailing slash matters - without it the API 301s to this same URL.
+  const url = `${FORECAST_BASE_URL}/${region}/?days=${FORECAST_DAYS}&high_low=false`;
+
+  return requestForecast<{ prices: { date_time: string; agile_pred: number }[] }[]>(url)
+    .then(([forecast]) => forecast.prices.map(p => ({ start: new Date(p.date_time), value: p.agile_pred })));
+}
+
+// The in-flight promise is shared, not just the result, so concurrent callers
+// coalesce onto one request instead of all missing at once. A prediction hours
+// past its refresh still beats no prices at all, so an unreachable origin
+// serves the stale entry and only throws when nothing was ever cached.
+async function getRegionForecast(region: string): Promise<ForecastRate[]> {
+  if (cached !== null && cached.region === region && dayjs(cached.fetchedAt).add(CACHE_TTL_HOURS, 'hour').isAfter(new Date())) {
+    return cached.rates;
+  }
+
+  if (inFlight === null || inFlight.region !== region) {
+    inFlight = { region, rates: fetchRegionForecast(region) };
+  }
+
+  const pending = inFlight;
+
+  try {
+    const rates = await pending.rates;
+
+    cached = { region, fetchedAt: new Date(), rates };
+
+    return rates;
+  } catch (e: any) {
+    if (cached === null || cached.region !== region) {
+      throw e;
+    }
+
+    logger.warn(`AgilePredict unreachable (${e.message}); serving rates fetched ${dayjs(cached.fetchedAt).fromNow()}`);
+
+    return cached.rates;
+  } finally {
+    if (inFlight === pending) {
+      inFlight = null;
+    }
+  }
+}
+
 export async function getForecastRates(agreements: TariffAgreement[], since: Date, until: Date): Promise<ForecastRate[]> {
   const current = agreements.find(a => a.validTo === null) ?? agreements.at(-1);
 
@@ -41,12 +96,7 @@ export async function getForecastRates(agreements: TariffAgreement[], since: Dat
     return [];
   }
 
-  const region = regionCodeFromTariff(current.tariffCode);
-  const days = Math.max(1, Math.ceil((until.getTime() - since.getTime()) / (24 * 60 * 60 * 1000)));
-  const url = `${FORECAST_BASE_URL}/${region}?days=${days}&high_low=false`;
-  const [forecast] = await requestForecast<{ prices: { date_time: string; agile_pred: number }[] }[]>(url);
+  const rates = await getRegionForecast(regionCodeFromTariff(current.tariffCode));
 
-  return forecast.prices
-    .map(p => ({ start: new Date(p.date_time), value: p.agile_pred }))
-    .filter(r => r.start.getTime() >= since.getTime() && r.start.getTime() < until.getTime());
+  return rates.filter(r => r.start.getTime() >= since.getTime() && r.start.getTime() < until.getTime());
 }
