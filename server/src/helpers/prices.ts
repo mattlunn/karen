@@ -136,28 +136,6 @@ export function findCheapestWindow(
 }
 
 /**
- * The pence value at `percentile` (0-100) across the given slots, linearly
- * interpolated between the two nearest ranks, or null when there are none.
- */
-export function percentilePence(slots: PriceSlot[], percentile: number): number | null {
-  if (slots.length === 0) {
-    return null;
-  }
-
-  const sorted = slots.map(s => s.pence).sort((a, b) => a - b);
-
-  if (sorted.length === 1) {
-    return sorted[0];
-  }
-
-  const rank = (percentile / 100) * (sorted.length - 1);
-  const lo = Math.floor(rank);
-  const hi = Math.ceil(rank);
-
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * (rank - lo);
-}
-
-/**
  * Merges adjacent slots into contiguous blocks, discarding any block shorter
  * than `minBlockMinutes`.
  */

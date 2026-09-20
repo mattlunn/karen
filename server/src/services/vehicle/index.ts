@@ -8,7 +8,7 @@ import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
 import { planCharge, isDeadlineEngaged, isWithinSlots, ChargePlan } from './price-plan';
-import { toPriceSlots, percentilePence, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
+import { toPriceSlots, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
@@ -213,17 +213,25 @@ async function getBaselinePenceFor(now: Date): Promise<(chargePercentage: number
   const energyCost = await getEnergyCostCapability();
   const since = dayjs(now).subtract(config.smartcar.charge_median_rate_days, 'day').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until: now });
-  const trailing = toPriceSlots(events, since, now);
+  // Sorted here rather than per call, since the plan asks for a bar once a slot.
+  const pences = toPriceSlots(events, since, now).map(s => s.pence).sort((a, b) => a - b);
   const { charge_baseline_min_percentile: minP, charge_baseline_max_percentile: maxP, default_charge_limit: limit } = config.smartcar;
 
-  // Scales linearly from charge_baseline_max_percentile at 0% to
+  // The percentile scales linearly from charge_baseline_max_percentile at 0% to
   // charge_baseline_min_percentile at default_charge_limit, so BAU accepts more
   // mediocre prices while the battery is low and holds out for genuine bargains
   // as it nears the limit. Clamped there since BAU never charges past the limit.
   return (chargePercentage: number) => {
-    const progress = Math.min(chargePercentage, limit) / limit;
+    if (pences.length === 0) {
+      return null;
+    }
 
-    return percentilePence(trailing, maxP - (maxP - minP) * progress);
+    const progress = Math.min(chargePercentage, limit) / limit;
+    const rank = (maxP - (maxP - minP) * progress) / 100 * (pences.length - 1);
+    const lo = Math.floor(rank);
+    const hi = Math.ceil(rank);
+
+    return pences[lo] + (pences[hi] - pences[lo]) * (rank - lo);
   };
 }
 

@@ -1,7 +1,6 @@
 import {
   toPriceSlots,
   findCheapestWindow,
-  percentilePence,
   groupIntoBlocks,
   haveForecastThrough,
   startOfSlot,
@@ -123,31 +122,6 @@ describe('findCheapestWindow', () => {
 
     expect(win!.start).toEqual(at(60));
     expect(win!.averagePence).toBeCloseTo(9);
-  });
-});
-
-describe('percentilePence', () => {
-  it('returns null for no slots', () => {
-    expect(percentilePence([], 50)).toBeNull();
-  });
-
-  it('returns the middle value at the 50th percentile for an odd count', () => {
-    expect(percentilePence(slots(0, [5, 1, 9]), 50)).toBe(5);
-  });
-
-  it('interpolates between the two middle values at the 50th percentile for an even count', () => {
-    expect(percentilePence(slots(0, [10, 20, 30, 40]), 50)).toBe(25);
-  });
-
-  it('interpolates between ranks for a percentile off the grid', () => {
-    expect(percentilePence(slots(0, [10, 20, 30, 40]), 25)).toBeCloseTo(17.5);
-  });
-
-  it('returns the min at the 0th percentile and max at the 100th', () => {
-    const s = slots(0, [10, 20, 30, 40]);
-
-    expect(percentilePence(s, 0)).toBe(10);
-    expect(percentilePence(s, 100)).toBe(40);
   });
 });
 
