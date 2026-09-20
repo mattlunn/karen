@@ -107,7 +107,8 @@ function UsageGraphBody({ since, until }: { since: string; until: string }) {
     <GraphState isPending={isPending} isError={isError}>
       {data && (
         <CapabilityGraph
-          lines={data.series}
+          lines={data.series.map(line => ({ ...line, hatched: line.role === 'residual' }))}
+          stacked
           yAxis={yAxisLeft}
         />
       )}
