@@ -82,6 +82,17 @@ export async function installBluSensor(ip: string, mac: string, name: string): P
   return device;
 }
 
+// Shelly Plus Plug UK is a generic relay with no way to tell from the hardware alone
+// whether it's wired to a light or something else, so this is asked of a human at
+// install time and stored rather than inferred.
+export async function installCapabilityType(device: Device, capabilityType: 'light' | 'switch'): Promise<Device> {
+  device.meta.capabilityType = capabilityType;
+
+  await device.save();
+
+  return device;
+}
+
 // Records the CT clamp channels for an energy meter that's already been installed via
 // installWifiDevice. The clamps measure separate appliances but are one device with one
 // MQTT connection, so they're stored as instances of its ENERGY_MONITOR capability rather
