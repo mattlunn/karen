@@ -22,8 +22,19 @@ Device.registerProvider('shelly', {
       case 'SHDM-2':       // Shelly Dimmer 2
         return ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY'];
 
-      case 'SNPL-00112UK': // Shelly Plus Plug UK
-        return ['SWITCH', 'ENERGY_MONITOR', 'CONNECTIVITY'];
+      case 'SNPL-00112UK': { // Shelly Plus Plug UK - a generic relay, so what it's wired to determines whether it behaves as a light or a switch
+        const capabilityType = device.meta.capabilityType as ('light' | 'switch' | undefined);
+
+        if (capabilityType === 'light') {
+          return ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY'];
+        }
+
+        if (capabilityType === 'switch') {
+          return ['SWITCH', 'ENERGY_MONITOR', 'CONNECTIVITY'];
+        }
+
+        throw new Error(`Device ${device.id} (${device.model}) is missing required meta.capabilityType`);
+      }
 
       case 'S3SW-001X8EU': // Shelly Plus 1 Mini (Heating)
         return ['SWITCH', 'CONNECTIVITY'];
@@ -65,6 +76,10 @@ Device.registerProvider('shelly', {
   provideLightCapability() {
     return {
       setBrightness(device: Device, brightness: number) {
+        if (device.model === 'SNPL-00112UK') {
+          throw new Error('Shelly Plus Plug UK has no dimming - it\'s a relay, not a dimmer');
+        }
+
         return publishCommand(
           `${TOPIC_PREFIX}/${device.providerId}/light/0/set`,
           JSON.stringify({ turn: brightness > 0 ? 'on' : 'off', brightness })
@@ -72,6 +87,10 @@ Device.registerProvider('shelly', {
       },
 
       setIsOn(device: Device, isOn: boolean) {
+        if (device.model === 'SNPL-00112UK') {
+          return device.getSwitchCapability().setIsOn(isOn);
+        }
+
         return publishCommand(
           `${TOPIC_PREFIX}/${device.providerId}/light/0/command`,
           isOn ? 'on' : 'off'

@@ -122,6 +122,8 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
 
     if (capabilities.includes('SWITCH')) {
       await device.getSwitchCapability().setIsOnState(data.output);
+    } else if (capabilities.includes('LIGHT')) {
+      await device.getLightCapability().setIsOnState(data.output);
     }
 
     // Not every switch is metered, so apower is absent on some models.

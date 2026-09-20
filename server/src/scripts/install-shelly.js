@@ -1,5 +1,5 @@
 import { createInterface } from 'readline/promises';
-import { installWifiDevice, installBluSensor, installPresenceZones, installEnergyMeterChannels } from '../services/shelly/install';
+import { installWifiDevice, installBluSensor, installPresenceZones, installEnergyMeterChannels, installCapabilityType } from '../services/shelly/install';
 
 const DEVICE_TYPES = [
   { label: 'Switch / Plug', kind: 'wifi' },
@@ -47,6 +47,17 @@ async function main() {
       const device = await installWifiDevice(ip);
 
       console.log(`Installed device ${device.id} (${device.model}) as "${device.name}"`);
+
+      if (device.model === 'SNPL-00112UK') {
+        const capabilityType = await rl.question('Is this plug a Light or a Switch? (light/switch): ');
+
+        if (capabilityType !== 'light' && capabilityType !== 'switch') {
+          console.log('Not a valid choice');
+          process.exit(1);
+        }
+
+        await installCapabilityType(device, capabilityType);
+      }
     } else if (type.kind === 'presence') {
       const ip = await rl.question('IP address: ');
       const device = await installWifiDevice(ip);
