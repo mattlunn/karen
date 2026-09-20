@@ -47,6 +47,7 @@ import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import ChargeLimitModal from '../modals/charge-limit-modal';
 import dayjs from '../../dayjs';
 import { humanDate, formatDuration } from '../../helpers/date';
+import { formatValueOrUnknown as v } from '../../helpers/format';
 import type {
   MetricDisplayVariant,
   CapabilityUIRegistry,
@@ -844,6 +845,11 @@ export const registry: CapabilityUIRegistry = {
         icon: faSterlingSign,
         title: "Today's Cost",
         value: (e) => `£${(e.value / 100).toFixed(2)}`,
+      }),
+      createCapability(null, {
+        icon: faSterlingSign,
+        title: 'Lifetime Avg Price',
+        value: v(cap.lifetimeUnitRate, (rate) => `${rate.toFixed(1)}p/kWh`),
       }),
     ],
     getGraphSections: () => [
