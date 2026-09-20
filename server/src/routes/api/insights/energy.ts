@@ -71,20 +71,12 @@ const DHW_PLANNED_COLOR = 'rgba(52, 152, 219, 0.15)';
 
 const FORECAST_HORIZON_DAYS = 7;
 
-function forecastLineData(
-  slots: PriceSlot[],
-  since: Date,
-  until: Date
-): HistoryDetailsApiResponse<NumericEventApiResponse> {
+function slotToEvent(slot: PriceSlot): NumericEventApiResponse {
   return {
-    since: since.toISOString(),
-    until: until.toISOString(),
-    history: slots.map(s => ({
-      start: s.start.toISOString(),
-      end: s.end.toISOString(),
-      lastReported: s.start.toISOString(),
-      value: s.pence,
-    })),
+    start: slot.start.toISOString(),
+    end: slot.end.toISOString(),
+    lastReported: slot.start.toISOString(),
+    value: slot.pence,
   };
 }
 
@@ -134,13 +126,7 @@ export async function scheduleHandler(req: Request, res: Response) {
 
   const rateData = await mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), rateSelector);
 
-  // Every line has to span the same window - the settled series simply has no
-  // points past the published frontier, where the forecast one takes over. The
-  // frontier rate is still open, and an open event is drawn out to the end of
-  // the window, so close it or it flatlines across the whole forecast tail.
-  rateData.history = rateData.history.map(e => (
-    e.end === null ? { ...e, end: publishedUntil.toISOString() } : e
-  ));
+  rateData.history = [...rateData.history, ...forecastSlots.map(slotToEvent)];
   rateData.until = until.toISOString();
 
   const lines: HistoryLineApiResponse[] = [{
@@ -148,15 +134,6 @@ export async function scheduleHandler(req: Request, res: Response) {
     label: 'Unit rate (p/kWh)',
     yAxisID: 'yRate',
   }];
-
-  if (forecastSlots.length > 0) {
-    lines.push({
-      data: forecastLineData(forecastSlots, since, until),
-      label: 'Unit rate (forecast)',
-      yAxisID: 'yRate',
-      borderDash: [5, 5],
-    });
-  }
 
   const modes: HistoryModesApiResponse[] = [];
 
@@ -190,7 +167,11 @@ export async function scheduleHandler(req: Request, res: Response) {
     });
   }
 
-  res.json({ lines, modes } satisfies EnergyScheduleApiResponse);
+  res.json({
+    lines,
+    modes,
+    forecastFrom: forecastSlots.length > 0 ? publishedUntil.toISOString() : null,
+  } satisfies EnergyScheduleApiResponse);
 }
 
 function selectorFromQuery(req: Request): TimeRangeSelector {

@@ -191,7 +191,10 @@ function ScheduleGraphBody({ since, until, range, setRange, preset, isLinkedToPa
           modes={data.modes}
           yAxis={yAxisRate}
           timeUnit="hour"
-          markers={[{ at: dayjs().toISOString(), label: 'Now', color: '#fa5252' }]}
+          markers={[
+            { at: dayjs().toISOString(), label: 'Now', color: '#fa5252' },
+            ...(data.forecastFrom ? [{ at: data.forecastFrom, label: 'Forecast', color: '#868e96' }] : []),
+          ]}
         />
       )}
     </GraphState>

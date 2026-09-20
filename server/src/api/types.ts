@@ -426,6 +426,9 @@ export type EnergyUnitRateDailyApiResponse = {
 export interface EnergyScheduleApiResponse {
   lines: HistoryLineApiResponse[];
   modes: HistoryModesApiResponse[];
+  // Where the unit rate line stops being published prices and becomes
+  // forecast; null when the range ends before the published prices do.
+  forecastFrom: string | null;
 }
 
 // /api/insights/security endpoint
