@@ -115,6 +115,7 @@ export type CapabilityApiResponseBase = {
   currentPower: NumericStateApiResponse;
   dayEnergy: NumericStateApiResponse;
   dayCost: NumericStateApiResponse;
+  agileAvgPrice: number | null;
 } | {
   type: 'ENERGY_COST';
   standingCharge: NumericStateApiResponse;

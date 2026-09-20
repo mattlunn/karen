@@ -1,7 +1,25 @@
 import { Device, NumericEvent, BooleanEvent, StringEvent } from '../../models';
+import { EnergyMonitorCapability } from '../../models/capabilities';
 import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse, RestDeviceResponse, CapabilityApiResponse, CapabilityApiResponseBase } from '../../api/types';
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
+
+// Scoped to Agile-priced usage only, so a device that predates the switchover
+// doesn't drag in years of standard-tariff history and dilute the average.
+const AGILE_SWITCHOVER = dayjs.tz('2026-08-30 00:00', 'Europe/London').toDate();
+
+async function calculateAgileAvgPrice(energyMonitor: EnergyMonitorCapability, since: Date): Promise<number | null> {
+  const until = new Date();
+  const [energyHistory, costHistory] = await Promise.all([
+    energyMonitor.getDayEnergyHistory({ since, until }),
+    energyMonitor.getDayCostHistory({ since, until })
+  ]);
+
+  const totalEnergyKwh = energyHistory.reduce((sum, event) => sum + event.value, 0);
+  const totalCostPence = costHistory.reduce((sum, event) => sum + event.value, 0);
+
+  return totalEnergyKwh > 0 ? totalCostPence / totalEnergyKwh : null;
+}
 
 export function mapNumericState(eventPromise: Promise<NumericEvent | null>, device: Device): Promise<NumericStateApiResponse> {
   return eventPromise.then(event => {
@@ -294,11 +312,14 @@ export async function getCapabilityData(device: Device, capability: string, inst
 
     case 'ENERGY_MONITOR': {
       const energyMonitor = device.getEnergyMonitorCapability(instanceId);
+      const agileSince = device.createdAt > AGILE_SWITCHOVER ? device.createdAt : AGILE_SWITCHOVER;
+
       return awaitPromises({
         type: 'ENERGY_MONITOR' as const,
         currentPower: mapNumericState(energyMonitor.getCurrentPowerEvent(), device),
         dayEnergy: mapNumericState(energyMonitor.getDayEnergyEvent(), device),
-        dayCost: mapNumericState(energyMonitor.getDayCostEvent(), device)
+        dayCost: mapNumericState(energyMonitor.getDayCostEvent(), device),
+        agileAvgPrice: calculateAgileAvgPrice(energyMonitor, agileSince)
       });
     }
 
