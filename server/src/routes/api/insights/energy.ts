@@ -195,30 +195,32 @@ export async function usageHandler(req: Request, res: Response) {
 }
 
 type Bucketed = { label: string; byDay: Map<string, number> };
+type MonitoredLoadGroup = { label: string; loads: MonitoredLoad[] };
 
-// Every LIGHT-capable device collapses into a single "Lights" entry, listed first.
+// Every LIGHT-capable device collapses into a single "Lights" group, listed
+// first; every other load keeps its own group under its existing label.
+function groupMonitoredLoads(monitored: MonitoredLoad[]): MonitoredLoadGroup[] {
+  const lights = monitored.filter(({ device }) => device.getCapabilities().includes('LIGHT'));
+  const rest = monitored.filter(({ device }) => !device.getCapabilities().includes('LIGHT'));
+  const groups: MonitoredLoadGroup[] = [];
+
+  if (lights.length > 0) {
+    groups.push({ label: 'Lights', loads: lights });
+  }
+
+  groups.push(...rest.map((load) => ({ label: load.label, loads: [load] })));
+
+  return groups;
+}
+
 async function bucketByEntity(
   bucketFor: (energyMonitor: EnergyMonitorCapability) => Promise<Map<string, number>>,
   monitored: MonitoredLoad[]
 ): Promise<Bucketed[]> {
-  const buckets = await asyncMap(monitored, ({ energyMonitor }) => bucketFor(energyMonitor));
-
-  const lights: Map<string, number>[] = [];
-  const named: Bucketed[] = [];
-
-  monitored.forEach(({ device, label }, i) => {
-    if (device.getCapabilities().includes('LIGHT')) {
-      lights.push(buckets[i]);
-    } else {
-      named.push({ label, byDay: buckets[i] });
-    }
-  });
-
-  if (lights.length > 0) {
-    named.unshift({ label: 'Lights', byDay: mergeSum(lights) });
-  }
-
-  return named;
+  return asyncMap(groupMonitoredLoads(monitored), async ({ label, loads }) => ({
+    label,
+    byDay: mergeSum(await asyncMap(loads, ({ energyMonitor }) => bucketFor(energyMonitor)))
+  }));
 }
 
 export async function costHandler(req: Request, res: Response) {

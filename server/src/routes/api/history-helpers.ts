@@ -1,6 +1,8 @@
-import { BooleanEvent, NumericEvent, StringEvent } from '../../models';
-import { TimeRangeSelector, HistorySelector } from '../../models/capabilities/helpers';
-import {
+// Type-only: importing the models for real would pull in config/app, which
+// isn't present in CI, so the unit tests could not load this module at all.
+import type { BooleanEvent, NumericEvent, StringEvent } from '../../models';
+import type { TimeRangeSelector, HistorySelector } from '../../models/capabilities/helpers';
+import type {
   BooleanEventApiResponse,
   EnumEventApiResponse,
   HistoryDetailsApiResponse,
@@ -111,6 +113,79 @@ export function daysToLineData(
 
     history.push({ start: day, end, lastReported: end, value });
   }
+
+  return { since, until, history };
+}
+
+const MIN_INSTANT_STEP_MS = 60_000;
+
+// A uniform grid of ISO instants across [since, until), spaced range / targetPoints
+// apart but never finer than 60s - the whole-house meter reports roughly every
+// 62s, so a finer grid would add no information while inflating the payload.
+export function instantsInRange(since: Date, until: Date, targetPoints: number): string[] {
+  const step = Math.max(MIN_INSTANT_STEP_MS, (until.getTime() - since.getTime()) / targetPoints);
+  const instants: string[] = [];
+
+  for (let t = since.getTime(); t < until.getTime(); t += step) {
+    instants.push(new Date(t).toISOString());
+  }
+
+  return instants;
+}
+
+// The time-weighted mean of the step function over each grid bucket, or null for
+// a bucket no event covers.
+//
+// Averaging rather than reading the value at each instant: a load that cycles
+// faster than the grid (an oven element switches every ~15s) would otherwise be
+// sampled at whichever point in its duty cycle the instant happened to land on,
+// reporting either its full draw or nearly nothing. It also puts every series in
+// the same units as the whole-house meter, which reports mean demand per minute -
+// so subtracting one from the other is meaningful.
+export function averageHistory(history: NumericHistory, instants: string[]): (number | null)[] {
+  const events = filterClampAndSortHistory(history.history, history.since, history.until, true);
+  const bounds = [...instants, history.until].map((instant) => Date.parse(instant));
+  const weighted = new Array(instants.length).fill(0);
+  const covered = new Array(instants.length).fill(0);
+
+  let firstBucket = 0;
+
+  for (const event of events) {
+    const start = Date.parse(event.start);
+    const end = Date.parse(event.end ?? history.until);
+
+    while (firstBucket < instants.length && bounds[firstBucket + 1] <= start) {
+      firstBucket++;
+    }
+
+    for (let bucket = firstBucket; bucket < instants.length && bounds[bucket] < end; bucket++) {
+      const overlap = Math.min(bounds[bucket + 1], end) - Math.max(bounds[bucket], start);
+
+      if (overlap > 0) {
+        weighted[bucket] += event.value * overlap;
+        covered[bucket] += overlap;
+      }
+    }
+  }
+
+  return weighted.map((total, bucket) => covered[bucket] > 0 ? total / covered[bucket] : null);
+}
+
+// One event per instant, spanning through to the next instant (or `until` for
+// the last), with no gaps - unlike daysToLineData, valueForInstant cannot
+// return undefined, since every series must share the same x-sequence for
+// index-based chart stacking to line up.
+export function instantsToLineData(
+  instants: string[],
+  since: string,
+  until: string,
+  valueForInstant: (instant: string, index: number) => number
+): NumericHistory {
+  const history = instants.map((instant, index) => {
+    const end = instants[index + 1] ?? until;
+
+    return { start: instant, end, lastReported: end, value: valueForInstant(instant, index) };
+  });
 
   return { since, until, history };
 }
