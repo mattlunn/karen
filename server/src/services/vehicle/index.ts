@@ -209,20 +209,22 @@ async function getEnergyCostCapability() {
   return device.getEnergyCostCapability();
 }
 
-async function getBaselinePence(now: Date, chargePercentage: number): Promise<number | null> {
+async function getBaselinePenceFor(now: Date): Promise<(chargePercentage: number) => number | null> {
   const energyCost = await getEnergyCostCapability();
   const since = dayjs(now).subtract(config.smartcar.charge_median_rate_days, 'day').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until: now });
+  const trailing = toPriceSlots(events, since, now);
+  const { charge_baseline_min_percentile: minP, charge_baseline_max_percentile: maxP, default_charge_limit: limit } = config.smartcar;
 
   // Scales linearly from charge_baseline_max_percentile at 0% to
   // charge_baseline_min_percentile at default_charge_limit, so BAU accepts more
   // mediocre prices while the battery is low and holds out for genuine bargains
   // as it nears the limit. Clamped there since BAU never charges past the limit.
-  const { charge_baseline_min_percentile: minP, charge_baseline_max_percentile: maxP, default_charge_limit: limit } = config.smartcar;
-  const progress = Math.min(chargePercentage, limit) / limit;
-  const percentile = maxP - (maxP - minP) * progress;
+  return (chargePercentage: number) => {
+    const progress = Math.min(chargePercentage, limit) / limit;
 
-  return percentilePence(toPriceSlots(events, since, now), percentile);
+    return percentilePence(trailing, maxP - (maxP - minP) * progress);
+  };
 }
 
 function chargeRatePercentPerHour(): number {
@@ -283,7 +285,7 @@ async function applyPlan(ev: ElectricVehicleCapability, now: Dayjs, plan: Charge
 }
 
 async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, chargePercentage: number): Promise<ChargePlan> {
-  const baselinePence = await getBaselinePence(now.toDate(), chargePercentage);
+  const baselinePenceFor = await getBaselinePenceFor(now.toDate());
 
   // With no forward prices this yields an empty plan and nothing charges until
   // they arrive, pending the admin acting on the Octopus alert.
@@ -291,7 +293,7 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
     slots,
     now: now.toDate(),
     chargePercentage,
-    baselinePence,
+    baselinePenceFor,
     schedule: getSchedule(device),
     chargeRatePercentPerHour: chargeRatePercentPerHour(),
     defaultLimit: config.smartcar.default_charge_limit,

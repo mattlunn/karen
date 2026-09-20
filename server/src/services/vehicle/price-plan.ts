@@ -29,7 +29,10 @@ export interface PlanOptions {
   slots: PriceSlot[];
   now: Date;
   chargePercentage: number;
-  baselinePence: number | null;
+  // The most BAU will pay at a given battery level, or null with no price
+  // history to judge against. Evaluated per slot as the plan fills, so the
+  // bar tightens across a single plan rather than only between plans.
+  baselinePenceFor: (chargePercentage: number) => number | null;
   schedule: ChargeDeadline | null;
   chargeRatePercentPerHour: number;
   defaultLimit: number;
@@ -38,7 +41,7 @@ export interface PlanOptions {
   startBufferHours: number;
 }
 
-type EngagementOptions = Omit<PlanOptions, 'slots' | 'baselinePence' | 'defaultLimit' | 'plungeLimit' | 'schedule'> & {
+type EngagementOptions = Omit<PlanOptions, 'slots' | 'baselinePenceFor' | 'defaultLimit' | 'plungeLimit' | 'schedule'> & {
   schedule: ChargeDeadline;
 };
 
@@ -75,18 +78,19 @@ export function isDeadlineEngaged(options: EngagementOptions): boolean {
  *    to exactly the hours of charge still needed. A picked slot that's still
  *    estimated isn't acted on until it's current, so nothing actually charges
  *    off a forecast price before real prices have had a chance to supersede it.
- * 2. Business as usual, otherwise: the cheapest slots priced under `baselinePence`
- *    (a trailing-history percentile that tightens as chargePercentage nears
- *    `defaultLimit`), up to what reaches it. Judging cheap against recent history
- *    rather than a percentile of the publication means a uniformly cheap day
- *    charges freely while an expensive day charges only in the dips.
+ * 2. Business as usual, otherwise: cheapest slots first, each judged against the
+ *    bar at the battery level the ones already taken would reach - so the first
+ *    kWh clear a loose bar and the last a strict one, within the single plan.
+ *    Judging cheap against recent history rather than a percentile of the
+ *    publication means a uniformly cheap day charges freely while an expensive
+ *    day charges only in the dips.
  * 3. Plunge, always: negative-priced slots, up to what reaches `plungeLimit`.
  *    Charging is worth it at any hour the grid is paying us to consume, so this
  *    ignores both the baseline and `defaultLimit`.
  */
 export function planCharge(options: PlanOptions): ChargePlan {
   const {
-    slots, now, chargePercentage, baselinePence, schedule,
+    slots, now, chargePercentage, baselinePenceFor, schedule,
     chargeRatePercentPerHour, defaultLimit, plungeLimit, startBufferHours,
   } = options;
 
@@ -140,8 +144,23 @@ export function planCharge(options: PlanOptions): ChargePlan {
     deadline = schedule.targetTime;
   }
 
-  if (deadline === null && baselinePence !== null) {
-    take(s => s.pence < baselinePence, quotaFor(defaultLimit));
+  // The pool is cheapest-first and the bar only falls as the battery fills, so
+  // the first slot to fail it is where BAU stops: everything after is dearer
+  // still, judged against a bar no higher.
+  if (deadline === null) {
+    const quota = quotaFor(defaultLimit);
+    let projected = chargePercentage;
+
+    for (const slot of pool) {
+      const bar = baselinePenceFor(projected);
+
+      if (picked.size >= quota || bar === null || slot.pence >= bar) {
+        break;
+      }
+
+      picked.add(slot);
+      projected += slotHours * chargeRatePercentPerHour;
+    }
   }
 
   if (take(s => s.pence < 0, quotaFor(plungeLimit)) > 0) {
