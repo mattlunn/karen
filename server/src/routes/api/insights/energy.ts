@@ -125,8 +125,14 @@ export async function scheduleHandler(req: Request, res: Response) {
   const actualSelector = { since, until: now };
 
   const rateData = await mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), rateSelector);
+
   // Every line has to span the same window - the settled series simply has no
-  // points past the published frontier, where the forecast one takes over.
+  // points past the published frontier, where the forecast one takes over. The
+  // frontier rate is still open, and an open event is drawn out to the end of
+  // the window, so close it or it flatlines across the whole forecast tail.
+  rateData.history = rateData.history.map(e => (
+    e.end === null ? { ...e, end: publishedUntil.toISOString() } : e
+  ));
   rateData.until = until.toISOString();
 
   const lines: HistoryLineApiResponse[] = [{
