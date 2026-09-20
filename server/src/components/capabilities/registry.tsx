@@ -848,8 +848,8 @@ export const registry: CapabilityUIRegistry = {
       }),
       createCapability(null, {
         icon: faSterlingSign,
-        title: 'Lifetime Avg Price',
-        value: v(cap.lifetimeUnitRate, (rate) => `${rate.toFixed(1)}p/kWh`),
+        title: 'Agile Avg Price',
+        value: v(cap.agileAvgPrice, (rate) => `${rate.toFixed(1)}p/kWh`),
       }),
     ],
     getGraphSections: () => [
