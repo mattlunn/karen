@@ -8,10 +8,11 @@ import { EnergyCostCapability } from '../../../../models/capabilities';
 import { registerPanel } from '../../registry';
 import { planAppliance } from './plan';
 import { loadApplianceProfiles } from './profiles';
-import { renderAppliancePanel, AppliancePanelData, AppliancePanelRow, WIDTH, HEIGHT, SPARKLINE_WINDOW_HOURS } from './render';
+import { renderAppliancePanel, AppliancePanelData, AppliancePanelRow, WIDTH, HEIGHT } from './render';
 
 const PANEL_ID = 'appliance-schedule';
 
+const SPARKLINE_WINDOW_HOURS = 12;
 const BASELINE_WINDOW_DAYS = 7;
 
 async function getEnergyCostCapability() {
@@ -55,7 +56,7 @@ async function render(): Promise<void> {
     }),
   }));
 
-  const data: AppliancePanelData = { now, priceSlots: slots, rows };
+  const data: AppliancePanelData = { now, priceSlots: slots, sparklineWindowHours: SPARKLINE_WINDOW_HOURS, rows };
 
   cachedPng = renderAppliancePanel(data);
   cachedJson = {

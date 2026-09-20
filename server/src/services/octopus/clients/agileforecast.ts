@@ -1,4 +1,5 @@
 import dayjs from '../../../dayjs';
+import logger from '../../../logger';
 import { TariffAgreement } from './octopus';
 
 export interface ForecastRate {
@@ -41,7 +42,8 @@ async function requestForecast<T>(url: string): Promise<T> {
 const FORECAST_DAYS = 7;
 const CACHE_TTL_HOURS = 6;
 
-let cached: { region: string; expiresAt: number; rates: Promise<ForecastRate[]> } | null = null;
+let cached: { region: string; fetchedAt: Date; rates: ForecastRate[] } | null = null;
+let inFlight: { region: string; rates: Promise<ForecastRate[]> } | null = null;
 
 function fetchRegionForecast(region: string): Promise<ForecastRate[]> {
   // Trailing slash matters - without it the API 301s to this same URL.
@@ -51,19 +53,40 @@ function fetchRegionForecast(region: string): Promise<ForecastRate[]> {
     .then(([forecast]) => forecast.prices.map(p => ({ start: new Date(p.date_time), value: p.agile_pred })));
 }
 
-// The in-flight promise is cached, not just the result, so concurrent callers
-// coalesce onto one request instead of all missing at once.
-function getRegionForecast(region: string): Promise<ForecastRate[]> {
-  if (cached !== null && cached.region === region && cached.expiresAt > Date.now()) {
+// The in-flight promise is shared, not just the result, so concurrent callers
+// coalesce onto one request instead of all missing at once. A prediction hours
+// past its refresh still beats no prices at all, so an unreachable origin
+// serves the stale entry and only throws when nothing was ever cached.
+async function getRegionForecast(region: string): Promise<ForecastRate[]> {
+  if (cached !== null && cached.region === region && dayjs(cached.fetchedAt).add(CACHE_TTL_HOURS, 'hour').isAfter(new Date())) {
     return cached.rates;
   }
 
-  const rates = fetchRegionForecast(region);
+  if (inFlight === null || inFlight.region !== region) {
+    inFlight = { region, rates: fetchRegionForecast(region) };
+  }
 
-  cached = { region, expiresAt: dayjs().add(CACHE_TTL_HOURS, 'hour').valueOf(), rates };
-  rates.catch(() => { cached = null; });
+  const pending = inFlight;
 
-  return rates;
+  try {
+    const rates = await pending.rates;
+
+    cached = { region, fetchedAt: new Date(), rates };
+
+    return rates;
+  } catch (e: any) {
+    if (cached === null || cached.region !== region) {
+      throw e;
+    }
+
+    logger.warn(`AgilePredict unreachable (${e.message}); serving rates fetched ${dayjs(cached.fetchedAt).fromNow()}`);
+
+    return cached.rates;
+  } finally {
+    if (inFlight === pending) {
+      inFlight = null;
+    }
+  }
 }
 
 export async function getForecastRates(agreements: TariffAgreement[], since: Date, until: Date): Promise<ForecastRate[]> {

@@ -205,18 +205,6 @@ async function getEnergyCostCapability() {
   return devices.length === 0 ? null : devices[0].getEnergyCostCapability();
 }
 
-async function getForwardPriceSlots(now: Date) {
-  const energyCost = await getEnergyCostCapability();
-
-  if (energyCost === null) {
-    return [];
-  }
-
-  // The deadline pass can engage up to this many days out, well past where
-  // published prices reach, so the tail comes back forecast.
-  return energyCost.getForwardUnitRates(dayjs(now).add(config.smartcar.charge_deadline_engage_days, 'day').toDate());
-}
-
 async function getBaselinePence(now: Date): Promise<number | null> {
   const energyCost = await getEnergyCostCapability();
 
@@ -370,7 +358,13 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
     return;
   }
 
-  const slots = await getForwardPriceSlots(now.toDate());
+  const energyCost = await getEnergyCostCapability();
+  // The deadline pass can engage up to this many days out, well past where
+  // published prices reach, so the tail comes back forecast.
+  const slots = energyCost === null ? [] : await energyCost.getForwardUnitRates(
+    dayjs(now).add(config.smartcar.charge_deadline_engage_days, 'day').toDate()
+  );
+
   let plan = getPlan(device);
 
   if (plan === null || needsReplan(device, plan, slots, now, chargePercentage)) {

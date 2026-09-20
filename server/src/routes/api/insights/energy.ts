@@ -25,7 +25,6 @@ import {
 } from '../history-helpers';
 import { asyncMap } from '../../../helpers/array';
 import dayjs from '../../../dayjs';
-import logger from '../../../logger';
 
 // One device can meter several loads independently (e.g. an energy meter with a CT clamp
 // per appliance), so each instance of its ENERGY_MONITOR capability is its own entity here.
@@ -112,17 +111,9 @@ export async function scheduleHandler(req: Request, res: Response) {
   const energyCost = costDevice.getEnergyCostCapability();
 
   // Published prices run out ~31h ahead on Agile; past that the line continues
-  // as forecast, so the view reaches a week out rather than stopping dead. The
-  // forecast is a third-party service, so losing it drops the dashed tail
-  // rather than the whole graph.
-  const forecastSlots = await energyCost
-    .getForwardUnitRates(dayjs(now).add(FORECAST_HORIZON_DAYS, 'day').toDate())
-    .then((slots) => slots.filter((slot) => slot.isEstimated))
-    .catch((e) => {
-      logger.warn(`Unable to extend the price graph with forecast rates: ${e.message}`);
-
-      return [];
-    });
+  // as forecast, so the view reaches a week out rather than stopping dead.
+  const forwardRates = await energyCost.getForwardUnitRates(dayjs(now).add(FORECAST_HORIZON_DAYS, 'day').toDate());
+  const forecastSlots = forwardRates.filter((slot) => slot.isEstimated);
 
   const latestRate = await energyCost.getUnitRateEvent();
   const publishedUntil = latestRate
