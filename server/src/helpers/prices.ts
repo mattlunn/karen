@@ -136,19 +136,25 @@ export function findCheapestWindow(
 }
 
 /**
- * Median pence across the given slots, or null when there are none.
+ * The pence value at `percentile` (0-100) across the given slots, linearly
+ * interpolated between the two nearest ranks, or null when there are none.
  */
-export function medianPence(slots: PriceSlot[]): number | null {
+export function percentilePence(slots: PriceSlot[], percentile: number): number | null {
   if (slots.length === 0) {
     return null;
   }
 
   const sorted = slots.map(s => s.pence).sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
 
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1] + sorted[mid]) / 2
-    : sorted[mid];
+  if (sorted.length === 1) {
+    return sorted[0];
+  }
+
+  const rank = (percentile / 100) * (sorted.length - 1);
+  const lo = Math.floor(rank);
+  const hi = Math.ceil(rank);
+
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (rank - lo);
 }
 
 /**

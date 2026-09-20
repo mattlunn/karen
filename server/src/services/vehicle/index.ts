@@ -7,8 +7,8 @@ import * as client from './client';
 import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
-import { planCharge, isDeadlineEngaged, isWithinSlots, ChargePlan } from './price-plan';
-import { toPriceSlots, medianPence, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
+import { planCharge, isDeadlineEngaged, isWithinSlots, baselinePercentileFor, ChargePlan } from './price-plan';
+import { toPriceSlots, percentilePence, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
@@ -209,12 +209,18 @@ async function getEnergyCostCapability() {
   return device.getEnergyCostCapability();
 }
 
-async function getBaselinePence(now: Date): Promise<number | null> {
+async function getBaselinePence(now: Date, chargePercentage: number): Promise<number | null> {
   const energyCost = await getEnergyCostCapability();
   const since = dayjs(now).subtract(config.smartcar.charge_median_rate_days, 'day').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until: now });
+  const percentile = baselinePercentileFor(
+    chargePercentage,
+    config.smartcar.default_charge_limit,
+    config.smartcar.charge_baseline_min_percentile,
+    config.smartcar.charge_baseline_max_percentile
+  );
 
-  return medianPence(toPriceSlots(events, since, now));
+  return percentilePence(toPriceSlots(events, since, now), percentile);
 }
 
 function chargeRatePercentPerHour(): number {
@@ -275,7 +281,7 @@ async function applyPlan(ev: ElectricVehicleCapability, now: Dayjs, plan: Charge
 }
 
 async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, chargePercentage: number): Promise<ChargePlan> {
-  const baselinePence = await getBaselinePence(now.toDate());
+  const baselinePence = await getBaselinePence(now.toDate(), chargePercentage);
 
   // With no forward prices this yields an empty plan and nothing charges until
   // they arrive, pending the admin acting on the Octopus alert.
