@@ -39,7 +39,7 @@ async function requestForecast<T>(url: string): Promise<T> {
 // call serves every consumer's window rather than each re-requesting this free
 // third-party service for its own.
 const FORECAST_DAYS = 7;
-const CACHE_TTL_MINUTES = 30;
+const CACHE_TTL_HOURS = 6;
 
 let cached: { region: string; expiresAt: number; rates: Promise<ForecastRate[]> } | null = null;
 
@@ -60,7 +60,7 @@ function getRegionForecast(region: string): Promise<ForecastRate[]> {
 
   const rates = fetchRegionForecast(region);
 
-  cached = { region, expiresAt: dayjs().add(CACHE_TTL_MINUTES, 'minute').valueOf(), rates };
+  cached = { region, expiresAt: dayjs().add(CACHE_TTL_HOURS, 'hour').valueOf(), rates };
   rates.catch(() => { cached = null; });
 
   return rates;

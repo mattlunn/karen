@@ -18,7 +18,7 @@ const ROW_HEIGHT = 68;
 const HEADER_HEIGHT = 64;
 
 // Matches the delay buckets, so the sparkline always covers what they plan against.
-const SPARKLINE_WINDOW_HOURS = 12;
+export const SPARKLINE_WINDOW_HOURS = 12;
 const SPARKLINE_X = 560;
 const SPARKLINE_Y = 8;
 const SPARKLINE_WIDTH = OPTIONS_END_X - SPARKLINE_X;

@@ -8,11 +8,10 @@ import { EnergyCostCapability } from '../../../../models/capabilities';
 import { registerPanel } from '../../registry';
 import { planAppliance } from './plan';
 import { loadApplianceProfiles } from './profiles';
-import { renderAppliancePanel, AppliancePanelData, AppliancePanelRow, WIDTH, HEIGHT } from './render';
+import { renderAppliancePanel, AppliancePanelData, AppliancePanelRow, WIDTH, HEIGHT, SPARKLINE_WINDOW_HOURS } from './render';
 
 const PANEL_ID = 'appliance-schedule';
 
-const FORECAST_HORIZON_HOURS = 48;
 const BASELINE_WINDOW_DAYS = 7;
 
 async function getEnergyCostCapability() {
@@ -42,9 +41,11 @@ async function render(): Promise<void> {
   }
 
   const now = new Date();
-  const slots = await energyCost.getForwardUnitRates(dayjs(now).add(FORECAST_HORIZON_HOURS, 'hour').toDate());
-  const baselinePencePerKwh = await getBaselinePencePerKwh(energyCost, now);
   const profiles = loadApplianceProfiles();
+  // The panel never looks past its sparkline or its longest delay dial.
+  const horizonHours = Math.max(SPARKLINE_WINDOW_HOURS, ...profiles.map(p => p.delayMaxHours));
+  const slots = await energyCost.getForwardUnitRates(dayjs(now).add(horizonHours, 'hour').toDate());
+  const baselinePencePerKwh = await getBaselinePencePerKwh(energyCost, now);
 
   const rows: AppliancePanelRow[] = profiles.map(profile => ({
     profile,

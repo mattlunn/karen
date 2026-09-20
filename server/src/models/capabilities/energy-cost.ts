@@ -21,9 +21,9 @@ export class EnergyCostCapability extends EnergyCostBaseCapability {
     return [...settled, ...await this.getForecastSlots(frontier, until)];
   }
 
-  async getForecastSlots(since: Date, until: Date): Promise<PriceSlot[]> {
-    const provider = Device.getProviderCapabilities(this.device.provider).provideEnergyCostCapability;
-
-    return provider === undefined ? [] : provider().getForecastSlots(this.device, since, until);
+  getForecastSlots(since: Date, until: Date): Promise<PriceSlot[]> {
+    return Device.getProviderCapabilities(this.device.provider)
+      .provideEnergyCostCapability!()
+      .getForecastSlots(this.device, since, until);
   }
 }
