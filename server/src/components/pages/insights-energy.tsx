@@ -14,7 +14,9 @@ import dayjs from '../../dayjs';
 const yAxisPower = {
   yPower: {
     position: 'left' as const,
-    min: 0
+    // Not min: 0 - the "Other" residual can go slightly negative when a
+    // sub-meter briefly reads above the whole-house meter, and that should show.
+    suggestedMin: 0
   }
 };
 
@@ -64,7 +66,8 @@ function UsageGraphBody({ since, until }: { since: string; until: string }) {
     <GraphState isPending={isPending} isError={isError}>
       {data && (
         <CapabilityGraph
-          lines={data.series.map(line => ({ ...line, yAxisID: 'yPower' }))}
+          lines={data.series.map(line => ({ ...line, yAxisID: 'yPower', hatched: line.role === 'residual' }))}
+          stacked
           yAxis={yAxisPower}
         />
       )}

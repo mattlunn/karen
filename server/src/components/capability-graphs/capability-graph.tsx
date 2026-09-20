@@ -70,11 +70,11 @@ function createDiagonalHatchPattern(color: string): CanvasPattern {
 // unconditionally overwrites any color already set on a dataset - including
 // this pattern - during its own `beforeLayout` hook. `afterLayout` runs after
 // every plugin's `beforeLayout` (so after `colors` has clobbered it) but
-// before Chart.js resolves each bar's final style and before the legend
+// before Chart.js resolves each dataset's final style and before the legend
 // rebuilds its labels on `afterUpdate` - so re-applying the pattern here is
-// what makes it stick on both the bars and the legend swatch.
-const hatchedBarPlugin: Plugin<'bar', { datasetIndexes: number[] }> = {
-  id: 'hatchedBar',
+// what makes it stick on both the mark and the legend swatch.
+const hatchedDatasetPlugin: Plugin<'bar' | 'line', { datasetIndexes: number[] }> = {
+  id: 'hatchedDataset',
   defaults: {
     datasetIndexes: []
   },
@@ -102,7 +102,7 @@ ChartJS.register(
   Colors,
   Filler,
   AnnotationPlugin,
-  hatchedBarPlugin
+  hatchedDatasetPlugin
 );
 
 function mapNumericDataToDataset(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse | BooleanEventApiResponse | EnumEventApiResponse>) {
@@ -163,7 +163,8 @@ export type CapabilityGraphProps = {
     label: string,
     yAxisID?: string,
     borderDash?: number[],
-    period?: 'day' | 'month'
+    period?: 'day' | 'month',
+    hatched?: boolean
   }[]
 
   bars?: {
@@ -245,13 +246,18 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
   const { min, max } = minMax;
   const modesOnly = props.lines.length === 0 && !props.bars?.length;
 
-  const datasets: (ChartDataset<"line", { x: string; y: number; }[]> | ChartDataset<"bar", { x: string; y: number; }[]>)[] = props.lines.map(x => ({
+  // Stacked lines read as bands rather than cumulative outlines: the bottom one
+  // fills to the axis, each one above fills down to its predecessor. They also
+  // plot one point per event rather than a start/end pair, since stacking already
+  // requires a gapless grid - a pair per event would only duplicate every x.
+  const datasets: (ChartDataset<"line", { x: string; y: number; }[]> | ChartDataset<"bar", { x: string; y: number; }[]>)[] = props.lines.map((x, index) => ({
     type: 'line',
-    data: x.period ? mapNumericDataToAggregateDataset(x.data, x.period) : mapNumericDataToDataset(x.data),
+    data: x.period || props.stacked ? mapNumericDataToAggregateDataset(x.data, x.period) : mapNumericDataToDataset(x.data),
     label: x.label,
     yAxisID: x.yAxisID || 'y',
     ...(x.period ? { tension: 0.3 } : {}),
-    ...(x.borderDash ? { borderDash: x.borderDash } : {})
+    ...(x.borderDash ? { borderDash: x.borderDash } : {}),
+    ...(props.stacked ? { stack: 'stack', fill: index === 0 ? 'origin' : '-1', pointRadius: 0, pointHoverRadius: 4 } : {})
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
@@ -325,12 +331,12 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     chartOptions.scales.x.stacked = true;
   }
 
-  if (props.bars) {
-    const hatchedBarIndexes: number[] = [];
+  const hatchedDatasetIndexes = props.lines.flatMap((line, index) => line.hatched ? [index] : []);
 
+  if (props.bars) {
     for (const bar of props.bars) {
       if (bar.hatched) {
-        hatchedBarIndexes.push(datasets.length);
+        hatchedDatasetIndexes.push(datasets.length);
       }
 
       datasets.push({
@@ -342,9 +348,9 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         ...(props.stacked ? { stack: 'stack' } : {})
       });
     }
-
-    chartOptions.plugins.hatchedBar = { datasetIndexes: hatchedBarIndexes };
   }
+
+  chartOptions.plugins.hatchedDataset = { datasetIndexes: hatchedDatasetIndexes };
 
   const modeSeries = props.modes ?? [];
 
