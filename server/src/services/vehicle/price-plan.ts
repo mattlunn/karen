@@ -47,23 +47,6 @@ function hoursToCharge(from: number, to: number, ratePercentPerHour: number): nu
 }
 
 /**
- * Scales linearly from `maxPercentile` at 0% to `minPercentile` at
- * `defaultLimit`, so BAU accepts more mediocre prices while the battery is low
- * and holds out for genuine bargains as it nears the limit. Clamped there
- * since BAU never charges past the limit.
- */
-export function baselinePercentileFor(
-  chargePercentage: number,
-  defaultLimit: number,
-  minPercentile: number,
-  maxPercentile: number
-): number {
-  const progress = Math.min(chargePercentage, defaultLimit) / defaultLimit;
-
-  return maxPercentile - (maxPercentile - minPercentile) * progress;
-}
-
-/**
  * Whether a scheduled charge is close enough to take over from opportunistic
  * charging: within `deadlineEngageDays` of the deadline. Fixed rather than
  * scaled to the charge needed, since the point isn't price visibility (that's
@@ -94,10 +77,9 @@ export function isDeadlineEngaged(options: EngagementOptions): boolean {
  *    off a forecast price before real prices have had a chance to supersede it.
  * 2. Business as usual, otherwise: the cheapest slots priced under `baselinePence`
  *    (a trailing-history percentile that tightens as chargePercentage nears
- *    `defaultLimit` - see `baselinePercentileFor`), up to what reaches it. Judging
- *    cheap against recent history rather than a percentile of the publication means
- *    a uniformly cheap day charges freely while an expensive day charges only in
- *    the dips.
+ *    `defaultLimit`), up to what reaches it. Judging cheap against recent history
+ *    rather than a percentile of the publication means a uniformly cheap day
+ *    charges freely while an expensive day charges only in the dips.
  * 3. Plunge, always: negative-priced slots, up to what reaches `plungeLimit`.
  *    Charging is worth it at any hour the grid is paying us to consume, so this
  *    ignores both the baseline and `defaultLimit`.

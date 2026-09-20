@@ -7,7 +7,7 @@ import * as client from './client';
 import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
-import { planCharge, isDeadlineEngaged, isWithinSlots, baselinePercentileFor, ChargePlan } from './price-plan';
+import { planCharge, isDeadlineEngaged, isWithinSlots, ChargePlan } from './price-plan';
 import { toPriceSlots, percentilePence, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
@@ -213,12 +213,14 @@ async function getBaselinePence(now: Date, chargePercentage: number): Promise<nu
   const energyCost = await getEnergyCostCapability();
   const since = dayjs(now).subtract(config.smartcar.charge_median_rate_days, 'day').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until: now });
-  const percentile = baselinePercentileFor(
-    chargePercentage,
-    config.smartcar.default_charge_limit,
-    config.smartcar.charge_baseline_min_percentile,
-    config.smartcar.charge_baseline_max_percentile
-  );
+
+  // Scales linearly from charge_baseline_max_percentile at 0% to
+  // charge_baseline_min_percentile at default_charge_limit, so BAU accepts more
+  // mediocre prices while the battery is low and holds out for genuine bargains
+  // as it nears the limit. Clamped there since BAU never charges past the limit.
+  const { charge_baseline_min_percentile: minP, charge_baseline_max_percentile: maxP, default_charge_limit: limit } = config.smartcar;
+  const progress = Math.min(chargePercentage, limit) / limit;
+  const percentile = maxP - (maxP - minP) * progress;
 
   return percentilePence(toPriceSlots(events, since, now), percentile);
 }

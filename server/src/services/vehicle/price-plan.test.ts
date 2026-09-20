@@ -1,5 +1,5 @@
 import { PriceSlot } from '../../helpers/prices';
-import { planCharge, isDeadlineEngaged, isWithinSlots, baselinePercentileFor, PlanOptions } from './price-plan';
+import { planCharge, isDeadlineEngaged, isWithinSlots, PlanOptions } from './price-plan';
 
 const T0 = new Date('2026-01-01T00:00:00Z');
 
@@ -294,24 +294,6 @@ describe('isDeadlineEngaged', () => {
       ...base, now: at(10), chargePercentage: 20,
       schedule: { targetPercentage: 100, targetTime: at(5) },
     })).toBe(false);
-  });
-});
-
-describe('baselinePercentileFor', () => {
-  it('is maxPercentile at 0%', () => {
-    expect(baselinePercentileFor(0, 80, 20, 50)).toBe(50);
-  });
-
-  it('is minPercentile at defaultLimit', () => {
-    expect(baselinePercentileFor(80, 80, 20, 50)).toBe(20);
-  });
-
-  it('interpolates linearly in between', () => {
-    expect(baselinePercentileFor(40, 80, 20, 50)).toBe(35);
-  });
-
-  it('clamps to minPercentile past defaultLimit', () => {
-    expect(baselinePercentileFor(90, 80, 20, 50)).toBe(20);
   });
 });
 
