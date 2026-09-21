@@ -13,22 +13,9 @@ import dayjs from '../../dayjs';
 
 // Keyed 'y' (CapabilityGraph's default yAxisID) rather than a bespoke id:
 // every graph below has only this one axis, so nothing needs to disambiguate
-// against a sibling, and lines/bars can omit yAxisID entirely.
-const yAxisPower = {
-  y: {
-    position: 'left' as const,
-    min: 0
-  }
-};
-
-// Not min: 0 - cost/energy/rate can each genuinely dip below zero (a
-// sub-meter briefly reading above the whole-house meter, Agile's plunge pricing).
-const yAxisAllowingNegativeDip = {
-  y: {
-    position: 'left' as const,
-    suggestedMin: 0
-  }
-};
+// against a sibling, and lines/bars can omit yAxisID entirely. Left blank to
+// pick up CapabilityGraph's own position/suggestedMin defaults.
+const yAxisLeft = { y: {} };
 
 // Matches the schedule endpoint's own horizon, which clamps anything longer.
 const FORECAST_HORIZON_DAYS = 7;
@@ -61,7 +48,7 @@ function UsageGraphBody({ since, until }: { since: string; until: string }) {
       {data && (
         <CapabilityGraph
           lines={data.series}
-          yAxis={yAxisPower}
+          yAxis={yAxisLeft}
         />
       )}
     </GraphState>
@@ -115,7 +102,7 @@ function UsageDailyGraphBody({ since, until }: { since: string; until: string })
           bars={data.series.map(series => ({ data: series.data, label: series.label, period: 'day' as const, hatched: series.role === 'residual' }))}
           stacked
           timeUnit="day"
-          yAxis={yAxisAllowingNegativeDip}
+          yAxis={yAxisLeft}
         />
       )}
     </GraphState>
@@ -133,7 +120,7 @@ function CostGraphBody({ since, until }: { since: string; until: string }) {
           bars={data.series.map(series => ({ data: series.data, label: series.label, period: 'day' as const, hatched: series.role === 'residual' }))}
           stacked
           timeUnit="day"
-          yAxis={yAxisAllowingNegativeDip}
+          yAxis={yAxisLeft}
         />
       )}
     </GraphState>
@@ -157,7 +144,7 @@ function UnitRateDailyGraphBody({ since, until }: { since: string; until: string
         <CapabilityGraph
           lines={data.lines}
           timeUnit="day"
-          yAxis={yAxisAllowingNegativeDip}
+          yAxis={yAxisLeft}
         />
       )}
     </GraphState>
@@ -212,7 +199,7 @@ function ScheduleGraphBody({ since, until, range, setRange, preset, isLinkedToPa
         <CapabilityGraph
           lines={data.lines}
           modes={data.modes}
-          yAxis={yAxisAllowingNegativeDip}
+          yAxis={yAxisLeft}
           timeUnit="hour"
           markers={[
             { at: dayjs().toISOString(), label: 'Now', color: '#fa5252' },

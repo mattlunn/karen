@@ -399,6 +399,12 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       const { label, ...scale } = axisDetails;
       const scaleConfig: any = {
         type: 'linear',
+        position: 'left',
+        // A default nudge rather than a hard floor: callers whose series can
+        // genuinely go negative (an import cost/rate under plunge pricing, a
+        // residual that overshoots) aren't silently clipped, while ones that
+        // can't just render the same as they would with an explicit min: 0.
+        suggestedMin: 0,
         ...scale,
         ...(label ? { title: { display: true, text: label } } : {})
       };
