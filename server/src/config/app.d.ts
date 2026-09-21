@@ -149,7 +149,7 @@ declare namespace _default {
       anchor_date: string;
       interval_weeks: number;
     }[];
-    const charge_median_rate_days: number;
+    const charge_baseline_history_days: number;
     const charge_plunge_limit: number;
     const charge_deadline_engage_days: number;
     const charge_baseline_min_percentile: number;

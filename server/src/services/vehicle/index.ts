@@ -211,7 +211,7 @@ async function getEnergyCostCapability() {
 
 async function getBaselinePenceFor(now: Date): Promise<(chargePercentage: number) => number | null> {
   const energyCost = await getEnergyCostCapability();
-  const since = dayjs(now).subtract(config.smartcar.charge_median_rate_days, 'day').toDate();
+  const since = dayjs(now).subtract(config.smartcar.charge_baseline_history_days, 'day').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until: now });
   // Sorted here rather than per call, since the plan asks for a bar once a slot.
   const pences = toPriceSlots(events, since, now).map(s => s.pence).sort((a, b) => a - b);
