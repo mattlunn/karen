@@ -132,7 +132,6 @@ export async function priceScheduleHandler(req: Request, res: Response) {
   const lines: HistoryLineApiResponse[] = [{
     data: rateData,
     label: 'Unit rate (p/kWh)',
-    yAxisID: 'yRate',
   }];
 
   const modes: HistoryModesApiResponse[] = [];
@@ -310,7 +309,6 @@ export async function deviceUnitRateDailyHandler(req: Request, res: Response) {
 
   const lines: HistoryLineApiResponse[] = costByEntity.map(({ label, byDay }) => ({
     label,
-    yAxisID: 'yRate',
     period: 'day' as const,
     data: rateFor(byDay, energyByLabel.get(label))
   }));
@@ -323,7 +321,6 @@ export async function deviceUnitRateDailyHandler(req: Request, res: Response) {
 
     lines.push({
       label: 'Total',
-      yAxisID: 'yRate',
       period: 'day' as const,
       borderDash: [6, 4],
       data: rateFor(meterCost, meterEnergy)

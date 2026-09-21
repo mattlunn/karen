@@ -11,24 +11,24 @@ import { getDeviceGraphSection } from '../capabilities';
 import PageLoader from '../page-loader';
 import dayjs from '../../dayjs';
 
+// Keyed 'y' (CapabilityGraph's default yAxisID) rather than a bespoke id:
+// every graph below has only this one axis, so nothing needs to disambiguate
+// against a sibling, and lines/bars can omit yAxisID entirely.
 const yAxisPower = {
-  yPower: {
+  y: {
     position: 'left' as const,
     min: 0
   }
 };
 
-// Not min: 0 - the "Other" residual can go slightly negative when a
-// sub-meter briefly reads above the whole-house meter, and Agile's plunge
-// pricing can pay us to import, so cost/energy/rate all genuinely dip below zero.
+// Not min: 0 - cost/energy/rate can each genuinely dip below zero (a
+// sub-meter briefly reading above the whole-house meter, Agile's plunge pricing).
 const yAxisAllowingNegativeDip = {
-  position: 'left' as const,
-  suggestedMin: 0
+  y: {
+    position: 'left' as const,
+    suggestedMin: 0
+  }
 };
-
-const yAxisCost = { yCost: yAxisAllowingNegativeDip };
-const yAxisDailyEnergy = { yEnergy: yAxisAllowingNegativeDip };
-const yAxisRate = { yRate: yAxisAllowingNegativeDip };
 
 // Matches the schedule endpoint's own horizon, which clamps anything longer.
 const FORECAST_HORIZON_DAYS = 7;
@@ -60,7 +60,7 @@ function UsageGraphBody({ since, until }: { since: string; until: string }) {
     <GraphState isPending={isPending} isError={isError}>
       {data && (
         <CapabilityGraph
-          lines={data.series.map(line => ({ ...line, yAxisID: 'yPower' }))}
+          lines={data.series}
           yAxis={yAxisPower}
         />
       )}
@@ -112,10 +112,10 @@ function UsageDailyGraphBody({ since, until }: { since: string; until: string })
       {data && (
         <CapabilityGraph
           lines={[]}
-          bars={data.series.map(series => ({ data: series.data, label: series.label, yAxisID: 'yEnergy', period: 'day' as const, hatched: series.role === 'residual' }))}
+          bars={data.series.map(series => ({ data: series.data, label: series.label, period: 'day' as const, hatched: series.role === 'residual' }))}
           stacked
           timeUnit="day"
-          yAxis={yAxisDailyEnergy}
+          yAxis={yAxisAllowingNegativeDip}
         />
       )}
     </GraphState>
@@ -130,10 +130,10 @@ function CostGraphBody({ since, until }: { since: string; until: string }) {
       {data && (
         <CapabilityGraph
           lines={[]}
-          bars={data.series.map(series => ({ data: series.data, label: series.label, yAxisID: 'yCost', period: 'day' as const, hatched: series.role === 'residual' }))}
+          bars={data.series.map(series => ({ data: series.data, label: series.label, period: 'day' as const, hatched: series.role === 'residual' }))}
           stacked
           timeUnit="day"
-          yAxis={yAxisCost}
+          yAxis={yAxisAllowingNegativeDip}
         />
       )}
     </GraphState>
@@ -157,7 +157,7 @@ function UnitRateDailyGraphBody({ since, until }: { since: string; until: string
         <CapabilityGraph
           lines={data.lines}
           timeUnit="day"
-          yAxis={yAxisRate}
+          yAxis={yAxisAllowingNegativeDip}
         />
       )}
     </GraphState>
@@ -212,7 +212,7 @@ function ScheduleGraphBody({ since, until, range, setRange, preset, isLinkedToPa
         <CapabilityGraph
           lines={data.lines}
           modes={data.modes}
-          yAxis={yAxisRate}
+          yAxis={yAxisAllowingNegativeDip}
           timeUnit="hour"
           markers={[
             { at: dayjs().toISOString(), label: 'Now', color: '#fa5252' },
