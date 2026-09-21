@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Title } from '@mantine/core';
-import { useEnergyCostInsights, useEnergyScheduleInsights, useEnergyUnitRateDailyInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
+import { useEnergyCostInsights, useEnergyScheduleInsights, useEnergyUnitRateDailyInsights, useEnergyUsageDailyInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DateRange, DateRangePreset } from '../date-range/types';
@@ -23,6 +23,13 @@ const yAxisCost = {
     position: 'left' as const,
     // Not min: 0 - the "Other" residual can go slightly negative when a
     // sub-meter briefly reads above the whole-house meter, and that should show.
+    suggestedMin: 0
+  }
+};
+
+const yAxisDailyEnergy = {
+  yEnergy: {
+    position: 'left' as const,
     suggestedMin: 0
   }
 };
@@ -91,11 +98,38 @@ function MeterDailyGraph() {
   return <GraphSection section={section} deviceId={meter.id} linkedToPageRangeByDefault />;
 }
 
-function CostGraph() {
+const USAGE_COST_PILLS = [
+  { value: 'usage', label: 'Usage' },
+  { value: 'cost', label: 'Cost' },
+];
+
+function UsageCostGraph() {
   return (
-    <GraphChrome title="Cost (£ per day)" localPreset="lastMonth" linkedToPageRangeByDefault>
-      {({ since, until }) => <CostGraphBody since={since} until={until} />}
+    <GraphChrome title="Usage & cost (per day)" localPreset="lastMonth" linkedToPageRangeByDefault pills={USAGE_COST_PILLS}>
+      {({ since, until, activeGraphId }) => (
+        activeGraphId === 'cost'
+          ? <CostGraphBody since={since} until={until} />
+          : <UsageDailyGraphBody since={since} until={until} />
+      )}
     </GraphChrome>
+  );
+}
+
+function UsageDailyGraphBody({ since, until }: { since: string; until: string }) {
+  const { data, isPending, isError } = useEnergyUsageDailyInsights({ since, until });
+
+  return (
+    <GraphState isPending={isPending} isError={isError}>
+      {data && (
+        <CapabilityGraph
+          lines={[]}
+          bars={data.series.map(series => ({ data: series.data, label: series.label, yAxisID: 'yEnergy', period: 'day' as const, hatched: series.role === 'residual' }))}
+          stacked
+          timeUnit="day"
+          yAxis={yAxisDailyEnergy}
+        />
+      )}
+    </GraphState>
   );
 }
 
@@ -214,7 +248,7 @@ export default function EnergyInsights() {
         <UsageGraph />
         <ScheduleGraph />
         <MeterDailyGraph />
-        <CostGraph />
+        <UsageCostGraph />
         <UnitRateDailyGraph />
       </DateRangeProvider>
     </>

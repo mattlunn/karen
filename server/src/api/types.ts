@@ -414,6 +414,14 @@ export type EnergyCostInsightsApiResponse = {
   series: HistoryLineApiResponse[];
 };
 
+// /api/insights/energy/usage-daily endpoint - per-day kWh of each sub-metered
+// device (all LIGHT-capable devices summed into one "Lights" entry) as a
+// stacked bar breakdown, topped by a hatched "Other" residual (role:
+// 'residual'). Mirrors /api/insights/energy/cost, but in kWh rather than £.
+export type EnergyUsageDailyInsightsApiResponse = {
+  series: HistoryLineApiResponse[];
+};
+
 // /api/insights/energy/unit-rate-daily endpoint - effective p/kWh per day (day
 // cost / day energy) as one line per sub-metered entity ("Lights" rolled up),
 // plus a dashed "Total" reference line for the whole house. No residual line.

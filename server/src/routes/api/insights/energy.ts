@@ -6,6 +6,7 @@ import {
   EnergyCostInsightsApiResponse,
   EnergyUnitRateDailyApiResponse,
   EnergyUsageInsightsApiResponse,
+  EnergyUsageDailyInsightsApiResponse,
   EnergyScheduleApiResponse,
   HistoryDetailsApiResponse,
   HistoryLineApiResponse,
@@ -221,32 +222,34 @@ async function bucketByEntity(
   return named;
 }
 
-export async function costHandler(req: Request, res: Response) {
-  const selector = selectorFromQuery(req);
-
-  const { meter, monitored } = await splitMeterFromMonitored();
+// Shared by cost and usage-daily: a stacked per-day breakdown of one numeric
+// quantity across every sub-metered entity, topped by a hatched "Other"
+// residual (role: 'residual') = the whole-house meter's daily total minus
+// everything individually metered, so the stack sums to the true house total.
+// Not clamped at 0: a sub-meter reading slightly above the whole-house meter
+// should show as a small negative bar, not silently vanish.
+async function dailyBreakdownSeries(
+  selector: TimeRangeSelector,
+  meter: Device | null,
+  monitored: MonitoredLoad[],
+  valueFor: (energyMonitor: EnergyMonitorCapability) => Promise<Map<string, number>>
+): Promise<HistoryLineApiResponse[]> {
   const days = daysInRange(selector.since, selector.until);
   const since = selector.since.toISOString();
   const until = selector.until.toISOString();
-
-  const costFor = (energyMonitor: EnergyMonitorCapability) =>
-    mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
-      .then(bucketByDay);
 
   const toSeries = (label: string, byDay: Map<string, number>): HistoryLineApiResponse => ({
     label,
     data: daysToLineData(days, since, until, (day) => byDay.get(day) ?? 0)
   });
 
-  const costByEntity = await bucketByEntity(costFor, monitored);
-  const series = costByEntity.map(({ label, byDay }) => toSeries(label, byDay));
+  const byEntity = await bucketByEntity(valueFor, monitored);
+  const series = byEntity.map(({ label, byDay }) => toSeries(label, byDay));
 
   if (meter) {
-    const meterByDay = await costFor(meter.getEnergyMonitorCapability());
-    const monitoredByDay = mergeSum(costByEntity.map((entity) => entity.byDay));
+    const meterByDay = await valueFor(meter.getEnergyMonitorCapability());
+    const monitoredByDay = mergeSum(byEntity.map((entity) => entity.byDay));
 
-    // Not clamped at 0: a sub-meter reading slightly above the whole-house
-    // meter should show as a small negative bar, not silently vanish.
     series.push({
       label: 'Other',
       role: 'residual',
@@ -254,7 +257,32 @@ export async function costHandler(req: Request, res: Response) {
     });
   }
 
+  return series;
+}
+
+export async function costHandler(req: Request, res: Response) {
+  const selector = selectorFromQuery(req);
+  const { meter, monitored } = await splitMeterFromMonitored();
+
+  const costFor = (energyMonitor: EnergyMonitorCapability) =>
+    mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
+      .then(bucketByDay);
+
+  const series = await dailyBreakdownSeries(selector, meter, monitored, costFor);
+
   res.json({ series } satisfies EnergyCostInsightsApiResponse);
+}
+
+export async function usageDailyHandler(req: Request, res: Response) {
+  const selector = selectorFromQuery(req);
+  const { meter, monitored } = await splitMeterFromMonitored();
+
+  const energyFor = (energyMonitor: EnergyMonitorCapability) =>
+    mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector).then(bucketByDay);
+
+  const series = await dailyBreakdownSeries(selector, meter, monitored, energyFor);
+
+  res.json({ series } satisfies EnergyUsageDailyInsightsApiResponse);
 }
 
 export async function unitRateDailyHandler(req: Request, res: Response) {
