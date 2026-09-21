@@ -11,6 +11,20 @@ function toNumber(value: string): number {
   return num;
 }
 
+// The controller occasionally answers a power read with a large negative
+// number (-6.4kW is the one it favours) instead of a measurement. A heat pump
+// draws power and never exports it, so rejecting the reading lets #read ask
+// again rather than recording a figure that is certainly wrong.
+function toPowerNumber(value: string): number {
+  const num = toNumber(value);
+
+  if (num < 0) {
+    throw new Error(`Expected a non-negative power but got "${value}"`);
+  }
+
+  return num;
+}
+
 export default class EbusClient {
   #host: string;
   #port: number;
@@ -120,7 +134,7 @@ export default class EbusClient {
   }
 
   async getCurrentPower(): Promise<number> {
-    return this.#read({ value: 'CurrentConsumedPower', circuit: 'hmu' }, toNumber);
+    return this.#read({ value: 'CurrentConsumedPower', circuit: 'hmu' }, toPowerNumber);
   }
 
   async getMode(): Promise<string> {
