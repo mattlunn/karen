@@ -399,8 +399,11 @@ export interface HeatingInsightsApiResponse {
   heatPump: { id: number; name: string };
 }
 
-// /api/insights/energy/usage endpoint - one non-stacked instantaneous-power
-// line per ENERGY_MONITOR device (the whole-house meter included as-is).
+// /api/insights/energy/usage endpoint - instantaneous power as a stacked area
+// breakdown (all LIGHT-capable devices summed into one "Lights" entry), topped
+// by a hatched "Other" residual (role: 'residual') = the whole-house meter minus
+// everything individually metered, so the stack sums to the true house total.
+// Every series shares one uniform time grid, which is what lets them stack.
 export type EnergyUsageInsightsApiResponse = {
   series: HistoryLineApiResponse[];
 };
