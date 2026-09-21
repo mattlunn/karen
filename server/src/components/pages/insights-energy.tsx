@@ -18,28 +18,17 @@ const yAxisPower = {
   }
 };
 
-const yAxisCost = {
-  yCost: {
-    position: 'left' as const,
-    // Not min: 0 - the "Other" residual can go slightly negative when a
-    // sub-meter briefly reads above the whole-house meter, and that should show.
-    suggestedMin: 0
-  }
+// Not min: 0 - the "Other" residual can go slightly negative when a
+// sub-meter briefly reads above the whole-house meter, and Agile's plunge
+// pricing can pay us to import, so cost/energy/rate all genuinely dip below zero.
+const yAxisAllowingNegativeDip = {
+  position: 'left' as const,
+  suggestedMin: 0
 };
 
-const yAxisDailyEnergy = {
-  yEnergy: {
-    position: 'left' as const,
-    suggestedMin: 0
-  }
-};
-
-const yAxisRate = {
-  yRate: {
-    position: 'left' as const,
-    suggestedMin: 0
-  }
-};
+const yAxisCost = { yCost: yAxisAllowingNegativeDip };
+const yAxisDailyEnergy = { yEnergy: yAxisAllowingNegativeDip };
+const yAxisRate = { yRate: yAxisAllowingNegativeDip };
 
 // Matches the schedule endpoint's own horizon, which clamps anything longer.
 const FORECAST_HORIZON_DAYS = 7;
