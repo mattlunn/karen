@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Title } from '@mantine/core';
-import { useEnergyCostInsights, useEnergyScheduleInsights, useEnergyUnitRateDailyInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
+import { useEnergyDeviceCostDailyInsights, useEnergyPriceScheduleInsights, useEnergyDeviceUnitRateDailyInsights, useEnergyDeviceEnergyDailyInsights, useEnergyPowerInsights } from '../../hooks/queries/use-energy-insights';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DateRange, DateRangePreset } from '../date-range/types';
@@ -11,28 +11,11 @@ import { getDeviceGraphSection } from '../capabilities';
 import PageLoader from '../page-loader';
 import dayjs from '../../dayjs';
 
-const yAxisPower = {
-  yPower: {
-    position: 'left' as const,
-    min: 0
-  }
-};
-
-const yAxisCost = {
-  yCost: {
-    position: 'left' as const,
-    // Not min: 0 - the "Other" residual can go slightly negative when a
-    // sub-meter briefly reads above the whole-house meter, and that should show.
-    suggestedMin: 0
-  }
-};
-
-const yAxisRate = {
-  yRate: {
-    position: 'left' as const,
-    suggestedMin: 0
-  }
-};
+// Keyed 'y' (CapabilityGraph's default yAxisID) rather than a bespoke id:
+// every graph below has only this one axis, so nothing needs to disambiguate
+// against a sibling, and lines/bars can omit yAxisID entirely. Left blank to
+// pick up CapabilityGraph's own position/suggestedMin defaults.
+const yAxisLeft = { y: {} };
 
 // Matches the schedule endpoint's own horizon, which clamps anything longer.
 const FORECAST_HORIZON_DAYS = 7;
@@ -58,14 +41,14 @@ function UsageGraph() {
 }
 
 function UsageGraphBody({ since, until }: { since: string; until: string }) {
-  const { data, isPending, isError } = useEnergyUsageInsights({ since, until });
+  const { data, isPending, isError } = useEnergyPowerInsights({ since, until });
 
   return (
     <GraphState isPending={isPending} isError={isError}>
       {data && (
         <CapabilityGraph
-          lines={data.series.map(line => ({ ...line, yAxisID: 'yPower' }))}
-          yAxis={yAxisPower}
+          lines={data.series}
+          yAxis={yAxisLeft}
         />
       )}
     </GraphState>
@@ -91,26 +74,53 @@ function MeterDailyGraph() {
   return <GraphSection section={section} deviceId={meter.id} linkedToPageRangeByDefault />;
 }
 
-function CostGraph() {
+const USAGE_COST_PILLS = [
+  { value: 'usage', label: 'Usage' },
+  { value: 'cost', label: 'Cost' },
+];
+
+function UsageCostGraph() {
   return (
-    <GraphChrome title="Cost (£ per day)" localPreset="lastMonth" linkedToPageRangeByDefault>
-      {({ since, until }) => <CostGraphBody since={since} until={until} />}
+    <GraphChrome title="Per Device Daily Energy & Cost" localPreset="lastMonth" linkedToPageRangeByDefault pills={USAGE_COST_PILLS}>
+      {({ since, until, activeGraphId }) => (
+        activeGraphId === 'cost'
+          ? <CostGraphBody since={since} until={until} />
+          : <UsageDailyGraphBody since={since} until={until} />
+      )}
     </GraphChrome>
   );
 }
 
-function CostGraphBody({ since, until }: { since: string; until: string }) {
-  const { data, isPending, isError } = useEnergyCostInsights({ since, until });
+function UsageDailyGraphBody({ since, until }: { since: string; until: string }) {
+  const { data, isPending, isError } = useEnergyDeviceEnergyDailyInsights({ since, until });
 
   return (
     <GraphState isPending={isPending} isError={isError}>
       {data && (
         <CapabilityGraph
           lines={[]}
-          bars={data.series.map(series => ({ data: series.data, label: series.label, yAxisID: 'yCost', period: 'day' as const, hatched: series.role === 'residual' }))}
+          bars={data.series.map(series => ({ data: series.data, label: series.label, period: 'day' as const, hatched: series.role === 'residual' }))}
           stacked
           timeUnit="day"
-          yAxis={yAxisCost}
+          yAxis={yAxisLeft}
+        />
+      )}
+    </GraphState>
+  );
+}
+
+function CostGraphBody({ since, until }: { since: string; until: string }) {
+  const { data, isPending, isError } = useEnergyDeviceCostDailyInsights({ since, until });
+
+  return (
+    <GraphState isPending={isPending} isError={isError}>
+      {data && (
+        <CapabilityGraph
+          lines={[]}
+          bars={data.series.map(series => ({ data: series.data, label: series.label, period: 'day' as const, hatched: series.role === 'residual' }))}
+          stacked
+          timeUnit="day"
+          yAxis={yAxisLeft}
         />
       )}
     </GraphState>
@@ -126,7 +136,7 @@ function UnitRateDailyGraph() {
 }
 
 function UnitRateDailyGraphBody({ since, until }: { since: string; until: string }) {
-  const { data, isPending, isError } = useEnergyUnitRateDailyInsights({ since, until });
+  const { data, isPending, isError } = useEnergyDeviceUnitRateDailyInsights({ since, until });
 
   return (
     <GraphState isPending={isPending} isError={isError}>
@@ -134,7 +144,7 @@ function UnitRateDailyGraphBody({ since, until }: { since: string; until: string
         <CapabilityGraph
           lines={data.lines}
           timeUnit="day"
-          yAxis={yAxisRate}
+          yAxis={yAxisLeft}
         />
       )}
     </GraphState>
@@ -170,7 +180,7 @@ function ScheduleGraphBody({ since, until, range, setRange, preset, isLinkedToPa
   preset: DateRangePreset;
   isLinkedToPageRange: boolean;
 }) {
-  const { data, isPending, isError } = useEnergyScheduleInsights({ since, until });
+  const { data, isPending, isError } = useEnergyPriceScheduleInsights({ since, until });
 
   // The server ends the view where the forecast runs out - reflect that in the
   // Custom range's `until` so the selector matches what's shown. Only while
@@ -189,7 +199,7 @@ function ScheduleGraphBody({ since, until, range, setRange, preset, isLinkedToPa
         <CapabilityGraph
           lines={data.lines}
           modes={data.modes}
-          yAxis={yAxisRate}
+          yAxis={yAxisLeft}
           timeUnit="hour"
           markers={[
             { at: dayjs().toISOString(), label: 'Now', color: '#fa5252' },
@@ -214,7 +224,7 @@ export default function EnergyInsights() {
         <UsageGraph />
         <ScheduleGraph />
         <MeterDailyGraph />
-        <CostGraph />
+        <UsageCostGraph />
         <UnitRateDailyGraph />
       </DateRangeProvider>
     </>
