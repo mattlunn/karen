@@ -274,6 +274,14 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       }
     },
 
+    // Chart.js defaults to requiring a tap to land on a mark itself, which on a
+    // touchscreen is an unhittable target. Match on the nearest x instead, so
+    // anywhere in a column counts and the tooltip carries every series at once.
+    interaction: {
+      mode: 'index',
+      intersect: false
+    },
+
     plugins: {
       annotation: {
         annotations: {}
@@ -323,6 +331,14 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
   if (props.stacked && props.bars) {
     chartOptions.scales.x.stacked = true;
+  }
+
+  // A stacked chart tooltip names every series at that point, most of which are
+  // idle at any given moment - listing them all buries the few actually drawing.
+  if (props.stacked) {
+    chartOptions.plugins.tooltip = {
+      filter: (item: { parsed: { y: number } }) => item.parsed.y !== 0
+    };
   }
 
   if (props.bars) {
