@@ -105,7 +105,7 @@ const USAGE_COST_PILLS = [
 
 function UsageCostGraph() {
   return (
-    <GraphChrome title="Usage & cost (per day)" localPreset="lastMonth" linkedToPageRangeByDefault pills={USAGE_COST_PILLS}>
+    <GraphChrome title="Per Device Daily Energy & Cost" localPreset="lastMonth" linkedToPageRangeByDefault pills={USAGE_COST_PILLS}>
       {({ since, until, activeGraphId }) => (
         activeGraphId === 'cost'
           ? <CostGraphBody since={since} until={until} />

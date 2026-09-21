@@ -855,7 +855,7 @@ export const registry: CapabilityUIRegistry = {
     getGraphSections: () => [
       { title: 'Power', graphs: [{ id: 'energy-power', yMin: 0 }] },
       {
-        title: 'Daily Energy & Cost',
+        title: 'Overall Daily Energy & Cost',
         overridePreset: 'custom',
         overrideStart: dayjs().subtract(1, 'month').startOf('day').toISOString(),
         overrideEnd: dayjs().toISOString(),
