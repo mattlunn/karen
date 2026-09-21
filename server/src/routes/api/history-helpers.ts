@@ -117,11 +117,11 @@ export function daysToLineData(
   return { since, until, history };
 }
 
-const MIN_INSTANT_STEP_MS = 60_000;
+const MIN_INSTANT_STEP_MS = 5 * 60_000;
 
 // A uniform grid of ISO instants across [since, until), spaced range / targetPoints
-// apart but never finer than 60s - the whole-house meter reports roughly every
-// 62s, so a finer grid would add no information while inflating the payload.
+// apart but never finer than 5 minutes. The whole-house meter only reports once a
+// minute, and plotting near that resolution buries the shape of the day in noise.
 export function instantsInRange(since: Date, until: Date, targetPoints: number): string[] {
   const step = Math.max(MIN_INSTANT_STEP_MS, (until.getTime() - since.getTime()) / targetPoints);
   const instants: string[] = [];
