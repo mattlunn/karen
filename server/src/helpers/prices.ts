@@ -136,22 +136,6 @@ export function findCheapestWindow(
 }
 
 /**
- * Median pence across the given slots, or null when there are none.
- */
-export function medianPence(slots: PriceSlot[]): number | null {
-  if (slots.length === 0) {
-    return null;
-  }
-
-  const sorted = slots.map(s => s.pence).sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-
-  return sorted.length % 2 === 0
-    ? (sorted[mid - 1] + sorted[mid]) / 2
-    : sorted[mid];
-}
-
-/**
  * Merges adjacent slots into contiguous blocks, discarding any block shorter
  * than `minBlockMinutes`.
  */

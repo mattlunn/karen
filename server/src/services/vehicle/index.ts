@@ -8,7 +8,7 @@ import { processSignal } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
 import { planCharge, isDeadlineEngaged, isWithinSlots, ChargePlan } from './price-plan';
-import { toPriceSlots, medianPence, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
+import { toPriceSlots, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
@@ -209,12 +209,30 @@ async function getEnergyCostCapability() {
   return device.getEnergyCostCapability();
 }
 
-async function getBaselinePence(now: Date): Promise<number | null> {
+async function getBaselinePenceFor(now: Date): Promise<(chargePercentage: number) => number | null> {
   const energyCost = await getEnergyCostCapability();
-  const since = dayjs(now).subtract(config.smartcar.charge_median_rate_days, 'day').toDate();
+  const since = dayjs(now).subtract(config.smartcar.charge_baseline_history_days, 'day').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until: now });
+  // Sorted here rather than per call, since the plan asks for a bar once a slot.
+  const pences = toPriceSlots(events, since, now).map(s => s.pence).sort((a, b) => a - b);
+  const { charge_baseline_min_percentile: minP, charge_baseline_max_percentile: maxP, default_charge_limit: limit } = config.smartcar;
 
-  return medianPence(toPriceSlots(events, since, now));
+  // The percentile scales linearly from charge_baseline_max_percentile at 0% to
+  // charge_baseline_min_percentile at default_charge_limit, so BAU accepts more
+  // mediocre prices while the battery is low and holds out for genuine bargains
+  // as it nears the limit. Clamped there since BAU never charges past the limit.
+  return (chargePercentage: number) => {
+    if (pences.length === 0) {
+      return null;
+    }
+
+    const progress = Math.min(chargePercentage, limit) / limit;
+    const rank = (maxP - (maxP - minP) * progress) / 100 * (pences.length - 1);
+    const lo = Math.floor(rank);
+    const hi = Math.ceil(rank);
+
+    return pences[lo] + (pences[hi] - pences[lo]) * (rank - lo);
+  };
 }
 
 function chargeRatePercentPerHour(): number {
@@ -275,7 +293,7 @@ async function applyPlan(ev: ElectricVehicleCapability, now: Dayjs, plan: Charge
 }
 
 async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, chargePercentage: number): Promise<ChargePlan> {
-  const baselinePence = await getBaselinePence(now.toDate());
+  const baselinePenceFor = await getBaselinePenceFor(now.toDate());
 
   // With no forward prices this yields an empty plan and nothing charges until
   // they arrive, pending the admin acting on the Octopus alert.
@@ -283,7 +301,7 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
     slots,
     now: now.toDate(),
     chargePercentage,
-    baselinePence,
+    baselinePenceFor,
     schedule: getSchedule(device),
     chargeRatePercentPerHour: chargeRatePercentPerHour(),
     defaultLimit: config.smartcar.default_charge_limit,

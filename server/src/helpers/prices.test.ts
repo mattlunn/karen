@@ -1,7 +1,6 @@
 import {
   toPriceSlots,
   findCheapestWindow,
-  medianPence,
   groupIntoBlocks,
   haveForecastThrough,
   startOfSlot,
@@ -123,20 +122,6 @@ describe('findCheapestWindow', () => {
 
     expect(win!.start).toEqual(at(60));
     expect(win!.averagePence).toBeCloseTo(9);
-  });
-});
-
-describe('medianPence', () => {
-  it('returns null for no slots', () => {
-    expect(medianPence([])).toBeNull();
-  });
-
-  it('averages the two middle values for an even count', () => {
-    expect(medianPence(slots(0, [10, 20, 30, 40]))).toBe(25);
-  });
-
-  it('returns the middle value for an odd count', () => {
-    expect(medianPence(slots(0, [5, 1, 9]))).toBe(5);
   });
 });
 
