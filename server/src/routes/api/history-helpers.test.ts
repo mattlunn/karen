@@ -20,20 +20,17 @@ function history(events: { start: Date; end: Date | null; value: number }[], sin
 }
 
 describe('instantsInRange', () => {
-  it('spaces instants at range / targetPoints when that is above the 60s floor', () => {
+  it('spaces instants at range / targetPoints when that is above the 5 minute floor', () => {
     const instants = instantsInRange(at(0), at(100), 10);
 
     expect(instants).toHaveLength(10);
     expect(instants[1]).toEqual(at(10).toISOString());
   });
 
-  it('floors the step at 60s even when range / targetPoints would be smaller', () => {
-    const since = at(0);
-    const until = new Date(since.getTime() + 90_000);
+  it('floors the step at 5 minutes even when range / targetPoints would be smaller', () => {
+    const instants = instantsInRange(at(0), at(12), 12);
 
-    const instants = instantsInRange(since, until, 2);
-
-    expect(instants).toEqual([since.toISOString(), new Date(since.getTime() + 60_000).toISOString()]);
+    expect(instants).toEqual([at(0).toISOString(), at(5).toISOString(), at(10).toISOString()]);
   });
 
   it('stays bounded over a long range', () => {
