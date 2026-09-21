@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Box, Title } from '@mantine/core';
-import { useEnergyCostInsights, useEnergyScheduleInsights, useEnergyUnitRateDailyInsights, useEnergyUsageDailyInsights, useEnergyUsageInsights } from '../../hooks/queries/use-energy-insights';
+import { useEnergyDeviceCostDailyInsights, useEnergyPriceScheduleInsights, useEnergyDeviceUnitRateDailyInsights, useEnergyDeviceEnergyDailyInsights, useEnergyPowerInsights } from '../../hooks/queries/use-energy-insights';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DateRange, DateRangePreset } from '../date-range/types';
@@ -65,7 +65,7 @@ function UsageGraph() {
 }
 
 function UsageGraphBody({ since, until }: { since: string; until: string }) {
-  const { data, isPending, isError } = useEnergyUsageInsights({ since, until });
+  const { data, isPending, isError } = useEnergyPowerInsights({ since, until });
 
   return (
     <GraphState isPending={isPending} isError={isError}>
@@ -116,7 +116,7 @@ function UsageCostGraph() {
 }
 
 function UsageDailyGraphBody({ since, until }: { since: string; until: string }) {
-  const { data, isPending, isError } = useEnergyUsageDailyInsights({ since, until });
+  const { data, isPending, isError } = useEnergyDeviceEnergyDailyInsights({ since, until });
 
   return (
     <GraphState isPending={isPending} isError={isError}>
@@ -134,7 +134,7 @@ function UsageDailyGraphBody({ since, until }: { since: string; until: string })
 }
 
 function CostGraphBody({ since, until }: { since: string; until: string }) {
-  const { data, isPending, isError } = useEnergyCostInsights({ since, until });
+  const { data, isPending, isError } = useEnergyDeviceCostDailyInsights({ since, until });
 
   return (
     <GraphState isPending={isPending} isError={isError}>
@@ -160,7 +160,7 @@ function UnitRateDailyGraph() {
 }
 
 function UnitRateDailyGraphBody({ since, until }: { since: string; until: string }) {
-  const { data, isPending, isError } = useEnergyUnitRateDailyInsights({ since, until });
+  const { data, isPending, isError } = useEnergyDeviceUnitRateDailyInsights({ since, until });
 
   return (
     <GraphState isPending={isPending} isError={isError}>
@@ -204,7 +204,7 @@ function ScheduleGraphBody({ since, until, range, setRange, preset, isLinkedToPa
   preset: DateRangePreset;
   isLinkedToPageRange: boolean;
 }) {
-  const { data, isPending, isError } = useEnergyScheduleInsights({ since, until });
+  const { data, isPending, isError } = useEnergyPriceScheduleInsights({ since, until });
 
   // The server ends the view where the forecast runs out - reflect that in the
   // Custom range's `until` so the selector matches what's shown. Only while

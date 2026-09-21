@@ -399,40 +399,34 @@ export interface HeatingInsightsApiResponse {
   heatPump: { id: number; name: string };
 }
 
-// /api/insights/energy/usage endpoint - one non-stacked instantaneous-power
+// /api/insights/energy/power endpoint - one non-stacked instantaneous-power
 // line per ENERGY_MONITOR device (the whole-house meter included as-is).
-export type EnergyUsageInsightsApiResponse = {
+export type EnergyPowerInsightsApiResponse = {
   series: HistoryLineApiResponse[];
 };
 
-// /api/insights/energy/cost endpoint - per-day cost of each sub-metered device
-// (all LIGHT-capable devices summed into one "Lights" entry) as a stacked bar
+// /api/insights/energy/device-cost-daily and /api/insights/energy/device-energy-daily
+// endpoints - per-day cost (£) or energy (kWh) of each sub-metered device (all
+// LIGHT-capable devices summed into one "Lights" entry) as a stacked bar
 // breakdown, topped by a hatched "Other" residual (role: 'residual') = the
 // whole-house meter's daily total minus everything individually metered, so the
 // stack sums to the true house total.
-export type EnergyCostInsightsApiResponse = {
+export type EnergyDeviceDailyBreakdownApiResponse = {
   series: HistoryLineApiResponse[];
 };
 
-// /api/insights/energy/usage-daily endpoint - per-day kWh of each sub-metered
-// device (all LIGHT-capable devices summed into one "Lights" entry) as a
-// stacked bar breakdown, topped by a hatched "Other" residual (role:
-// 'residual'). Mirrors /api/insights/energy/cost, but in kWh rather than £.
-export type EnergyUsageDailyInsightsApiResponse = {
-  series: HistoryLineApiResponse[];
-};
-
-// /api/insights/energy/unit-rate-daily endpoint - effective p/kWh per day (day
-// cost / day energy) as one line per sub-metered entity ("Lights" rolled up),
-// plus a dashed "Total" reference line for the whole house. No residual line.
-export type EnergyUnitRateDailyApiResponse = {
+// /api/insights/energy/device-unit-rate-daily endpoint - effective p/kWh per
+// day (day cost / day energy) as one line per sub-metered entity ("Lights"
+// rolled up), plus a dashed "Total" reference line for the whole house. No
+// residual line.
+export type EnergyDeviceUnitRateDailyApiResponse = {
   lines: HistoryLineApiResponse[];
 };
 
-// /api/insights/energy/schedule endpoint - unit rate as a line with EV and DHW
-// run windows (actual and planned) shaded beneath it. Each band is its own
-// mode series so overlapping EV/DHW windows render honestly.
-export interface EnergyScheduleApiResponse {
+// /api/insights/energy/price-schedule endpoint - unit rate as a line with EV
+// and DHW run windows (actual and planned) shaded beneath it. Each band is
+// its own mode series so overlapping EV/DHW windows render honestly.
+export interface EnergyPriceScheduleApiResponse {
   lines: HistoryLineApiResponse[];
   modes: HistoryModesApiResponse[];
   // Where the unit rate line stops being published prices and becomes

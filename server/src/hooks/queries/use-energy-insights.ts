@@ -1,38 +1,38 @@
 import { useQuery } from '@tanstack/react-query';
-import type { EnergyCostInsightsApiResponse, EnergyUnitRateDailyApiResponse, EnergyUsageInsightsApiResponse, EnergyUsageDailyInsightsApiResponse, EnergyScheduleApiResponse } from '../../api/types';
+import type { EnergyDeviceDailyBreakdownApiResponse, EnergyDeviceUnitRateDailyApiResponse, EnergyPowerInsightsApiResponse, EnergyPriceScheduleApiResponse } from '../../api/types';
 import { fetchApi } from '../fetch-api';
 
-export function useEnergyUsageInsights(params: { since: string; until: string }) {
+export function useEnergyPowerInsights(params: { since: string; until: string }) {
   return useQuery({
-    queryKey: ['energy-insights-usage', params],
-    queryFn: () => fetchApi<EnergyUsageInsightsApiResponse>('/insights/energy/usage', params),
+    queryKey: ['energy-insights-power', params],
+    queryFn: () => fetchApi<EnergyPowerInsightsApiResponse>('/insights/energy/power', params),
   });
 }
 
-export function useEnergyUsageDailyInsights(params: { since: string; until: string }) {
+export function useEnergyDeviceEnergyDailyInsights(params: { since: string; until: string }) {
   return useQuery({
-    queryKey: ['energy-insights-usage-daily', params],
-    queryFn: () => fetchApi<EnergyUsageDailyInsightsApiResponse>('/insights/energy/usage-daily', params),
+    queryKey: ['energy-insights-device-energy-daily', params],
+    queryFn: () => fetchApi<EnergyDeviceDailyBreakdownApiResponse>('/insights/energy/device-energy-daily', params),
   });
 }
 
-export function useEnergyCostInsights(params: { since: string; until: string }) {
+export function useEnergyDeviceCostDailyInsights(params: { since: string; until: string }) {
   return useQuery({
-    queryKey: ['energy-insights-cost', params],
-    queryFn: () => fetchApi<EnergyCostInsightsApiResponse>('/insights/energy/cost', params),
+    queryKey: ['energy-insights-device-cost-daily', params],
+    queryFn: () => fetchApi<EnergyDeviceDailyBreakdownApiResponse>('/insights/energy/device-cost-daily', params),
   });
 }
 
-export function useEnergyScheduleInsights(params: { since: string; until: string }) {
+export function useEnergyPriceScheduleInsights(params: { since: string; until: string }) {
   return useQuery({
-    queryKey: ['energy-insights-schedule', params],
-    queryFn: () => fetchApi<EnergyScheduleApiResponse>('/insights/energy/schedule', params),
+    queryKey: ['energy-insights-price-schedule', params],
+    queryFn: () => fetchApi<EnergyPriceScheduleApiResponse>('/insights/energy/price-schedule', params),
   });
 }
 
-export function useEnergyUnitRateDailyInsights(params: { since: string; until: string }) {
+export function useEnergyDeviceUnitRateDailyInsights(params: { since: string; until: string }) {
   return useQuery({
-    queryKey: ['energy-insights-unit-rate-daily', params],
-    queryFn: () => fetchApi<EnergyUnitRateDailyApiResponse>('/insights/energy/unit-rate-daily', params),
+    queryKey: ['energy-insights-device-unit-rate-daily', params],
+    queryFn: () => fetchApi<EnergyDeviceUnitRateDailyApiResponse>('/insights/energy/device-unit-rate-daily', params),
   });
 }
