@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import { ElectricVehicleCapability, ChargeSchedule } from '../../models/capabilities';
+import { ElectricVehicleCapability, ScheduleChargeRequest, ScheduledCharge, ChargeType } from '../../models/capabilities';
 import config from '../../config/app';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
@@ -7,7 +7,7 @@ import * as client from './client';
 import { processSignal, isAtHome } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
-import { planCharge, isDeadlineEngaged, isWithinSlots, ChargePlan } from './price-plan';
+import { planCharge, isDeadlineEngaged, deadlineEngagesAt, isWithinSlots, ChargePlan } from './price-plan';
 import { toPriceSlots, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
@@ -41,6 +41,18 @@ async function clearPlan(device: Device): Promise<void> {
 
     await device.save();
   }
+}
+
+function resolveNextChargeSchedule(device: Device): ScheduleChargeRequest | null {
+  const stored = device.meta.chargeSchedule as ScheduleChargeRequest | undefined;
+
+  if (stored) {
+    return stored;
+  }
+
+  const next = pickNextChargeSchedule(config.smartcar.charge_schedules ?? [], dayjs());
+
+  return next ? { targetPercentage: next.targetPercentage, targetTime: next.targetTime.toISOString() } : null;
 }
 
 // A deadline plan is active and we've commanded charging, but the car still
@@ -113,27 +125,26 @@ Device.registerProvider('vehicle', {
         }
       },
 
-      getNextChargeSchedule(device: Device): ChargeSchedule | null {
-        const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
+      getNextChargeSchedule(device: Device): ScheduledCharge | null {
+        const schedule = resolveNextChargeSchedule(device);
 
-        if (stored) {
-          return stored;
-        }
-
-        const next = pickNextChargeSchedule(config.smartcar.charge_schedules ?? [], dayjs());
-
-        if (!next) {
+        if (schedule === null) {
           return null;
         }
 
-        return { targetPercentage: next.targetPercentage, targetTime: next.targetTime.toISOString() };
+        const startsAt = deadlineEngagesAt({
+          schedule: { ...schedule, targetTime: new Date(schedule.targetTime) },
+          deadlineEngageDays: config.smartcar.charge_deadline_engage_days,
+        });
+
+        return { ...schedule, startsAt: startsAt.toISOString() };
       },
 
-      async setManualChargeSchedule(device: Device, schedule: ChargeSchedule | null) {
+      async setManualChargeSchedule(device: Device, schedule: ScheduleChargeRequest | null) {
         device.meta.chargeSchedule = schedule ? {
           targetPercentage: schedule.targetPercentage,
           targetTime: schedule.targetTime,
-        } satisfies ChargeSchedule : undefined;
+        } satisfies ScheduleChargeRequest : undefined;
         device.meta.chargePlan = undefined;
 
         await device.save();
@@ -152,6 +163,31 @@ Device.registerProvider('vehicle', {
           end: b.end.toISOString(),
         }));
       },
+
+      getChargeType(device: Device): ChargeType | null {
+        const plan = getPlan(device);
+
+        if (plan === null) {
+          return null;
+        }
+
+        if (plan.deadline !== null) {
+          return 'DEADLINE';
+        }
+
+        if (plan.target > config.smartcar.default_charge_limit) {
+          return 'PLUNGE';
+        }
+
+        return 'BAU';
+      },
+
+      async getChargePriceCap(device: Device): Promise<number | null> {
+        const chargePercentage = await device.getElectricVehicleCapability().getChargePercentage();
+        const baselinePenceFor = await getBaselinePenceFor(new Date());
+
+        return baselinePenceFor(chargePercentage);
+      },
     };
   },
 
@@ -159,7 +195,7 @@ Device.registerProvider('vehicle', {
 });
 
 async function clearNextChargeIfExpired(device: Device, now: Dayjs) {
-  const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
+  const stored = device.meta.chargeSchedule as ScheduleChargeRequest | undefined;
 
   if (!stored || !now.isAfter(dayjs(stored.targetTime))) {
     return;
@@ -187,7 +223,7 @@ async function chooseNextCharge(device: Device, now: Dayjs) {
   device.meta.chargeSchedule = {
     targetPercentage: next.targetPercentage,
     targetTime: next.targetTime.toISOString(),
-  } satisfies ChargeSchedule;
+  } satisfies ScheduleChargeRequest;
 }
 
 // ---------------------------------------------------------------------------
@@ -240,7 +276,7 @@ function chargeRatePercentPerHour(): number {
 }
 
 function getSchedule(device: Device): { targetPercentage: number; targetTime: Date } | null {
-  const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
+  const stored = device.meta.chargeSchedule as ScheduleChargeRequest | undefined;
 
   return stored === undefined ? null : {
     targetPercentage: stored.targetPercentage,

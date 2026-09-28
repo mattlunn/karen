@@ -1,5 +1,5 @@
 import { PriceSlot } from '../../helpers/prices';
-import { planCharge, isDeadlineEngaged, isWithinSlots, PlanOptions } from './price-plan';
+import { planCharge, isDeadlineEngaged, deadlineEngagesAt, isWithinSlots, PlanOptions } from './price-plan';
 
 const T0 = new Date('2026-01-01T00:00:00Z');
 
@@ -325,6 +325,24 @@ describe('isDeadlineEngaged', () => {
       ...base, now: at(10), chargePercentage: 20,
       schedule: { targetPercentage: 100, targetTime: at(5) },
     })).toBe(false);
+  });
+
+  it('engages exactly at the time deadlineEngagesAt reports', () => {
+    const options = {
+      ...base, chargePercentage: 20, schedule: { targetPercentage: 100, targetTime: at(40) },
+    };
+    const engagesAt = deadlineEngagesAt(options);
+
+    expect(isDeadlineEngaged({ ...options, now: new Date(engagesAt.getTime() - 1) })).toBe(false);
+    expect(isDeadlineEngaged({ ...options, now: engagesAt })).toBe(true);
+  });
+});
+
+describe('deadlineEngagesAt', () => {
+  it('is deadlineEngageDays before the deadline', () => {
+    expect(deadlineEngagesAt({
+      deadlineEngageDays: 7, schedule: { targetPercentage: 100, targetTime: at(24 * 10) },
+    })).toEqual(at(24 * 3));
   });
 });
 

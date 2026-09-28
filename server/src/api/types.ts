@@ -91,9 +91,10 @@ export type CapabilityApiResponseBase = {
   isCharging: BooleanStateApiResponse;
   isCableConnected: BooleanStateApiResponse;
   isAtHome: BooleanStateApiResponse;
-  chargeLimit: NumericStateApiResponse;
   odometer: NumericStateApiResponse;
-  chargeSchedule: { targetPercentage: number; targetTime: string } | null;
+  chargeSchedule: { targetPercentage: number; targetTime: string; startsAt: string } | null;
+  chargeType: 'BAU' | 'DEADLINE' | 'PLUNGE' | null;
+  chargePriceCap: number | null;
 } | {
   type: 'ALARM_SENSOR';
   isTriggered: BooleanStateApiResponse;
@@ -323,7 +324,6 @@ export interface ThermostatUpdateRequest {
 
 // /api/device/:id/vehicle endpoint
 export interface VehicleUpdateRequest {
-  chargeLimit?: number;
   manualChargeSchedule?: { targetPercentage: number; targetTime: string } | null;
 }
 

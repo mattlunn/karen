@@ -297,9 +297,10 @@ export async function getCapabilityData(device: Device, capability: string, inst
         isCharging: mapBooleanState(ev.getIsChargingEvent(), device),
         isCableConnected: mapBooleanState(ev.getIsCableConnectedEvent(), device),
         isAtHome: mapBooleanState(ev.getIsAtHomeEvent(), device),
-        chargeLimit: mapNumericState(ev.getChargeLimitEvent(), device),
         odometer: mapNumericState(ev.getOdometerEvent(), device),
         chargeSchedule: ev.getNextChargeSchedule(),
+        chargeType: ev.getChargeType(),
+        chargePriceCap: ev.getChargePriceCap(),
       });
     }
 

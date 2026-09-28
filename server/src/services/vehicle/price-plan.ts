@@ -50,20 +50,23 @@ function hoursToCharge(from: number, to: number, ratePercentPerHour: number): nu
 }
 
 /**
- * Whether a scheduled charge is close enough to take over from opportunistic
- * charging: within `deadlineEngageDays` of the deadline. Fixed rather than
- * scaled to the charge needed, since the point isn't price visibility (that's
- * covered by forecast prices out to the same horizon) but capping how long
- * the car sits at its target before departure.
- *
- * Also consulted between plans, since a plan fixed while a deadline was still
- * far off must not sit frozen while it creeps into range.
+ * The instant opportunistic charging must hand over to the deadline:
+ * `deadlineEngageDays` before it. Fixed rather than scaled to the charge
+ * needed, since the point isn't price visibility (that's covered by forecast
+ * prices out to the same horizon) but capping how long the car sits at its
+ * target before departure.
+ */
+export function deadlineEngagesAt(options: Pick<EngagementOptions, 'schedule' | 'deadlineEngageDays'>): Date {
+  return dayjs(options.schedule.targetTime).subtract(options.deadlineEngageDays, 'day').toDate();
+}
+
+/**
+ * Whether the deadline has taken over from opportunistic charging. Also consulted
+ * between plans, since a plan fixed while a deadline was still far off must not
+ * sit frozen while it creeps into range.
  */
 export function isDeadlineEngaged(options: EngagementOptions): boolean {
-  const { schedule, now, deadlineEngageDays } = options;
-  const hoursToDeadline = dayjs(schedule.targetTime).diff(now, 'hour', true);
-
-  return hoursToDeadline > 0 && hoursToDeadline <= deadlineEngageDays * 24;
+  return options.now < options.schedule.targetTime && options.now >= deadlineEngagesAt(options);
 }
 
 /**

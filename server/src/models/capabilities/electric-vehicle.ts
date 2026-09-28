@@ -1,15 +1,15 @@
 import { ElectricVehicleBaseCapability } from './capabilities.gen';
 import { Device } from '..';
-import { ChargeSchedule } from './index';
+import { ScheduleChargeRequest, ScheduledCharge, ChargeType } from './index';
 
 export class ElectricVehicleCapability extends ElectricVehicleBaseCapability {
-  getNextChargeSchedule(): ChargeSchedule | null {
+  getNextChargeSchedule(): ScheduledCharge | null {
     return Device.getProviderCapabilities(this.device.provider)
       .provideElectricVehicleCapability!()
       .getNextChargeSchedule(this.device);
   }
 
-  setManualChargeSchedule(schedule: ChargeSchedule | null): Promise<void> {
+  setManualChargeSchedule(schedule: ScheduleChargeRequest | null): Promise<void> {
     return Device.getProviderCapabilities(this.device.provider)
       .provideElectricVehicleCapability!()
       .setManualChargeSchedule(this.device, schedule);
@@ -19,5 +19,17 @@ export class ElectricVehicleCapability extends ElectricVehicleBaseCapability {
     return Device.getProviderCapabilities(this.device.provider)
       .provideElectricVehicleCapability!()
       .getPlannedChargeBlocks(this.device);
+  }
+
+  getChargeType(): ChargeType | null {
+    return Device.getProviderCapabilities(this.device.provider)
+      .provideElectricVehicleCapability!()
+      .getChargeType(this.device);
+  }
+
+  getChargePriceCap(): Promise<number | null> {
+    return Device.getProviderCapabilities(this.device.provider)
+      .provideElectricVehicleCapability!()
+      .getChargePriceCap(this.device);
   }
 }

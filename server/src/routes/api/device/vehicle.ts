@@ -22,10 +22,6 @@ router.put<Record<string, never>, DeviceApiResponse, VehicleUpdateRequest>('/', 
 
   const body = req.body;
 
-  if ('chargeLimit' in body && typeof body.chargeLimit === 'number') {
-    await ev.setChargeLimit(body.chargeLimit);
-  }
-
   if ('manualChargeSchedule' in body) {
     if (body.manualChargeSchedule !== null) {
       const targetTime = dayjs(body.manualChargeSchedule!.targetTime);

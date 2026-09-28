@@ -40,15 +40,27 @@ export interface ProviderThermostatCapability extends ProviderThermostatCapabili
   getWarmupRate(device: Device): Promise<number>;
 }
 
-export interface ChargeSchedule {
+export interface ScheduleChargeRequest {
   targetPercentage: number;
   targetTime: string;
 }
 
+export interface ScheduledCharge extends ScheduleChargeRequest {
+  // When opportunistic charging will hand over to this deadline: charge_deadline_engage_days before targetTime.
+  startsAt: string;
+}
+
+// Which pass of the charge planner the committed plan's slots came from: an
+// engaged recurring deadline, a negative-price top-up, or the opportunistic
+// fill toward default_charge_limit.
+export type ChargeType = 'BAU' | 'DEADLINE' | 'PLUNGE';
+
 export interface ProviderElectricVehicleCapability extends ProviderElectricVehicleCapabilityBase {
-  getNextChargeSchedule(device: Device): ChargeSchedule | null;
-  setManualChargeSchedule(device: Device, schedule: ChargeSchedule | null): Promise<void>;
+  getNextChargeSchedule(device: Device): ScheduledCharge | null;
+  setManualChargeSchedule(device: Device, schedule: ScheduleChargeRequest | null): Promise<void>;
   getPlannedChargeBlocks(device: Device): { start: string; end: string }[];
+  getChargeType(device: Device): ChargeType | null;
+  getChargePriceCap(device: Device): Promise<number | null>;
 }
 
 export interface ProviderMotionSensorSensitivityCapability extends ProviderMotionSensorSensitivityCapabilityBase {
