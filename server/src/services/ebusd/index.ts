@@ -91,7 +91,10 @@ nowAndSetCron(createBackgroundTransaction('ebusd:poll', async () => {
     }),
     updateState(() => client.getDHWIsOn(), (v) => heatPumpCapability.setDHWIsOnState(v)),
     updateState(() => client.getDHWIsBoosting(), (v) => heatPumpCapability.setDHWBoostState(v)),
-    updateState(() => client.getDHWMaxChargeTime(), (v) => heatPumpCapability.setDHWMaxChargeTimeState(v))
+    updateState(() => client.getDHWMaxChargeTime(), (v) => heatPumpCapability.setDHWMaxChargeTimeState(v)),
+    updateState(() => client.getDetailedStatus(), (v) => heatPumpCapability.setDetailedStatusState(v)),
+    updateState(() => client.getCompressorBlockMinutes(), (v) => heatPumpCapability.setCompressorBlockMinutesState(v)),
+    updateState(() => client.getCurrentError(), (v) => heatPumpCapability.setCurrentErrorState(v))
   ]);
 
   const anySucceeded = results.some(r => r.status === 'fulfilled');

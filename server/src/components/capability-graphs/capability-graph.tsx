@@ -13,7 +13,8 @@ import {
   TimeScale,
   Colors,
   Filler,
-  ChartDataset
+  ChartDataset,
+  Plugin
 } from 'chart.js';
 import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
@@ -36,6 +37,57 @@ export function inferTimeUnit(min: string, max: string): 'minute' | 'hour' | 'da
 
 export type TimeUnit = 'minute' | 'hour' | 'day' | 'month';
 
+// Marks a bar as a computed residual/catch-all (e.g. "Other" = a total minus
+// everything else that's individually metered) rather than a real named
+// entity, so it reads as different in kind rather than just another color.
+const HATCH_COLOR = '#757575';
+
+function createDiagonalHatchPattern(color: string): CanvasPattern {
+  const size = 8;
+  const tile = document.createElement('canvas');
+
+  tile.width = size;
+  tile.height = size;
+
+  const ctx = tile.getContext('2d')!;
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+
+  // Three parallel diagonal strokes, offset by a tile-width either side, so the
+  // hatch lines stay continuous across tile boundaries once repeated.
+  for (const offset of [-size, 0, size]) {
+    ctx.beginPath();
+    ctx.moveTo(offset, size);
+    ctx.lineTo(offset + size, 0);
+    ctx.stroke();
+  }
+
+  return ctx.createPattern(tile, 'repeat')!;
+}
+
+// The `colors` plugin below is registered with forceOverride, so it
+// unconditionally overwrites any color already set on a dataset - including
+// this pattern - during its own `beforeLayout` hook. `afterLayout` runs after
+// every plugin's `beforeLayout` (so after `colors` has clobbered it) but
+// before Chart.js resolves each bar's final style and before the legend
+// rebuilds its labels on `afterUpdate` - so re-applying the pattern here is
+// what makes it stick on both the bars and the legend swatch.
+const hatchedBarPlugin: Plugin<'bar', { datasetIndexes: number[] }> = {
+  id: 'hatchedBar',
+  defaults: {
+    datasetIndexes: []
+  },
+  afterLayout(chart, _args, options) {
+    for (const index of options.datasetIndexes) {
+      const dataset = chart.data.datasets[index];
+
+      dataset.backgroundColor = createDiagonalHatchPattern(HATCH_COLOR);
+      dataset.borderColor = HATCH_COLOR;
+    }
+  }
+};
+
 ChartJS.register(
   LinearScale,
   CategoryScale,
@@ -49,7 +101,8 @@ ChartJS.register(
   TimeScale,
   Colors,
   Filler,
-  AnnotationPlugin
+  AnnotationPlugin,
+  hatchedBarPlugin
 );
 
 function mapNumericDataToDataset(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse | BooleanEventApiResponse | EnumEventApiResponse>) {
@@ -117,7 +170,8 @@ export type CapabilityGraphProps = {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
     yAxisID?: string,
-    period?: 'day' | 'month'
+    period?: 'day' | 'month',
+    hatched?: boolean
   }[]
 
   stacked?: boolean
@@ -142,6 +196,7 @@ export type CapabilityGraphProps = {
     min?: number,
     suggestedMin?: number,
     suggestedMax?: number,
+    label?: string,
   }>
 
   timeUnit?: TimeUnit
@@ -219,6 +274,14 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
       }
     },
 
+    // Chart.js defaults to requiring a tap to land on a mark itself, which on a
+    // touchscreen is an unhittable target. Match on the nearest x instead, so
+    // anywhere in a column counts and the tooltip carries every series at once.
+    interaction: {
+      mode: 'index',
+      intersect: false
+    },
+
     plugins: {
       annotation: {
         annotations: {}
@@ -270,8 +333,22 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     chartOptions.scales.x.stacked = true;
   }
 
+  // A stacked chart tooltip names every series at that point, most of which are
+  // idle at any given moment - listing them all buries the few actually drawing.
+  if (props.stacked) {
+    chartOptions.plugins.tooltip = {
+      filter: (item: { parsed: { y: number } }) => item.parsed.y !== 0
+    };
+  }
+
   if (props.bars) {
+    const hatchedBarIndexes: number[] = [];
+
     for (const bar of props.bars) {
+      if (bar.hatched) {
+        hatchedBarIndexes.push(datasets.length);
+      }
+
       datasets.push({
         type: 'bar',
         data: mapNumericDataToAggregateDataset(bar.data, bar.period),
@@ -281,6 +358,8 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         ...(props.stacked ? { stack: 'stack' } : {})
       });
     }
+
+    chartOptions.plugins.hatchedBar = { datasetIndexes: hatchedBarIndexes };
   }
 
   const modeSeries = props.modes ?? [];
@@ -333,9 +412,17 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
   if (props.yAxis) {
     for (const [axisId, axisDetails] of Object.entries(props.yAxis)) {
+      const { label, ...scale } = axisDetails;
       const scaleConfig: any = {
         type: 'linear',
-        ...axisDetails
+        position: 'left',
+        // A default nudge rather than a hard floor: callers whose series can
+        // genuinely go negative (an import cost/rate under plunge pricing, a
+        // residual that overshoots) aren't silently clipped, while ones that
+        // can't just render the same as they would with an explicit min: 0.
+        suggestedMin: 0,
+        ...scale,
+        ...(label ? { title: { display: true, text: label } } : {})
       };
 
       if (modesOnly) {

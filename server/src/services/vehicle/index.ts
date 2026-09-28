@@ -4,11 +4,11 @@ import config from '../../config/app';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';
-import { processSignal } from './signals';
+import { processSignal, isAtHome } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
 import { planCharge, isDeadlineEngaged, deadlineEngagesAt, isWithinSlots, ChargePlan } from './price-plan';
-import { toPriceSlots, medianPence, groupIntoBlocks, startOfSlot, PriceSlot } from '../../helpers/prices';
+import { toPriceSlots, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
@@ -19,7 +19,7 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 // that have since moved.
 interface StoredChargePlan {
   end: string;
-  slots: { start: string; end: string }[];
+  slots: { start: string; end: string; isEstimated: boolean }[];
   target: number;
   deadline: string | null;
 }
@@ -29,7 +29,7 @@ function getPlan(device: Device): ChargePlan | null {
 
   return stored === undefined ? null : {
     end: new Date(stored.end),
-    slots: stored.slots.map(s => ({ start: new Date(s.start), end: new Date(s.end) })),
+    slots: stored.slots.map(s => ({ start: new Date(s.start), end: new Date(s.end), isEstimated: s.isEstimated })),
     target: stored.target,
     deadline: stored.deadline === null ? null : new Date(stored.deadline),
   };
@@ -113,7 +113,7 @@ Device.registerProvider('vehicle', {
         }
       },
 
-      async getNextChargeSchedule(device: Device): Promise<ScheduledCharge | null> {
+      getNextChargeSchedule(device: Device): ScheduledCharge | null {
         const stored = device.meta.chargeSchedule as ScheduleChargeRequest | undefined;
         let targetPercentage: number;
         let targetTime: string;
@@ -131,13 +131,9 @@ Device.registerProvider('vehicle', {
           targetTime = next.targetTime.toISOString();
         }
 
-        const chargePercentage = await device.getElectricVehicleCapability().getChargePercentage();
         const startsAt = deadlineEngagesAt({
           schedule: { targetPercentage, targetTime: new Date(targetTime) },
-          chargePercentage,
-          chargeRatePercentPerHour: chargeRatePercentPerHour(),
-          deadlineEngageFraction: config.smartcar.charge_deadline_engage_fraction,
-          startBufferHours: config.smartcar.charge_start_buffer_hours,
+          deadlineEngageDays: config.smartcar.charge_deadline_engage_days,
         });
 
         return { targetPercentage, targetTime, startsAt: startsAt.toISOString() };
@@ -232,43 +228,39 @@ let deadlineNotChargingSince: Dayjs | null = null;
 let deadlineAlertSent = false;
 
 async function getEnergyCostCapability() {
-  const devices = await Device.findByCapability('ENERGY_COST');
+  const [device] = await Device.findByCapability('ENERGY_COST');
 
-  return devices.length === 0 ? null : devices[0].getEnergyCostCapability();
-}
-
-// Octopus fetches 48h of forward rates, so this bounds the query rather than the
-// plan - on Agile the published prices always run out first.
-const FORWARD_WINDOW_HOURS = 48;
-
-async function getForwardPriceSlots(now: Date) {
-  const energyCost = await getEnergyCostCapability();
-
-  if (energyCost === null) {
-    return [];
+  if (device === undefined) {
+    throw new Error('No ENERGY_COST device found to price charging against');
   }
 
-  // Aligned to the slot boundary rather than `now`, so plugging in mid-slot can
-  // still take the rest of the slot it lands in: `toPriceSlots` drops a partial
-  // at the edge, and that slot is often the cheapest of the day.
-  const since = startOfSlot(now);
-  const until = dayjs(now).add(FORWARD_WINDOW_HOURS, 'hour').toDate();
-  const events = await energyCost.getUnitRateHistory({ since, until });
-
-  return toPriceSlots(events, since, until);
+  return device.getEnergyCostCapability();
 }
 
-async function getBaselinePence(now: Date): Promise<number | null> {
+async function getBaselinePenceFor(now: Date): Promise<(chargePercentage: number) => number | null> {
   const energyCost = await getEnergyCostCapability();
-
-  if (energyCost === null) {
-    return null;
-  }
-
-  const since = dayjs(now).subtract(config.smartcar.charge_median_rate_days, 'day').toDate();
+  const since = dayjs(now).subtract(config.smartcar.charge_baseline_history_days, 'day').toDate();
   const events = await energyCost.getUnitRateHistory({ since, until: now });
+  // Sorted here rather than per call, since the plan asks for a bar once a slot.
+  const pences = toPriceSlots(events, since, now).map(s => s.pence).sort((a, b) => a - b);
+  const { charge_baseline_min_percentile: minP, charge_baseline_max_percentile: maxP, default_charge_limit: limit } = config.smartcar;
 
-  return medianPence(toPriceSlots(events, since, now));
+  // The percentile scales linearly from charge_baseline_max_percentile at 0% to
+  // charge_baseline_min_percentile at default_charge_limit, so BAU accepts more
+  // mediocre prices while the battery is low and holds out for genuine bargains
+  // as it nears the limit. Clamped there since BAU never charges past the limit.
+  return (chargePercentage: number) => {
+    if (pences.length === 0) {
+      return null;
+    }
+
+    const progress = Math.min(chargePercentage, limit) / limit;
+    const rank = (maxP - (maxP - minP) * progress) / 100 * (pences.length - 1);
+    const lo = Math.floor(rank);
+    const hi = Math.ceil(rank);
+
+    return pences[lo] + (pences[hi] - pences[lo]) * (rank - lo);
+  };
 }
 
 function chargeRatePercentPerHour(): number {
@@ -329,7 +321,7 @@ async function applyPlan(ev: ElectricVehicleCapability, now: Dayjs, plan: Charge
 }
 
 async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, chargePercentage: number): Promise<ChargePlan> {
-  const baselinePence = await getBaselinePence(now.toDate());
+  const baselinePenceFor = await getBaselinePenceFor(now.toDate());
 
   // With no forward prices this yields an empty plan and nothing charges until
   // they arrive, pending the admin acting on the Octopus alert.
@@ -337,18 +329,18 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
     slots,
     now: now.toDate(),
     chargePercentage,
-    baselinePence,
+    baselinePenceFor,
     schedule: getSchedule(device),
     chargeRatePercentPerHour: chargeRatePercentPerHour(),
     defaultLimit: config.smartcar.default_charge_limit,
     plungeLimit: config.smartcar.charge_plunge_limit,
-    deadlineEngageFraction: config.smartcar.charge_deadline_engage_fraction,
+    deadlineEngageDays: config.smartcar.charge_deadline_engage_days,
     startBufferHours: config.smartcar.charge_start_buffer_hours,
   });
 
   device.meta.chargePlan = {
     end: plan.end.toISOString(),
-    slots: plan.slots.map(s => ({ start: s.start.toISOString(), end: s.end.toISOString() })),
+    slots: plan.slots.map(s => ({ start: s.start.toISOString(), end: s.end.toISOString(), isEstimated: s.isEstimated })),
     target: plan.target,
     deadline: plan.deadline === null ? null : plan.deadline.toISOString(),
   } satisfies StoredChargePlan;
@@ -392,16 +384,27 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
     now: now.toDate(),
     chargePercentage,
     chargeRatePercentPerHour: chargeRatePercentPerHour(),
-    deadlineEngageFraction: config.smartcar.charge_deadline_engage_fraction,
+    deadlineEngageDays: config.smartcar.charge_deadline_engage_days,
     startBufferHours: config.smartcar.charge_start_buffer_hours,
   });
 }
 
 async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
-  const [isCableConnected, chargePercentage] = await Promise.all([
+  const [atHome, isCableConnected, chargePercentage] = await Promise.all([
+    isAtHome(ev),
     ev.getIsCableConnected(),
     ev.getChargePercentage(),
   ]);
+
+  // Away from home it's someone else's charger and tariff, so the car is left to
+  // charge however it's been told to there.
+  if (!atHome) {
+    await clearPlan(device);
+
+    deadlineNotChargingSince = null;
+    deadlineAlertSent = false;
+    return;
+  }
 
   // Nothing can charge, and the plan is stale the moment the car leaves - it is
   // rebuilt from live SoC when the cable goes back in.
@@ -411,7 +414,13 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
     return;
   }
 
-  const slots = await getForwardPriceSlots(now.toDate());
+  const energyCost = await getEnergyCostCapability();
+  // The deadline pass can engage up to this many days out, well past where
+  // published prices reach, so the tail comes back forecast.
+  const slots = await energyCost.getForwardUnitRates(
+    dayjs(now).add(config.smartcar.charge_deadline_engage_days, 'day').toDate()
+  );
+
   let plan = getPlan(device);
 
   if (plan === null || needsReplan(device, plan, slots, now, chargePercentage)) {

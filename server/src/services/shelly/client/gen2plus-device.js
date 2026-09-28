@@ -85,6 +85,14 @@ export default class Gen2PlusDeviceClient {
       .map((component) => ({ id: `zone${component.config.id}`, name: component.config.name }));
   }
 
+  async getEnergyMeterChannels() {
+    const { components } = await this._request('/rpc/Shelly.GetComponents');
+
+    return components
+      .filter((component) => component.key.startsWith('em1:'))
+      .map((component) => ({ id: `channel${component.config.id}`, name: component.config.name }));
+  }
+
   // Returns the `{ [localSensorId]: property }` mapping for a BTHome (BLU) device
   // already paired to this gateway, restricted to object types Karen understands.
   async getBTHomeSensorsFor(mac) {

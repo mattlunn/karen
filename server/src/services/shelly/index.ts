@@ -22,8 +22,19 @@ Device.registerProvider('shelly', {
       case 'SHDM-2':       // Shelly Dimmer 2
         return ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY'];
 
-      case 'SNPL-00112UK': // Shelly Plus Plug UK
-        return ['SWITCH', 'ENERGY_MONITOR', 'CONNECTIVITY'];
+      case 'SNPL-00112UK': { // Shelly Plus Plug UK - a generic relay, so what it's wired to determines whether it behaves as a light or a switch
+        const capabilityType = device.meta.capabilityType as ('light' | 'switch' | undefined);
+
+        if (capabilityType === 'light') {
+          return ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY'];
+        }
+
+        if (capabilityType === 'switch') {
+          return ['SWITCH', 'ENERGY_MONITOR', 'CONNECTIVITY'];
+        }
+
+        throw new Error(`Device ${device.id} (${device.model}) is missing required meta.capabilityType`);
+      }
 
       case 'S3SW-001X8EU': // Shelly Plus 1 Mini (Heating)
         return ['SWITCH', 'CONNECTIVITY'];
@@ -31,8 +42,14 @@ Device.registerProvider('shelly', {
       case 'S4SW-001X8EU': // Shelly 1 Mini Gen4 (Fire Alarm)
         return ['ALARM_SENSOR', 'CONNECTIVITY'];
 
+      case 'S3PM-001PCEU16': // Shelly PM Mini Gen3
+        return ['ENERGY_MONITOR', 'CONNECTIVITY'];
+
       case 'SBDW-002C':    // Shelly BLU Door/Window (via BLE gateway)
         return ['CONTACT_SENSOR', 'BATTERY_LEVEL_INDICATOR'];
+
+      case 'S3EM-002CXCEU': // Shelly EM Gen3 (two CT clamp channels)
+        return ['ENERGY_MONITOR', 'CONNECTIVITY'];
 
       case 'S4SN-0U61X': // Shelly Presence Gen4 (mmWave, multi-zone)
         return ['MOTION_SENSOR', 'MOTION_SENSOR_SENSITIVITY', 'CONNECTIVITY'];
@@ -48,12 +65,21 @@ Device.registerProvider('shelly', {
       return (device.meta.zones as { id: string; name: string }[]).map(({ id, name }) => ({ id, name }));
     }
 
+    // For Shelly EM Gen3.
+    if (capability === 'ENERGY_MONITOR' && Array.isArray(device.meta.channels)) {
+      return (device.meta.channels as { id: string; name: string }[]).map(({ id, name }) => ({ id, name }));
+    }
+
     return [{ id: null, name: null }];
   },
 
   provideLightCapability() {
     return {
       setBrightness(device: Device, brightness: number) {
+        if (device.model === 'SNPL-00112UK') {
+          throw new Error('Shelly Plus Plug UK has no dimming - it\'s a relay, not a dimmer');
+        }
+
         return publishCommand(
           `${TOPIC_PREFIX}/${device.providerId}/light/0/set`,
           JSON.stringify({ turn: brightness > 0 ? 'on' : 'off', brightness })
@@ -61,6 +87,10 @@ Device.registerProvider('shelly', {
       },
 
       setIsOn(device: Device, isOn: boolean) {
+        if (device.model === 'SNPL-00112UK') {
+          return device.getSwitchCapability().setIsOn(isOn);
+        }
+
         return publishCommand(
           `${TOPIC_PREFIX}/${device.providerId}/light/0/command`,
           isOn ? 'on' : 'off'

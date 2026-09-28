@@ -90,6 +90,7 @@ export type CapabilityApiResponseBase = {
   chargePercentage: NumericStateApiResponse;
   isCharging: BooleanStateApiResponse;
   isCableConnected: BooleanStateApiResponse;
+  isAtHome: BooleanStateApiResponse;
   odometer: NumericStateApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string; startsAt: string } | null;
   chargeType: 'BAU' | 'DEADLINE' | 'PLUNGE' | null;
@@ -115,6 +116,7 @@ export type CapabilityApiResponseBase = {
   currentPower: NumericStateApiResponse;
   dayEnergy: NumericStateApiResponse;
   dayCost: NumericStateApiResponse;
+  agileAvgPrice: number | null;
 } | {
   type: 'ENERGY_COST';
   standingCharge: NumericStateApiResponse;
@@ -202,6 +204,9 @@ export type HistoryLineApiResponse = {
   yAxisID?: string;
   borderDash?: number[];
   period?: 'day' | 'month';
+  // A computed catch-all (whole-house total minus everything individually
+  // metered), drawn with a diagonal hatch so it reads as different in kind.
+  role?: 'residual';
 };
 
 export type HistoryModeDetailApiResponse = {
@@ -220,6 +225,7 @@ export type HistoryBarApiResponse = {
   label: string;
   yAxisID?: string;
   period?: 'day' | 'month';
+  role?: 'residual';
 };
 
 export type HistoryApiResponse = {
@@ -393,27 +399,39 @@ export interface HeatingInsightsApiResponse {
   heatPump: { id: number; name: string };
 }
 
-// /api/insights/energy/usage endpoint - one non-stacked instantaneous-power
+// /api/insights/energy/power endpoint - one non-stacked instantaneous-power
 // line per ENERGY_MONITOR device (the whole-house meter included as-is).
-export type EnergyUsageInsightsApiResponse = {
+export type EnergyPowerInsightsApiResponse = {
   series: HistoryLineApiResponse[];
 };
 
-// /api/insights/energy/cost endpoint - per-day cost of each sub-metered device
-// (all LIGHT-capable devices summed into one "Lights" entry) as a stacked bar
-// breakdown, plus the whole-house meter's own daily total as a separate overlay
-// line. The gap between the stack and the line is the unmetered remainder.
-export type EnergyCostInsightsApiResponse = {
+// /api/insights/energy/device-cost-daily and /api/insights/energy/device-energy-daily
+// endpoints - per-day cost (£) or energy (kWh) of each sub-metered device (all
+// LIGHT-capable devices summed into one "Lights" entry) as a stacked bar
+// breakdown, topped by a hatched "Other" residual (role: 'residual') = the
+// whole-house meter's daily total minus everything individually metered, so the
+// stack sums to the true house total.
+export type EnergyDeviceDailyBreakdownApiResponse = {
   series: HistoryLineApiResponse[];
-  total: HistoryLineApiResponse;
 };
 
-// /api/insights/energy/schedule endpoint - unit rate as a line with EV and DHW
-// run windows (actual and planned) shaded beneath it. Each band is its own
-// mode series so overlapping EV/DHW windows render honestly.
-export interface EnergyScheduleApiResponse {
+// /api/insights/energy/device-unit-rate-daily endpoint - effective p/kWh per
+// day (day cost / day energy) as one line per sub-metered entity ("Lights"
+// rolled up), plus a dashed "Total" reference line for the whole house. No
+// residual line.
+export type EnergyDeviceUnitRateDailyApiResponse = {
+  lines: HistoryLineApiResponse[];
+};
+
+// /api/insights/energy/price-schedule endpoint - unit rate as a line with EV
+// and DHW run windows (actual and planned) shaded beneath it. Each band is
+// its own mode series so overlapping EV/DHW windows render honestly.
+export interface EnergyPriceScheduleApiResponse {
   lines: HistoryLineApiResponse[];
   modes: HistoryModesApiResponse[];
+  // Where the unit rate line stops being published prices and becomes
+  // forecast; null when the range ends before the published prices do.
+  forecastFrom: string | null;
 }
 
 // /api/insights/security endpoint

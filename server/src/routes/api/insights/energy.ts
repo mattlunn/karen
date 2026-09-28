@@ -1,21 +1,46 @@
 import { Device } from '../../../models';
+import { TimeRangeSelector } from '../../../models/capabilities/helpers';
+import { EnergyMonitorCapability } from '../../../models/capabilities';
 import { Request, Response } from 'express';
 import {
-  EnergyCostInsightsApiResponse,
-  EnergyUsageInsightsApiResponse,
-  EnergyScheduleApiResponse,
+  EnergyDeviceDailyBreakdownApiResponse,
+  EnergyDeviceUnitRateDailyApiResponse,
+  EnergyPowerInsightsApiResponse,
+  EnergyPriceScheduleApiResponse,
   HistoryDetailsApiResponse,
   HistoryLineApiResponse,
   HistoryModesApiResponse,
   BooleanEventApiResponse,
   NumericEventApiResponse,
 } from '../../../api/types';
-import { mapNumericHistoryToResponse, mapBooleanHistoryToResponse, mapStringHistoryToResponse } from '../history-helpers';
+import { PriceSlot } from '../../../helpers/prices';
+import {
+  mapNumericHistoryToResponse,
+  mapBooleanHistoryToResponse,
+  mapStringHistoryToResponse,
+  bucketByDay,
+  daysInRange,
+  daysToLineData,
+  dailyUnitRate,
+} from '../history-helpers';
 import { asyncMap } from '../../../helpers/array';
-import { filterClampAndSortHistory } from '../../../helpers/history';
 import dayjs from '../../../dayjs';
 
-type NumericHistory = HistoryDetailsApiResponse<NumericEventApiResponse>;
+// One device can meter several loads independently (e.g. an energy meter with a CT clamp
+// per appliance), so each instance of its ENERGY_MONITOR capability is its own entity here.
+type MonitoredLoad = {
+  device: Device;
+  label: string;
+  energyMonitor: EnergyMonitorCapability;
+};
+
+function monitoredLoadsFor(device: Device): MonitoredLoad[] {
+  return device.getCapabilityInstances('ENERGY_MONITOR').map((instance) => ({
+    device,
+    label: instance.name ?? device.name,
+    energyMonitor: device.getEnergyMonitorCapability(instance.id)
+  }));
+}
 
 // The one ENERGY_MONITOR device that also reports ENERGY_COST is the whole-house
 // smart meter; every other is an individually-metered load beneath it.
@@ -23,38 +48,7 @@ async function splitMeterFromMonitored() {
   const devices = await Device.findByCapability('ENERGY_MONITOR');
   const meter = devices.find((device) => device.getCapabilities().includes('ENERGY_COST')) ?? null;
 
-  return { meter, monitored: devices.filter((device) => device !== meter) };
-}
-
-// DayCost events are keyed to Europe/London midnight, but setNumericProperty
-// collapses a run of equal-cost days into a single spanning event. Expand back
-// to one { day-start ISO -> cost } entry per calendar day the event covers.
-function bucketCostByDay(history: NumericHistory): Map<string, number> {
-  const events = filterClampAndSortHistory(history.history, history.since, history.until, true);
-  const byDay = new Map<string, number>();
-
-  for (const event of events) {
-    const end = Date.parse(event.end ?? history.until);
-
-    for (let day = dayjs(event.start).startOf('day'); day.valueOf() < end; day = day.add(1, 'day')) {
-      byDay.set(day.toISOString(), event.value);
-    }
-  }
-
-  return byDay;
-}
-
-// Every calendar-day start (ISO) in the range. Each series carries a value for
-// every one of these - 0 where a device had no reading - so the stacked bars
-// line up on x and share a uniform width.
-function daysInRange(since: Date, until: Date): string[] {
-  const days: string[] = [];
-
-  for (let day = dayjs(since).startOf('day'); day.valueOf() < until.getTime(); day = day.add(1, 'day')) {
-    days.push(day.toISOString());
-  }
-
-  return days;
+  return { meter, monitored: devices.filter((device) => device !== meter).flatMap(monitoredLoadsFor) };
 }
 
 // Adds several { day -> value } maps together, day by day.
@@ -75,6 +69,17 @@ const EV_PLANNED_COLOR = 'rgba(46, 204, 113, 0.15)';
 const DHW_ACTUAL_COLOR = 'rgba(52, 152, 219, 0.35)';
 const DHW_PLANNED_COLOR = 'rgba(52, 152, 219, 0.15)';
 
+const FORECAST_HORIZON_DAYS = 7;
+
+function slotToEvent(slot: PriceSlot): NumericEventApiResponse {
+  return {
+    start: slot.start.toISOString(),
+    end: slot.end.toISOString(),
+    lastReported: slot.start.toISOString(),
+    value: slot.pence,
+  };
+}
+
 function blocksToModeData(
   blocks: { start: string; end: string }[],
   since: Date,
@@ -87,7 +92,7 @@ function blocksToModeData(
   };
 }
 
-export async function scheduleHandler(req: Request, res: Response) {
+export async function priceScheduleHandler(req: Request, res: Response) {
   const now = new Date();
   const since = new Date(req.query.since as string);
 
@@ -97,23 +102,36 @@ export async function scheduleHandler(req: Request, res: Response) {
 
   const energyCost = costDevice.getEnergyCostCapability();
 
-  // The view ends where the published prices do (the whole point of the graph)
-  // - not at a fixed +24h. Fetch generously (Agile's horizon peaks at ~31h).
   const latestRate = await energyCost.getUnitRateEvent();
-  const until = latestRate
+  const publishedUntil = latestRate
     ? new Date(Math.max(now.getTime(), latestRate.start.getTime() + 30 * 60 * 1000))
     : now;
-  const rateSelector = { since, until: dayjs(now).add(48, 'hour').toDate() };
+
+  // Published prices run out ~31h ahead on Agile; past that the line continues
+  // as forecast. The view honours the range asked for, but never ends before
+  // the published prices do, nor past where the forecast reaches.
+  const requestedUntil = new Date(req.query.until as string);
+  const until = new Date(Math.min(
+    Math.max(requestedUntil.getTime() || 0, publishedUntil.getTime()),
+    dayjs(now).add(FORECAST_HORIZON_DAYS, 'day').valueOf()
+  ));
+
+  const forecastSlots = until > publishedUntil
+    ? (await energyCost.getForwardUnitRates(until)).filter((slot) => slot.isEstimated)
+    : [];
+
+  const rateSelector = { since, until: publishedUntil };
   // Actual (what ran) is history up to now; planned bands cover now onwards.
   const actualSelector = { since, until: now };
 
   const rateData = await mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), rateSelector);
+
+  rateData.history = [...rateData.history, ...forecastSlots.map(slotToEvent)];
   rateData.until = until.toISOString();
 
   const lines: HistoryLineApiResponse[] = [{
     data: rateData,
     label: 'Unit rate (p/kWh)',
-    yAxisID: 'yRate',
   }];
 
   const modes: HistoryModesApiResponse[] = [];
@@ -148,70 +166,166 @@ export async function scheduleHandler(req: Request, res: Response) {
     });
   }
 
-  res.json({ lines, modes } satisfies EnergyScheduleApiResponse);
+  res.json({
+    lines,
+    modes,
+    forecastFrom: forecastSlots.length > 0 ? publishedUntil.toISOString() : null,
+  } satisfies EnergyPriceScheduleApiResponse);
 }
 
-export async function usageHandler(req: Request, res: Response) {
-  const selector = {
+function selectorFromQuery(req: Request): TimeRangeSelector {
+  return {
     since: new Date(req.query.since as string),
     until: new Date(req.query.until as string)
   };
+}
+
+export async function powerHandler(req: Request, res: Response) {
+  const selector = selectorFromQuery(req);
 
   const devices = await Device.findByCapability('ENERGY_MONITOR');
 
-  const series = await asyncMap(devices, async (device) => ({
-    data: await mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getCurrentPowerHistory(hs), selector),
-    label: device.name
+  const series = await asyncMap(devices.flatMap(monitoredLoadsFor), async ({ label, energyMonitor }) => ({
+    data: await mapNumericHistoryToResponse((hs) => energyMonitor.getCurrentPowerHistory(hs), selector),
+    label
   }));
 
-  res.json({ series } satisfies EnergyUsageInsightsApiResponse);
+  res.json({ series } satisfies EnergyPowerInsightsApiResponse);
 }
 
-export async function costHandler(req: Request, res: Response) {
-  const selector = {
-    since: new Date(req.query.since as string),
-    until: new Date(req.query.until as string)
-  };
+type Bucketed = { label: string; byDay: Map<string, number> };
 
-  const { meter, monitored } = await splitMeterFromMonitored();
+// Every LIGHT-capable device collapses into a single "Lights" entry, listed first.
+async function bucketByEntity(
+  bucketFor: (energyMonitor: EnergyMonitorCapability) => Promise<Map<string, number>>,
+  monitored: MonitoredLoad[]
+): Promise<Bucketed[]> {
+  const buckets = await asyncMap(monitored, ({ energyMonitor }) => bucketFor(energyMonitor));
+
+  const lights: Map<string, number>[] = [];
+  const named: Bucketed[] = [];
+
+  monitored.forEach(({ device, label }, i) => {
+    if (device.getCapabilities().includes('LIGHT')) {
+      lights.push(buckets[i]);
+    } else {
+      named.push({ label, byDay: buckets[i] });
+    }
+  });
+
+  if (lights.length > 0) {
+    named.unshift({ label: 'Lights', byDay: mergeSum(lights) });
+  }
+
+  return named;
+}
+
+// Shared by device-cost-daily and device-energy-daily: a stacked per-day
+// breakdown of one numeric quantity across every sub-metered entity, topped
+// by a hatched "Other" residual (role: 'residual') = the whole-house meter's
+// daily total minus everything individually metered, so the stack sums to
+// the true house total. Not clamped at 0: a sub-meter reading slightly above
+// the whole-house meter should show as a small negative bar, not silently
+// vanish.
+async function dailyBreakdownSeries(
+  selector: TimeRangeSelector,
+  meter: Device | null,
+  monitored: MonitoredLoad[],
+  valueFor: (energyMonitor: EnergyMonitorCapability) => Promise<Map<string, number>>
+): Promise<HistoryLineApiResponse[]> {
   const days = daysInRange(selector.since, selector.until);
   const since = selector.since.toISOString();
   const until = selector.until.toISOString();
 
   const toSeries = (label: string, byDay: Map<string, number>): HistoryLineApiResponse => ({
     label,
-    data: {
-      since,
-      until,
-      history: days.map((day) => {
-        const end = dayjs(day).add(1, 'day').toISOString();
-        return { start: day, end, lastReported: end, value: byDay.get(day) ?? 0 };
-      })
-    }
+    data: daysToLineData(days, since, until, (day) => byDay.get(day) ?? 0)
   });
 
-  const costByDay = (device: Device) =>
-    mapNumericHistoryToResponse((hs) => device.getEnergyMonitorCapability().getDayCostHistory(hs), selector, (v) => v / 100)
-      .then(bucketCostByDay);
+  const byEntity = await bucketByEntity(valueFor, monitored);
+  const series = byEntity.map(({ label, byDay }) => toSeries(label, byDay));
 
-  const buckets = await asyncMap(monitored, costByDay);
+  if (meter) {
+    const meterByDay = await valueFor(meter.getEnergyMonitorCapability());
+    const monitoredByDay = mergeSum(byEntity.map((entity) => entity.byDay));
 
-  const lights: Map<string, number>[] = [];
-  const series: HistoryLineApiResponse[] = [];
-
-  monitored.forEach((device, i) => {
-    if (device.getCapabilities().includes('LIGHT')) {
-      lights.push(buckets[i]);
-    } else {
-      series.push(toSeries(device.name, buckets[i]));
-    }
-  });
-
-  if (lights.length > 0) {
-    series.unshift(toSeries('Lights', mergeSum(lights)));
+    series.push({
+      label: 'Other',
+      role: 'residual',
+      data: daysToLineData(days, since, until, (day) => (meterByDay.get(day) ?? 0) - (monitoredByDay.get(day) ?? 0))
+    });
   }
 
-  const total = toSeries('Total', meter ? await costByDay(meter) : new Map());
+  return series;
+}
 
-  res.json({ series, total } satisfies EnergyCostInsightsApiResponse);
+export async function deviceCostDailyHandler(req: Request, res: Response) {
+  const selector = selectorFromQuery(req);
+  const { meter, monitored } = await splitMeterFromMonitored();
+
+  const costFor = (energyMonitor: EnergyMonitorCapability) =>
+    mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector, (v) => v / 100)
+      .then(bucketByDay);
+
+  const series = await dailyBreakdownSeries(selector, meter, monitored, costFor);
+
+  res.json({ series } satisfies EnergyDeviceDailyBreakdownApiResponse);
+}
+
+export async function deviceEnergyDailyHandler(req: Request, res: Response) {
+  const selector = selectorFromQuery(req);
+  const { meter, monitored } = await splitMeterFromMonitored();
+
+  const energyFor = (energyMonitor: EnergyMonitorCapability) =>
+    mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector).then(bucketByDay);
+
+  const series = await dailyBreakdownSeries(selector, meter, monitored, energyFor);
+
+  res.json({ series } satisfies EnergyDeviceDailyBreakdownApiResponse);
+}
+
+export async function deviceUnitRateDailyHandler(req: Request, res: Response) {
+  const selector = selectorFromQuery(req);
+
+  const { meter, monitored } = await splitMeterFromMonitored();
+  const days = daysInRange(selector.since, selector.until);
+  const since = selector.since.toISOString();
+  const until = selector.until.toISOString();
+
+  const costFor = (energyMonitor: EnergyMonitorCapability) =>
+    mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector).then(bucketByDay);
+  const energyFor = (energyMonitor: EnergyMonitorCapability) =>
+    mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector).then(bucketByDay);
+
+  const [costByEntity, energyByEntity] = await Promise.all([
+    bucketByEntity(costFor, monitored),
+    bucketByEntity(energyFor, monitored)
+  ]);
+
+  const energyByLabel = new Map(energyByEntity.map((entity) => [entity.label, entity.byDay]));
+
+  const rateFor = (cost: Map<string, number>, energy: Map<string, number> | undefined) =>
+    dailyUnitRate(cost, energy ?? new Map(), days, since, until);
+
+  const lines: HistoryLineApiResponse[] = costByEntity.map(({ label, byDay }) => ({
+    label,
+    period: 'day' as const,
+    data: rateFor(byDay, energyByLabel.get(label))
+  }));
+
+  if (meter) {
+    const [meterCost, meterEnergy] = await Promise.all([
+      costFor(meter.getEnergyMonitorCapability()),
+      energyFor(meter.getEnergyMonitorCapability())
+    ]);
+
+    lines.push({
+      label: 'Total',
+      period: 'day' as const,
+      borderDash: [6, 4],
+      data: rateFor(meterCost, meterEnergy)
+    });
+  }
+
+  res.json({ lines } satisfies EnergyDeviceUnitRateDailyApiResponse);
 }

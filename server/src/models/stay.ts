@@ -165,15 +165,17 @@ export default function (sequelize: Sequelize) {
   });
 
   Stay.addHook('afterSave', async function (stay: Stay) {
-    bus.emit(stay.departure ? STAY_END : STAY_START, stay);
-
     if (stay.changed('departure')) {
+      bus.emit(STAY_END, stay);
+
       const currentlyAtHome = await Stay.findCurrentStays();
 
       if (!currentlyAtHome.length) {
         bus.emit(LAST_USER_LEAVES, stay);
       }
     } else if (stay.changed('arrival')) {
+      bus.emit(STAY_START, stay);
+
       const currentlyAtHome = await Stay.findCurrentStays();
 
       if (currentlyAtHome.length === 1) {

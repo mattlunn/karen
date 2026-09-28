@@ -1,7 +1,11 @@
 import Sequelize from 'sequelize';
 import config from '../config/app';
 
-const DAILY_METRIC_EVENT_TYPES = [
+// Every event type that a scheduled job derives by aggregating raw time-series,
+// and therefore recomputes from scratch on its next run. Deleting these is safe;
+// deleting anything else loses data that cannot be reconstructed.
+const AGGREGATE_EVENT_TYPES = [
+  // Heat pump daily metrics - services/ebusd/history.ts
   'cop_day',
   'cop_day_heating',
   'cop_day_dhw',
@@ -17,6 +21,12 @@ const DAILY_METRIC_EVENT_TYPES = [
   'cumulative_yield_day',
   'cumulative_yield_day_heating',
   'cumulative_yield_day_dhw',
+  // Per-device daily energy/cost - services/energy/index.ts
+  'energy_day_energy',
+  'energy_day_cost',
+  // Vehicle monthly mileage/efficiency - services/vehicle/mileage.ts
+  'monthly_mileage',
+  'monthly_efficiency',
 ];
 
 const instance = new Sequelize(config.database.name, config.database.user, config.database.password, {
@@ -25,18 +35,18 @@ const instance = new Sequelize(config.database.name, config.database.user, confi
 });
 
 async function main() {
-  console.log('Deleting daily heat pump metrics...');
-  console.log('Event types:', DAILY_METRIC_EVENT_TYPES.join(', '));
+  console.log('Deleting aggregate metrics...');
+  console.log('Event types:', AGGREGATE_EVENT_TYPES.join(', '));
 
   await instance.query(
-    `DELETE FROM events WHERE type IN (${DAILY_METRIC_EVENT_TYPES.map(() => '?').join(', ')})`,
+    `DELETE FROM events WHERE type IN (${AGGREGATE_EVENT_TYPES.map(() => '?').join(', ')})`,
     {
-      replacements: DAILY_METRIC_EVENT_TYPES,
+      replacements: AGGREGATE_EVENT_TYPES,
       type: Sequelize.QueryTypes.DELETE
     }
   );
 
-  console.log('Done. The app will recalculate metrics at midnight or on next restart.');
+  console.log('Done. Each aggregate is recalculated on its scheduled job\'s next run (or on restart).');
 }
 
 main()

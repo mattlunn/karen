@@ -3,7 +3,7 @@ import { Device } from '..';
 import { ScheduleChargeRequest, ScheduledCharge, ChargeType } from './index';
 
 export class ElectricVehicleCapability extends ElectricVehicleBaseCapability {
-  getNextChargeSchedule(): Promise<ScheduledCharge | null> {
+  getNextChargeSchedule(): ScheduledCharge | null {
     return Device.getProviderCapabilities(this.device.provider)
       .provideElectricVehicleCapability!()
       .getNextChargeSchedule(this.device);

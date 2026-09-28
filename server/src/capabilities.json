@@ -205,6 +205,24 @@
       "isWriteable": false,
       "type": "number",
       "eventName": "cumulative_yield_day_dhw"
+    },
+    {
+      "name": "DetailedStatus",
+      "isWriteable": false,
+      "type": "string",
+      "eventName": "detailed_status"
+    },
+    {
+      "name": "CompressorBlockMinutes",
+      "isWriteable": false,
+      "type": "number",
+      "eventName": "compressor_block_minutes"
+    },
+    {
+      "name": "CurrentError",
+      "isWriteable": false,
+      "type": "string",
+      "eventName": "current_error"
     }
   ]
 }, {
@@ -423,6 +441,12 @@
       "isWriteable": false,
       "type": "boolean",
       "eventName": "is_cable_connected"
+    },
+    {
+      "name": "IsAtHome",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "is_at_home"
     }
   ]
 }, {
@@ -488,6 +512,7 @@
       "name": "CurrentPower",
       "isWriteable": false,
       "type": "number",
+      "precision": 0,
       "eventName": "energy_current_power"
     },
     {
@@ -505,6 +530,7 @@
   ]
 }, {
   "name": "EnergyCost",
+  "capabilityModelClassName": "EnergyCostBase",
   "properties": [
     {
       "name": "UnitRate",

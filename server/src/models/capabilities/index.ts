@@ -1,5 +1,6 @@
 import { Device } from '../';
 import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase, ProviderHeatPumpCapabilityBase, ProviderMotionSensorSensitivityCapabilityBase } from './capabilities.gen';
+import { PriceSlot } from '../../helpers/prices';
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
@@ -10,6 +11,7 @@ export { ElectricVehicleCapability } from './electric-vehicle';
 export { HeatPumpCapability } from './heat-pump';
 export { TelevisionCapability } from './television';
 export { BinCollectionCapability } from './bin-collection';
+export { EnergyCostCapability } from './energy-cost';
 export * from './capabilities.gen';
 
 export type DHWTargetReason = 'STANDARD' | 'PLUNGE' | 'LEGIONELLA';
@@ -44,8 +46,7 @@ export interface ScheduleChargeRequest {
 }
 
 export interface ScheduledCharge extends ScheduleChargeRequest {
-  // When opportunistic charging will hand over to this deadline, given the
-  // current charge level. Recomputed per request, so it drifts as the SoC does.
+  // When opportunistic charging will hand over to this deadline: charge_deadline_engage_days before targetTime.
   startsAt: string;
 }
 
@@ -55,7 +56,7 @@ export interface ScheduledCharge extends ScheduleChargeRequest {
 export type ChargeType = 'BAU' | 'DEADLINE' | 'PLUNGE';
 
 export interface ProviderElectricVehicleCapability extends ProviderElectricVehicleCapabilityBase {
-  getNextChargeSchedule(device: Device): Promise<ScheduledCharge | null>;
+  getNextChargeSchedule(device: Device): ScheduledCharge | null;
   setManualChargeSchedule(device: Device, schedule: ScheduleChargeRequest | null): Promise<void>;
   getPlannedChargeBlocks(device: Device): { start: string; end: string }[];
   getChargeType(device: Device): ChargeType | null;
@@ -81,4 +82,8 @@ export interface ProviderTelevisionCapability extends ProviderTelevisionCapabili
 
 export type ProviderSpeakerCapability = {
   emitSound(device: Device, sound: string | string[], ttlInSeconds?: number): Promise<void>;
+}
+
+export type ProviderEnergyCostCapability = {
+  getForecastSlots(device: Device, since: Date, until: Date): Promise<PriceSlot[]>;
 }

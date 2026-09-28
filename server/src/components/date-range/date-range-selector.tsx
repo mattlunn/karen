@@ -80,7 +80,6 @@ export function DateRangeSelector({ preset, range, onPresetChange, onRangeChange
             value={pendingUntil.toDate()}
             onChange={(date) => date && setPendingUntil(dayjs(date))}
             minDate={pendingSince.toDate()}
-            maxDate={new Date()}
           />
           <Button size="xs" onClick={handleSubmitCustomRange}>
             Apply

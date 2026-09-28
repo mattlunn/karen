@@ -3,7 +3,7 @@ import config from '../../../../config/app';
 import dayjs from '../../../../dayjs';
 import nowAndSetCron from '../../../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../../../helpers/newrelic';
-import { toPriceSlots, startOfSlot, PriceSlot } from '../../../../helpers/prices';
+import { toPriceSlots } from '../../../../helpers/prices';
 import { EnergyCostCapability } from '../../../../models/capabilities';
 import { registerPanel } from '../../registry';
 import { planAppliance } from './plan';
@@ -12,9 +12,8 @@ import { renderAppliancePanel, AppliancePanelData, AppliancePanelRow, WIDTH, HEI
 
 const PANEL_ID = 'appliance-schedule';
 
-// Only ~31h of Agile prices are ever published; asking further ahead just
-// returns whatever exists, same rationale as services/octopus's own window.
-const FORECAST_HORIZON_HOURS = 48;
+const SPARKLINE_WINDOW_HOURS = 12;
+const BASELINE_WINDOW_DAYS = 7;
 
 async function getEnergyCostCapability() {
   const devices = await Device.findByCapability('ENERGY_COST');
@@ -25,27 +24,14 @@ async function getEnergyCostCapability() {
 let cachedPng: Buffer | null = null;
 let cachedJson: unknown = null;
 
-// Agile publishes tomorrow's prices around 4pm, so a bucket reaching past
-// tonight's boundary would otherwise sit empty for hours - backfill it from
-// the same slots exactly a day earlier, flagged so the UI can mark it a guess.
-async function fillUnpublishedTail(energyCost: EnergyCostCapability, publishedSlots: PriceSlot[], since: Date, until: Date): Promise<PriceSlot[]> {
-  const frontier = publishedSlots.length === 0 ? since : publishedSlots.at(-1)!.end;
+// Flat average pence/kWh over the trailing window - what this appliance
+// "normally" costs to run, against which Now and every bucket are judged.
+async function getBaselinePencePerKwh(energyCost: EnergyCostCapability, now: Date): Promise<number> {
+  const since = dayjs(now).subtract(BASELINE_WINDOW_DAYS, 'day').toDate();
+  const events = await energyCost.getUnitRateHistory({ since, until: now });
+  const slots = toPriceSlots(events, since, now);
 
-  if (frontier >= until) {
-    return publishedSlots;
-  }
-
-  const estimateSince = dayjs(frontier).subtract(1, 'day').toDate();
-  const estimateUntil = dayjs(until).subtract(1, 'day').toDate();
-  const estimateEvents = await energyCost.getUnitRateHistory({ since: estimateSince, until: estimateUntil });
-  const estimateSlots: PriceSlot[] = toPriceSlots(estimateEvents, estimateSince, estimateUntil).map(slot => ({
-    start: dayjs(slot.start).add(1, 'day').toDate(),
-    end: dayjs(slot.end).add(1, 'day').toDate(),
-    pence: slot.pence,
-    isEstimated: true,
-  }));
-
-  return [...publishedSlots, ...estimateSlots];
+  return slots.reduce((sum, slot) => sum + slot.pence, 0) / slots.length;
 }
 
 async function render(): Promise<void> {
@@ -56,22 +42,21 @@ async function render(): Promise<void> {
   }
 
   const now = new Date();
-  const since = startOfSlot(now);
-  const until = dayjs(now).add(FORECAST_HORIZON_HOURS, 'hour').toDate();
-  const events = await energyCost.getUnitRateHistory({ since, until });
-  const publishedSlots = toPriceSlots(events, since, until);
-  const slots = await fillUnpublishedTail(energyCost, publishedSlots, since, until);
   const profiles = loadApplianceProfiles();
+  // The panel never looks past its sparkline or its longest delay dial.
+  const horizonHours = Math.max(SPARKLINE_WINDOW_HOURS, ...profiles.map(p => p.delayMaxHours));
+  const slots = await energyCost.getForwardUnitRates(dayjs(now).add(horizonHours, 'hour').toDate());
+  const baselinePencePerKwh = await getBaselinePencePerKwh(energyCost, now);
 
   const rows: AppliancePanelRow[] = profiles.map(profile => ({
     profile,
     plan: planAppliance({
-      slots, now, profile,
+      slots, now, profile, baselinePencePerKwh,
       negligibleSavingPence: config.eink.appliance_schedule.negligible_saving_pence,
     }),
   }));
 
-  const data: AppliancePanelData = { now, priceSlots: slots, rows };
+  const data: AppliancePanelData = { now, priceSlots: slots, sparklineWindowHours: SPARKLINE_WINDOW_HOURS, rows };
 
   cachedPng = renderAppliancePanel(data);
   cachedJson = {

@@ -15,6 +15,7 @@ import {
   HistorySelector
 } from './helpers';
 
+import { roundTo } from '../../helpers/number';
 import bus from '../../bus';
 
 {{#each enumAliases}}
@@ -119,7 +120,7 @@ export class {{className}} {
   }
 
   async set{{propertyName}}State(value: number, stateTimestamp?: Date, reportedAt?: Date): Promise<NumericEvent | null> {
-    const event = await setNumericProperty(this.device, '{{fieldName}}', this.instanceId, value, false, stateTimestamp, reportedAt);
+    const event = await setNumericProperty(this.device, '{{fieldName}}', this.instanceId, {{#if hasPrecision}}roundTo(value, {{precision}}){{else}}value{{/if}}, false, stateTimestamp, reportedAt);
 
     if (event === null) {
       return null;

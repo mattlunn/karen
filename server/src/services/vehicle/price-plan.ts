@@ -5,6 +5,7 @@ import { PriceSlot } from '../../helpers/prices';
 export interface PlanSlot {
   start: Date;
   end: Date;
+  isEstimated: boolean;
 }
 
 export interface ChargeDeadline {
@@ -28,16 +29,19 @@ export interface PlanOptions {
   slots: PriceSlot[];
   now: Date;
   chargePercentage: number;
-  baselinePence: number | null;
+  // The most BAU will pay at a given battery level, or null with no price
+  // history to judge against. Evaluated per slot as the plan fills, so the
+  // bar tightens across a single plan rather than only between plans.
+  baselinePenceFor: (chargePercentage: number) => number | null;
   schedule: ChargeDeadline | null;
   chargeRatePercentPerHour: number;
   defaultLimit: number;
   plungeLimit: number;
-  deadlineEngageFraction: number;
+  deadlineEngageDays: number;
   startBufferHours: number;
 }
 
-type EngagementOptions = Omit<PlanOptions, 'slots' | 'baselinePence' | 'defaultLimit' | 'plungeLimit' | 'schedule'> & {
+type EngagementOptions = Omit<PlanOptions, 'slots' | 'baselinePenceFor' | 'defaultLimit' | 'plungeLimit' | 'schedule'> & {
   schedule: ChargeDeadline;
 };
 
@@ -46,17 +50,14 @@ function hoursToCharge(from: number, to: number, ratePercentPerHour: number): nu
 }
 
 /**
- * The instant opportunistic charging must hand over to the deadline: the
- * deadline pulled back by the charge still needed (plus the start buffer), over
- * `deadlineEngageFraction`. The charge needed scales with the gap to
- * `targetPercentage`, so an 80%->100% top-up hands over far later than a
- * 15%->100% charge with the same deadline.
+ * The instant opportunistic charging must hand over to the deadline:
+ * `deadlineEngageDays` before it. Fixed rather than scaled to the charge
+ * needed, since the point isn't price visibility (that's covered by forecast
+ * prices out to the same horizon) but capping how long the car sits at its
+ * target before departure.
  */
-export function deadlineEngagesAt(options: Omit<EngagementOptions, 'now'>): Date {
-  const { schedule, chargePercentage, chargeRatePercentPerHour, startBufferHours, deadlineEngageFraction } = options;
-  const hoursNeeded = hoursToCharge(chargePercentage, schedule.targetPercentage, chargeRatePercentPerHour) + startBufferHours;
-
-  return dayjs(schedule.targetTime).subtract(hoursNeeded / deadlineEngageFraction, 'hour').toDate();
+export function deadlineEngagesAt(options: Pick<EngagementOptions, 'schedule' | 'deadlineEngageDays'>): Date {
+  return dayjs(options.schedule.targetTime).subtract(options.deadlineEngageDays, 'day').toDate();
 }
 
 /**
@@ -72,23 +73,27 @@ export function isDeadlineEngaged(options: EngagementOptions): boolean {
  * Builds the plan for one publication, as up to three passes over a single pool of
  * forward price slots sorted cheapest-first. Each pass tops the same plan up to
  * its own quota, so a slot one pass has already taken counts toward the next.
+ * Slots beyond the ~31h Octopus itself publishes come from forecast prices
+ * (`isEstimated: true`) out to `deadlineEngageDays`, so the deadline pass below
+ * always has real or forecast prices for its whole window.
  *
  * 1. Deadline, when engaged: the cheapest slots falling before the deadline, up
- *    to a pro-rata share of the work. Only ~31h of Agile prices are ever
- *    published, so a deadline beyond them is charged a publication at a time.
- *    With no slack left the share saturates and this takes every slot before the
- *    deadline, which is the deadline beating cost.
- * 2. Business as usual, otherwise: the cheapest slots priced under the trailing
- *    median, up to what reaches `defaultLimit`. Judging cheap against recent
- *    history rather than a percentile of the publication means a uniformly cheap day
- *    charges freely while an expensive day charges only in the dips.
+ *    to exactly the hours of charge still needed. A picked slot that's still
+ *    estimated isn't acted on until it's current, so nothing actually charges
+ *    off a forecast price before real prices have had a chance to supersede it.
+ * 2. Business as usual, otherwise: cheapest slots first, each judged against the
+ *    bar at the battery level the ones already taken would reach - so the first
+ *    kWh clear a loose bar and the last a strict one, within the single plan.
+ *    Judging cheap against recent history rather than a percentile of the
+ *    publication means a uniformly cheap day charges freely while an expensive
+ *    day charges only in the dips.
  * 3. Plunge, always: negative-priced slots, up to what reaches `plungeLimit`.
  *    Charging is worth it at any hour the grid is paying us to consume, so this
  *    ignores both the baseline and `defaultLimit`.
  */
 export function planCharge(options: PlanOptions): ChargePlan {
   const {
-    slots, now, chargePercentage, baselinePence, schedule,
+    slots, now, chargePercentage, baselinePenceFor, schedule,
     chargeRatePercentPerHour, defaultLimit, plungeLimit, startBufferHours,
   } = options;
 
@@ -100,10 +105,10 @@ export function planCharge(options: PlanOptions): ChargePlan {
     return { end: now, slots: [], target: defaultLimit, deadline: null };
   }
 
-  // Only ~31h of Agile prices are ever published, and the cable can go in at any
-  // point in that cycle. The plan runs exactly as far as the prices do and is
-  // rebuilt when they extend, so placement within it is genuinely optimal: the
-  // unknown future only sets the length.
+  // The pool only ever reaches as far as real prices plus, when a deadline is
+  // in range, forecast prices out to it. The plan runs exactly as far as that
+  // and is rebuilt when it extends, so placement within it is genuinely
+  // optimal: the unknown future only sets the length.
   const end = slots.at(-1)!.end;
 
   const slotHours = dayjs(pool[0].end).diff(pool[0].start, 'hour', true);
@@ -135,18 +140,30 @@ export function planCharge(options: PlanOptions): ChargePlan {
 
   if (schedule !== null && isDeadlineEngaged({ ...options, schedule })) {
     const hoursNeeded = hoursToCharge(chargePercentage, schedule.targetPercentage, chargeRatePercentPerHour) + startBufferHours;
-    const hoursToDeadline = dayjs(schedule.targetTime).diff(now, 'hour', true);
-    const planHours = dayjs(end).diff(now, 'hour', true);
-    const share = hoursNeeded * Math.min(1, planHours / hoursToDeadline);
 
-    take(s => s.end <= schedule.targetTime, Math.ceil(share / slotHours));
+    take(s => s.end <= schedule.targetTime, Math.ceil(hoursNeeded / slotHours));
 
     target = schedule.targetPercentage;
     deadline = schedule.targetTime;
   }
 
-  if (deadline === null && baselinePence !== null) {
-    take(s => s.pence < baselinePence, quotaFor(defaultLimit));
+  // The pool is cheapest-first and the bar only falls as the battery fills, so
+  // the first slot to fail it is where BAU stops: everything after is dearer
+  // still, judged against a bar no higher.
+  if (deadline === null) {
+    const quota = quotaFor(defaultLimit);
+    let projected = chargePercentage;
+
+    for (const slot of pool) {
+      const bar = baselinePenceFor(projected);
+
+      if (picked.size >= quota || bar === null || slot.pence >= bar) {
+        break;
+      }
+
+      picked.add(slot);
+      projected += slotHours * chargeRatePercentPerHour;
+    }
   }
 
   if (take(s => s.pence < 0, quotaFor(plungeLimit)) > 0) {
@@ -157,7 +174,7 @@ export function planCharge(options: PlanOptions): ChargePlan {
     end,
     slots: [...picked]
       .sort((a, b) => a.start.getTime() - b.start.getTime())
-      .map(s => ({ start: s.start, end: s.end })),
+      .map(s => ({ start: s.start, end: s.end, isEstimated: s.isEstimated })),
     target,
     deadline,
   };
