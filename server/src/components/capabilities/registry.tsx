@@ -343,6 +343,11 @@ export const registry: CapabilityUIRegistry = {
           : undefined,
       }),
       createCapability(null, {
+        icon: faSterlingSign,
+        title: 'Charge Price Cap',
+        value: v(cap.chargePriceCap, (pence) => `${pence.toFixed(1)}p/kWh`),
+      }),
+      createCapability(null, {
         icon: faCalendarCheck,
         title: 'Schedule',
         value: cap.chargeSchedule

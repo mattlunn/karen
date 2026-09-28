@@ -180,6 +180,13 @@ Device.registerProvider('vehicle', {
 
         return 'BAU';
       },
+
+      async getChargePriceCap(device: Device): Promise<number | null> {
+        const chargePercentage = await device.getElectricVehicleCapability().getChargePercentage();
+        const baselinePenceFor = await getBaselinePenceFor(new Date());
+
+        return baselinePenceFor(chargePercentage);
+      },
     };
   },
 

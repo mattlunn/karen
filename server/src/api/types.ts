@@ -94,6 +94,7 @@ export type CapabilityApiResponseBase = {
   odometer: NumericStateApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string; startsAt: string } | null;
   chargeType: 'BAU' | 'DEADLINE' | 'PLUNGE' | null;
+  chargePriceCap: number | null;
 } | {
   type: 'ALARM_SENSOR';
   isTriggered: BooleanStateApiResponse;

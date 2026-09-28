@@ -60,6 +60,7 @@ export interface ProviderElectricVehicleCapability extends ProviderElectricVehic
   setManualChargeSchedule(device: Device, schedule: ScheduleChargeRequest | null): Promise<void>;
   getPlannedChargeBlocks(device: Device): { start: string; end: string }[];
   getChargeType(device: Device): ChargeType | null;
+  getChargePriceCap(device: Device): Promise<number | null>;
 }
 
 export interface ProviderMotionSensorSensitivityCapability extends ProviderMotionSensorSensitivityCapabilityBase {
