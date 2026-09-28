@@ -58,14 +58,24 @@ describe('planCharge - business as usual', () => {
     expect(target).toBe(80);
   });
 
-  it('takes the earliest slots that beat the bar, not the cheapest', () => {
+  it('swaps earlier slots for cheaper later ones once at the limit', () => {
     const slots = [...run(0, 12, 8), ...run(12, 16, 5), ...run(16, 24, 8)];
 
     const { slots: picked } = plan({ slots, baselinePenceFor: () => 20, chargePercentage: 60 });
 
     expect(totalHours(picked)).toBeCloseTo(2); // 60% -> 80%
-    expect(anyOverlap(picked, 0, 2)).toBe(true);
-    expect(anyOverlap(picked, 12, 16)).toBe(false);
+    expect(anyOverlap(picked, 0, 12)).toBe(false);
+    expect(anyOverlap(picked, 12, 14)).toBe(true);
+  });
+
+  it('swaps in a cheaper slot even when it is above its own bar', () => {
+    // The bar is 16p at 70% and 11p at 75%, so only the first 15p slot is taken
+    // outright; the 12p slot later misses its bar but still beats that 15p.
+    const slots = [...run(0, 1, 15), ...run(1, 2, 40), ...run(2, 2.5, 12), ...run(2.5, 24, 40)];
+
+    const { slots: picked } = plan({ slots, baselinePenceFor: soc => 86 - soc, chargePercentage: 70 });
+
+    expect(picked).toEqual([{ start: at(2), end: at(2.5), isEstimated: false }]);
   });
 
   describe('a mediocre night ahead of a cheap midday', () => {

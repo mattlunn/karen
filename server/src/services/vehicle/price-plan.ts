@@ -86,7 +86,10 @@ export function isDeadlineEngaged(options: EngagementOptions): boolean {
  * 2. Business as usual, otherwise: published slots in time order, each taken if
  *    it beats the bar at the battery level the car will have reached by then -
  *    so each kWh is judged at the level it actually charges at, and a slot
- *    later on can't crowd out an acceptable one sooner. Judging cheap against
+ *    later on can't crowd out an acceptable one sooner. A slot that isn't taken
+ *    but is cheaper than the dearest one already taken replaces it: the same
+ *    charge for less, and dropping an earlier slot only loosens the bars of
+ *    those between. Judging cheap against
  *    recent history rather than a percentile of the publication means a
  *    uniformly cheap day charges freely while an expensive day charges only in
  *    the dips. Forecast slots are left out, since a charge booked days ahead
@@ -154,20 +157,33 @@ export function planCharge(options: PlanOptions): ChargePlan {
 
   if (deadline === null) {
     const quota = quotaFor(defaultLimit);
-    let projected = chargePercentage;
+    // Dearest last, and the latest of equally dear, so that's the one displaced.
+    const taken: PriceSlot[] = [];
+
+    function insertByPrice(slot: PriceSlot) {
+      taken.splice(taken.findLastIndex(s => s.pence <= slot.pence) + 1, 0, slot);
+    }
 
     for (const slot of slots) {
-      const bar = baselinePenceFor(projected);
+      if (slot.end <= now || slot.isEstimated) {
+        continue;
+      }
 
-      if (picked.size >= quota || bar === null) {
+      const bar = baselinePenceFor(chargePercentage + taken.length * slotHours * chargeRatePercentPerHour);
+
+      if (bar === null) {
         break;
       }
 
-      if (slot.end > now && !slot.isEstimated && slot.pence < bar) {
-        picked.add(slot);
-        projected += slotHours * chargeRatePercentPerHour;
+      if (taken.length < quota && slot.pence < bar) {
+        insertByPrice(slot);
+      } else if (taken.length > 0 && slot.pence < taken.at(-1)!.pence) {
+        taken.pop();
+        insertByPrice(slot);
       }
     }
+
+    taken.forEach(s => picked.add(s));
   }
 
   if (take(s => s.pence < 0, quotaFor(plungeLimit)) > 0) {
