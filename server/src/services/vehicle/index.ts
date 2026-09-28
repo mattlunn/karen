@@ -19,6 +19,7 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 // that have since moved.
 interface StoredChargePlan {
   end: string;
+  publishedEnd: string;
   slots: { start: string; end: string; isEstimated: boolean }[];
   target: number;
   deadline: string | null;
@@ -29,6 +30,7 @@ function getPlan(device: Device): ChargePlan | null {
 
   return stored === undefined ? null : {
     end: new Date(stored.end),
+    publishedEnd: new Date(stored.publishedEnd),
     slots: stored.slots.map(s => ({ start: new Date(s.start), end: new Date(s.end), isEstimated: s.isEstimated })),
     target: stored.target,
     deadline: stored.deadline === null ? null : new Date(stored.deadline),
@@ -348,6 +350,7 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
 
   device.meta.chargePlan = {
     end: plan.end.toISOString(),
+    publishedEnd: plan.publishedEnd.toISOString(),
     slots: plan.slots.map(s => ({ start: s.start.toISOString(), end: s.end.toISOString(), isEstimated: s.isEstimated })),
     target: plan.target,
     deadline: plan.deadline === null ? null : plan.deadline.toISOString(),
@@ -362,9 +365,10 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
 
 // A plan is fixed so it can't jitter as prices are restated, with two exceptions.
 //
-// Prices reaching past where the plan ends are strictly more information than it
-// was built from. Agile publishes early afternoon for a plan running to midnight,
-// so holding the old one spends the evening on slots the new day beats outright.
+// Prices reaching past where the plan's ran out - published or forecast - are
+// strictly more information than it was built from. Agile publishes early
+// afternoon, and business as usual only plans on published prices, so holding
+// the old plan spends the evening on slots the new day beats outright.
 //
 // And a plan made while a deadline was still far off must not sit frozen while
 // that deadline creeps into engagement range, or it is missed outright. A
@@ -375,9 +379,10 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
     return true;
   }
 
-  const publishedEnd = slots.at(-1)?.end;
+  const forecastEnd = slots.at(-1)?.end;
+  const publishedEnd = slots.findLast(s => !s.isEstimated)?.end;
 
-  if (publishedEnd !== undefined && publishedEnd > plan.end) {
+  if ((forecastEnd !== undefined && forecastEnd > plan.end) || (publishedEnd !== undefined && publishedEnd > plan.publishedEnd)) {
     return true;
   }
 
