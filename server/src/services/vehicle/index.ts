@@ -19,7 +19,7 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 // that have since moved.
 interface StoredChargePlan {
   end: string;
-  publishedEnd?: string;
+  publishedEnd: string;
   slots: { start: string; end: string; isEstimated: boolean }[];
   target: number;
   deadline: string | null;
@@ -28,7 +28,7 @@ interface StoredChargePlan {
 function getPlan(device: Device): ChargePlan | null {
   const stored = device.meta.chargePlan as StoredChargePlan | undefined;
 
-  return stored === undefined || stored.publishedEnd === undefined ? null : {
+  return stored === undefined ? null : {
     end: new Date(stored.end),
     publishedEnd: new Date(stored.publishedEnd),
     slots: stored.slots.map(s => ({ start: new Date(s.start), end: new Date(s.end), isEstimated: s.isEstimated })),
@@ -379,10 +379,10 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
     return true;
   }
 
-  const pricesEnd = slots.at(-1)?.end;
+  const forecastEnd = slots.at(-1)?.end;
   const publishedEnd = slots.findLast(s => !s.isEstimated)?.end;
 
-  if ((pricesEnd !== undefined && pricesEnd > plan.end) || (publishedEnd !== undefined && publishedEnd > plan.publishedEnd)) {
+  if ((forecastEnd !== undefined && forecastEnd > plan.end) || (publishedEnd !== undefined && publishedEnd > plan.publishedEnd)) {
     return true;
   }
 
