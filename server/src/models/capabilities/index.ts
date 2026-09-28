@@ -38,12 +38,12 @@ export interface ProviderThermostatCapability extends ProviderThermostatCapabili
   getWarmupRate(device: Device): Promise<number>;
 }
 
-export interface ChargeSchedule {
+export interface ScheduleChargeRequest {
   targetPercentage: number;
   targetTime: string;
 }
 
-export interface NextChargeSchedule extends ChargeSchedule {
+export interface ScheduledCharge extends ScheduleChargeRequest {
   // When opportunistic charging will hand over to this deadline, given the
   // current charge level. Recomputed per request, so it drifts as the SoC does.
   startsAt: string;
@@ -55,8 +55,8 @@ export interface NextChargeSchedule extends ChargeSchedule {
 export type ChargeType = 'BAU' | 'DEADLINE' | 'PLUNGE';
 
 export interface ProviderElectricVehicleCapability extends ProviderElectricVehicleCapabilityBase {
-  getNextChargeSchedule(device: Device): Promise<NextChargeSchedule | null>;
-  setManualChargeSchedule(device: Device, schedule: ChargeSchedule | null): Promise<void>;
+  getNextChargeSchedule(device: Device): Promise<ScheduledCharge | null>;
+  setManualChargeSchedule(device: Device, schedule: ScheduleChargeRequest | null): Promise<void>;
   getPlannedChargeBlocks(device: Device): { start: string; end: string }[];
   getChargeType(device: Device): ChargeType | null;
 }

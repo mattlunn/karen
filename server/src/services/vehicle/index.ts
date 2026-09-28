@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import { ElectricVehicleCapability, ChargeSchedule, NextChargeSchedule, ChargeType } from '../../models/capabilities';
+import { ElectricVehicleCapability, ScheduleChargeRequest, ScheduledCharge, ChargeType } from '../../models/capabilities';
 import config from '../../config/app';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
@@ -113,8 +113,8 @@ Device.registerProvider('vehicle', {
         }
       },
 
-      async getNextChargeSchedule(device: Device): Promise<NextChargeSchedule | null> {
-        const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
+      async getNextChargeSchedule(device: Device): Promise<ScheduledCharge | null> {
+        const stored = device.meta.chargeSchedule as ScheduleChargeRequest | undefined;
         let targetPercentage: number;
         let targetTime: string;
 
@@ -143,11 +143,11 @@ Device.registerProvider('vehicle', {
         return { targetPercentage, targetTime, startsAt: startsAt.toISOString() };
       },
 
-      async setManualChargeSchedule(device: Device, schedule: ChargeSchedule | null) {
+      async setManualChargeSchedule(device: Device, schedule: ScheduleChargeRequest | null) {
         device.meta.chargeSchedule = schedule ? {
           targetPercentage: schedule.targetPercentage,
           targetTime: schedule.targetTime,
-        } satisfies ChargeSchedule : undefined;
+        } satisfies ScheduleChargeRequest : undefined;
         device.meta.chargePlan = undefined;
 
         await device.save();
@@ -191,7 +191,7 @@ Device.registerProvider('vehicle', {
 });
 
 async function clearNextChargeIfExpired(device: Device, now: Dayjs) {
-  const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
+  const stored = device.meta.chargeSchedule as ScheduleChargeRequest | undefined;
 
   if (!stored || !now.isAfter(dayjs(stored.targetTime))) {
     return;
@@ -219,7 +219,7 @@ async function chooseNextCharge(device: Device, now: Dayjs) {
   device.meta.chargeSchedule = {
     targetPercentage: next.targetPercentage,
     targetTime: next.targetTime.toISOString(),
-  } satisfies ChargeSchedule;
+  } satisfies ScheduleChargeRequest;
 }
 
 // ---------------------------------------------------------------------------
@@ -276,7 +276,7 @@ function chargeRatePercentPerHour(): number {
 }
 
 function getSchedule(device: Device): { targetPercentage: number; targetTime: Date } | null {
-  const stored = device.meta.chargeSchedule as ChargeSchedule | undefined;
+  const stored = device.meta.chargeSchedule as ScheduleChargeRequest | undefined;
 
   return stored === undefined ? null : {
     targetPercentage: stored.targetPercentage,

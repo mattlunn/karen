@@ -1,15 +1,15 @@
 import { ElectricVehicleBaseCapability } from './capabilities.gen';
 import { Device } from '..';
-import { ChargeSchedule, NextChargeSchedule, ChargeType } from './index';
+import { ScheduleChargeRequest, ScheduledCharge, ChargeType } from './index';
 
 export class ElectricVehicleCapability extends ElectricVehicleBaseCapability {
-  getNextChargeSchedule(): Promise<NextChargeSchedule | null> {
+  getNextChargeSchedule(): Promise<ScheduledCharge | null> {
     return Device.getProviderCapabilities(this.device.provider)
       .provideElectricVehicleCapability!()
       .getNextChargeSchedule(this.device);
   }
 
-  setManualChargeSchedule(schedule: ChargeSchedule | null): Promise<void> {
+  setManualChargeSchedule(schedule: ScheduleChargeRequest | null): Promise<void> {
     return Device.getProviderCapabilities(this.device.provider)
       .provideElectricVehicleCapability!()
       .setManualChargeSchedule(this.device, schedule);
