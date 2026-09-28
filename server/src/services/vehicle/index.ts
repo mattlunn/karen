@@ -43,6 +43,18 @@ async function clearPlan(device: Device): Promise<void> {
   }
 }
 
+function resolveNextChargeSchedule(device: Device): ScheduleChargeRequest | null {
+  const stored = device.meta.chargeSchedule as ScheduleChargeRequest | undefined;
+
+  if (stored) {
+    return stored;
+  }
+
+  const next = pickNextChargeSchedule(config.smartcar.charge_schedules ?? [], dayjs());
+
+  return next ? { targetPercentage: next.targetPercentage, targetTime: next.targetTime.toISOString() } : null;
+}
+
 // A deadline plan is active and we've commanded charging, but the car still
 // isn't charging after this long - raise one alert (cable / car-asleep).
 const NOT_CHARGING_ALERT_MINUTES = 15;
@@ -114,29 +126,18 @@ Device.registerProvider('vehicle', {
       },
 
       getNextChargeSchedule(device: Device): ScheduledCharge | null {
-        const stored = device.meta.chargeSchedule as ScheduleChargeRequest | undefined;
-        let targetPercentage: number;
-        let targetTime: string;
+        const schedule = resolveNextChargeSchedule(device);
 
-        if (stored) {
-          ({ targetPercentage, targetTime } = stored);
-        } else {
-          const next = pickNextChargeSchedule(config.smartcar.charge_schedules ?? [], dayjs());
-
-          if (!next) {
-            return null;
-          }
-
-          targetPercentage = next.targetPercentage;
-          targetTime = next.targetTime.toISOString();
+        if (schedule === null) {
+          return null;
         }
 
         const startsAt = deadlineEngagesAt({
-          schedule: { targetPercentage, targetTime: new Date(targetTime) },
+          schedule: { ...schedule, targetTime: new Date(schedule.targetTime) },
           deadlineEngageDays: config.smartcar.charge_deadline_engage_days,
         });
 
-        return { targetPercentage, targetTime, startsAt: startsAt.toISOString() };
+        return { ...schedule, startsAt: startsAt.toISOString() };
       },
 
       async setManualChargeSchedule(device: Device, schedule: ScheduleChargeRequest | null) {
