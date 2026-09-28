@@ -4,7 +4,7 @@ import config from '../../config/app';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';
-import { processSignal } from './signals';
+import { processSignal, isAtHome } from './signals';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
 import { planCharge, isDeadlineEngaged, isWithinSlots, ChargePlan } from './price-plan';
@@ -362,10 +362,21 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
 }
 
 async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
-  const [isCableConnected, chargePercentage] = await Promise.all([
+  const [atHome, isCableConnected, chargePercentage] = await Promise.all([
+    isAtHome(ev),
     ev.getIsCableConnected(),
     ev.getChargePercentage(),
   ]);
+
+  // Away from home it's someone else's charger and tariff, so the car is left to
+  // charge however it's been told to there.
+  if (!atHome) {
+    await clearPlan(device);
+
+    deadlineNotChargingSince = null;
+    deadlineAlertSent = false;
+    return;
+  }
 
   // Nothing can charge, and the plan is stale the moment the car leaves - it is
   // rebuilt from live SoC when the cable goes back in.

@@ -441,6 +441,12 @@
       "isWriteable": false,
       "type": "boolean",
       "eventName": "is_cable_connected"
+    },
+    {
+      "name": "IsAtHome",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "is_at_home"
     }
   ]
 }, {
