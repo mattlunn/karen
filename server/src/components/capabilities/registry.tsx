@@ -28,6 +28,7 @@ import {
   faThermometer4,
   faGauge,
   faRoad,
+  faHouse,
   faCalendarCheck,
   faPlug,
   faTrash,
@@ -310,6 +311,13 @@ export const registry: CapabilityUIRegistry = {
           return '#e74c3c';
         },
         iconHighlighted: !!cap.isCharging.value,
+      }),
+      createCapability(cap.isAtHome, {
+        icon: faHouse,
+        title: 'Location',
+        value: (e) => e.value ? 'Home' : 'Away',
+        iconColor: '#2ecc71',
+        iconHighlighted: (e) => e.value,
       }),
       createCapability(cap.isCableConnected, {
         icon: faPlug,
