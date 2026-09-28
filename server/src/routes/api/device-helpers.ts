@@ -296,6 +296,7 @@ export async function getCapabilityData(device: Device, capability: string, inst
         chargePercentage: mapNumericState(ev.getChargePercentageEvent(), device),
         isCharging: mapBooleanState(ev.getIsChargingEvent(), device),
         isCableConnected: mapBooleanState(ev.getIsCableConnectedEvent(), device),
+        isAtHome: mapBooleanState(ev.getIsAtHomeEvent(), device),
         chargeLimit: mapNumericState(ev.getChargeLimitEvent(), device),
         odometer: mapNumericState(ev.getOdometerEvent(), device),
         chargeSchedule: ev.getNextChargeSchedule(),

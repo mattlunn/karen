@@ -90,6 +90,7 @@ export type CapabilityApiResponseBase = {
   chargePercentage: NumericStateApiResponse;
   isCharging: BooleanStateApiResponse;
   isCableConnected: BooleanStateApiResponse;
+  isAtHome: BooleanStateApiResponse;
   chargeLimit: NumericStateApiResponse;
   odometer: NumericStateApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string } | null;
