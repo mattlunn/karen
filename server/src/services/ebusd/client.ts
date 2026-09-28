@@ -11,6 +11,19 @@ function toNumber(value: string): number {
   return num;
 }
 
+// A corrupted read still parses, just to something impossible (e.g. a -1638.4° return temperature).
+function toNumberWithin(min: number, max: number): (value: string) => number {
+  return (value: string) => {
+    const num = toNumber(value);
+
+    if (num < min || num > max) {
+      throw new Error(`Expected a number between ${min} and ${max} but got "${value}"`);
+    }
+
+    return num;
+  };
+}
+
 export default class EbusClient {
   #host: string;
   #port: number;
@@ -80,35 +93,35 @@ export default class EbusClient {
   }
 
   async getOutsideTemperature(): Promise<number> {
-    return this.#read({ value: 'DisplayedOutsideTemp', circuit: 'ctlv3' }, toNumber);
+    return this.#read({ value: 'DisplayedOutsideTemp', circuit: 'ctlv3' }, toNumberWithin(-30, 50));
   }
 
   async getActualFlowTemperature(): Promise<number> {
-    return this.#read({ value: 'FlowTemp', circuit: 'hmu' }, toNumber);
+    return this.#read({ value: 'FlowTemp', circuit: 'hmu' }, toNumberWithin(1, 85));
   }
 
   async getDesiredFlowTemperature(): Promise<number> {
-    return this.#read({ value: 'State01', circuit: 'hmu', field: 'temp1.0' }, toNumber);
+    return this.#read({ value: 'State01', circuit: 'hmu', field: 'temp1.0' }, toNumberWithin(5, 80));
   }
 
   async getReturnTemperature(): Promise<number> {
-    return this.#read({ value: 'ReturnTemp', circuit: 'hmu' }, toNumber);
+    return this.#read({ value: 'ReturnTemp', circuit: 'hmu' }, toNumberWithin(1, 85));
   }
 
   async getHotWaterCylinderTemperature(): Promise<number> {
-    return this.#read({ value: 'HwcStorageTemp', circuit: 'ctlv3' }, toNumber);
+    return this.#read({ value: 'HwcStorageTemp', circuit: 'ctlv3' }, toNumberWithin(1, 85));
   }
 
   async getSystemPressure(): Promise<number> {
-    return this.#read({ value: 'State07', circuit: 'hmu', field: 'DisplaySystemPressure' }, toNumber);
+    return this.#read({ value: 'State07', circuit: 'hmu', field: 'DisplaySystemPressure' }, toNumberWithin(0, 3));
   }
 
   async getCompressorPower(): Promise<number> {
-    return this.#read({ value: 'State07', circuit: 'hmu', field: 'power' }, toNumber);
+    return this.#read({ value: 'State07', circuit: 'hmu', field: 'power' }, toNumberWithin(0, 90));
   }
 
   async getCompressorModulation(): Promise<number> {
-    return this.#read({ value: 'State00', circuit: 'hmu', field: 'S00_CompressorModulation' }, toNumber);
+    return this.#read({ value: 'State00', circuit: 'hmu', field: 'S00_CompressorModulation' }, toNumberWithin(0, 100));
   }
 
   async getEnergyDaily(): Promise<number> {
@@ -120,7 +133,7 @@ export default class EbusClient {
   }
 
   async getCurrentPower(): Promise<number> {
-    return this.#read({ value: 'CurrentConsumedPower', circuit: 'hmu' }, toNumber);
+    return this.#read({ value: 'CurrentConsumedPower', circuit: 'hmu' }, toNumberWithin(0, 6));
   }
 
   async getMode(): Promise<string> {
@@ -135,10 +148,9 @@ export default class EbusClient {
   }
 
   // Minutes remaining before the compressor is allowed to start another DHW
-  // charge. A value in the tens of thousands indicates a corrupted read
-  // rather than a real anti-cycle wait.
+  // charge.
   async getCompressorBlockMinutes(): Promise<number> {
-    return this.#read({ value: 'CompressorBlocktime', circuit: 'hmu' }, toNumber);
+    return this.#read({ value: 'CompressorBlocktime', circuit: 'hmu' }, toNumberWithin(0, 120));
   }
 
   // 5 dash-separated fault slots, e.g. "-;-;-;-;-" when nothing is active.
@@ -161,7 +173,7 @@ export default class EbusClient {
   }
 
   async getDHWMaxChargeTime(): Promise<number> {
-    return this.#read({ value: 'HwcMaxChargeTime', circuit: 'ctlv3' }, toNumber);
+    return this.#read({ value: 'HwcMaxChargeTime', circuit: 'ctlv3' }, toNumberWithin(15, 180));
   }
 
   async getDHWTargetTemp(): Promise<number> {
