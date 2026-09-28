@@ -17,6 +17,8 @@ export interface ChargePlan {
   // Where the prices it was built from ran out. The plan is fixed until `now`
   // reaches this, or until prices are published past it.
   end: Date;
+  // Where settled prices ran out, past which the pool is forecast.
+  publishedEnd: Date;
   slots: PlanSlot[];
   // The SoC ceiling to charge toward: the highest of the passes that contributed.
   target: number;
@@ -81,12 +83,14 @@ export function isDeadlineEngaged(options: EngagementOptions): boolean {
  *    to exactly the hours of charge still needed. A picked slot that's still
  *    estimated isn't acted on until it's current, so nothing actually charges
  *    off a forecast price before real prices have had a chance to supersede it.
- * 2. Business as usual, otherwise: cheapest slots first, each judged against the
- *    bar at the battery level the ones already taken would reach - so the first
- *    kWh clear a loose bar and the last a strict one, within the single plan.
- *    Judging cheap against recent history rather than a percentile of the
- *    publication means a uniformly cheap day charges freely while an expensive
- *    day charges only in the dips.
+ * 2. Business as usual, otherwise: published slots in time order, each taken if
+ *    it beats the bar at the battery level the car will have reached by then -
+ *    so each kWh is judged at the level it actually charges at, and a slot
+ *    later on can't crowd out an acceptable one sooner. Judging cheap against
+ *    recent history rather than a percentile of the publication means a
+ *    uniformly cheap day charges freely while an expensive day charges only in
+ *    the dips. Forecast slots are left out, since a charge booked days ahead
+ *    on a guessed price stands in for one the car could take now.
  * 3. Plunge, always: negative-priced slots, up to what reaches `plungeLimit`.
  *    Charging is worth it at any hour the grid is paying us to consume, so this
  *    ignores both the baseline and `defaultLimit`.
@@ -102,7 +106,7 @@ export function planCharge(options: PlanOptions): ChargePlan {
     .sort((a, b) => a.pence - b.pence || a.start.getTime() - b.start.getTime());
 
   if (pool.length === 0) {
-    return { end: now, slots: [], target: defaultLimit, deadline: null };
+    return { end: now, publishedEnd: now, slots: [], target: defaultLimit, deadline: null };
   }
 
   // The pool only ever reaches as far as real prices plus, when a deadline is
@@ -110,6 +114,7 @@ export function planCharge(options: PlanOptions): ChargePlan {
   // and is rebuilt when it extends, so placement within it is genuinely
   // optimal: the unknown future only sets the length.
   const end = slots.at(-1)!.end;
+  const publishedEnd = slots.findLast(s => !s.isEstimated)?.end ?? now;
 
   const slotHours = dayjs(pool[0].end).diff(pool[0].start, 'hour', true);
   const picked = new Set<PriceSlot>();
@@ -147,22 +152,21 @@ export function planCharge(options: PlanOptions): ChargePlan {
     deadline = schedule.targetTime;
   }
 
-  // The pool is cheapest-first and the bar only falls as the battery fills, so
-  // the first slot to fail it is where BAU stops: everything after is dearer
-  // still, judged against a bar no higher.
   if (deadline === null) {
     const quota = quotaFor(defaultLimit);
     let projected = chargePercentage;
 
-    for (const slot of pool) {
+    for (const slot of slots) {
       const bar = baselinePenceFor(projected);
 
-      if (picked.size >= quota || bar === null || slot.pence >= bar) {
+      if (picked.size >= quota || bar === null) {
         break;
       }
 
-      picked.add(slot);
-      projected += slotHours * chargeRatePercentPerHour;
+      if (slot.end > now && !slot.isEstimated && slot.pence < bar) {
+        picked.add(slot);
+        projected += slotHours * chargeRatePercentPerHour;
+      }
     }
   }
 
@@ -172,6 +176,7 @@ export function planCharge(options: PlanOptions): ChargePlan {
 
   return {
     end,
+    publishedEnd,
     slots: [...picked]
       .sort((a, b) => a.start.getTime() - b.start.getTime())
       .map(s => ({ start: s.start, end: s.end, isEstimated: s.isEstimated })),
