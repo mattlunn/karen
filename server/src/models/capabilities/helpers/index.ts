@@ -44,80 +44,78 @@ export async function getStringProperty(device: Device, propertyName: string, in
 }
 
 export function setBooleanProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: boolean, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
-  return serialiseSeriesWrite(device, propertyName, instanceId, () => writeBooleanProperty(device, propertyName, instanceId, propertyValue, isMomentary, stateTimestamp, reportedAt));
-}
+  return serialiseSeriesWrite(device, propertyName, instanceId, async () => {
+    const lastEvent = await device.getLatestEvent(propertyName, instanceId);
 
-async function writeBooleanProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: boolean, isMomentary: boolean, stateTimestamp: Date, reportedAt: Date): Promise<Event | null> {
-  const lastEvent = await device.getLatestEvent(propertyName, instanceId);
+    // Reject historic inserts - use reset script instead
+    if (lastEvent && stateTimestamp < lastEvent.start) {
+      throw new Error(`Cannot insert historic event for ${propertyName}: timestamp ${stateTimestamp.toISOString()} is before latest event ${lastEvent.start.toISOString()}`);
+    }
 
-  // Reject historic inserts - use reset script instead
-  if (lastEvent && stateTimestamp < lastEvent.start) {
-    throw new Error(`Cannot insert historic event for ${propertyName}: timestamp ${stateTimestamp.toISOString()} is before latest event ${lastEvent.start.toISOString()}`);
-  }
+    // Same timestamp as latest event
+    if (lastEvent && lastEvent.start.getTime() === stateTimestamp.getTime()) {
+      const isCurrentlyOn = !lastEvent.end;
 
-  // Same timestamp as latest event
-  if (lastEvent && lastEvent.start.getTime() === stateTimestamp.getTime()) {
-    const isCurrentlyOn = !lastEvent.end;
+      if (isCurrentlyOn && propertyValue === false) {
+        // on -> off at same timestamp: delete the event (zero-duration, never happened)
+        await lastEvent.destroy();
+        return null;
+      }
 
-    if (isCurrentlyOn && propertyValue === false) {
-      // on -> off at same timestamp: delete the event (zero-duration, never happened)
-      await lastEvent.destroy();
+      if (!isCurrentlyOn && propertyValue === true) {
+        // off -> on at same timestamp: shouldn't happen in practice
+        throw new Error(`Cannot turn on ${propertyName} at same timestamp as existing event`);
+      }
+
+      // Same value at same timestamp: just update lastReported
+      lastEvent.lastReported = new Date();
+      await lastEvent.save();
       return null;
     }
 
-    if (!isCurrentlyOn && propertyValue === true) {
-      // off -> on at same timestamp: shouldn't happen in practice
-      throw new Error(`Cannot turn on ${propertyName} at same timestamp as existing event`);
-    }
+    if (isMomentary) {
+      return await Event.create({
+        deviceId: device.id,
+        start: stateTimestamp,
+        end: stateTimestamp,
+        lastReported: reportedAt,
+        value: Number(propertyValue),
+        type: propertyName,
+        instanceId
+      });
+    } else {
+      const valueHasChanged = !lastEvent || !lastEvent.end !== propertyValue;
 
-    // Same value at same timestamp: just update lastReported
-    lastEvent.lastReported = new Date();
-    await lastEvent.save();
-    return null;
-  }
+      if (valueHasChanged) {
+        // on -> off (update old, don't create new)
+        // off -> on (don't touch old, create new)
 
-  if (isMomentary) {
-    return await Event.create({
-      deviceId: device.id,
-      start: stateTimestamp,
-      end: stateTimestamp,
-      lastReported: reportedAt,
-      value: Number(propertyValue),
-      type: propertyName,
-      instanceId
-    });
-  } else {
-    const valueHasChanged = !lastEvent || !lastEvent.end !== propertyValue;
+        if (lastEvent && propertyValue === false) {
+          lastEvent.end = stateTimestamp;
+          lastEvent.lastReported = reportedAt;
 
-    if (valueHasChanged) {
-      // on -> off (update old, don't create new)
-      // off -> on (don't touch old, create new)
+          return await lastEvent.save();
+        }
 
-      if (lastEvent && propertyValue === false) {
-        lastEvent.end = stateTimestamp;
+        if (propertyValue === true) {
+          return await Event.create({
+            deviceId: device.id,
+            start: stateTimestamp,
+            lastReported: reportedAt,
+            value: Number(propertyValue),
+            type: propertyName,
+            instanceId
+          });
+        }
+      } else if (lastEvent) {
         lastEvent.lastReported = reportedAt;
 
-        return await lastEvent.save();
+        await lastEvent.save();
       }
 
-      if (propertyValue === true) {
-        return await Event.create({
-          deviceId: device.id,
-          start: stateTimestamp,
-          lastReported: reportedAt,
-          value: Number(propertyValue),
-          type: propertyName,
-          instanceId
-        });
-      }
-    } else if (lastEvent) {
-      lastEvent.lastReported = reportedAt;
-
-      await lastEvent.save();
+      return null;
     }
-
-    return null;
-  }
+  });
 }
 
 export async function getNumericProperty(device: Device, propertyName: string, instanceId: string | null, defaultValue = 0): Promise<number> {
@@ -125,122 +123,118 @@ export async function getNumericProperty(device: Device, propertyName: string, i
 }
 
 export function setNumericProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: number, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
-  return serialiseSeriesWrite(device, propertyName, instanceId, () => writeNumericProperty(device, propertyName, instanceId, propertyValue, isMomentary, stateTimestamp, reportedAt));
-}
+  return serialiseSeriesWrite(device, propertyName, instanceId, async () => {
+    const lastEvent = await device.getLatestEvent(propertyName, instanceId);
 
-async function writeNumericProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: number, isMomentary: boolean, stateTimestamp: Date, reportedAt: Date): Promise<Event | null> {
-  const lastEvent = await device.getLatestEvent(propertyName, instanceId);
-
-  // Reject historic inserts - use reset script instead
-  if (lastEvent && stateTimestamp < lastEvent.start) {
-    throw new Error(`Cannot insert historic event for ${propertyName}: timestamp ${stateTimestamp.toISOString()} is before latest event ${lastEvent.start.toISOString()}`);
-  }
-
-  // Same timestamp as latest event
-  if (lastEvent && lastEvent.start.getTime() === stateTimestamp.getTime()) {
-    if (lastEvent.value !== propertyValue || lastEvent.lastReported.getTime() !== reportedAt.getTime()) {
-      lastEvent.value = propertyValue;
-      lastEvent.lastReported = reportedAt;
-      return await lastEvent.save();
+    // Reject historic inserts - use reset script instead
+    if (lastEvent && stateTimestamp < lastEvent.start) {
+      throw new Error(`Cannot insert historic event for ${propertyName}: timestamp ${stateTimestamp.toISOString()} is before latest event ${lastEvent.start.toISOString()}`);
     }
-    return null; // No change needed
-  }
 
-  if (isMomentary) {
-    return await Event.create({
-      deviceId: device.id,
-      start: stateTimestamp,
-      end: stateTimestamp,
-      lastReported: reportedAt,
-      value: propertyValue,
-      type: propertyName,
-      instanceId
-    });
-  } else {
-    // Normal forward flow
-    const valueHasChanged = !lastEvent || propertyValue !== lastEvent.value;
-
-    if (valueHasChanged) {
-      if (lastEvent) {
-        lastEvent.end = stateTimestamp;
+    // Same timestamp as latest event
+    if (lastEvent && lastEvent.start.getTime() === stateTimestamp.getTime()) {
+      if (lastEvent.value !== propertyValue || lastEvent.lastReported.getTime() !== reportedAt.getTime()) {
+        lastEvent.value = propertyValue;
         lastEvent.lastReported = reportedAt;
-        await lastEvent.save();
+        return await lastEvent.save();
       }
+      return null; // No change needed
+    }
 
+    if (isMomentary) {
       return await Event.create({
         deviceId: device.id,
         start: stateTimestamp,
+        end: stateTimestamp,
         lastReported: reportedAt,
         value: propertyValue,
         type: propertyName,
         instanceId
       });
-    }
+    } else {
+      // Normal forward flow
+      const valueHasChanged = !lastEvent || propertyValue !== lastEvent.value;
 
-    // Same value, just update lastReported
-    lastEvent.lastReported = reportedAt;
-    await lastEvent.save();
-    return null;
-  }
+      if (valueHasChanged) {
+        if (lastEvent) {
+          lastEvent.end = stateTimestamp;
+          lastEvent.lastReported = reportedAt;
+          await lastEvent.save();
+        }
+
+        return await Event.create({
+          deviceId: device.id,
+          start: stateTimestamp,
+          lastReported: reportedAt,
+          value: propertyValue,
+          type: propertyName,
+          instanceId
+        });
+      }
+
+      // Same value, just update lastReported
+      lastEvent.lastReported = reportedAt;
+      await lastEvent.save();
+      return null;
+    }
+  });
 }
 
 export function setStringProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: string, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
-  return serialiseSeriesWrite(device, propertyName, instanceId, () => writeStringProperty(device, propertyName, instanceId, propertyValue, isMomentary, stateTimestamp, reportedAt));
-}
+  return serialiseSeriesWrite(device, propertyName, instanceId, async () => {
+    const lastEvent = await device.getLatestEvent(propertyName, instanceId);
 
-async function writeStringProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: string, isMomentary: boolean, stateTimestamp: Date, reportedAt: Date): Promise<Event | null> {
-  const lastEvent = await device.getLatestEvent(propertyName, instanceId);
-
-  // Reject historic inserts - use reset script instead
-  if (lastEvent && stateTimestamp < lastEvent.start) {
-    throw new Error(`Cannot insert historic event for ${propertyName}: timestamp ${stateTimestamp.toISOString()} is before latest event ${lastEvent.start.toISOString()}`);
-  }
-
-  // Same timestamp as latest event
-  if (lastEvent && lastEvent.start.getTime() === stateTimestamp.getTime()) {
-    if (lastEvent.stringValue !== propertyValue || lastEvent.lastReported.getTime() !== reportedAt.getTime()) {
-      lastEvent.stringValue = propertyValue;
-      lastEvent.lastReported = reportedAt;
-      return await lastEvent.save();
+    // Reject historic inserts - use reset script instead
+    if (lastEvent && stateTimestamp < lastEvent.start) {
+      throw new Error(`Cannot insert historic event for ${propertyName}: timestamp ${stateTimestamp.toISOString()} is before latest event ${lastEvent.start.toISOString()}`);
     }
-    return null;
-  }
 
-  if (isMomentary) {
-    return await Event.create({
-      deviceId: device.id,
-      start: stateTimestamp,
-      end: stateTimestamp,
-      lastReported: reportedAt,
-      stringValue: propertyValue,
-      type: propertyName,
-      instanceId
-    });
-  } else {
-    const valueHasChanged = !lastEvent || propertyValue !== lastEvent.stringValue;
-
-    if (valueHasChanged) {
-      if (lastEvent) {
-        lastEvent.end = stateTimestamp;
+    // Same timestamp as latest event
+    if (lastEvent && lastEvent.start.getTime() === stateTimestamp.getTime()) {
+      if (lastEvent.stringValue !== propertyValue || lastEvent.lastReported.getTime() !== reportedAt.getTime()) {
+        lastEvent.stringValue = propertyValue;
         lastEvent.lastReported = reportedAt;
-        await lastEvent.save();
+        return await lastEvent.save();
       }
+      return null;
+    }
 
+    if (isMomentary) {
       return await Event.create({
         deviceId: device.id,
         start: stateTimestamp,
+        end: stateTimestamp,
         lastReported: reportedAt,
         stringValue: propertyValue,
         type: propertyName,
         instanceId
       });
-    }
+    } else {
+      const valueHasChanged = !lastEvent || propertyValue !== lastEvent.stringValue;
 
-    // Same value, just update lastReported
-    lastEvent.lastReported = reportedAt;
-    await lastEvent.save();
-    return null;
-  }
+      if (valueHasChanged) {
+        if (lastEvent) {
+          lastEvent.end = stateTimestamp;
+          lastEvent.lastReported = reportedAt;
+          await lastEvent.save();
+        }
+
+        return await Event.create({
+          deviceId: device.id,
+          start: stateTimestamp,
+          lastReported: reportedAt,
+          stringValue: propertyValue,
+          type: propertyName,
+          instanceId
+        });
+      }
+
+      // Same value, just update lastReported
+      lastEvent.lastReported = reportedAt;
+      await lastEvent.save();
+      return null;
+    }
+  });
 }
 
 async function getEventsInRange(device: Device, propertyName: string, instanceId: string | null, selector: HistorySelector): Promise<Event[]> {
