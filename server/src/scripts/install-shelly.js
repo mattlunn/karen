@@ -1,4 +1,5 @@
 import { createInterface } from 'readline/promises';
+import { Room } from '../models';
 import { installWifiDevice, installBluSensor, installPresenceZones, installEnergyMeterChannels, installCapabilityType } from '../services/shelly/install';
 
 const DEVICE_TYPES = [
@@ -27,6 +28,22 @@ async function withRetries(fn, attempts = 10, delayMs = 3000) {
   }
 }
 
+async function askForRoomId(rl) {
+  const rooms = await Room.findAll({ order: [['name', 'ASC']] });
+
+  console.log('Which room is it in?');
+  rooms.forEach((room) => console.log(`  ${room.id}) ${room.name}`));
+
+  const roomId = Number(await rl.question('Room id: '));
+
+  if (!rooms.some((room) => room.id === roomId)) {
+    console.log('Not a valid room id');
+    process.exit(1);
+  }
+
+  return roomId;
+}
+
 async function main() {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
@@ -44,7 +61,9 @@ async function main() {
 
     if (type.kind === 'wifi') {
       const ip = await rl.question('IP address: ');
-      const device = await installWifiDevice(ip);
+      const name = await rl.question('Name: ');
+      const roomId = await askForRoomId(rl);
+      const device = await installWifiDevice(ip, name, roomId);
 
       console.log(`Installed device ${device.id} (${device.model}) as "${device.name}"`);
 
@@ -60,7 +79,9 @@ async function main() {
       }
     } else if (type.kind === 'presence') {
       const ip = await rl.question('IP address: ');
-      const device = await installWifiDevice(ip);
+      const name = await rl.question('Name: ');
+      const roomId = await askForRoomId(rl);
+      const device = await installWifiDevice(ip, name, roomId);
 
       console.log(`Installed device ${device.id} (${device.model}) as "${device.name}"`);
       console.log('Waiting for the device to come back online after reboot...');
@@ -71,7 +92,9 @@ async function main() {
       console.log(`Detected ${zones.length} zone(s) from the device: ${zones.map((zone) => zone.name).join(', ')}`);
     } else if (type.kind === 'energy-meter') {
       const ip = await rl.question('IP address: ');
-      const device = await installWifiDevice(ip);
+      const name = await rl.question('Name: ');
+      const roomId = await askForRoomId(rl);
+      const device = await installWifiDevice(ip, name, roomId);
 
       console.log(`Installed device ${device.id} (${device.model}) as "${device.name}"`);
       console.log('Waiting for the device to come back online after reboot...');
@@ -84,7 +107,8 @@ async function main() {
       const ip = await rl.question('Gateway IP address: ');
       const mac = await rl.question('Sensor BLE MAC: ');
       const name = await rl.question('Name: ');
-      const device = await installBluSensor(ip, mac, name);
+      const roomId = await askForRoomId(rl);
+      const device = await installBluSensor(ip, mac, name, roomId);
 
       console.log(`Installed device ${device.id} (${device.model}) as "${device.name}"`);
     }
