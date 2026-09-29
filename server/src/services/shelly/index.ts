@@ -1,10 +1,8 @@
 import { Device, CapabilityInstance } from '../../models';
 import { Capability } from '../../models/capabilities';
 import logger from '../../logger';
-import nowAndSetCron from '../../helpers/now-and-set-cron';
-import { createBackgroundTransaction } from '../../helpers/newrelic';
 import { publishCommand, getSensorSnr, setSensorSnr } from './mqtt';
-import { syncApplianceRuns } from './appliance-runs';
+import { watchApplianceRuns } from './appliance-runs';
 
 const TOPIC_PREFIX = 'shellies';
 
@@ -173,19 +171,4 @@ Device.registerProvider('shelly', {
   },
 });
 
-nowAndSetCron(createBackgroundTransaction('shelly:appliance-runs', async () => {
-  const devices = await Device.findByProvider('shelly');
-  const now = new Date();
-
-  for (const device of devices) {
-    try {
-      if (!device.getCapabilities().includes('APPLIANCE')) {
-        continue;
-      }
-
-      await syncApplianceRuns(device, now);
-    } catch (e) {
-      logger.error(e, `Failed to sync appliance runs for shelly device ${device.id}`);
-    }
-  }
-}), '*/5 * * * *');
+watchApplianceRuns().catch(e => logger.error(e, 'Failed to start watching appliance runs'));

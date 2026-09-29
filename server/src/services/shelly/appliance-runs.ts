@@ -1,97 +1,65 @@
 import dayjs from '../../dayjs';
-import type { Device } from '../../models';
+import { Device, NumericEvent } from '../../models';
+import { DeviceCapabilityEvents } from '../../models/capabilities';
+import logger from '../../logger';
+import { createBackgroundTransaction } from '../../helpers/newrelic';
+import { decide, PowerReading, RUN_THRESHOLD_WATTS, START_AFTER_MINUTES, END_AFTER_MINUTES } from './appliance-run-transition';
 
-export const RUN_THRESHOLD_WATTS = 20;
-export const MAX_GAP_MINUTES = 20;
-export const MIN_RUN_MINUTES = 30;
-const CHUNK_DAYS = 1;
+const pendingChecks = new Map<number, NodeJS.Timeout>();
 
-export type PowerReading = { start: Date; value: number };
-export type ApplianceRun = { start: Date; end: Date; isOpen: boolean };
-
-// Each reading holds until the next reading's start; the last holds until `now`.
-export function detectRuns(readings: PowerReading[], now: Date): ApplianceRun[] {
-  const sorted = [...readings].sort((a, b) => a.start.getTime() - b.start.getTime());
-  const intervals = sorted.map((reading, i) => ({
-    start: reading.start,
-    end: i + 1 < sorted.length ? sorted[i + 1].start : now,
-    isActive: reading.value >= RUN_THRESHOLD_WATTS
-  }));
-
-  const merged: { start: Date; end: Date }[] = [];
-
-  for (const interval of intervals) {
-    if (!interval.isActive) {
-      continue;
-    }
-
-    const last = merged.at(-1);
-    const gapMinutes = last ? dayjs(interval.start).diff(last.end, 'minute', true) : Infinity;
-
-    if (last && gapMinutes < MAX_GAP_MINUTES) {
-      last.end = interval.end;
-    } else {
-      merged.push({ start: interval.start, end: interval.end });
-    }
+function scheduleCheck(device: Device, delayMinutes: number): void {
+  if (pendingChecks.has(device.id)) {
+    return;
   }
 
-  const kept = merged.filter(run => dayjs(run.end).diff(run.start, 'minute', true) >= MIN_RUN_MINUTES);
+  pendingChecks.set(device.id, setTimeout(createBackgroundTransaction('shelly:appliance-runs:check', async () => {
+    pendingChecks.delete(device.id);
 
-  return kept.map((run, i) => ({
-    ...run,
-    isOpen: i === kept.length - 1 && dayjs(now).diff(run.end, 'minute', true) < MAX_GAP_MINUTES
-  }));
+    try {
+      await checkForRunTransition(device);
+    } catch (e) {
+      logger.error(e, `Failed to check appliance run for shelly device ${device.id}`);
+    }
+  }), dayjs.duration(delayMinutes, 'minute').asMilliseconds()));
 }
 
-// History also returns events that started before `since` (including every open-ended row), so each chunk is trimmed to its own start.
-async function loadPowerReadings(device: Device, since: Date, until: Date): Promise<PowerReading[]> {
-  const energyMonitor = device.getEnergyMonitorCapability();
-  const readings: PowerReading[] = [];
-  let chunkStart = dayjs(since);
-  const end = dayjs(until);
+async function checkForRunTransition(device: Device): Promise<void> {
+  const appliance = device.getApplianceCapability();
+  const latestRun = await appliance.getIsRunningEvent();
+  const runStartedAt = latestRun !== null && latestRun.end === null ? latestRun.start : null;
+  const now = new Date();
+  const since = dayjs(now).subtract(END_AFTER_MINUTES, 'minute').toDate();
+  const history = await device.getEnergyMonitorCapability().getCurrentPowerHistory({ since, until: now });
+  const readings = history.map(event => ({ start: event.start, value: event.value }));
+  const transition = decide(readings, runStartedAt, now);
 
-  while (chunkStart.isBefore(end)) {
-    const chunkEndCandidate = chunkStart.add(CHUNK_DAYS, 'day');
-    const chunkEnd = chunkEndCandidate.isBefore(end) ? chunkEndCandidate : end;
-    const events = await energyMonitor.getCurrentPowerHistory({ since: chunkStart.toDate(), until: chunkEnd.toDate() });
-    const chunkStartMs = chunkStart.valueOf();
-
-    for (const event of events) {
-      if (event.start.getTime() >= chunkStartMs) {
-        readings.push({ start: event.start, value: event.value });
-      }
-    }
-
-    chunkStart = chunkEnd;
+  if (transition !== null) {
+    await appliance.setIsRunningState(transition.isRunning, transition.at, now);
   }
 
-  return readings;
+  const isRunning = transition?.isRunning ?? runStartedAt !== null;
+  const latestReading = readings.reduce<PowerReading | null>((latest, reading) => latest === null || reading.start > latest.start ? reading : latest, null);
+
+  // Power readings only arrive on change, so a steady reading would otherwise never trigger the next check.
+  if (isRunning) {
+    scheduleCheck(device, END_AFTER_MINUTES);
+  } else if (latestReading !== null && latestReading.value >= RUN_THRESHOLD_WATTS) {
+    scheduleCheck(device, START_AFTER_MINUTES);
+  }
 }
 
-export async function syncApplianceRuns(device: Device, now: Date = new Date()): Promise<void> {
-  const capability = device.getApplianceCapability();
-  const latestEvent = await capability.getIsRunningEvent();
-  const resumeFrom = latestEvent === null
-    ? device.createdAt
-    : latestEvent.end ?? latestEvent.start;
+function isAppliance(device: Device): boolean {
+  return device.provider === 'shelly' && device.getCapabilities().includes('APPLIANCE');
+}
 
-  const readings = await loadPowerReadings(device, resumeFrom, now);
-  const runs = detectRuns(readings, now);
+export async function watchApplianceRuns(): Promise<void> {
+  DeviceCapabilityEvents.onEnergyMonitorCurrentPowerChanged(isAppliance, createBackgroundTransaction('shelly:appliance-runs:power-changed', async (event: NumericEvent) => {
+    scheduleCheck(await event.getDevice(), event.value >= RUN_THRESHOLD_WATTS ? START_AFTER_MINUTES : END_AFTER_MINUTES);
+  }));
 
-  for (const run of runs) {
-    if (run.isOpen) {
-      await capability.setIsRunningState(true, run.start, now);
-      continue;
-    }
+  const devices = await Device.findByProvider('shelly');
 
-    const continuesOpenLatest = latestEvent !== null
-      && latestEvent.end === null
-      && run.start.getTime() === latestEvent.start.getTime();
-
-    if (!continuesOpenLatest) {
-      await capability.setIsRunningState(true, run.start, now);
-    }
-
-    await capability.setIsRunningState(false, run.end, now);
+  for (const device of devices.filter(isAppliance)) {
+    scheduleCheck(device, 0);
   }
 }
