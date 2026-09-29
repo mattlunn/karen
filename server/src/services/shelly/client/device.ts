@@ -10,7 +10,7 @@ export default class DeviceClient {
       case 2:
       case 3:
       case 4:
-        return new Gen2PlusDeviceClient(ip, username, password, generation);
+        return new Gen2PlusDeviceClient(ip, password, generation);
       default:
         throw new Error(`Gen ${generation} is not supported`);
     }
