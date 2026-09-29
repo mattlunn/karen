@@ -670,3 +670,64 @@ describe('capability instances', () => {
     }));
   });
 });
+
+describe('concurrent writes to one series', () => {
+  type FakeEvent = { start: Date; value: number; end: Date | null; lastReported: Date; save: jest.Mock };
+
+  let latestEvent: FakeEvent | null;
+  let mockDevice: { id: number; getLatestEvent: jest.Mock };
+
+  const tick = () => new Promise((resolve) => setImmediate(resolve));
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    latestEvent = {
+      start: new Date('2024-01-15T00:00:00Z'),
+      value: 23,
+      end: null,
+      lastReported: new Date('2024-01-15T00:00:00Z'),
+      save: jest.fn().mockImplementation(tick),
+    };
+    mockDevice = {
+      id: 1,
+      getLatestEvent: jest.fn().mockImplementation(async () => latestEvent),
+    };
+    (Event.create as jest.Mock).mockImplementation(async (attributes: FakeEvent) => {
+      await tick();
+      latestEvent = { ...attributes, end: null, save: jest.fn().mockImplementation(tick) };
+
+      return latestEvent;
+    });
+  });
+
+  it('records a duplicated reading once', async () => {
+    await Promise.all([
+      setNumericProperty(mockDevice as unknown as Device, 'energy_current_power', null, 11, false, new Date('2024-01-15T00:00:01.000Z')),
+      setNumericProperty(mockDevice as unknown as Device, 'energy_current_power', null, 11, false, new Date('2024-01-15T00:00:01.003Z')),
+    ]);
+
+    expect(Event.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes each event before starting the next', async () => {
+    const original = latestEvent!;
+
+    await Promise.all([
+      setNumericProperty(mockDevice as unknown as Device, 'energy_current_power', null, 11, false, new Date('2024-01-15T00:00:01.000Z')),
+      setNumericProperty(mockDevice as unknown as Device, 'energy_current_power', null, 12, false, new Date('2024-01-15T00:00:01.003Z')),
+    ]);
+
+    const firstCreated = (Event.create as jest.Mock).mock.results[0].value;
+
+    expect(original.end).toEqual(new Date('2024-01-15T00:00:01.000Z'));
+    expect((await firstCreated).end).toEqual(new Date('2024-01-15T00:00:01.003Z'));
+  });
+
+  it('keeps writing after a failed write', async () => {
+    const historic = setNumericProperty(mockDevice as unknown as Device, 'energy_current_power', null, 11, false, new Date('2024-01-14T00:00:00Z'));
+    const next = setNumericProperty(mockDevice as unknown as Device, 'energy_current_power', null, 12, false, new Date('2024-01-15T00:00:01Z'));
+
+    await expect(historic).rejects.toThrow('Cannot insert historic event');
+    await expect(next).resolves.toEqual(expect.objectContaining({ value: 12 }));
+  });
+});
