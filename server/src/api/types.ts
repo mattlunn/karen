@@ -122,6 +122,11 @@ export type CapabilityApiResponseBase = {
   type: 'ENERGY_COST';
   standingCharge: NumericStateApiResponse;
 } | {
+  type: 'APPLIANCE';
+  isRunning: BooleanStateApiResponse;
+  runsPerWeek: number;
+  tabletsRemaining: number | null;
+} | {
   type: null;
 };
 
@@ -337,6 +342,11 @@ export interface TelevisionUpdateRequest {
   volume?: number;
   isMuted?: boolean;
   source?: string;
+}
+
+// /api/device/:id/appliance endpoint
+export interface ApplianceUpdateRequest {
+  tabletsRemaining: number;
 }
 
 // /api/security endpoint

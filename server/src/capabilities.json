@@ -545,4 +545,21 @@
       "eventName": "energy_standing_charge"
     }
   ]
+}, {
+  "name": "Appliance",
+  "capabilityModelClassName": "ApplianceBase",
+  "properties": [
+    {
+      "name": "IsRunning",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "appliance_running"
+    },
+    {
+      "name": "TabletsLastCounted",
+      "isWriteable": true,
+      "type": "number",
+      "eventName": "appliance_tablets_last_counted"
+    }
+  ]
 }]

@@ -333,6 +333,22 @@ export async function getCapabilityData(device: Device, capability: string, inst
       });
     }
 
+    case 'APPLIANCE': {
+      const appliance = device.getApplianceCapability(instanceId);
+      const [isRunning, runsPerWeek, tabletsRemaining] = await Promise.all([
+        mapBooleanState(appliance.getIsRunningEvent(), device),
+        appliance.getRunsPerWeek(),
+        appliance.getTabletsRemaining()
+      ]);
+
+      return {
+        type: 'APPLIANCE' as const,
+        isRunning,
+        runsPerWeek,
+        tabletsRemaining
+      };
+    }
+
     default:
       return { type: null };
   }

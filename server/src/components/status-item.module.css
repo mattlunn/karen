@@ -12,3 +12,8 @@
   font-weight: 700;
   text-transform: uppercase;
 }
+
+/* A clickable icon's button is taller than a plain icon; it overflows the header rather than pushing the value down. */
+.header {
+  height: 22px;
+}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NativeSelect } from '@mantine/core';
+import { NativeSelect, NumberInput } from '@mantine/core';
 import {
   faLightbulb,
   faThermometerQuarter,
@@ -40,9 +40,11 @@ import {
   faSignal,
   faTv,
   faSterlingSign,
+  faRotate,
+  faSoap,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
-import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, SwitchUpdateRequest, TelevisionUpdateRequest, MotionSensorUpdateRequest } from '../../api/types';
+import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, SwitchUpdateRequest, TelevisionUpdateRequest, MotionSensorUpdateRequest, ApplianceUpdateRequest } from '../../api/types';
 import ThermostatModal from '../modals/thermostat-modal';
 import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import dayjs from '../../dayjs';
@@ -77,6 +79,16 @@ async function updateMotionSensor(deviceId: number, data: MotionSensorUpdateRequ
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error('Failed to update motion sensor');
+  return res.json();
+}
+
+async function updateAppliance(deviceId: number, data: ApplianceUpdateRequest): Promise<DeviceApiResponse> {
+  const res = await fetch(`/api/device/${deviceId}/appliance`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update appliance');
   return res.json();
 }
 
@@ -138,6 +150,47 @@ export const MetricDisplayProvider = MetricDisplayContext.Provider;
 // ============================================================================
 
 type TelevisionCapability = Extract<CapabilityApiResponse, { type: 'TELEVISION' }>;
+
+function NumberInputControl({ deviceId, initialValue, onSubmit }: {
+  deviceId: number;
+  initialValue: number | null;
+  onSubmit: (value: number) => Promise<DeviceApiResponse>;
+}) {
+  const queryClient = useQueryClient();
+  const variant = React.useContext(MetricDisplayContext);
+  const [value, setValue] = React.useState<number | string>(initialValue ?? '');
+
+  const submit = async () => {
+    if (typeof value !== 'number' || value === initialValue) {
+      return;
+    }
+
+    const result = await onSubmit(value);
+    updateDeviceCache(queryClient, deviceId, result);
+  };
+
+  return (
+    <NumberInput
+      value={value}
+      onChange={setValue}
+      onBlur={submit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
+        }
+      }}
+      min={0}
+      allowDecimal={false}
+      allowNegative={false}
+      hideControls
+      placeholder="-"
+      size={variant === 'compact' ? 'xs' : 'xl'}
+      w={variant === 'compact' ? 70 : 120}
+      display={variant === 'compact' ? 'inline-block' : 'block'}
+    />
+  );
+}
+
 
 function NumericControl({ deviceId, selectedValue, min, max, increment, formatLabel = String, onClick }: {
   deviceId: number;
@@ -638,6 +691,27 @@ export const registry: CapabilityUIRegistry = {
           updateDeviceCache(queryClient, device.id, data);
         },
       }),
+    ],
+  },
+
+  APPLIANCE: {
+    priority: 105,
+    getCapabilityMetrics: (cap, device) => [
+      createCapability(null, {
+        icon: faRotate,
+        title: 'Runs / week',
+        value: cap.runsPerWeek.toFixed(1),
+        footer: '28-day average',
+        iconColor: '#04A7F4',
+        iconHighlighted: !!cap.isRunning.value,
+      }),
+      {
+        icon: faSoap,
+        title: 'Tablets Left',
+        // Keyed on the value so the input picks up server-side decrements.
+        value: <NumberInputControl key={cap.tabletsRemaining} deviceId={device.id} initialValue={cap.tabletsRemaining} onSubmit={(value) => updateAppliance(device.id, { tabletsRemaining: value })} />,
+        isIssue: cap.tabletsRemaining !== null && cap.tabletsRemaining < cap.runsPerWeek,
+      },
     ],
   },
 

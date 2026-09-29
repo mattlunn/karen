@@ -64,7 +64,7 @@ export function StatusItem(props: StatusItemProps) {
 
   return (
     <Paper withBorder p="md" radius="md">
-      <Group justify="space-between" align="flex-start" wrap="nowrap">
+      <Group justify="space-between" align="flex-start" wrap="nowrap" className={styles.header}>
         <Text size="xs" c="dimmed" className={styles.title}>
           {title}
         </Text>
@@ -86,7 +86,7 @@ export function StatusItem(props: StatusItemProps) {
       </Group>
 
       <Group align="flex-end" gap="xs" mt={typeof value === 'string' ? 20 : 0}>
-        <Text className={styles.value}>{value}</Text>
+        <Text component="div" className={styles.value}>{value}</Text>
       </Group>
 
       <Text fz="xs" c="dimmed" mt={7}>
