@@ -12,6 +12,7 @@ export { HeatPumpCapability } from './heat-pump';
 export { TelevisionCapability } from './television';
 export { BinCollectionCapability } from './bin-collection';
 export { EnergyCostCapability } from './energy-cost';
+export { ApplianceCapability } from './appliance';
 export * from './capabilities.gen';
 
 export type DHWTargetReason = 'STANDARD' | 'PLUNGE' | 'LEGIONELLA';

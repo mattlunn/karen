@@ -1,7 +1,10 @@
 import { Device, CapabilityInstance } from '../../models';
 import { Capability } from '../../models/capabilities';
 import logger from '../../logger';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
+import { createBackgroundTransaction } from '../../helpers/newrelic';
 import { publishCommand, getSensorSnr, setSensorSnr } from './mqtt';
+import { syncApplianceRuns } from './appliance-runs';
 
 const TOPIC_PREFIX = 'shellies';
 
@@ -30,7 +33,9 @@ Device.registerProvider('shelly', {
         }
 
         if (capabilityType === 'switch') {
-          return ['SWITCH', 'ENERGY_MONITOR', 'CONNECTIVITY'];
+          return device.meta.isAppliance === true
+            ? ['SWITCH', 'ENERGY_MONITOR', 'CONNECTIVITY', 'APPLIANCE']
+            : ['SWITCH', 'ENERGY_MONITOR', 'CONNECTIVITY'];
         }
 
         throw new Error(`Device ${device.id} (${device.model}) is missing required meta.capabilityType`);
@@ -43,7 +48,9 @@ Device.registerProvider('shelly', {
         return ['ALARM_SENSOR', 'CONNECTIVITY'];
 
       case 'S3PM-001PCEU16': // Shelly PM Mini Gen3
-        return ['ENERGY_MONITOR', 'CONNECTIVITY'];
+        return device.meta.isAppliance === true
+          ? ['ENERGY_MONITOR', 'CONNECTIVITY', 'APPLIANCE']
+          : ['ENERGY_MONITOR', 'CONNECTIVITY'];
 
       case 'SBDW-002C':    // Shelly BLU Door/Window (via BLE gateway)
         return ['CONTACT_SENSOR', 'BATTERY_LEVEL_INDICATOR'];
@@ -127,6 +134,14 @@ Device.registerProvider('shelly', {
     };
   },
 
+  provideApplianceCapability() {
+    return {
+      async setTabletsLastCounted(device: Device, value: number) {
+        await device.getApplianceCapability().setTabletsLastCountedState(value);
+      },
+    };
+  },
+
   async synchronize() {
     const devices = await Device.findByProvider('shelly');
 
@@ -157,3 +172,20 @@ Device.registerProvider('shelly', {
     }
   },
 });
+
+nowAndSetCron(createBackgroundTransaction('shelly:appliance-runs', async () => {
+  const devices = await Device.findByProvider('shelly');
+  const now = new Date();
+
+  for (const device of devices) {
+    try {
+      if (!device.getCapabilities().includes('APPLIANCE')) {
+        continue;
+      }
+
+      await syncApplianceRuns(device, now);
+    } catch (e) {
+      logger.error(e, `Failed to sync appliance runs for shelly device ${device.id}`);
+    }
+  }
+}), '*/5 * * * *');
