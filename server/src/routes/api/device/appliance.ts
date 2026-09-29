@@ -13,9 +13,7 @@ router.put<Record<string, never>, DeviceApiResponse | ApiErrorResponse, Applianc
     return;
   }
 
-  const appliance = device.getApplianceCapability();
-
-  if (!appliance) {
+  if (!device.getCapabilities().includes('APPLIANCE')) {
     res.status(400).json({ error: 'Device does not have appliance capability' });
     return;
   }
@@ -27,7 +25,7 @@ router.put<Record<string, never>, DeviceApiResponse | ApiErrorResponse, Applianc
     return;
   }
 
-  await appliance.setTabletsLastCounted(tabletsRemaining);
+  await device.getApplianceCapability().setTabletsLastCounted(tabletsRemaining);
 
   const deviceResponse = await mapDeviceToResponse(device);
   const response: DeviceApiResponse = {

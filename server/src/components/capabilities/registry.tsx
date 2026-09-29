@@ -667,9 +667,8 @@ export const registry: CapabilityUIRegistry = {
       {
         icon: faSoap,
         title: 'Tablets',
-        value: cap.tabletsRemaining === null
-          ? '-'
-          : <NumericControl deviceId={device.id} selectedValue={cap.tabletsRemaining} min={0} max={100} increment={1} onClick={(value) => updateAppliance(device.id, { tabletsRemaining: value })} />,
+        // Keyed on the value so the uncontrolled select picks up server-side decrements.
+        value: <NumericControl key={cap.tabletsRemaining} deviceId={device.id} selectedValue={cap.tabletsRemaining ?? 0} min={0} max={100} increment={1} onClick={(value) => updateAppliance(device.id, { tabletsRemaining: value })} />,
         isIssue: cap.tabletsRemaining !== null && cap.tabletsRemaining < cap.runsPerWeek,
       },
     ],
