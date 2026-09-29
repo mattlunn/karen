@@ -1,5 +1,5 @@
 import dayjs from '../../dayjs';
-import { Device } from '../../models';
+import type { Device } from '../../models';
 
 export const RUN_THRESHOLD_WATTS = 20;
 export const MAX_GAP_MINUTES = 20;
