@@ -1,5 +1,5 @@
 import React from 'react';
-import { NativeSelect } from '@mantine/core';
+import { NativeSelect, NumberInput } from '@mantine/core';
 import {
   faLightbulb,
   faThermometerQuarter,
@@ -150,6 +150,47 @@ export const MetricDisplayProvider = MetricDisplayContext.Provider;
 // ============================================================================
 
 type TelevisionCapability = Extract<CapabilityApiResponse, { type: 'TELEVISION' }>;
+
+function NumberInputControl({ deviceId, initialValue, onSubmit }: {
+  deviceId: number;
+  initialValue: number | null;
+  onSubmit: (value: number) => Promise<DeviceApiResponse>;
+}) {
+  const queryClient = useQueryClient();
+  const variant = React.useContext(MetricDisplayContext);
+  const [value, setValue] = React.useState<number | string>(initialValue ?? '');
+
+  const submit = async () => {
+    if (typeof value !== 'number' || value === initialValue) {
+      return;
+    }
+
+    const result = await onSubmit(value);
+    updateDeviceCache(queryClient, deviceId, result);
+  };
+
+  return (
+    <NumberInput
+      value={value}
+      onChange={setValue}
+      onBlur={submit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
+        }
+      }}
+      min={0}
+      allowDecimal={false}
+      allowNegative={false}
+      hideControls
+      placeholder="-"
+      size={variant === 'compact' ? 'xs' : 'xl'}
+      w={variant === 'compact' ? 70 : 120}
+      display={variant === 'compact' ? 'inline-block' : 'block'}
+    />
+  );
+}
+
 
 function NumericControl({ deviceId, selectedValue, min, max, increment, formatLabel = String, onClick }: {
   deviceId: number;
@@ -666,9 +707,9 @@ export const registry: CapabilityUIRegistry = {
       }),
       {
         icon: faSoap,
-        title: 'Tablets',
-        // Keyed on the value so the uncontrolled select picks up server-side decrements.
-        value: <NumericControl key={cap.tabletsRemaining} deviceId={device.id} selectedValue={cap.tabletsRemaining ?? 0} min={0} max={100} increment={1} onClick={(value) => updateAppliance(device.id, { tabletsRemaining: value })} />,
+        title: 'Tablets Left',
+        // Keyed on the value so the input picks up server-side decrements.
+        value: <NumberInputControl key={cap.tabletsRemaining} deviceId={device.id} initialValue={cap.tabletsRemaining} onSubmit={(value) => updateAppliance(device.id, { tabletsRemaining: value })} />,
         isIssue: cap.tabletsRemaining !== null && cap.tabletsRemaining < cap.runsPerWeek,
       },
     ],
