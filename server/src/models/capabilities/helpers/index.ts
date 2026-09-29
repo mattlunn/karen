@@ -1,4 +1,5 @@
 import { BooleanEvent, Device, Event, NumericEvent, StringEvent, Op } from "../..";
+import { enqueueWorkItem } from "../../../queue";
 
 export type TimeRangeSelector = { since: Date; until: Date };
 export type ValueFilter =
@@ -13,22 +14,9 @@ export type HistorySelector = TimeRangeSelector & {
   limit?: number;
 };
 
-const pendingSeriesWrites = new Map<string, Promise<unknown>>();
-
 // Overlapping writes to one series each supersede the same latest event, orphaning all but one of the events they create.
 function serialiseSeriesWrite<T>(device: Device, propertyName: string, instanceId: string | null, write: () => Promise<T>): Promise<T> {
-  const key = `${device.id} ${propertyName} ${instanceId ?? ''}`;
-  const result = (pendingSeriesWrites.get(key) ?? Promise.resolve()).then(write);
-  const settled = result.catch(() => {});
-
-  pendingSeriesWrites.set(key, settled);
-  settled.then(() => {
-    if (pendingSeriesWrites.get(key) === settled) {
-      pendingSeriesWrites.delete(key);
-    }
-  });
-
-  return result;
+  return enqueueWorkItem(write, `event-series ${device.id} ${propertyName} ${instanceId ?? ''}`);
 }
 
 export async function getBooleanProperty(device: Device, propertyName: string, instanceId: string | null): Promise<boolean> {
