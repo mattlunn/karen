@@ -171,4 +171,4 @@ Device.registerProvider('shelly', {
   },
 });
 
-watchApplianceRuns().catch(e => logger.error(e, 'Failed to start watching appliance runs'));
+watchApplianceRuns();
