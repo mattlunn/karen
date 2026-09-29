@@ -3,7 +3,7 @@ import config from '../../config/app';
 import DeviceClient from './client/device';
 import Gen2PlusDeviceClient from './client/gen2plus-device';
 
-export async function installWifiDevice(ip: string): Promise<Device> {
+export async function installWifiDevice(ip: string, name: string, roomId: number): Promise<Device> {
   const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
   const model = await client.getModel();
   const mqttId = await client.getMqttId();
@@ -14,7 +14,8 @@ export async function installWifiDevice(ip: string): Promise<Device> {
     device = Device.build({ provider: 'shelly', providerId: mqttId });
   }
 
-  device.name = ip;
+  device.name = name;
+  device.roomId = roomId;
   device.manufacturer = 'Shelly';
   device.model = model;
 
@@ -51,7 +52,7 @@ export async function installWifiDevice(ip: string): Promise<Device> {
 // Onboards a BLU (Bluetooth) sensor that's already been paired locally (not just cloud relay)
 // to a gateway device, e.g. via the Shelly app's Bluetooth settings for that gateway. `ip` is
 // the gateway's own IP; `mac` is the sensor's BLE MAC.
-export async function installBluSensor(ip: string, mac: string, name: string): Promise<Device> {
+export async function installBluSensor(ip: string, mac: string, name: string, roomId: number): Promise<Device> {
   const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
 
   if (!(client instanceof Gen2PlusDeviceClient)) {
@@ -72,6 +73,7 @@ export async function installBluSensor(ip: string, mac: string, name: string): P
   }
 
   device.name = name;
+  device.roomId = roomId;
   device.manufacturer = 'Shelly';
   device.model = 'SBDW-002C';
   device.meta.gatewayProviderId = gatewayProviderId;
