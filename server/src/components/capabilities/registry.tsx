@@ -695,7 +695,7 @@ export const registry: CapabilityUIRegistry = {
   },
 
   APPLIANCE: {
-    priority: 41,
+    priority: 105,
     getCapabilityMetrics: (cap, device) => [
       createCapability(null, {
         icon: faRotate,
