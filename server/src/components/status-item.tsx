@@ -64,7 +64,7 @@ export function StatusItem(props: StatusItemProps) {
 
   return (
     <Paper withBorder p="md" radius="md">
-      <Group justify="space-between" align="flex-start" wrap="nowrap">
+      <Group justify="space-between" align="flex-start" wrap="nowrap" className={styles.header}>
         <Text size="xs" c="dimmed" className={styles.title}>
           {title}
         </Text>
