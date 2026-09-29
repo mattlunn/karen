@@ -13,6 +13,24 @@ export type HistorySelector = TimeRangeSelector & {
   limit?: number;
 };
 
+const pendingSeriesWrites = new Map<string, Promise<unknown>>();
+
+// Overlapping writes to one series each supersede the same latest event, orphaning all but one of the events they create.
+function serialiseSeriesWrite<T>(device: Device, propertyName: string, instanceId: string | null, write: () => Promise<T>): Promise<T> {
+  const key = `${device.id} ${propertyName} ${instanceId ?? ''}`;
+  const result = (pendingSeriesWrites.get(key) ?? Promise.resolve()).then(write);
+  const settled = result.catch(() => {});
+
+  pendingSeriesWrites.set(key, settled);
+  settled.then(() => {
+    if (pendingSeriesWrites.get(key) === settled) {
+      pendingSeriesWrites.delete(key);
+    }
+  });
+
+  return result;
+}
+
 export async function getBooleanProperty(device: Device, propertyName: string, instanceId: string | null): Promise<boolean> {
   const latestEvent = await device.getLatestEvent(propertyName, instanceId);
   return !!latestEvent && !latestEvent.end;
@@ -37,7 +55,11 @@ export async function getStringProperty(device: Device, propertyName: string, in
   return (await device.getLatestEvent(propertyName, instanceId))?.stringValue ?? defaultValue;
 }
 
-export async function setBooleanProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: boolean, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
+export function setBooleanProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: boolean, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
+  return serialiseSeriesWrite(device, propertyName, instanceId, () => writeBooleanProperty(device, propertyName, instanceId, propertyValue, isMomentary, stateTimestamp, reportedAt));
+}
+
+async function writeBooleanProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: boolean, isMomentary: boolean, stateTimestamp: Date, reportedAt: Date): Promise<Event | null> {
   const lastEvent = await device.getLatestEvent(propertyName, instanceId);
 
   // Reject historic inserts - use reset script instead
@@ -114,7 +136,11 @@ export async function getNumericProperty(device: Device, propertyName: string, i
   return (await device.getLatestEvent(propertyName, instanceId))?.value ?? defaultValue;
 }
 
-export async function setNumericProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: number, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
+export function setNumericProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: number, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
+  return serialiseSeriesWrite(device, propertyName, instanceId, () => writeNumericProperty(device, propertyName, instanceId, propertyValue, isMomentary, stateTimestamp, reportedAt));
+}
+
+async function writeNumericProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: number, isMomentary: boolean, stateTimestamp: Date, reportedAt: Date): Promise<Event | null> {
   const lastEvent = await device.getLatestEvent(propertyName, instanceId);
 
   // Reject historic inserts - use reset script instead
@@ -170,7 +196,11 @@ export async function setNumericProperty(device: Device, propertyName: string, i
   }
 }
 
-export async function setStringProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: string, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
+export function setStringProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: string, isMomentary: boolean, stateTimestamp: Date = new Date(), reportedAt: Date = stateTimestamp): Promise<Event | null> {
+  return serialiseSeriesWrite(device, propertyName, instanceId, () => writeStringProperty(device, propertyName, instanceId, propertyValue, isMomentary, stateTimestamp, reportedAt));
+}
+
+async function writeStringProperty(device: Device, propertyName: string, instanceId: string | null, propertyValue: string, isMomentary: boolean, stateTimestamp: Date, reportedAt: Date): Promise<Event | null> {
   const lastEvent = await device.getLatestEvent(propertyName, instanceId);
 
   // Reject historic inserts - use reset script instead
