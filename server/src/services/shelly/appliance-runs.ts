@@ -3,7 +3,8 @@ import { Device, NumericEvent } from '../../models';
 import { DeviceCapabilityEvents } from '../../models/capabilities';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 
-const RUN_THRESHOLD_WATTS = 20;
+// Above the washing machine's 6W standby, below the dishwasher's 8W drying phase.
+const RUN_THRESHOLD_WATTS = 7;
 const START_AFTER_MINUTES = 5;
 const END_AFTER_MINUTES = 10;
 
