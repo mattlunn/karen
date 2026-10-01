@@ -242,7 +242,7 @@ export type HistoryApiResponse = {
 
 // Device Timeline API response types (/api/device/:id/timeline)
 export type DeviceTimelineEventApiResponse = {
-  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline' | 'switch-on';
+  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline' | 'switch-on' | 'appliance-started';
   timestamp: string;
   value?: string;
   instanceName?: string | null;
@@ -251,7 +251,7 @@ export type DeviceTimelineEventApiResponse = {
   timestamp: string;
   durationSeconds: number | null;
 } | {
-  type: 'switch-off';
+  type: 'switch-off' | 'appliance-finished';
   timestamp: string;
   durationSeconds: number;
 };
