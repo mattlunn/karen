@@ -32,11 +32,13 @@ export default function (sequelize: Sequelize) {
     },
     displayWeight: {
       type: DataTypes.INTEGER,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     displayIconName: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     }
   }, {
     modelName: 'room',

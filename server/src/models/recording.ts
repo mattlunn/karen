@@ -49,7 +49,8 @@ export default function (sequelize: Sequelize) {
     },
 
     size: {
-      type: DataTypes.INTEGER.UNSIGNED
+      type: DataTypes.INTEGER.UNSIGNED,
+      defaultValue: null
     },
 
     createdAt: {

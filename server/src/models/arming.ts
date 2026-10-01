@@ -63,7 +63,8 @@ export default function (sequelize: Sequelize) {
 
     end: {
       type: DataTypes.DATE(3),
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
 
     mode: {
