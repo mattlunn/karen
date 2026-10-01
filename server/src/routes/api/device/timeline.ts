@@ -147,6 +147,24 @@ export default async function (req: Request<{ id: string }>, res: Response, next
         break;
       }
 
+      case 'APPLIANCE': {
+        const appliance = device.getApplianceCapability();
+        historyPromises.push(
+          appliance.getIsRunningHistory(historySelector).then(history => {
+            for (const event of history) {
+              events.push({ type: 'appliance-started', timestamp: event.start.toISOString() });
+
+              if (event.end) {
+                const durationSeconds = dayjs(event.end).diff(event.start, 'second');
+
+                events.push({ type: 'appliance-finished', timestamp: event.end.toISOString(), durationSeconds });
+              }
+            }
+          })
+        );
+        break;
+      }
+
       case 'HEAT_PUMP': {
         const heatPump = device.getHeatPumpCapability();
         historyPromises.push(

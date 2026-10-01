@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Checkbox, Group, Title } from '@mantine/core';
-import { faLightbulb, faPersonWalking, faFireBurner, faHandPointer, faSignal, faDoorOpen, faToggleOn, faToggleOff } from '@fortawesome/free-solid-svg-icons';
+import { faLightbulb, faPersonWalking, faFireBurner, faHandPointer, faSignal, faDoorOpen, faToggleOn, faToggleOff, faRotate } from '@fortawesome/free-solid-svg-icons';
 import { useDeviceTimeline } from '../hooks/queries/use-device-timeline';
 import { useDateRange, DateRangeSelector } from './date-range';
 import { DateRange, DateRangePreset } from './date-range/types';
@@ -43,6 +43,10 @@ function mapEventToTimelineItem(event: DeviceTimelineEventApiResponse): Timeline
       return { icon: faToggleOn, title: 'Turned on', timestamp: event.timestamp, iconColor: '#04A7F4' };
     case 'switch-off':
       return { icon: faToggleOff, title: `Turned off after ${formatDuration(event.durationSeconds)}`, timestamp: event.timestamp };
+    case 'appliance-started':
+      return { icon: faRotate, title: 'Started running', timestamp: event.timestamp, iconColor: '#04A7F4' };
+    case 'appliance-finished':
+      return { icon: faRotate, title: `Finished after ${formatDuration(event.durationSeconds)}`, timestamp: event.timestamp };
   }
 
   return null;
