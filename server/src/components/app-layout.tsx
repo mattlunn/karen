@@ -18,7 +18,7 @@ export default function AppLayout() {
     <AppShell
       header={{ height: 60 }}
       navbar={{
-        width: 300,
+        width: 340,
         breakpoint: 'md',
         collapsed: { mobile: !sidebarOpened }
       }}
