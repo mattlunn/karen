@@ -196,7 +196,10 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   }
 
   async getLatestEvent(type: string, instanceId: string | null = null): Promise<Event | null> {
-    return Event.getLatestForDevice(this.id, type, instanceId);
+    return Event.findOne({
+      where: { deviceId: this.id, type, instanceId },
+      order: [['start', 'DESC']]
+    });
   }
 
   static findByName(name: string): Promise<Device | null> {
