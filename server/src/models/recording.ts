@@ -50,7 +50,7 @@ export default function (sequelize: Sequelize) {
 
     size: {
       type: DataTypes.INTEGER.UNSIGNED,
-      defaultValue: null
+      allowNull: false
     },
 
     createdAt: {

@@ -20,12 +20,12 @@ router.get<Record<string, never>, DevicesApiResponse>('/', async (req, res) => {
   const devices: RestDeviceResponse[] = [];
   const brokenDevices: BrokenDeviceResponse[] = [];
   const rooms: HomeRoom[] = allRooms
-    .sort((a, b) => ((a.displayWeight as number | null) ?? 0) - ((b.displayWeight as number | null) ?? 0))
+    .sort((a, b) => (a.displayWeight ?? 0) - (b.displayWeight ?? 0))
     .map(room => ({
       id: room.id as number,
       name: room.name,
-      displayIconName: room.displayIconName as string | null,
-      displayWeight: room.displayWeight as number | null
+      displayIconName: room.displayIconName,
+      displayWeight: room.displayWeight
     }));
 
   await Promise.all(

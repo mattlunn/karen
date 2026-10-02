@@ -51,7 +51,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare name: CreationOptional<string>;
   declare manufacturer: CreationOptional<string>;
   declare model: CreationOptional<string>;
-  declare roomId: CreationOptional<number>;
+  declare roomId: CreationOptional<number | null>;
   declare metaStringified: CreationOptional<string | null>;
 
   #metaParsed: Record<string, unknown>;
@@ -376,8 +376,7 @@ export default function (sequelize: Sequelize) {
 
     providerId: {
       type: DataTypes.STRING,
-      allowNull: true,
-      defaultValue: null
+      allowNull: false
     },
 
     manufacturer: {
