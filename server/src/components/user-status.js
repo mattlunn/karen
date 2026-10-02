@@ -53,7 +53,7 @@ export default function UserStatus(props) {
   const { mutate: updateUser, isPending } = useUserMutation(id);
 
   return (
-    <Group align="center" gap="xs" className={styles.root}>
+    <Group align="center" gap="xs" wrap="nowrap" className={styles.root}>
       <Box pos="relative">
         <LoadingOverlay visible={isPending} overlayProps={{ radius: 'xl' }} loaderProps={{ size: 'sm' }} />
         <a href="#" onClick={(e) => {
