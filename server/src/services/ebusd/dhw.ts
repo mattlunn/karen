@@ -309,7 +309,11 @@ nowAndSetCron(
   config.ebusd.dhw_check_cron
 );
 
-setCron(
-  createBackgroundTransaction('ebusd:dhw-legionella-check', alertIfLegionellaOverdue),
-  config.ebusd.dhw_legionella_alert_check_cron
-);
+// A readonly instance watches a heat pump another instance drives, and that one
+// already sends the alert.
+if (config.ebusd.dhw_plan_mode !== 'readonly') {
+  setCron(
+    createBackgroundTransaction('ebusd:dhw-legionella-check', alertIfLegionellaOverdue),
+    config.ebusd.dhw_legionella_alert_check_cron
+  );
+}
