@@ -112,15 +112,18 @@ export default function (sequelize: Sequelize) {
     },
     mobileNumber: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     device: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     pushoverToken: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     createdAt: {
       type: DataTypes.DATE(3),

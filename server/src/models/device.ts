@@ -51,8 +51,8 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   declare name: CreationOptional<string>;
   declare manufacturer: CreationOptional<string>;
   declare model: CreationOptional<string>;
-  declare roomId: CreationOptional<number>;
-  declare metaStringified: CreationOptional<string>;
+  declare roomId: CreationOptional<number | null>;
+  declare metaStringified: CreationOptional<string | null>;
 
   #metaParsed: Record<string, unknown>;
 
@@ -61,7 +61,7 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
   get meta(): NonAttribute<Record<string, unknown>> {
     if (!this.#metaParsed) {
       try {
-        this.#metaParsed = JSON.parse(this.metaStringified);
+        this.#metaParsed = JSON.parse(this.metaStringified ?? '{}');
       } catch (e) {
         this.#metaParsed = {};
       }
@@ -359,7 +359,8 @@ export default function (sequelize: Sequelize) {
 
     deletedAt: {
       type: DataTypes.DATE(3),
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
 
     name: {
@@ -375,7 +376,7 @@ export default function (sequelize: Sequelize) {
 
     providerId: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: false
     },
 
     manufacturer: {
@@ -392,12 +393,14 @@ export default function (sequelize: Sequelize) {
 
     roomId: {
       type: DataTypes.NUMBER,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
 
     metaStringified: {
       type: DataTypes.TEXT,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     }
   }, {
     sequelize,

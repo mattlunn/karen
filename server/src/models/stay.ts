@@ -131,19 +131,23 @@ export default function (sequelize: Sequelize) {
     },
     eta: {
       type: DataTypes.DATE(3),
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     arrival: {
       type: DataTypes.DATE(3),
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     arrivalTrigger: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     departure: {
       type: DataTypes.DATE(3),
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     createdAt: {
       type: DataTypes.DATE(3)
@@ -157,7 +161,8 @@ export default function (sequelize: Sequelize) {
         model: 'user',
         key: 'id'
       },
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     }
   }, {
     modelName: 'stay',

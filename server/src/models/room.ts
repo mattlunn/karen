@@ -7,8 +7,8 @@ export class Room extends Model<InferAttributes<Room>, InferCreationAttributes<R
 
   declare public name: string;
 
-  declare public displayWeight: CreationOptional<number>;
-  declare public displayIconName: CreationOptional<string>;
+  declare public displayWeight: CreationOptional<number | null>;
+  declare public displayIconName: CreationOptional<string | null>;
 }
 
 export default function (sequelize: Sequelize) {
@@ -32,11 +32,13 @@ export default function (sequelize: Sequelize) {
     },
     displayWeight: {
       type: DataTypes.INTEGER,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     },
     displayIconName: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: true,
+      defaultValue: null
     }
   }, {
     modelName: 'room',
