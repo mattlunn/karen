@@ -1,5 +1,5 @@
 import { readFileSync, renameSync, writeFileSync } from 'fs';
-import { STATE_PATH } from './config/paths';
+import { STATE_PATH } from './helpers/config/paths';
 
 export interface StateValues {
   'tado.refresh_token': string;

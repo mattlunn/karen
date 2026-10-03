@@ -1,5 +1,5 @@
-import { encrypt, readKey } from '../config/crypto';
-import { KEY_PATH } from '../config/paths';
+import { encrypt, readKey } from '../helpers/config/crypto';
+import { KEY_PATH } from '../helpers/config/paths';
 
 function promptHidden(prompt) {
   return new Promise((resolve, reject) => {

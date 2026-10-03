@@ -62,7 +62,7 @@ npm run encrypt-secret   # Encrypt a value for app.json with this environment's 
 - `models/` - Sequelize ORM models (Device, User, Room, Event, etc.)
 - `models/capabilities/` - Device capability system (Light, Lock, Thermostat, etc.)
 - `services/` - Integration services for each IoT platform (alexa/, tado/, shelly/, etc.)
-- `automations/` - Rule-based automation modules loaded from the `automations` array in `/opt/karen/config/app.json`
+- `automations/` - Rule-based automation modules loaded from the `automations` array in `/server/config/app.json`
 - `routes/` - Express route handlers for REST endpoints and webhooks
 - `components/` - React components (pages/, modals/, capability-graphs/)
 - `helpers/` - Utility functions (date, time, sun calculations, presence)
@@ -228,9 +228,9 @@ See `ElectricVehicleCapability.getNextChargeSchedule` (`models/capabilities/elec
 
 **Configuration-Driven Automations**: Automations are configured in the `automations` array of `app.json` (each entry `{ name, parameters }` — see "Config" below) and dynamically loaded at startup by `automations/index.js`. Each automation module receives `parameters` and registers event handlers. Each automation exports a `parameters` Zod schema, and its default function's argument type is derived from that schema via `z.infer<typeof parameters>` — one artifact rather than two that can drift (see `automations/auto-relock.ts`). Schemas declare **no defaults**: every value comes from `app.json`, so the config is the whole picture of what an automation will do. `automations/index.js` validates each entry against its schema before starting it, and throws on the first invalid entry.
 
-**Config**: all configuration lives outside the repo, in `/opt/karen/config/` (the same path on DEV and PROD; PROD bind-mounts the directory there):
+**Config**: all configuration lives in `/server/config/`, which is gitignored and sits beside `/server/src/` and `/server/dist/`, so code resolves it the same way from source (tsx scripts) and from a build. Each environment maps it to wherever its real config lives (PROD bind-mounts the directory; DEV worktrees symlink it, see "New worktree setup"):
 
-- `app.json` — every setting, including `automations`. Read through `import config from '../config'` (`config/index.ts`), which is typed by `AppConfig` in `config/types.ts` and read-only. Secrets are stored inline, encrypted: `"api_key": { "encrypted": "<base64>" }`. The loader decrypts them, so code just sees `config.octopus.api_key` as a string.
+- `app.json` — every setting, including `automations`. Read through `import config from '../config'` (`/server/src/config.ts`), which is typed by `AppConfig` in `/server/src/helpers/config/types.ts` and read-only. Secrets are stored inline, encrypted: `"api_key": { "encrypted": "<base64>" }`. The loader decrypts them, so code just sees `config.octopus.api_key` as a string.
 - `config.key` — the AES-256-GCM key that decrypts them. Never read it, print it, or copy it.
 - `state.json` — values the app writes at runtime (OAuth refresh tokens, SmartCar IDs). See "Runtime state" below.
 
@@ -238,7 +238,7 @@ See `ElectricVehicleCapability.getNextChargeSchedule` (`models/capabilities/elec
 
 **Adding a secret**: put `{ "encrypted": "..." }` in `app.json` where the value goes, and add the field to `AppConfig` as a plain `string`. To produce the ciphertext, run `npm run encrypt-secret` wherever that environment's `config.key` lives (on PROD: `docker compose exec karen npm run encrypt-secret`). It prompts for the value without echoing it, or reads it from a pipe, and prints the base64 to paste in.
 
-**Runtime state**: The app never writes `app.json` — a write would restart it. Values the app itself needs to persist across restarts (e.g. rotated OAuth refresh tokens) go through `state.ts` instead: add the key and its type to `StateValues`, then `state.get(key)` / `state.getOrThrow(key)` and `state.set(key, value)` (or `state.set({ ... })` for several keys in one write). It's backed by `/opt/karen/config/state.json`, written atomically. Per-device state belongs in that provider's `device.meta` instead.
+**Runtime state**: The app never writes `app.json` — a write would restart it. Values the app itself needs to persist across restarts (e.g. rotated OAuth refresh tokens) go through `state.ts` instead: add the key and its type to `StateValues`, then `state.get(key)` / `state.getOrThrow(key)` and `state.set(key, value)` (or `state.set({ ... })` for several keys in one write). It's backed by `/server/config/state.json`, written atomically. Per-device state belongs in that provider's `device.meta` instead.
 
 **Capability UI Registry**: UI configuration for device capabilities is centralized in `/components/capabilities/`. When adding a new capability type, only update `registry.tsx`:
 
@@ -335,7 +335,7 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 ## Local Development Setup
 
 1. Clone this repo and `george` dependency
-2. Create `/opt/karen/config/app.json` (see "Config" above). Any secrets in it need a `config.key` alongside it — generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))" > /opt/karen/config/config.key`
+2. Create `/server/config/app.json` (see "Config" above). Any secrets in it need a `config.key` alongside it — generate one from the repo root with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))" > server/config/config.key`
 3. Create MySQL database and update config
 4. Run `npm run migrate`
 5. Run `npm run dev` (watch) and `npm run start:dev` (server) in separate terminals
@@ -343,9 +343,9 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 
 ## New worktree setup
 
-Spawned worktrees are clean checkouts, and may be created by tooling (e.g. Claude Remote Control) with no interactive setup step. Config is read from `/opt/karen/config/` (see "Config" above), not from the worktree, so there's nothing to link. Before running or testing anything, from the worktree root:
+Spawned worktrees are clean checkouts, and may be created by tooling (e.g. Claude Remote Control) with no interactive setup step. `/server/config/` is gitignored, so before running or testing anything, symlink it (the whole directory) to this machine's shared DEV config directory — `CLAUDE.local.md` says where that is on this host. **Never copy it**: each copy's `state.json` would fork the rotating OAuth refresh tokens, and whichever copy refreshes first invalidates the others. Then, from the worktree root:
 
 ```bash
-[ -f /opt/karen/config/app.json ] || echo "No config at /opt/karen/config/app.json — follow 'Local Development Setup' above."
+[ -f server/config/app.json ] || echo "server/config/app.json is missing — symlink server/config first (see above)."
 cd server/src && npm install && npm run codegen
 ```

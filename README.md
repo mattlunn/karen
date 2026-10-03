@@ -4,7 +4,7 @@
 
 1. Clone this repo
 2. Clone george
-4. Create `/opt/karen/config/app.json` (e.g. from live, with the secrets replaced by your own). Automations live in its `automations` array. See "Config" below for secrets.
+4. Create `server/config/app.json` (e.g. from live, with the secrets replaced by your own). Automations live in its `automations` array. See "Config" below for secrets.
 5. Create a MySQL database, give a user access, update the "database" section of the config.
 6. Run `npm run migrate` to initialize the database, or use MySQL Workbench to export & import a version of the database from live.
 7. Run `npm run dev` to setup `babel` to watch the src directory and build-as-you-save.
@@ -24,7 +24,7 @@
 
 ## Config
 
-Karen reads everything from `/opt/karen/config/`, which on production is a bind-mounted **directory** (not individual files):
+Karen reads everything from `server/config/` (gitignored; beside `src/` and `dist/`). On production the host's config directory is bind-mounted there as a **directory** (not individual files):
 
 | File | Contents | Written by |
 |---|---|---|

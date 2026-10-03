@@ -18,7 +18,7 @@ import buildVersion from './middleware/build-version';
 import setCron from './helpers/set-cron';
 import { Device } from './models';
 import config from './config';
-import { APP_CONFIG_PATH } from './config/paths';
+import { APP_CONFIG_PATH } from './helpers/config/paths';
 import { watchFile } from 'fs';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
