@@ -135,7 +135,7 @@ function drawCell(ctx: SKRSContext2D, cx: number, top: number, cell: BaselineCom
   const valueY = centeredValueY(top, dialHours !== undefined);
 
   if (dialHours !== undefined) {
-    drawCentered(ctx, `+${dialHours}h`, cx, top + ROW_HEIGHT / 2 - 7, '20px "DejaVu Sans Bold"');
+    drawCentered(ctx, `+${dialHours}h`, cx, top + ROW_HEIGHT / 2 - 7, '20px "DejaVu Sans"');
   }
 
   if (cell.isWithinNormalBand) {
