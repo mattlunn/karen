@@ -1,12 +1,9 @@
 import getSunriseAndSunset from './sun';
 
 jest.mock('../config', () => ({
-  __esModule: true,
-  default: {
-    location: {
-      latitude: 51.50101,
-      longitude: -0.14159
-    }
+  location: {
+    latitude: 51.50101,
+    longitude: -0.14159
   }
 }));
 

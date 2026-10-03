@@ -1,4 +1,4 @@
-jest.mock('../config', () => ({ __esModule: true, default: {} }));
+jest.mock('../config', () => ({}));
 
 import scheduleDaily from './schedule-daily';
 
