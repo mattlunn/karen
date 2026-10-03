@@ -1,4 +1,4 @@
-import { readFileSync, renameSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { STATE_PATH } from './helpers/config/paths';
 
 export interface StateValues {
@@ -48,12 +48,8 @@ export class StateStore {
   set(keyOrValues: keyof StateValues | Partial<StateValues>, value?: StateValues[keyof StateValues]): void {
     const updates = typeof keyOrValues === 'string' ? { [keyOrValues]: value } : keyOrValues;
     const values = { ...this.#values, ...updates };
-    const tempPath = `${this.#path}.tmp`;
 
-    // Written to a temp file and renamed into place, so a crash mid-write can't leave a truncated file behind.
-    writeFileSync(tempPath, JSON.stringify(values, null, 2));
-    renameSync(tempPath, this.#path);
-
+    writeFileSync(this.#path, JSON.stringify(values, null, 2));
     this.#values = values;
   }
 }

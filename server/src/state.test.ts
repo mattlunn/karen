@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { StateStore } from './state';
@@ -44,13 +44,12 @@ describe('StateStore', () => {
     });
   });
 
-  it('persists across instances, leaving no temp file behind', () => {
+  it('persists across instances', () => {
     const path = tempStatePath();
 
     new StateStore(path).set('alexa.refresh_token', 'xyz');
 
     expect(new StateStore(path).get('alexa.refresh_token')).toBe('xyz');
-    expect(existsSync(`${path}.tmp`)).toBe(false);
   });
 
   it('getOrThrow names the missing key', () => {
