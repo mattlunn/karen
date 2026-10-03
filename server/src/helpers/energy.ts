@@ -1,4 +1,4 @@
-import { NumericEvent } from '../models';
+import type { NumericEvent } from '../models';
 import dayjs from '../dayjs';
 
 /**

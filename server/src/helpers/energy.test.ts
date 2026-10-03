@@ -1,5 +1,5 @@
 import { calculateWattHours } from './energy';
-import { NumericEvent } from '../models';
+import type { NumericEvent } from '../models';
 
 const T0 = new Date('2026-01-01T00:00:00Z');
 
