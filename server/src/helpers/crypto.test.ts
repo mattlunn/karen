@@ -48,8 +48,8 @@ describe('decryptSecrets', () => {
   it('decrypts encrypted values anywhere in the tree, leaving everything else alone', () => {
     const config = {
       port: 8081,
-      octopus: { api_key: { encrypted: encrypt('sk_live', key) }, mpan: '123' },
-      tuya: { devices: [{ name: 'Fireplace', key: { encrypted: encrypt('local-key', key) } }] },
+      octopus: { api_key: { $encrypted: encrypt('sk_live', key) }, mpan: '123' },
+      tuya: { devices: [{ name: 'Fireplace', key: { $encrypted: encrypt('local-key', key) } }] },
       nothing: null
     };
 
@@ -61,8 +61,8 @@ describe('decryptSecrets', () => {
     });
   });
 
-  it('treats an object with keys besides "encrypted" as plain config', () => {
-    const value = { encrypted: 'not-a-secret', other: true };
+  it('treats an object with keys besides "$encrypted" as plain config', () => {
+    const value = { $encrypted: 'not-a-secret', other: true };
 
     expect(decryptSecrets(value, () => key)).toEqual(value);
   });
@@ -76,7 +76,7 @@ describe('decryptSecrets', () => {
   });
 
   it('names the path of a value that will not decrypt', () => {
-    const config = { tuya: { devices: [{ key: { encrypted: encrypt('local-key', randomBytes(32)) } }] } };
+    const config = { tuya: { devices: [{ key: { $encrypted: encrypt('local-key', randomBytes(32)) } }] } };
 
     expect(() => decryptSecrets(config, () => key)).toThrow('Unable to decrypt tuya.devices[0].key');
   });

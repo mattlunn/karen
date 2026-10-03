@@ -34,10 +34,10 @@ export function decrypt(encrypted: string, key: Buffer): string {
   return Buffer.concat([decipher.update(bytes.subarray(IV_BYTES + AUTH_TAG_BYTES)), decipher.final()]).toString('utf8');
 }
 
-function isEncryptedValue(value: object): value is { encrypted: string } {
+function isEncryptedValue(value: object): value is { $encrypted: string } {
   const keys = Object.keys(value);
 
-  return keys.length === 1 && keys[0] === 'encrypted' && typeof (value as { encrypted: unknown }).encrypted === 'string';
+  return keys.length === 1 && keys[0] === '$encrypted' && typeof (value as { $encrypted: unknown }).$encrypted === 'string';
 }
 
 // getKey is only called once a secret is found, so a config with no secrets in it loads without a key file.
@@ -52,7 +52,7 @@ export function decryptSecrets(value: unknown, getKey: () => Buffer, path = ''):
 
   if (isEncryptedValue(value)) {
     try {
-      return decrypt(value.encrypted, getKey());
+      return decrypt(value.$encrypted, getKey());
     } catch (e) {
       throw new Error(`Unable to decrypt ${path}: ${(e as Error).message}`);
     }
