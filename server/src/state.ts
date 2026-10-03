@@ -5,6 +5,7 @@ function readValues(path: string): Record<string, string> {
   try {
     return JSON.parse(readFileSync(path, 'utf8'));
   } catch (e) {
+    // The file is only created by the first set(), so its absence just means nothing's been stored yet.
     if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
       return {};
     }
