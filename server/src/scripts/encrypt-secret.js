@@ -1,55 +1,24 @@
+import { createInterface } from 'readline';
 import { encrypt, readKey } from '../helpers/config/crypto';
 import { KEY_PATH } from '../helpers/config/paths';
 
-function promptHidden(prompt) {
-  return new Promise((resolve, reject) => {
-    let input = '';
+async function readLine() {
+  const readline = createInterface({ input: process.stdin });
 
-    function finish(callback) {
-      process.stdin.setRawMode(false);
-      process.stdin.pause();
-      process.stdin.removeAllListeners('data');
-      process.stderr.write('\n');
-      callback();
-    }
-
-    process.stderr.write(prompt);
-    process.stdin.setRawMode(true);
-    process.stdin.setEncoding('utf8');
-    process.stdin.resume();
-    process.stdin.on('data', (chars) => {
-      for (const char of chars) {
-        if (char === '\r' || char === '\n') {
-          return finish(() => resolve(input));
-        }
-
-        if (char === '\u0003') {
-          return finish(() => reject(new Error('Cancelled')));
-        }
-
-        if (char === '\u007f' || char === '\b') {
-          input = input.slice(0, -1);
-        } else {
-          input += char;
-        }
-      }
-    });
-  });
-}
-
-async function readPiped() {
-  let input = '';
-
-  for await (const chunk of process.stdin) {
-    input += chunk;
+  for await (const line of readline) {
+    readline.close();
+    return line;
   }
 
-  return input.replace(/\r?\n$/, '');
+  return '';
 }
 
 async function main() {
   const key = readKey(KEY_PATH);
-  const secret = process.stdin.isTTY ? await promptHidden('Secret: ') : await readPiped();
+
+  process.stderr.write('Secret: ');
+
+  const secret = await readLine();
 
   if (secret === '') {
     throw new Error('No secret given');

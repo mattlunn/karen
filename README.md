@@ -39,7 +39,7 @@ Because the directory is mounted rather than each file, editing `app.json` from 
 Run this wherever that environment's `config.key` lives, and paste the output into `app.json` as `{ "encrypted": "<output>" }`:
 
 ```bash
-docker compose exec karen npm run encrypt-secret                # prompts, without echoing
+docker compose exec karen npm run encrypt-secret                # prompts for the value
 printf '%s' "$VALUE" | docker compose exec -T karen npm run encrypt-secret   # or pipe it in
 ```
 
