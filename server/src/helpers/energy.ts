@@ -6,7 +6,7 @@ import dayjs from '../dayjs';
  */
 export function calculateWattHours(events: NumericEvent[]): number {
   return Math.round(100 * events.reduce((acc, curr) => {
-    const minutes = dayjs(curr.end).diff(curr.start, 'minute');
+    const minutes = dayjs(curr.end).diff(curr.start, 'minute', true);
     return acc + (curr.value * minutes);
   }, 0) / 60) / 100;
 }
