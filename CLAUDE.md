@@ -238,7 +238,7 @@ See `ElectricVehicleCapability.getNextChargeSchedule` (`models/capabilities/elec
 
 **Adding a secret**: put `{ "encrypted": "..." }` in `app.json` where the value goes, and add the field to `AppConfig` as a plain `string`. To produce the ciphertext, run `npm run encrypt-secret` wherever that environment's `config.key` lives (on PROD: `docker compose exec karen npm run encrypt-secret`). It reads one line (typed, or piped in) and prints the base64 to paste in.
 
-**Runtime state**: The app never writes `app.json` — a write would restart it. Values the app itself needs to persist across restarts (e.g. rotated OAuth refresh tokens) go through `state.ts` instead, as string key/value pairs: `state.get(key)` / `state.getOrThrow(key)` and `state.set(key, value)` (or `state.set({ ... })` for several keys in one write). It's backed by `/server/config/state.json`. Per-device state belongs in that provider's `device.meta` instead.
+**Runtime state**: The app never writes `app.json` — a write would restart it. Values the app itself needs to persist across restarts (e.g. rotated OAuth refresh tokens) go through `state.ts` instead, as string key/value pairs: `state.get(key)` / `state.getOrThrow(key)` and `state.set(key, value)`. It's backed by `/server/config/state.json`. Per-device state belongs in that provider's `device.meta` instead.
 
 **Capability UI Registry**: UI configuration for device capabilities is centralized in `/components/capabilities/`. When adding a new capability type, only update `registry.tsx`:
 

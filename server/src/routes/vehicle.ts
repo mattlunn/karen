@@ -48,10 +48,8 @@ smartcarRouter.get('/callback', async (req, res) => {
       return res.status(400).send('No vehicle connections found for this user');
     }
 
-    state.set({
-      'smartcar.user_id': userId,
-      'smartcar.vehicle_id': connection.relationships.vehicle.data.id
-    });
+    state.set('smartcar.user_id', userId);
+    state.set('smartcar.vehicle_id', connection.relationships.vehicle.data.id);
 
     logger.info(`SmartCar Connect successful - user ${userId}, vehicle ${connection.relationships.vehicle.data.id}`);
 

@@ -37,11 +37,8 @@ export class StateStore {
     return value;
   }
 
-  set(key: string, value: string): void;
-  set(values: Record<string, string>): void;
-  set(keyOrValues: string | Record<string, string>, value?: string): void {
-    const updates = typeof keyOrValues === 'string' ? { [keyOrValues]: value! } : keyOrValues;
-    const values = { ...this.#values, ...updates };
+  set(key: string, value: string): void {
+    const values = { ...this.#values, [key]: value };
 
     writeFileSync(this.#path, JSON.stringify(values, null, 2));
     this.#values = values;

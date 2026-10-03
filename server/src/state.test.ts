@@ -30,12 +30,13 @@ describe('StateStore', () => {
     expect(state.get('tado.refresh_token')).toBe('abc');
   });
 
-  it('sets several values in one write, keeping the rest', () => {
+  it('keeps existing values when setting another', () => {
     const path = tempStatePath();
     const state = new StateStore(path);
 
     state.set('tado.refresh_token', 'abc');
-    state.set({ 'smartcar.user_id': 'user', 'smartcar.vehicle_id': 'vehicle' });
+    state.set('smartcar.user_id', 'user');
+    state.set('smartcar.vehicle_id', 'vehicle');
 
     expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({
       'tado.refresh_token': 'abc',
