@@ -127,7 +127,7 @@ const VALUE_FONT = '22px "DejaVu Sans Bold"';
 function centeredValueY(top: number, hasDialLine: boolean): number {
   const rowCenterY = top + ROW_HEIGHT / 2;
 
-  return hasDialLine ? rowCenterY + 16 : rowCenterY + 8;
+  return hasDialLine ? rowCenterY + 19 : rowCenterY + 8;
 }
 
 function drawCell(ctx: SKRSContext2D, cx: number, top: number, cell: BaselineComparison, dialHours?: number) {
@@ -135,7 +135,7 @@ function drawCell(ctx: SKRSContext2D, cx: number, top: number, cell: BaselineCom
   const valueY = centeredValueY(top, dialHours !== undefined);
 
   if (dialHours !== undefined) {
-    drawCentered(ctx, `+${dialHours}h`, cx, top + ROW_HEIGHT / 2 - 8, '14px "DejaVu Sans"');
+    drawCentered(ctx, `+${dialHours}h`, cx, top + ROW_HEIGHT / 2 - 7, '20px "DejaVu Sans Bold"');
   }
 
   if (cell.isWithinNormalBand) {
