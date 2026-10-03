@@ -1,5 +1,5 @@
 import { BinCollectionBaseCapability } from './capabilities.gen';
-import config from '../../config/app';
+import config from '../../config';
 import dayjs from '../../dayjs';
 import { buildRruleString, isOccurrenceDay, getNextOccurrence } from '../../helpers/recurrence';
 

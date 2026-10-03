@@ -1,5 +1,5 @@
 import dayjs from '../../dayjs';
-import config from '../../config/app';
+import config from '../../config';
 import { ElectricVehicleCapability } from '../../models/capabilities';
 import { filterClampAndSortHistory } from '../../helpers/history';
 import { Device } from '../../models';

@@ -1,5 +1,5 @@
 import { UnifiClient } from './lib';
-import config from '../../config/app';
+import config from '../../config';
 import { User, Stay } from '../../models';
 import { markUserAsAway, markUserAsHome } from '../../helpers/presence';
 import nowAndSetCron from '../../helpers/now-and-set-cron';

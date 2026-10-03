@@ -1,6 +1,6 @@
 import express from 'express';
-import config from '../config/app';
-import { saveConfig } from '../helpers/config';
+import config from '../config';
+import state from '../state';
 import { stringify } from 'querystring';
 import sleep from '../helpers/sleep';
 import logger from '../logger';
@@ -84,8 +84,7 @@ router.get('/auth', async (req, res) => {
         logger.warn(`Authorization is still pending user confirmation. Will retry in ${interval} seconds`);
         await sleep(interval * 1000);
       } else {
-        config.tado.refresh_token = token;
-        saveConfig();
+        state.set('tado.refresh_token', token);
 
         return logger.info('Successfully exchanged device code for refresh_token');
       }

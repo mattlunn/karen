@@ -51,6 +51,7 @@ npm run test             # Jest tests
 npm run migrate          # Run database migrations
 npm run create-user      # Create new user via CLI
 npm run codegen          # Generate TypeScript from GraphQL schema
+npm run encrypt-secret   # Encrypt a value for app.json with this environment's config.key
 ```
 
 ## Architecture
@@ -61,7 +62,7 @@ npm run codegen          # Generate TypeScript from GraphQL schema
 - `models/` - Sequelize ORM models (Device, User, Room, Event, etc.)
 - `models/capabilities/` - Device capability system (Light, Lock, Thermostat, etc.)
 - `services/` - Integration services for each IoT platform (alexa/, tado/, shelly/, etc.)
-- `automations/` - Rule-based automation modules loaded from config/automations.json
+- `automations/` - Rule-based automation modules loaded from the `automations` array in `/server/config/app.json`
 - `routes/` - Express route handlers for REST endpoints and webhooks
 - `components/` - React components (pages/, modals/, capability-graphs/)
 - `helpers/` - Utility functions (date, time, sun calculations, presence)
@@ -225,11 +226,19 @@ See `ElectricVehicleCapability.getNextChargeSchedule` (`models/capabilities/elec
 
 **Event-Driven Updates**: Device changes emit events via `DeviceCapabilityEvents`, which trigger SSE (Server-Sent Events) for real-time UI updates.
 
-**Configuration-Driven Automations**: Automations are configured in `config/automations.json` (a top-level array of `{ name, parameters }`, sibling to `config/app.json` — see "Automations config" below) and dynamically loaded at startup by `automations/index.js`. Each automation module receives `parameters` and registers event handlers. Each automation exports a `parameters` Zod schema, and its default function's argument type is derived from that schema via `z.infer<typeof parameters>` — one artifact rather than two that can drift (see `automations/auto-relock.ts`). Schemas declare **no defaults**: every value comes from `config/automations.json`, so the config is the whole picture of what an automation will do. `automations/index.js` validates each entry against its schema before starting it, and throws on the first invalid entry. `automations/index.js` also watches `config/automations.json` for changes and calls `process.exit(0)` when it changes — nodemon (dev) or the container's restart policy (prod) is what actually brings the process back up with the new config; there is no in-process hot-reload, since automation modules subscribe to events at load time with no teardown path.
+**Configuration-Driven Automations**: Automations are configured in the `automations` array of `app.json` (each entry `{ name, parameters }` — see "Config" below) and dynamically loaded at startup by `automations/index.js`. Each automation module receives `parameters` and registers event handlers. Each automation exports a `parameters` Zod schema, and its default function's argument type is derived from that schema via `z.infer<typeof parameters>` — one artifact rather than two that can drift (see `automations/auto-relock.ts`). Schemas declare **no defaults**: every value comes from `app.json`, so the config is the whole picture of what an automation will do. `automations/index.js` validates each entry against its schema before starting it, and throws on the first invalid entry.
 
-**Automations config**: `config/automations.json` holds no secrets (device names, timeouts, schedules only), unlike `config/app.json`. Unlike `config/app.json`, DEV and PROD deliberately do **not** share this file — each environment has its own copy, both gitignored (not git-tracked), same as `config/app.json`. See `CLAUDE.local.md` for this host's specific paths and how to reach PROD's copy for live debugging/changes — editing PROD's copy changes real production automation behaviour (door locks, heating, lights) after the next restart, so treat it accordingly.
+**Config**: all configuration lives in `/server/config/`, which is gitignored and sits beside `/server/src/` and `/server/dist/`, so code resolves it the same way from source (tsx scripts) and from a build. Each environment maps it to wherever its real config lives (PROD bind-mounts the directory; DEV worktrees symlink it, see "New worktree setup"):
 
-**Runtime mutable config**: For settings that need to persist across server restarts and be changeable at runtime (e.g. feature flags, seasonal overrides), add a field to `config/app.json` and use `saveConfig()` from `helpers/config.js` to write back to disk atomically. Do NOT create a new DB settings table — `saveConfig` is the established pattern already used for Tado/Alexa/SmartCar token persistence and costs zero infrastructure.
+- `app.json` — every setting, including `automations`. Read through `import config from '../config'` (`/server/src/config.ts`), which is typed by `AppConfig` (in the same file) and read-only. Secrets are stored inline, encrypted: `"api_key": { "encrypted": "<base64>" }`. The loader decrypts them, so code just sees `config.octopus.api_key` as a string.
+- `config.key` — the AES-256-GCM key that decrypts them. Never read it, print it, or copy it.
+- `state.json` — values the app writes at runtime (OAuth refresh tokens, SmartCar IDs). See "Runtime state" below.
+
+`server.ts` watches `app.json` and calls `process.exit(0)` when it changes — nodemon (dev, via `start:dev`'s `--watch`) or the container's restart policy (prod) brings the process back up with the new config. There is no in-process hot-reload, since services and automations read config at load time with no teardown path. Editing PROD's `app.json` therefore changes real production behaviour (door locks, heating, lights) within seconds, so treat it accordingly. See `CLAUDE.local.md` for how this host reaches PROD's copy.
+
+**Adding a secret**: put `{ "encrypted": "..." }` in `app.json` where the value goes, and add the field to `AppConfig` as a plain `string`. To produce the ciphertext, run `npm run encrypt-secret` wherever that environment's `config.key` lives (on PROD: `docker compose exec karen npm run encrypt-secret`). It reads one line (typed, or piped in) and prints the base64 to paste in.
+
+**Runtime state**: The app never writes `app.json` — a write would restart it. Values the app itself needs to persist across restarts (e.g. rotated OAuth refresh tokens) go through `state.ts` instead, as string key/value pairs: `state.get(key)` / `state.getOrThrow(key)` and `state.set(key, value)`. It's backed by `/server/config/state.json`. Per-device state belongs in that provider's `device.meta` instead.
 
 **Capability UI Registry**: UI configuration for device capabilities is centralized in `/components/capabilities/`. When adding a new capability type, only update `registry.tsx`:
 
@@ -326,7 +335,7 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 ## Local Development Setup
 
 1. Clone this repo and `george` dependency
-2. Copy `config/app.json` from live, empty secrets, place in `./server/src/config/app.json`
+2. Create `/server/config/app.json` (see "Config" above). Any secrets in it need a `config.key` alongside it — generate one from the repo root with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))" > server/config/config.key`
 3. Create MySQL database and update config
 4. Run `npm run migrate`
 5. Run `npm run dev` (watch) and `npm run start:dev` (server) in separate terminals
@@ -334,21 +343,9 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 
 ## New worktree setup
 
-Spawned worktrees are clean checkouts — `server/src/config/` (holding `app.json` and `automations.json`) is gitignored, so it never carries over automatically, and worktrees may be created by tooling (e.g. Claude Remote Control) with no interactive setup step. Before running or testing anything, from the worktree root:
+Spawned worktrees are clean checkouts, and may be created by tooling (e.g. Claude Remote Control) with no interactive setup step. `/server/config/` is gitignored, so before running or testing anything, symlink it (the whole directory) to this machine's shared DEV config directory — `CLAUDE.local.md` says where that is on this host. **Never copy it**: each copy's `state.json` would fork the rotating OAuth refresh tokens, and whichever copy refreshes first invalidates the others. Then, from the worktree root:
 
 ```bash
-mkdir -p server/src/config
-
-if [ -f /opt/karen/config/app.json ]; then
-  ln -s /opt/karen/config/app.json server/src/config/app.json
-else
-  echo "No shared config/app.json at /opt/karen/config/app.json — follow 'Local Development Setup' above to create server/src/config/app.json manually."
-fi
-
-if [ -f /opt/karen/config/automations.json ]; then
-  ln -s /opt/karen/config/automations.json server/src/config/automations.json
-else
-  echo "No shared automations.json at /opt/karen/config/automations.json — see 'Automations config' below."
-fi
+[ -f server/config/app.json ] || echo "server/config/app.json is missing — symlink server/config first (see above)."
 cd server/src && npm install && npm run codegen
 ```

@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import config from '../../config/app';
+import config from '../../config';
 import dayjs from '../../dayjs';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import setCron from '../../helpers/set-cron';

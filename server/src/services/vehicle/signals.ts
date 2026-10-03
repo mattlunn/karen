@@ -1,7 +1,7 @@
 import type { SmartcarSignalAttributes, SmartcarSuccessSignalAttributes } from './types';
 import { Device } from '../../models';
 import { ElectricVehicleCapability } from '../../models/capabilities';
-import config from '../../config/app';
+import config from '../../config';
 import { distanceInMetres } from '../../helpers/geo';
 import logger from '../../logger';
 

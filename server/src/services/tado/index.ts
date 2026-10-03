@@ -1,8 +1,8 @@
 import { Device } from '../../models';
 import { ScheduledChange } from '../../models/capabilities';
 import TadoClient, { TadoClientError, ZoneOverlayResponse, ZoneState, ZoneTimetableBlock, ZonesState, exchangeRefreshTokenForAccessToken } from './client';
-import config from '../../config/app';
-import { saveConfig } from '../../helpers/config';
+import config from '../../config';
+import state from '../../state';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import dayjs from '../../dayjs';
 import getTimetabledTemperature from './helpers/get-timetabled-temperature';
@@ -28,7 +28,7 @@ const getAccessToken = (() => {
 
   async function getNewAccessToken(): Promise<string> {
     if (!token || token.expiresAt < Date.now() + 1000 * 60) {
-      const oldRefreshToken = config.tado.refresh_token;
+      const oldRefreshToken = state.getOrThrow('tado.refresh_token');
 
       if (!token) {
         logger.info(`Tado: starting with refresh token ...${oldRefreshToken?.slice(-8)}`);
@@ -43,8 +43,7 @@ const getAccessToken = (() => {
 
       logger.info(`Tado: exchanged refresh token ...${oldRefreshToken?.slice(-8)} → ...${newToken.refreshToken?.slice(-8)}`);
 
-      config.tado.refresh_token = newToken.refreshToken;
-      saveConfig();
+      state.set('tado.refresh_token', newToken.refreshToken);
     }
 
     return token.accessToken;

@@ -1,6 +1,6 @@
 import { Device } from '../../models';
 import { HeatPumpMode, HeatPumpDHWMode } from '../../models/capabilities';
-import config from '../../config/app';
+import config from '../../config';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';

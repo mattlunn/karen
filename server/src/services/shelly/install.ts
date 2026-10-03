@@ -1,5 +1,5 @@
 import { Device } from '../../models';
-import config from '../../config/app';
+import config from '../../config';
 import DeviceClient from './client/device';
 import Gen2PlusDeviceClient from './client/gen2plus-device';
 

@@ -1,4 +1,4 @@
-import config from '../../config/app';
+import config from '../../config';
 import { Device } from '../../models';
 import { DeviceCapabilityEvents } from '../../models/capabilities';
 import { sendSimpleEventSource, syncDiscovery } from './smarthome';

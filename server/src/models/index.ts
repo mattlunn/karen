@@ -1,5 +1,5 @@
 import { Sequelize } from 'sequelize';
-import config from '../config/app';
+import config from '../config';
 import userFactory, { User } from './user';
 import stayFactory, { Stay } from './stay';
 import roomFactory, { Room } from './room';

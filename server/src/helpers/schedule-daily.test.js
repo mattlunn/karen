@@ -1,4 +1,4 @@
-jest.mock('../config/app', () => ({}), { virtual: true });
+jest.mock('../config', () => ({}));
 
 import scheduleDaily from './schedule-daily';
 
