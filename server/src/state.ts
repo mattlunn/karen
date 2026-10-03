@@ -1,14 +1,7 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { STATE_PATH } from './helpers/config/paths';
 
-export interface StateValues {
-  'tado.refresh_token': string;
-  'alexa.refresh_token': string;
-  'smartcar.user_id': string;
-  'smartcar.vehicle_id': string;
-}
-
-function readValues(path: string): Partial<StateValues> {
+function readValues(path: string): Record<string, string> {
   try {
     return JSON.parse(readFileSync(path, 'utf8'));
   } catch (e) {
@@ -22,18 +15,18 @@ function readValues(path: string): Partial<StateValues> {
 
 export class StateStore {
   #path: string;
-  #values: Partial<StateValues>;
+  #values: Record<string, string>;
 
   constructor(path: string) {
     this.#path = path;
     this.#values = readValues(path);
   }
 
-  get<K extends keyof StateValues>(key: K): StateValues[K] | undefined {
+  get(key: string): string | undefined {
     return this.#values[key];
   }
 
-  getOrThrow<K extends keyof StateValues>(key: K): StateValues[K] {
+  getOrThrow(key: string): string {
     const value = this.#values[key];
 
     if (value === undefined) {
@@ -43,10 +36,10 @@ export class StateStore {
     return value;
   }
 
-  set<K extends keyof StateValues>(key: K, value: StateValues[K]): void;
-  set(values: Partial<StateValues>): void;
-  set(keyOrValues: keyof StateValues | Partial<StateValues>, value?: StateValues[keyof StateValues]): void {
-    const updates = typeof keyOrValues === 'string' ? { [keyOrValues]: value } : keyOrValues;
+  set(key: string, value: string): void;
+  set(values: Record<string, string>): void;
+  set(keyOrValues: string | Record<string, string>, value?: string): void {
+    const updates = typeof keyOrValues === 'string' ? { [keyOrValues]: value! } : keyOrValues;
     const values = { ...this.#values, ...updates };
 
     writeFileSync(this.#path, JSON.stringify(values, null, 2));
