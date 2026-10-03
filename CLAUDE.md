@@ -230,7 +230,7 @@ See `ElectricVehicleCapability.getNextChargeSchedule` (`models/capabilities/elec
 
 **Config**: all configuration lives in `/server/config/`, which is gitignored and sits beside `/server/src/` and `/server/dist/`, so code resolves it the same way from source (tsx scripts) and from a build. Each environment maps it to wherever its real config lives (PROD bind-mounts the directory; DEV worktrees symlink it, see "New worktree setup"):
 
-- `app.json` — every setting, including `automations`. Read through `import config from '../config'` (`/server/src/config.ts`), which is typed by `AppConfig` in `/server/src/helpers/config/types.ts` and read-only. Secrets are stored inline, encrypted: `"api_key": { "encrypted": "<base64>" }`. The loader decrypts them, so code just sees `config.octopus.api_key` as a string.
+- `app.json` — every setting, including `automations`. Read through `import config from '../config'` (`/server/src/config.ts`), which is typed by `AppConfig` (in the same file) and read-only. Secrets are stored inline, encrypted: `"api_key": { "encrypted": "<base64>" }`. The loader decrypts them, so code just sees `config.octopus.api_key` as a string.
 - `config.key` — the AES-256-GCM key that decrypts them. Never read it, print it, or copy it.
 - `state.json` — values the app writes at runtime (OAuth refresh tokens, SmartCar IDs). See "Runtime state" below.
 

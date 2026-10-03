@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'fs';
-import { STATE_PATH } from './helpers/config/paths';
+import { STATE_PATH } from './config';
 
 function readValues(path: string): Record<string, string> {
   try {

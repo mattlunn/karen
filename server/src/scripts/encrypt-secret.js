@@ -1,6 +1,6 @@
 import { createInterface } from 'readline';
-import { encrypt, readKey } from '../helpers/config/crypto';
-import { KEY_PATH } from '../helpers/config/paths';
+import { encrypt, readKey } from '../helpers/crypto';
+import { KEY_PATH } from '../config';
 
 async function readLine() {
   const readline = createInterface({ input: process.stdin });
