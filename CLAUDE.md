@@ -230,13 +230,13 @@ See `ElectricVehicleCapability.getNextChargeSchedule` (`models/capabilities/elec
 
 **Config**: all configuration lives in `/server/config/`, which is gitignored and sits beside `/server/src/` and `/server/dist/`, so code resolves it the same way from source (tsx scripts) and from a build. Each environment maps it to wherever its real config lives (PROD bind-mounts the directory; DEV worktrees symlink it, see "New worktree setup"):
 
-- `app.json` — every setting, including `automations`. Read through `import config from '../config'` (`/server/src/config.ts`), which is typed by `AppConfig` (in the same file) and read-only. Secrets are stored inline, encrypted: `"api_key": { "encrypted": "<base64>" }`. The loader decrypts them, so code just sees `config.octopus.api_key` as a string.
+- `app.json` — every setting, including `automations`. Read through `import config from '../config'` (`/server/src/config.ts`), which is typed by `AppConfig` (in the same file) and read-only. Secrets are stored inline, encrypted: `"api_key": { "$encrypted": "<base64>" }`. The loader decrypts them, so code just sees `config.octopus.api_key` as a string.
 - `config.key` — the AES-256-GCM key that decrypts them. Never read it, print it, or copy it.
 - `state.json` — values the app writes at runtime (OAuth refresh tokens, SmartCar IDs). See "Runtime state" below.
 
 `server.ts` watches `app.json` and calls `process.exit(0)` when it changes — nodemon (dev, via `start:dev`'s `--watch`) or the container's restart policy (prod) brings the process back up with the new config. There is no in-process hot-reload, since services and automations read config at load time with no teardown path. Editing PROD's `app.json` therefore changes real production behaviour (door locks, heating, lights) within seconds, so treat it accordingly. See `CLAUDE.local.md` for how this host reaches PROD's copy.
 
-**Adding a secret**: put `{ "encrypted": "..." }` in `app.json` where the value goes, and add the field to `AppConfig` as a plain `string`. To produce the ciphertext, run `npm run encrypt-secret` wherever that environment's `config.key` lives (on PROD: `docker compose exec karen npm run encrypt-secret`). It reads one line (typed, or piped in) and prints the base64 to paste in.
+**Adding a secret**: put `{ "$encrypted": "..." }` in `app.json` where the value goes, and add the field to `AppConfig` as a plain `string`. To produce the ciphertext, run `npm run encrypt-secret` wherever that environment's `config.key` lives (on PROD: `docker compose exec karen npm run encrypt-secret`). It reads one line (typed, or piped in) and prints the base64 to paste in.
 
 **Runtime state**: The app never writes `app.json` — a write would restart it. Values the app itself needs to persist across restarts (e.g. rotated OAuth refresh tokens) go through `state.ts` instead, as string key/value pairs: `state.get(key)` / `state.getOrThrow(key)` and `state.set(key, value)`. It's backed by `/server/config/state.json`. Per-device state belongs in that provider's `device.meta` instead.
 

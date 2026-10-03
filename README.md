@@ -28,7 +28,7 @@ Karen reads everything from `server/config/` (gitignored; beside `src/` and `dis
 
 | File | Contents | Written by |
 |---|---|---|
-| `app.json` | All settings, including `automations`. Secrets are inline as `{ "encrypted": "<base64>" }`. | You. Saving it restarts Karen within a few seconds. |
+| `app.json` | All settings, including `automations`. Secrets are inline as `{ "$encrypted": "<base64>" }`. | You. Saving it restarts Karen within a few seconds. |
 | `config.key` | The base64 AES-256 key that decrypts those secrets. | Created once. |
 | `state.json` | Runtime values Karen persists itself (OAuth refresh tokens, SmartCar IDs). | Karen. Only hand-edit it while Karen is stopped. |
 
@@ -36,7 +36,7 @@ Because the directory is mounted rather than each file, editing `app.json` from 
 
 ### Adding or changing a secret
 
-Run this wherever that environment's `config.key` lives, and paste the output into `app.json` as `{ "encrypted": "<output>" }`:
+Run this wherever that environment's `config.key` lives, and paste the output into `app.json` as `{ "$encrypted": "<output>" }`:
 
 ```bash
 docker compose exec karen npm run encrypt-secret                # prompts for the value
