@@ -2,13 +2,6 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { decryptSecrets, readKey } from './helpers/crypto';
 
-// server/config sits beside src and dist, so this resolves to it from source (tsx) and from a build alike.
-const CONFIG_DIR = join(__dirname, '..', 'config');
-
-export const APP_CONFIG_PATH = join(CONFIG_DIR, 'app.json');
-export const KEY_PATH = join(CONFIG_DIR, 'config.key');
-export const STATE_PATH = join(CONFIG_DIR, 'state.json');
-
 export type DeepReadonly<T> =
   T extends (infer U)[] ? DeepReadonly<U>[] :
   T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } :
@@ -211,8 +204,9 @@ export interface AppConfig {
   days_to_keep_recordings_while_home: number;
 }
 
+const appJson = JSON.parse(readFileSync(join(__dirname, '../config/app.json'), 'utf8'));
 let key: Buffer | undefined;
 
-const config: DeepReadonly<AppConfig> = decryptSecrets(JSON.parse(readFileSync(APP_CONFIG_PATH, 'utf8')), () => key ??= readKey(KEY_PATH)) as AppConfig;
+const config: DeepReadonly<AppConfig> = decryptSecrets(appJson, () => key ??= readKey(join(__dirname, '../config/config.key'))) as AppConfig;
 
 export default config;

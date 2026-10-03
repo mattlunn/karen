@@ -17,8 +17,9 @@ import auth from './middleware/auth';
 import buildVersion from './middleware/build-version';
 import setCron from './helpers/set-cron';
 import { Device } from './models';
-import config, { APP_CONFIG_PATH } from './config';
+import config from './config';
 import { watchFile } from 'fs';
+import { join } from 'path';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import compression from 'compression';
@@ -87,8 +88,8 @@ httpServer.listen(config.port, () => {
 
 // Services and automations read config at load time with no teardown path, so a restart (by the
 // container's restart policy, or nodemon in dev) is the only way to apply a change.
-watchFile(APP_CONFIG_PATH, { interval: 5000 }, () => {
-  logger.info(`${APP_CONFIG_PATH} changed; exiting to restart and apply new config`);
+watchFile(join(__dirname, '../config/app.json'), { interval: 5000 }, () => {
+  logger.info('config/app.json changed; exiting to restart and apply new config');
   process.exit(0);
 });
 

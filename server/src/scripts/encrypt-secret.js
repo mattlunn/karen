@@ -1,6 +1,6 @@
 import { createInterface } from 'readline';
+import { join } from 'path';
 import { encrypt, readKey } from '../helpers/crypto';
-import { KEY_PATH } from '../config';
 
 async function readLine() {
   const readline = createInterface({ input: process.stdin });
@@ -14,7 +14,7 @@ async function readLine() {
 }
 
 async function main() {
-  const key = readKey(KEY_PATH);
+  const key = readKey(join(__dirname, '../../config/config.key'));
 
   process.stderr.write('Secret: ');
 

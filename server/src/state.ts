@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'fs';
-import { STATE_PATH } from './config';
+import { join } from 'path';
 
 function readValues(path: string): Record<string, string> {
   try {
@@ -45,4 +45,4 @@ export class StateStore {
   }
 }
 
-export default new StateStore(STATE_PATH);
+export default new StateStore(join(__dirname, '../config/state.json'));

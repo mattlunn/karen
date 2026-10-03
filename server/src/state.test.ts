@@ -3,8 +3,6 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { StateStore } from './state';
 
-jest.mock('./config', () => ({ STATE_PATH: '/nonexistent/state.json' }));
-
 function tempStatePath() {
   return join(mkdtempSync(join(tmpdir(), 'karen-state-')), 'state.json');
 }
