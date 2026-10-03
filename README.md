@@ -47,7 +47,7 @@ printf '%s' "$VALUE" | docker compose exec -T karen npm run encrypt-secret   # o
 
 Deploys should be automated upon push to master, because of the webhook in the GHA pipeline, which calls out to the karen-updater container of watchtower. But, to do manually;
 
-1. Login to NAS
-2. `cd /volume2/docker/george`
-3. `docker-compose pull karen`
-4. `docker-compose up --detach karen`
+1. SSH to george
+2. `cd ~/docker/george`
+3. `docker compose pull karen`
+4. `docker compose up --detach karen`
