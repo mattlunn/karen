@@ -1,7 +1,7 @@
-import config from '../../../config/app';
+import config from '../../../config';
 import logger from '../../../logger';
 import { stringify } from 'querystring';
-import { saveConfig } from '../../../helpers/config';
+import state from '../../../state';
 import { v4 as uuid } from 'uuid';
 
 interface TokenDetails {
@@ -30,14 +30,11 @@ export async function exchangeAuthenticationToken(grantType: 'refresh_token' | '
   } else {
     const json = await response.json() as { access_token: string; refresh_token: string; expires_in: number };
 
-    config.alexa.access_token = json.access_token;
-    config.alexa.refresh_token = json.refresh_token;
-
     if (process.env.NODE_ENV === 'development') {
       logger.debug(`Setting Alexa access token to '${json.access_token}' and refresh token to '${json.refresh_token}'`);
     }
 
-    saveConfig();
+    state.set('alexa.refresh_token', json.refresh_token);
 
     return {
       accessToken: json.access_token,
@@ -50,7 +47,7 @@ let tokenDetails: TokenDetails | undefined;
 
 export async function getAccessToken(): Promise<string> {
   if (!tokenDetails || Date.now() > tokenDetails.expiresAt) {
-    tokenDetails = await exchangeAuthenticationToken('refresh_token', config.alexa.refresh_token);
+    tokenDetails = await exchangeAuthenticationToken('refresh_token', state.getOrThrow('alexa.refresh_token'));
   }
 
   return tokenDetails.accessToken;

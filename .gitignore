@@ -1,7 +1,6 @@
 node_modules
-server/src/config/*
-!server/src/config/*.d.ts
 .env.prod
+server/src/config/*.json
 .idea
 .DS_Store
 *.pem

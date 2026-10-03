@@ -1,5 +1,5 @@
 import { Stay, User } from '../models';
-import config from '../config/app';
+import config from '../config';
 import dayjs from '../dayjs';
 import logger from '../logger';
 import { enqueueWorkItem } from '../queue';

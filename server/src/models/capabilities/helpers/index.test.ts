@@ -1,4 +1,4 @@
-jest.mock('../../../config/app', () => ({}), { virtual: true });
+jest.mock('../../../config', () => ({ __esModule: true, default: {} }));
 
 import { setBooleanProperty, setNumericProperty, setStringProperty } from './index';
 import { Device, Event } from '../..';

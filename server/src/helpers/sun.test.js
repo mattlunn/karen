@@ -1,11 +1,14 @@
 import getSunriseAndSunset from './sun';
 
-jest.mock('../config/app', () => ({
-  location: {
-    latitude: 51.50101,
-    longitude: -0.14159
+jest.mock('../config', () => ({
+  __esModule: true,
+  default: {
+    location: {
+      latitude: 51.50101,
+      longitude: -0.14159
+    }
   }
-}), { virtual: true });
+}));
 
 describe('getSunriseAndSunset', () => {
   it('should return sunset and sunrise of the current day', () => {

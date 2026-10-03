@@ -1,5 +1,6 @@
-import config from '../../config/app';
+import config from '../../config';
 import logger from '../../logger';
+import state from '../../state';
 import type { SmartcarSignalsResponse, SmartcarConnectionsResponse } from './types';
 
 const IAM_TOKEN_URL = 'https://iam.smartcar.com/oauth2/token';
@@ -78,7 +79,7 @@ async function v3Request(path: string, { method = 'GET', body, scoped = false }:
   };
 
   if (scoped) {
-    headers['sc-user-id'] = config.smartcar.user_id;
+    headers['sc-user-id'] = state.getOrThrow('smartcar.user_id');
   }
 
   if (body !== undefined) {
@@ -110,14 +111,14 @@ export async function listConnections(userId: string): Promise<SmartcarConnectio
  * response also includes the vehicle's make/model/year under `included.vehicle`.
  */
 export async function getSignals(): Promise<SmartcarSignalsResponse> {
-  return v3Request(`/vehicles/${config.smartcar.vehicle_id}/signals`, { scoped: true });
+  return v3Request(`/vehicles/${state.getOrThrow('smartcar.vehicle_id')}/signals`, { scoped: true });
 }
 
 /**
  * Set charge limit. Accepts percentage as 0-100 (SmartCar expects 0-1).
  */
 export async function setChargeLimit(limit: number): Promise<void> {
-  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/commands/charge/set-limit`, {
+  await v3Request(`/vehicles/${state.getOrThrow('smartcar.vehicle_id')}/commands/charge/set-limit`, {
     method: 'POST',
     body: { data: { attributes: { percent: limit } } },
     scoped: true,
@@ -128,7 +129,7 @@ export async function setChargeLimit(limit: number): Promise<void> {
  * Start charging.
  */
 export async function startCharge(): Promise<void> {
-  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/commands/charge/start`, {
+  await v3Request(`/vehicles/${state.getOrThrow('smartcar.vehicle_id')}/commands/charge/start`, {
     method: 'POST',
     scoped: true,
   });
@@ -138,7 +139,7 @@ export async function startCharge(): Promise<void> {
  * Stop charging.
  */
 export async function stopCharge(): Promise<void> {
-  await v3Request(`/vehicles/${config.smartcar.vehicle_id}/commands/charge/stop`, {
+  await v3Request(`/vehicles/${state.getOrThrow('smartcar.vehicle_id')}/commands/charge/stop`, {
     method: 'POST',
     scoped: true,
   });

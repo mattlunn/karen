@@ -1,4 +1,4 @@
-import config from '../../../../config/app';
+import config from '../../../../config';
 import { ApplianceProfile, composeProfiles } from './plan';
 
 function toProfile(a: typeof config.eink.appliance_schedule.appliances[number]): ApplianceProfile {

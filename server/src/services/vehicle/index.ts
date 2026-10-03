@@ -1,6 +1,7 @@
 import { Device } from '../../models';
 import { ElectricVehicleCapability, ScheduleChargeRequest, ScheduledCharge, ChargeType } from '../../models/capabilities';
-import config from '../../config/app';
+import config from '../../config';
+import state from '../../state';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import * as client from './client';
@@ -62,7 +63,8 @@ function resolveNextChargeSchedule(device: Device): ScheduleChargeRequest | null
 const NOT_CHARGING_ALERT_MINUTES = 15;
 
 export async function synchronize() {
-  let device = await Device.findByProviderId('vehicle', config.smartcar.vehicle_id);
+  const vehicleId = state.getOrThrow('smartcar.vehicle_id');
+  let device = await Device.findByProviderId('vehicle', vehicleId);
 
   try {
     const signals = await client.getSignals();
@@ -71,7 +73,7 @@ export async function synchronize() {
     if (!device) {
       device = Device.build({
         provider: 'vehicle',
-        providerId: config.smartcar.vehicle_id,
+        providerId: vehicleId,
         name: `${make} ${model}`,
       });
     }
@@ -447,7 +449,7 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
 // is for what isn't aligned: reacting to the cable being plugged in, and stopping
 // within five minutes of the charge limit rather than thirty.
 nowAndSetCron(createBackgroundTransaction('vehicle:charge-schedule', async () => {
-  const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
+  const device = await Device.findByProviderIdOrError('vehicle', state.getOrThrow('smartcar.vehicle_id'));
   const ev = device.getElectricVehicleCapability();
   const now = dayjs();
 
@@ -457,7 +459,7 @@ nowAndSetCron(createBackgroundTransaction('vehicle:charge-schedule', async () =>
 }), '*/5 * * * *');
 
 nowAndSetCron(createBackgroundTransaction('vehicle:monthly-mileage', async () => {
-  const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
+  const device = await Device.findByProviderIdOrError('vehicle', state.getOrThrow('smartcar.vehicle_id'));
   const capability = device.getElectricVehicleCapability();
   const startOfMonth = dayjs().startOf('month').toDate();
   const now = new Date();

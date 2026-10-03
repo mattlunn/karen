@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import config from '../config/app';
+import config from '../config';
 import { getPanel } from '../services/eink/registry';
 
 const router = Router();

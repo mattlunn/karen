@@ -1,9 +1,9 @@
 import express from 'express';
 import crypto from 'crypto';
-import config from '../config/app';
+import config from '../config';
 import { Device } from '../models';
 import logger from '../logger';
-import { saveConfig } from '../helpers/config';
+import state from '../state';
 import { processSignal } from '../services/vehicle/signals';
 import { synchronize } from '../services/vehicle';
 import { listConnections } from '../services/vehicle/client';
@@ -48,15 +48,16 @@ smartcarRouter.get('/callback', async (req, res) => {
       return res.status(400).send('No vehicle connections found for this user');
     }
 
-    config.smartcar.user_id = userId;
-    config.smartcar.vehicle_id = connection.relationships.vehicle.data.id;
-    saveConfig();
+    state.set({
+      'smartcar.user_id': userId,
+      'smartcar.vehicle_id': connection.relationships.vehicle.data.id
+    });
 
     logger.info(`SmartCar Connect successful - user ${userId}, vehicle ${connection.relationships.vehicle.data.id}`);
 
     res.send(`
       <h1>SmartCar Authorization Successful!</h1>
-      <p>User and vehicle have been saved to config/app.json</p>
+      <p>User and vehicle have been saved.</p>
       <p>You can close this window.</p>
     `);
   } catch (error) {
@@ -89,7 +90,7 @@ smartcarRouter.post('/webhook', async (req, res) => {
       return res.sendStatus(400);
     }
 
-    const device = await Device.findByProviderIdOrError('vehicle', config.smartcar.vehicle_id);
+    const device = await Device.findByProviderIdOrError('vehicle', state.getOrThrow('smartcar.vehicle_id'));
 
     for (const signal of req.body.data.signals) {
       try {

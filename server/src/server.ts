@@ -17,7 +17,9 @@ import auth from './middleware/auth';
 import buildVersion from './middleware/build-version';
 import setCron from './helpers/set-cron';
 import { Device } from './models';
-import config from './config/app';
+import config from './config';
+import { APP_CONFIG_PATH } from './config/paths';
+import { watchFile } from 'fs';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import compression from 'compression';
@@ -82,6 +84,13 @@ app.use((req, res) => {
 
 httpServer.listen(config.port, () => {
   logger.info(`Listening on ${config.port}`);
+});
+
+// Services and automations read config at load time with no teardown path, so a restart (by the
+// container's restart policy, or nodemon in dev) is the only way to apply a change.
+watchFile(APP_CONFIG_PATH, { interval: 5000 }, () => {
+  logger.info(`${APP_CONFIG_PATH} changed; exiting to restart and apply new config`);
+  process.exit(0);
 });
 
 setCron(createBackgroundTransaction('device:synchronize', () => Device.synchronize()), '0 0 * * *');

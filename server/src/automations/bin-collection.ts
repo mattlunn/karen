@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { timeString } from './schema';
 import bus, { NOTIFICATION_TO_ALL } from '../bus';
 import { Device } from '../models';
-import config from '../config/app';
+import config from '../config';
 import dayjs from '../dayjs';
 import logger from '../logger';
 import scheduleDaily from '../helpers/schedule-daily';

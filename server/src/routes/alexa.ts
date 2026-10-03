@@ -1,6 +1,6 @@
 import express from 'express';
 import newrelic from 'newrelic';
-import config from '../config/app';
+import config from '../config';
 import auth from '../middleware/auth';
 import logger from '../logger';
 import { smarthomeHandlers, AlexaRequestWithEndpoint, AlexaInvalidValueError } from '../services/alexa/smarthome';

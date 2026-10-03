@@ -1,5 +1,5 @@
 import Sequelize from 'sequelize';
-import config from '../config/app';
+import config from '../config';
 
 // Every event type that a scheduled job derives by aggregating raw time-series,
 // and therefore recomputes from scratch on its next run. Deleting these is safe;

@@ -1,6 +1,6 @@
 import { connect, MqttClient } from 'mqtt';
 import { Device } from '../../models';
-import config from '../../config/app';
+import config from '../../config';
 import logger from '../../logger';
 
 const TOPIC_PREFIX = 'shellies';
