@@ -441,8 +441,8 @@ export type EnergyPeriodTotalsApiResponse = {
 };
 
 // /api/insights/energy/device-summary endpoint - per sub-metered entity
-// ("Lights" rolled up) totals since the Agile switchover and over the last
-// month, followed by the "Other" residual and the whole-house "Total".
+// ("Lights" rolled up) and the "Other" residual, totalled since the Agile
+// switchover and over the last month, followed by the whole-house "Total".
 export type EnergyDeviceSummaryApiResponse = {
   lifetimeSince: string;
   rows: {
