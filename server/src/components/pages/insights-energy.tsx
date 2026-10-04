@@ -45,6 +45,14 @@ function PeriodCells({ totals }: { totals: EnergyPeriodTotalsApiResponse }) {
   );
 }
 
+function PeriodHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <Table.Th colSpan={3} ta="center">
+      <Box pb={4} style={{ borderBottom: '1px solid var(--table-border-color)' }}>{children}</Box>
+    </Table.Th>
+  );
+}
+
 function DeviceSummaryTable() {
   const { data, isPending, isError } = useEnergyDeviceSummaryInsights();
 
@@ -54,10 +62,11 @@ function DeviceSummaryTable() {
         <Table.ScrollContainer minWidth={640} mt="md">
           <Table striped>
             <Table.Thead>
-              <Table.Tr>
+              {/* Each PeriodHeading underlines itself, so the underlines break between the groups. */}
+              <Table.Tr style={{ borderBottom: 'none' }}>
                 <Table.Th rowSpan={2}>Device</Table.Th>
-                <Table.Th colSpan={3} ta="center">Lifetime (since {dayjs(data.lifetimeSince).format('D MMM YYYY')})</Table.Th>
-                <Table.Th colSpan={3} ta="center">Last month</Table.Th>
+                <PeriodHeading>Lifetime (since {dayjs(data.lifetimeSince).format('D MMM YYYY')})</PeriodHeading>
+                <PeriodHeading>Last month</PeriodHeading>
               </Table.Tr>
               <Table.Tr>
                 {['p/kWh', 'Usage', 'Cost', 'p/kWh', 'Usage', 'Cost'].map((heading, i) => (
