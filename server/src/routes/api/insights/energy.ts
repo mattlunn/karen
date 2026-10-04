@@ -24,6 +24,9 @@ import {
   daysInRange,
   daysToLineData,
   dailyUnitRate,
+  instantsInRange,
+  averageHistory,
+  instantsToLineData,
 } from '../history-helpers';
 import { AGILE_SWITCHOVER } from '../device-helpers';
 import { asyncMap } from '../../../helpers/array';
@@ -183,15 +186,50 @@ function selectorFromQuery(req: Request): TimeRangeSelector {
   };
 }
 
+// Bounds the payload for a month-long window; instantsInRange won't go finer
+// than the meter's own reporting cadence regardless.
+const POWER_TARGET_POINTS = 400;
+
 export async function powerHandler(req: Request, res: Response) {
   const selector = selectorFromQuery(req);
 
-  const devices = await Device.findByCapability('ENERGY_MONITOR');
+  const { meter, monitored } = await splitMeterFromMonitored();
+  const instants = instantsInRange(selector.since, selector.until, POWER_TARGET_POINTS);
+  const since = selector.since.toISOString();
+  const until = selector.until.toISOString();
 
-  const series = await asyncMap(devices.flatMap(monitoredLoadsFor), async ({ label, energyMonitor }) => ({
-    data: await mapNumericHistoryToResponse((hs) => energyMonitor.getCurrentPowerHistory(hs), selector),
-    label
+  const powerFor = async (energyMonitor: EnergyMonitorCapability) =>
+    averageHistory(await mapNumericHistoryToResponse((hs) => energyMonitor.getCurrentPowerHistory(hs), selector), instants);
+
+  // A load with no reading yet holds no power, so it contributes nothing to its
+  // group rather than voiding the whole group's total. Whole watts: the averaging
+  // makes every value fractional, and a chart of household draw has no use for it.
+  const sumAcross = (samples: (number | null)[][], index: number) =>
+    Math.round(samples.reduce((total, sample) => total + (sample[index] ?? 0), 0));
+
+  const groups = await asyncMap(groupMonitoredLoads(monitored), async ({ label, loads }) => ({
+    label,
+    samples: await asyncMap(loads, ({ energyMonitor }) => powerFor(energyMonitor))
   }));
+
+  const series: HistoryLineApiResponse[] = groups.map(({ label, samples }) => ({
+    label,
+    data: instantsToLineData(instants, since, until, (_instant, index) => sumAcross(samples, index))
+  }));
+
+  if (meter) {
+    const meterSamples = await powerFor(meter.getEnergyMonitorCapability());
+    const monitoredSamples = groups.flatMap(({ samples }) => samples);
+
+    // Not clamped at 0, matching the cost residual: a sub-meter reading above the
+    // whole-house meter should show as a dip rather than silently vanish.
+    series.push({
+      label: 'Other',
+      role: 'residual',
+      data: instantsToLineData(instants, since, until, (_instant, index) =>
+        Math.round(meterSamples[index] ?? 0) - sumAcross(monitoredSamples, index))
+    });
+  }
 
   res.json({ series } satisfies EnergyPowerInsightsApiResponse);
 }
