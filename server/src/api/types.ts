@@ -434,6 +434,26 @@ export type EnergyDeviceUnitRateDailyApiResponse = {
   lines: HistoryLineApiResponse[];
 };
 
+export type EnergyPeriodTotalsApiResponse = {
+  energyKwh: number;
+  costPence: number;
+  unitRate: number | null;
+};
+
+// /api/insights/energy/device-summary endpoint - per sub-metered entity
+// ("Lights" rolled up) totals since the Agile switchover and over the last
+// month, followed by the "Other" residual and the whole-house "Total".
+export type EnergyDeviceSummaryApiResponse = {
+  lifetimeSince: string;
+  rows: {
+    label: string;
+    deviceId: number | null;
+    role?: 'residual' | 'total';
+    lifetime: EnergyPeriodTotalsApiResponse;
+    lastMonth: EnergyPeriodTotalsApiResponse;
+  }[];
+};
+
 // /api/insights/energy/price-schedule endpoint - unit rate as a line with EV
 // and DHW run windows (actual and planned) shaded beneath it. Each band is
 // its own mode series so overlapping EV/DHW windows render honestly.

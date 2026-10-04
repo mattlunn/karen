@@ -4,6 +4,8 @@ import { EnergyMonitorCapability } from '../../../models/capabilities';
 import { Request, Response } from 'express';
 import {
   EnergyDeviceDailyBreakdownApiResponse,
+  EnergyDeviceSummaryApiResponse,
+  EnergyPeriodTotalsApiResponse,
   EnergyDeviceUnitRateDailyApiResponse,
   EnergyPowerInsightsApiResponse,
   EnergyPriceScheduleApiResponse,
@@ -23,6 +25,7 @@ import {
   daysToLineData,
   dailyUnitRate,
 } from '../history-helpers';
+import { AGILE_SWITCHOVER } from '../device-helpers';
 import { asyncMap } from '../../../helpers/array';
 import dayjs from '../../../dayjs';
 
@@ -193,7 +196,7 @@ export async function powerHandler(req: Request, res: Response) {
   res.json({ series } satisfies EnergyPowerInsightsApiResponse);
 }
 
-type Bucketed = { label: string; byDay: Map<string, number> };
+type Bucketed = { label: string; deviceId: number | null; byDay: Map<string, number> };
 
 // Every LIGHT-capable device collapses into a single "Lights" entry, listed first.
 async function bucketByEntity(
@@ -209,12 +212,12 @@ async function bucketByEntity(
     if (device.getCapabilities().includes('LIGHT')) {
       lights.push(buckets[i]);
     } else {
-      named.push({ label, byDay: buckets[i] });
+      named.push({ label, deviceId: device.id, byDay: buckets[i] });
     }
   });
 
   if (lights.length > 0) {
-    named.unshift({ label: 'Lights', byDay: mergeSum(lights) });
+    named.unshift({ label: 'Lights', deviceId: null, byDay: mergeSum(lights) });
   }
 
   return named;
@@ -328,4 +331,74 @@ export async function deviceUnitRateDailyHandler(req: Request, res: Response) {
   }
 
   res.json({ lines } satisfies EnergyDeviceUnitRateDailyApiResponse);
+}
+
+function periodTotals(
+  since: Date,
+  costPenceByDay: Map<string, number>,
+  energyByDay: Map<string, number>
+): EnergyPeriodTotalsApiResponse {
+  const sumSince = (byDay: Map<string, number>) => [...byDay]
+    .filter(([day]) => Date.parse(day) >= since.getTime())
+    .reduce((sum, [, value]) => sum + value, 0);
+
+  const costPence = sumSince(costPenceByDay);
+  const energyKwh = sumSince(energyByDay);
+
+  return { energyKwh, costPence, unitRate: energyKwh > 0 ? costPence / energyKwh : null };
+}
+
+export async function deviceSummaryHandler(req: Request, res: Response) {
+  const now = new Date();
+  const lastMonthSince = dayjs(now).subtract(1, 'month').startOf('day').toDate();
+  const selector = { since: AGILE_SWITCHOVER, until: now };
+  const { meter, monitored } = await splitMeterFromMonitored();
+
+  const costFor = (energyMonitor: EnergyMonitorCapability) =>
+    mapNumericHistoryToResponse((hs) => energyMonitor.getDayCostHistory(hs), selector).then(bucketByDay);
+  const energyFor = (energyMonitor: EnergyMonitorCapability) =>
+    mapNumericHistoryToResponse((hs) => energyMonitor.getDayEnergyHistory(hs), selector).then(bucketByDay);
+
+  const [costByEntity, energyByEntity] = await Promise.all([
+    bucketByEntity(costFor, monitored),
+    bucketByEntity(energyFor, monitored)
+  ]);
+
+  const toRow = (
+    label: string,
+    deviceId: number | null,
+    costPence: Map<string, number>,
+    energy: Map<string, number>
+  ) => ({
+    label,
+    deviceId,
+    lifetime: periodTotals(AGILE_SWITCHOVER, costPence, energy),
+    lastMonth: periodTotals(lastMonthSince, costPence, energy)
+  });
+
+  const rows: EnergyDeviceSummaryApiResponse['rows'] = costByEntity
+    .map(({ label, deviceId, byDay }, i) => toRow(label, deviceId, byDay, energyByEntity[i].byDay))
+    .sort((a, b) => b.lifetime.costPence - a.lifetime.costPence);
+
+  if (meter) {
+    const [meterCost, meterEnergy] = await Promise.all([
+      costFor(meter.getEnergyMonitorCapability()),
+      energyFor(meter.getEnergyMonitorCapability())
+    ]);
+
+    const monitoredCost = mergeSum(costByEntity.map((entity) => entity.byDay));
+    const monitoredEnergy = mergeSum(energyByEntity.map((entity) => entity.byDay));
+    const residual = (total: Map<string, number>, monitoredByDay: Map<string, number>) =>
+      new Map([...total].map(([day, value]) => [day, value - (monitoredByDay.get(day) ?? 0)]));
+
+    rows.push(
+      { ...toRow('Other', null, residual(meterCost, monitoredCost), residual(meterEnergy, monitoredEnergy)), role: 'residual' },
+      { ...toRow('Total', meter.id, meterCost, meterEnergy), role: 'total' }
+    );
+  }
+
+  res.json({
+    lifetimeSince: AGILE_SWITCHOVER.toISOString(),
+    rows
+  } satisfies EnergyDeviceSummaryApiResponse);
 }

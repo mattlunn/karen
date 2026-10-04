@@ -6,7 +6,7 @@ import { awaitPromises } from '../../helpers/promises';
 
 // Scoped to Agile-priced usage only, so a device that predates the switchover
 // doesn't drag in years of standard-tariff history and dilute the average.
-const AGILE_SWITCHOVER = dayjs.tz('2026-08-30 00:00', 'Europe/London').toDate();
+export const AGILE_SWITCHOVER = dayjs.tz('2026-08-30 00:00', 'Europe/London').toDate();
 
 async function calculateAgileAvgPrice(energyMonitor: EnergyMonitorCapability, since: Date): Promise<number | null> {
   const until = new Date();

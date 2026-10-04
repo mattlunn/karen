@@ -1,6 +1,9 @@
 import React, { useEffect } from 'react';
-import { Box, Title } from '@mantine/core';
-import { useEnergyDeviceCostDailyInsights, useEnergyPriceScheduleInsights, useEnergyDeviceUnitRateDailyInsights, useEnergyDeviceEnergyDailyInsights, useEnergyPowerInsights } from '../../hooks/queries/use-energy-insights';
+import { Anchor, Box, Table, Title } from '@mantine/core';
+import { Link } from 'react-router';
+import type { EnergyPeriodTotalsApiResponse } from '../../api/types';
+import { formatValueOrUnknown as v } from '../../helpers/format';
+import { useEnergyDeviceSummaryInsights, useEnergyDeviceCostDailyInsights, useEnergyPriceScheduleInsights, useEnergyDeviceUnitRateDailyInsights, useEnergyDeviceEnergyDailyInsights, useEnergyPowerInsights } from '../../hooks/queries/use-energy-insights';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
 import { DateRange, DateRangePreset } from '../date-range/types';
@@ -30,6 +33,54 @@ function GraphState({ isPending, isError, children }: { isPending: boolean; isEr
   }
 
   return <>{children}</>;
+}
+
+function PeriodCells({ totals }: { totals: EnergyPeriodTotalsApiResponse }) {
+  return (
+    <>
+      <Table.Td ta="right">{v(totals.unitRate, (rate) => `${rate.toFixed(1)}p`)}</Table.Td>
+      <Table.Td ta="right">{totals.energyKwh.toFixed(1)} kWh</Table.Td>
+      <Table.Td ta="right">£{(totals.costPence / 100).toFixed(2)}</Table.Td>
+    </>
+  );
+}
+
+function DeviceSummaryTable() {
+  const { data, isPending, isError } = useEnergyDeviceSummaryInsights();
+
+  return (
+    <GraphState isPending={isPending} isError={isError}>
+      {data && (
+        <Table.ScrollContainer minWidth={640} mt="md">
+          <Table striped>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th rowSpan={2}>Device</Table.Th>
+                <Table.Th colSpan={3} ta="center">Lifetime (since {dayjs(data.lifetimeSince).format('D MMM YYYY')})</Table.Th>
+                <Table.Th colSpan={3} ta="center">Last month</Table.Th>
+              </Table.Tr>
+              <Table.Tr>
+                {['p/kWh', 'Usage', 'Cost', 'p/kWh', 'Usage', 'Cost'].map((heading, i) => (
+                  <Table.Th key={i} ta="right">{heading}</Table.Th>
+                ))}
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {data.rows.map(({ label, deviceId, role, lifetime, lastMonth }) => (
+                <Table.Tr key={label} fw={role === 'total' ? 700 : undefined} c={role === 'residual' ? 'dimmed' : undefined}>
+                  <Table.Td>
+                    {deviceId === null ? label : <Anchor component={Link} to={`/device/${deviceId}`} inherit>{label}</Anchor>}
+                  </Table.Td>
+                  <PeriodCells totals={lifetime} />
+                  <PeriodCells totals={lastMonth} />
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
+      )}
+    </GraphState>
+  );
 }
 
 function UsageGraph() {
@@ -215,6 +266,8 @@ export default function EnergyInsights() {
   return (
     <>
       <Title order={2}>Energy</Title>
+
+      <DeviceSummaryTable />
 
       <DateRangeProvider defaultPreset="lastMonth">
         <Box mt="md">
