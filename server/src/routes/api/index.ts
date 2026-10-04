@@ -21,7 +21,7 @@ import deviceApplianceRouter from './device/appliance';
 import eventsRouter from './events';
 import insightsHeatingHandler from './insights/heating';
 import insightsSecurityHandler from './insights/security';
-import { powerHandler as insightsEnergyPowerHandler, deviceEnergyDailyHandler as insightsEnergyDeviceEnergyDailyHandler, deviceCostDailyHandler as insightsEnergyDeviceCostDailyHandler, priceScheduleHandler as insightsEnergyPriceScheduleHandler, deviceUnitRateDailyHandler as insightsEnergyDeviceUnitRateDailyHandler } from './insights/energy';
+import { powerHandler as insightsEnergyPowerHandler, deviceEnergyDailyHandler as insightsEnergyDeviceEnergyDailyHandler, deviceCostDailyHandler as insightsEnergyDeviceCostDailyHandler, priceScheduleHandler as insightsEnergyPriceScheduleHandler, deviceUnitRateDailyHandler as insightsEnergyDeviceUnitRateDailyHandler, deviceSummaryHandler as insightsEnergyDeviceSummaryHandler } from './insights/energy';
 
 const router = express.Router();
 
@@ -48,6 +48,7 @@ router.get('/insights/energy/device-energy-daily', insightsEnergyDeviceEnergyDai
 router.get('/insights/energy/device-cost-daily', insightsEnergyDeviceCostDailyHandler);
 router.get('/insights/energy/price-schedule', insightsEnergyPriceScheduleHandler);
 router.get('/insights/energy/device-unit-rate-daily', insightsEnergyDeviceUnitRateDailyHandler);
+router.get('/insights/energy/device-summary', insightsEnergyDeviceSummaryHandler);
 
 router.get('/snapshot/:id', async (req, res) => {
   res.type('jpeg').end(await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {

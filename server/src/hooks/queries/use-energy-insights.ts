@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { EnergyDeviceDailyBreakdownApiResponse, EnergyDeviceUnitRateDailyApiResponse, EnergyPowerInsightsApiResponse, EnergyPriceScheduleApiResponse } from '../../api/types';
+import type { EnergyDeviceDailyBreakdownApiResponse, EnergyDeviceSummaryApiResponse, EnergyDeviceUnitRateDailyApiResponse, EnergyPowerInsightsApiResponse, EnergyPriceScheduleApiResponse } from '../../api/types';
 import { fetchApi } from '../fetch-api';
 
 export function useEnergyPowerInsights(params: { since: string; until: string }) {
@@ -34,5 +34,12 @@ export function useEnergyDeviceUnitRateDailyInsights(params: { since: string; un
   return useQuery({
     queryKey: ['energy-insights-device-unit-rate-daily', params],
     queryFn: () => fetchApi<EnergyDeviceUnitRateDailyApiResponse>('/insights/energy/device-unit-rate-daily', params),
+  });
+}
+
+export function useEnergyDeviceSummaryInsights() {
+  return useQuery({
+    queryKey: ['energy-insights-device-summary'],
+    queryFn: () => fetchApi<EnergyDeviceSummaryApiResponse>('/insights/energy/device-summary'),
   });
 }
