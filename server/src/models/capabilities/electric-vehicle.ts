@@ -32,4 +32,10 @@ export class ElectricVehicleCapability extends ElectricVehicleBaseCapability {
       .provideElectricVehicleCapability!()
       .getChargePriceCap(this.device);
   }
+
+  getChargePriceCapCurve(): Promise<{ chargePercentage: number; pence: number }[]> {
+    return Device.getProviderCapabilities(this.device.provider)
+      .provideElectricVehicleCapability!()
+      .getChargePriceCapCurve();
+  }
 }

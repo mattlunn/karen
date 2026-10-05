@@ -95,6 +95,7 @@ export type CapabilityApiResponseBase = {
   chargeSchedule: { targetPercentage: number; targetTime: string; startsAt: string } | null;
   chargeType: 'BAU' | 'DEADLINE' | 'PLUNGE' | null;
   chargePriceCap: number | null;
+  chargePriceCapCurve: { chargePercentage: number; pence: number }[];
 } | {
   type: 'ALARM_SENSOR';
   isTriggered: BooleanStateApiResponse;

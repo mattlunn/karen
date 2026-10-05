@@ -14,6 +14,7 @@ import dayjs from '../../dayjs';
 import { humanDate } from '../../helpers/date';
 import { getDeviceMetrics, getDeviceGraphSections, MetricDisplayProvider } from '../capabilities';
 import BinScheduleCalendar from '../bin-schedule-calendar';
+import ChargePriceCapGraph from '../charge-price-cap-graph';
 
 export default function Device() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,7 @@ export default function Device() {
   const metrics = getDeviceMetrics(device);
   const sections = getDeviceGraphSections(device);
   const binCap = device.capabilities.find((c): c is Extract<CapabilityApiResponse, { type: 'BIN_COLLECTION' }> => c.type === 'BIN_COLLECTION');
+  const evCap = device.capabilities.find((c): c is Extract<CapabilityApiResponse, { type: 'ELECTRIC_VEHICLE' }> => c.type === 'ELECTRIC_VEHICLE');
 
   return (
     <>
@@ -68,6 +70,13 @@ export default function Device() {
           <Box mt="md">
             <Title order={3} className={styles.sectionHeader}>Schedule</Title>
             <BinScheduleCalendar bins={[{ name: device.name, capability: binCap }]} />
+          </Box>
+        )}
+
+        {evCap && (
+          <Box mt="md">
+            <Title order={3} className={styles.sectionHeader}>Charge Price Cap</Title>
+            <ChargePriceCapGraph capability={evCap} />
           </Box>
         )}
 
