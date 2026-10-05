@@ -192,6 +192,16 @@ Device.registerProvider('vehicle', {
 
         return baselinePenceFor(chargePercentage);
       },
+
+      async getChargePriceCapCurve(): Promise<{ chargePercentage: number; pence: number }[]> {
+        const baselinePenceFor = await getBaselinePenceFor(new Date());
+
+        return Array.from({ length: 101 }, (_, chargePercentage) => chargePercentage).flatMap((chargePercentage) => {
+          const pence = baselinePenceFor(chargePercentage);
+
+          return pence === null ? [] : [{ chargePercentage, pence }];
+        });
+      },
     };
   },
 

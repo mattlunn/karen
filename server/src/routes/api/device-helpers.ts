@@ -301,6 +301,7 @@ export async function getCapabilityData(device: Device, capability: string, inst
         chargeSchedule: ev.getNextChargeSchedule(),
         chargeType: ev.getChargeType(),
         chargePriceCap: ev.getChargePriceCap(),
+        chargePriceCapCurve: ev.getChargePriceCapCurve(),
       });
     }
 
