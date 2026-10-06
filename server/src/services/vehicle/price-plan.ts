@@ -147,9 +147,11 @@ export function planCharge(options: PlanOptions): ChargePlan {
   let deadline: Date | null = null;
 
   if (schedule !== null && isDeadlineEngaged({ ...options, schedule })) {
-    const hoursNeeded = hoursToCharge(chargePercentage, schedule.targetPercentage, chargeRatePercentPerHour) + startBufferHours;
+    const chargeHours = hoursToCharge(chargePercentage, schedule.targetPercentage, chargeRatePercentPerHour);
 
-    take(s => s.end <= schedule.targetTime, Math.ceil(hoursNeeded / slotHours));
+    if (chargeHours > 0) {
+      take(s => s.end <= schedule.targetTime, Math.ceil((chargeHours + startBufferHours) / slotHours));
+    }
 
     target = schedule.targetPercentage;
     deadline = schedule.targetTime;

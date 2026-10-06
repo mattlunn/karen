@@ -203,6 +203,16 @@ describe('planCharge - deadline', () => {
     expect(totalHours(withBuffer.slots)).toBeCloseTo(totalHours(withoutBuffer.slots) + 1);
   });
 
+  it('takes nothing, buffer included, once already at the target', () => {
+    const { slots: picked, target, deadline } = plan({
+      slots: run(0, 24, 5), chargePercentage: 100, startBufferHours: 12, schedule,
+    });
+
+    expect(picked).toEqual([]);
+    expect(target).toBe(100);
+    expect(deadline).toEqual(at(20));
+  });
+
   it('carries isEstimated through when the cheapest picked slot is a forecast one', () => {
     const slots = [
       ...run(0, 5, dear),
