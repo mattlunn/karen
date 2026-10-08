@@ -62,6 +62,22 @@ const getAccessToken = (() => {
   };
 })();
 
+let uncalibratedValveZoneIdsCache: { zoneIds: Set<number>, fetchedAt: Date } | null = null;
+
+// A valve whose battery is too flat to drive its motor stays stuck calibrating, while still reporting temperature and staying ONLINE.
+async function getUncalibratedValveZoneIds(client: TadoClient): Promise<Set<number>> {
+  if (uncalibratedValveZoneIdsCache === null || dayjs().diff(uncalibratedValveZoneIdsCache.fetchedAt, 'hour', true) >= 1) {
+    const zones = await client.getZones();
+
+    uncalibratedValveZoneIdsCache = {
+      zoneIds: new Set(zones.filter(z => z.devices.some(d => d.mountingState && d.mountingState.value !== 'CALIBRATED')).map(z => z.id)),
+      fetchedAt: new Date()
+    };
+  }
+
+  return uncalibratedValveZoneIdsCache.zoneIds;
+}
+
 async function updateTargetTemperatureFromOverlay(device: Device, overlay: ZoneOverlayResponse): Promise<void> {
   const thermostat = device.getThermostatCapability();
   const targetTemp = overlay.setting.power === 'ON' ? overlay.setting.temperature.celsius : 0;
@@ -224,6 +240,7 @@ nowAndSetCron(createBackgroundTransaction('tado:sync', async () => {
   const client = new TadoClient(await getAccessToken(), config.tado.home_id);
   const devices = await Device.findByProvider('tado');
   const zonesState = await client.getZonesState();
+  const uncalibratedValveZoneIds = await getUncalibratedValveZoneIds(client);
 
   for (const device of devices) {
     const thermostatCapability = device.getThermostatCapability();
@@ -242,7 +259,7 @@ nowAndSetCron(createBackgroundTransaction('tado:sync', async () => {
       thermostatCapability.setCurrentTemperatureState(zoneState.sensorDataPoints.insideTemperature.celsius, new Date(zoneState.sensorDataPoints.insideTemperature.timestamp)),
       thermostatCapability.setTargetTemperatureState(zoneState.setting.power === 'ON' ? zoneState.setting.temperature.celsius : 0, new Date()),
       thermostatCapability.setIsPassiveState(config.tado.passive_zone_names.includes(device.name)),
-      device.getConnectivityCapability().setIsConnectedState(zoneState.link.state === 'ONLINE')
+      device.getConnectivityCapability().setIsConnectedState(zoneState.link.state === 'ONLINE' && !uncalibratedValveZoneIds.has(Number(device.providerId)))
     ]);
   }
 }), config.tado.sync_cron);
