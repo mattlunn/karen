@@ -3,6 +3,7 @@ import { Device } from '../../models';
 import { ElectricVehicleCapability } from '../../models/capabilities';
 import config from '../../config';
 import { distanceInMetres } from '../../helpers/geo';
+import { getPreconditioningMode } from './preconditioning';
 
 const KM_TO_MILES = 0.621371;
 const HOME_RADIUS_METRES = 200;
@@ -51,6 +52,13 @@ export async function processVehicle(device: Device, vehicle: BridgeVehicle): Pr
     const location = { latitude: vehicle.location_latitude, longitude: vehicle.location_longitude };
 
     await ev.setIsAtHomeState(distanceInMetres(location, config.location) <= HOME_RADIUS_METRES);
+  }
+
+  if (vehicle.air_control_is_on !== null) {
+    const mode = getPreconditioningMode(vehicle, config.vehicle.preconditioning);
+
+    await ev.setIsPreheatingState(mode === 'HEAT');
+    await ev.setIsPrecoolingState(mode === 'COOL');
   }
 
   await updateCurrentPower(device);

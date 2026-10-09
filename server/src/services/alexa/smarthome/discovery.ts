@@ -1,7 +1,25 @@
 import { Device } from '../../../models';
+import { ElectricVehicleCapability } from '../../../models/capabilities';
 import { AlexaDiscoveryEndpoint } from './types';
 
 export const ALARM_ENDPOINT_ID = '044feaa3-6236-48b1-805f-56cd190ae96d';
+
+export const PRECONDITIONING_ENDPOINTS: Record<string, {
+  friendlyName: string;
+  getIsOn: (ev: ElectricVehicleCapability) => Promise<boolean>;
+  setIsOn: (ev: ElectricVehicleCapability, value: boolean) => Promise<void>;
+}> = {
+  '883d49a3-82c7-4857-ab77-aca411e43bfb': {
+    friendlyName: 'Car Heating',
+    getIsOn: (ev) => ev.getIsPreheating(),
+    setIsOn: (ev, value) => ev.setIsPreheating(value),
+  },
+  '47c0c085-e92a-41a4-b5e5-4ad42ba09919': {
+    friendlyName: 'Car Cooling',
+    getIsOn: (ev) => ev.getIsPrecooling(),
+    setIsOn: (ev, value) => ev.setIsPrecooling(value),
+  },
+};
 
 export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoint[] {
   const endpoints: AlexaDiscoveryEndpoint[] = [{
@@ -266,6 +284,39 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
           version: '3'
         }]
       });
+    } else if (capabilities.includes('ELECTRIC_VEHICLE')) {
+      for (const [endpointId, { friendlyName }] of Object.entries(PRECONDITIONING_ENDPOINTS)) {
+        endpoints.push({
+          friendlyName,
+          endpointId,
+          displayCategories: ['OTHER'],
+          manufacturerName: device.manufacturer,
+          description: `${friendlyName} for ${device.name}`,
+          capabilities: [{
+            type: 'AlexaInterface',
+            interface: 'Alexa.PowerController',
+            version: '3',
+            properties: {
+              supported: [{ name: 'powerState' }],
+              proactivelyReported: false,
+              retrievable: true
+            }
+          }, {
+            type: 'AlexaInterface',
+            interface: 'Alexa.EndpointHealth',
+            version: '3',
+            properties: {
+              supported: [{ name: 'connectivity' }],
+              proactivelyReported: false,
+              retrievable: true
+            }
+          }, {
+            type: 'AlexaInterface',
+            interface: 'Alexa',
+            version: '3'
+          }]
+        });
+      }
     } else if (capabilities.includes('BUTTON')) {
       const instanceId = `${device.id}-1`;
       endpoints.push({
