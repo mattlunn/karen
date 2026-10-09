@@ -96,10 +96,13 @@ async function refreshFromBridge(): Promise<{ device: Device; vehicle: BridgeVeh
       provider: 'vehicle',
       providerId: vehicle.id,
       name: vehicle.name ?? 'Car',
-      model: vehicle.model ?? undefined,
     });
 
     device.providerId = vehicle.id;
+
+    if (vehicle.model !== null) {
+      device.model = vehicle.model;
+    }
 
     await device.save();
     await processVehicle(device, vehicle);
