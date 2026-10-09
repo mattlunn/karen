@@ -63,7 +63,7 @@ function resolveNextChargeSchedule(device: Device): ScheduleChargeRequest | null
 const NOT_CHARGING_ALERT_MINUTES = 15;
 
 // Karen supports a single car, so the device is found by provider rather than
-// by Kia's vehicle id, which synchronize keeps up to date.
+// by Kia's vehicle id, which syncCarState keeps up to date.
 async function findVehicleDevice(): Promise<Device | undefined> {
   const [device] = await Device.findByProvider('vehicle');
 
@@ -80,7 +80,7 @@ async function findVehicleDeviceOrError(): Promise<Device> {
   return device;
 }
 
-async function refreshFromBridge(): Promise<{ device: Device; vehicle: BridgeVehicle }> {
+async function syncCarState(): Promise<{ device: Device; vehicle: BridgeVehicle }> {
   let device = await findVehicleDevice();
 
   try {
@@ -117,17 +117,6 @@ async function refreshFromBridge(): Promise<{ device: Device; vehicle: BridgeVeh
   }
 }
 
-export async function synchronize() {
-  const { device, vehicle } = await refreshFromBridge();
-
-  // The scheduler owns start/stop; the car's own limit is pinned at 100 so a
-  // start command always takes effect (and if Karen is down it charges to
-  // full rather than being stuck at a stale lower limit).
-  if (!isReadOnly() && vehicle.ev_charge_limits_ac !== null && vehicle.ev_charge_limits_ac !== 100) {
-    await device.getElectricVehicleCapability().setChargeLimit(100);
-  }
-}
-
 // Kia's own action status is usually UNKNOWN even when the command worked, so
 // the refreshed vehicle is what says whether it took effect.
 async function processCommandResponse(device: Device, response: BridgeCommandResponse): Promise<void> {
@@ -148,9 +137,11 @@ Device.registerProvider('vehicle', {
       },
 
       async setIsCharging(device: Device, value: boolean) {
-        const response = value ? await client.startCharge(device.providerId) : await client.stopCharge(device.providerId);
-
-        await processCommandResponse(device, response);
+        if (value) {
+          await processCommandResponse(device, await client.startCharge(device.providerId));
+        } else {
+          await processCommandResponse(device, await client.stopCharge(device.providerId));
+        }
       },
 
       getNextChargeSchedule(device: Device): ScheduledCharge | null {
@@ -229,7 +220,16 @@ Device.registerProvider('vehicle', {
     };
   },
 
-  synchronize,
+  async synchronize() {
+    const { device, vehicle } = await syncCarState();
+
+    // The scheduler owns start/stop; the car's own limit is pinned at 100 so a
+    // start command always takes effect (and if Karen is down it charges to
+    // full rather than being stuck at a stale lower limit).
+    if (!isReadOnly() && vehicle.ev_charge_limits_ac !== null && vehicle.ev_charge_limits_ac !== 100) {
+      await device.getElectricVehicleCapability().setChargeLimit(100);
+    }
+  },
 });
 
 async function clearNextChargeIfExpired(device: Device, now: Dayjs) {
@@ -482,12 +482,8 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
 // Aligned ticks hit the half-hour slot boundaries exactly, so the 5-minute cadence
 // is for what isn't aligned: reacting to the cable being plugged in, and stopping
 // within five minutes of the charge limit rather than thirty.
-// kia-connect-bridge serves the vehicle from memory, so polling it is cheap; how
-// often it refreshes from Kia is its own setting.
-nowAndSetCron(createBackgroundTransaction('vehicle:poll', refreshFromBridge), '* * * * *');
-
-nowAndSetCron(createBackgroundTransaction('vehicle:charge-schedule', async () => {
-  const device = await findVehicleDeviceOrError();
+nowAndSetCron(createBackgroundTransaction('vehicle:poll', async () => {
+  const { device } = await syncCarState();
   const ev = device.getElectricVehicleCapability();
   const now = dayjs();
 
