@@ -339,7 +339,6 @@ GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR:
 3. Create MySQL database and update config
 4. Run `npm run migrate`
 5. Run `npm run dev` (watch) and `npm run start:dev` (server) in separate terminals
-6. Use ngrok for public endpoint: `https://karen-dev.ngrok.io`
 
 ## New worktree setup
 
