@@ -9,8 +9,7 @@
 6. Run `npm run migrate` to initialize the database, or use MySQL Workbench to export & import a version of the database from live.
 7. Run `npm run dev` to setup `babel` to watch the src directory and build-as-you-save.
 8. In a separate terminal window, run `npm run start:dev` to setup `nodemon` to auto-restart the server when changes to `dist` (published by babel) are made. 
-9. Local development should be against `https://karen-dev.ngrok.io`, as services (e.g. LightWave) need a public endpoint to POST updates to. So install `ngrok` if you haven't got it already, login to their site and follow the getting started steps.
-10. For Alexa;
+9. For Alexa;
     1. Sign in to https://developer.amazon.com/alexa/console/ask/ as your dev user.
     2. Click into the dev skill, and go to Account Linking
     3. Add an element to the "authentication.clients" section of app.json, whose "client_id" and "client_secret" matches that in the Alexa Console.
