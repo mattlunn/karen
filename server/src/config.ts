@@ -141,12 +141,9 @@ export interface AppConfig {
     mpan: string;
     serial_number: string;
   };
-  smartcar: {
-    application_id: string;
-    client_id: string;
-    client_secret: string;
-    application_management_token: string;
-    secret: string;
+  vehicle: {
+    bridge_url: string;
+    bridge_api_token: string;
     charge_plan_mode: 'readonly' | 'readwrite' | undefined;
     default_charge_limit: number;
     charge_power_watts: number;

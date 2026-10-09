@@ -9,7 +9,7 @@ Karen is a full-stack TypeScript/Node.js smart home automation platform with:
 - **Frontend**: React 19 SPA
 - **Database**: MySQL with Sequelize ORM
 - **Real-time**: SSE (Server-Sent Events) for live device updates
-- **Integrations**: Alexa, Z-Wave, Tado, Shelly, TP-Link, UniFi, Synology, HomeConnect, eBUSd, Vehicle (SmartCar)
+- **Integrations**: Alexa, Z-Wave, Tado, Shelly, TP-Link, UniFi, Synology, HomeConnect, eBUSd, Vehicle (Kia Connect, via [kia-connect-bridge](https://github.com/mattlunn/kia-connect-bridge))
 
 ## Development Commands
 
@@ -232,7 +232,7 @@ See `ElectricVehicleCapability.getNextChargeSchedule` (`models/capabilities/elec
 
 - `app.json` — every setting, including `automations`. Read through `import config from '../config'` (`/server/src/config.ts`), which is typed by `AppConfig` (in the same file) and read-only. Secrets are stored inline, encrypted: `"api_key": { "$encrypted": "<base64>" }`. The loader decrypts them, so code just sees `config.octopus.api_key` as a string.
 - `config.key` — the AES-256-GCM key that decrypts them. Never read it, print it, or copy it.
-- `state.json` — values the app writes at runtime (OAuth refresh tokens, SmartCar IDs). See "Runtime state" below.
+- `state.json` — values the app writes at runtime (OAuth refresh tokens). See "Runtime state" below.
 
 `server.ts` watches `app.json` and calls `process.exit(0)` when it changes — nodemon (dev, via `start:dev`'s `--watch`) or the container's restart policy (prod) brings the process back up with the new config. There is no in-process hot-reload, since services and automations read config at load time with no teardown path. Editing PROD's `app.json` therefore changes real production behaviour (door locks, heating, lights) within seconds, so treat it accordingly. See `CLAUDE.local.md` for how this host reaches PROD's copy.
 
