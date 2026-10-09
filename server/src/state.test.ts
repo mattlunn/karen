@@ -35,13 +35,11 @@ describe('StateStore', () => {
     const state = new StateStore(path);
 
     state.set('tado.refresh_token', 'abc');
-    state.set('smartcar.user_id', 'user');
-    state.set('smartcar.vehicle_id', 'vehicle');
+    state.set('alexa.refresh_token', 'xyz');
 
     expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({
       'tado.refresh_token': 'abc',
-      'smartcar.user_id': 'user',
-      'smartcar.vehicle_id': 'vehicle'
+      'alexa.refresh_token': 'xyz'
     });
   });
 
@@ -56,6 +54,6 @@ describe('StateStore', () => {
   it('getOrThrow names the missing key', () => {
     const state = new StateStore(tempStatePath());
 
-    expect(() => state.getOrThrow('smartcar.vehicle_id')).toThrow('smartcar.vehicle_id has not been set');
+    expect(() => state.getOrThrow('alexa.refresh_token')).toThrow('alexa.refresh_token has not been set');
   });
 });

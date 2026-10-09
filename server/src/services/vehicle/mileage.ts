@@ -59,7 +59,7 @@ export async function calculateMonthlyEnergyConsumedKwh(
     }
   }
 
-  return (percentageConsumed / 100) * config.smartcar.battery_capacity_kwh;
+  return (percentageConsumed / 100) * config.vehicle.battery_capacity_kwh;
 }
 
 /**
