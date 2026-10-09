@@ -447,6 +447,18 @@
       "isWriteable": false,
       "type": "boolean",
       "eventName": "is_at_home"
+    },
+    {
+      "name": "IsPreheating",
+      "isWriteable": true,
+      "type": "boolean",
+      "eventName": "is_preheating"
+    },
+    {
+      "name": "IsPrecooling",
+      "isWriteable": true,
+      "type": "boolean",
+      "eventName": "is_precooling"
     }
   ]
 }, {

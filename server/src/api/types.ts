@@ -91,6 +91,8 @@ export type CapabilityApiResponseBase = {
   isCharging: BooleanStateApiResponse;
   isCableConnected: BooleanStateApiResponse;
   isAtHome: BooleanStateApiResponse;
+  isPreheating: BooleanStateApiResponse;
+  isPrecooling: BooleanStateApiResponse;
   odometer: NumericStateApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string; startsAt: string } | null;
   chargeType: 'BAU' | 'DEADLINE' | 'PLUNGE' | null;
@@ -243,7 +245,7 @@ export type HistoryApiResponse = {
 
 // Device Timeline API response types (/api/device/:id/timeline)
 export type DeviceTimelineEventApiResponse = {
-  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline' | 'switch-on' | 'appliance-started';
+  type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline' | 'switch-on' | 'appliance-started' | 'preheating-started' | 'precooling-started';
   timestamp: string;
   value?: string;
   instanceName?: string | null;
@@ -252,7 +254,7 @@ export type DeviceTimelineEventApiResponse = {
   timestamp: string;
   durationSeconds: number | null;
 } | {
-  type: 'switch-off' | 'appliance-finished';
+  type: 'switch-off' | 'appliance-finished' | 'preheating-stopped' | 'precooling-stopped';
   timestamp: string;
   durationSeconds: number;
 };
@@ -331,6 +333,8 @@ export interface ThermostatUpdateRequest {
 // /api/device/:id/vehicle endpoint
 export interface VehicleUpdateRequest {
   manualChargeSchedule?: { targetPercentage: number; targetTime: string } | null;
+  isPreheating?: boolean;
+  isPrecooling?: boolean;
 }
 
 // /api/device/:id/switch endpoint

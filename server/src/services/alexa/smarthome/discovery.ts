@@ -3,6 +3,19 @@ import { AlexaDiscoveryEndpoint } from './types';
 
 export const ALARM_ENDPOINT_ID = '044feaa3-6236-48b1-805f-56cd190ae96d';
 
+const PRECONDITIONING_FRIENDLY_NAMES = {
+  preheat: 'Car Heating',
+  precool: 'Car Cooling',
+};
+
+export type PreconditioningEndpointMode = keyof typeof PRECONDITIONING_FRIENDLY_NAMES;
+
+export function parsePreconditioningEndpointId(endpointId: string): { deviceId: string; mode: PreconditioningEndpointMode } | null {
+  const match = /^(\d+)-(preheat|precool)$/.exec(endpointId);
+
+  return match ? { deviceId: match[1], mode: match[2] as PreconditioningEndpointMode } : null;
+}
+
 export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoint[] {
   const endpoints: AlexaDiscoveryEndpoint[] = [{
     friendlyName: 'Alarm',
@@ -266,6 +279,39 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
           version: '3'
         }]
       });
+    } else if (capabilities.includes('ELECTRIC_VEHICLE')) {
+      for (const [mode, friendlyName] of Object.entries(PRECONDITIONING_FRIENDLY_NAMES)) {
+        endpoints.push({
+          friendlyName,
+          endpointId: `${device.id}-${mode}`,
+          displayCategories: ['OTHER'],
+          manufacturerName: device.manufacturer,
+          description: `${friendlyName} for ${device.name}`,
+          capabilities: [{
+            type: 'AlexaInterface',
+            interface: 'Alexa.PowerController',
+            version: '3',
+            properties: {
+              supported: [{ name: 'powerState' }],
+              proactivelyReported: false,
+              retrievable: true
+            }
+          }, {
+            type: 'AlexaInterface',
+            interface: 'Alexa.EndpointHealth',
+            version: '3',
+            properties: {
+              supported: [{ name: 'connectivity' }],
+              proactivelyReported: false,
+              retrievable: true
+            }
+          }, {
+            type: 'AlexaInterface',
+            interface: 'Alexa',
+            version: '3'
+          }]
+        });
+      }
     } else if (capabilities.includes('BUTTON')) {
       const instanceId = `${device.id}-1`;
       endpoints.push({

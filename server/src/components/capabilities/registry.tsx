@@ -44,7 +44,7 @@ import {
   faSoap,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
-import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, SwitchUpdateRequest, TelevisionUpdateRequest, MotionSensorUpdateRequest, ApplianceUpdateRequest } from '../../api/types';
+import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, SwitchUpdateRequest, TelevisionUpdateRequest, MotionSensorUpdateRequest, ApplianceUpdateRequest, VehicleUpdateRequest } from '../../api/types';
 import ThermostatModal from '../modals/thermostat-modal';
 import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import dayjs from '../../dayjs';
@@ -109,6 +109,16 @@ async function updateSwitch(deviceId: number, data: SwitchUpdateRequest): Promis
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error('Failed to update switch');
+  return res.json();
+}
+
+async function updateVehicle(deviceId: number, data: VehicleUpdateRequest): Promise<DeviceApiResponse> {
+  const res = await fetch(`/api/device/${deviceId}/vehicle`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update vehicle');
   return res.json();
 }
 
@@ -412,6 +422,28 @@ export const registry: CapabilityUIRegistry = {
           openModal(
             <ChargeScheduleModal device={device} capability={cap} closeModal={closeModal} />
           );
+        },
+      }),
+      createCapability(cap.isPreheating, {
+        icon: faFire,
+        title: 'Preheating',
+        value: (e) => e.value ? 'On' : 'Off',
+        iconColor: '#ff6f22',
+        iconHighlighted: (e) => e.value,
+        onIconClick: async ({ queryClient }) => {
+          const data = await updateVehicle(device.id, { isPreheating: !cap.isPreheating.value });
+          updateDeviceCache(queryClient, device.id, data);
+        },
+      }),
+      createCapability(cap.isPrecooling, {
+        icon: faSnowflake,
+        title: 'Precooling',
+        value: (e) => e.value ? 'On' : 'Off',
+        iconColor: '#04A7F4',
+        iconHighlighted: (e) => e.value,
+        onIconClick: async ({ queryClient }) => {
+          const data = await updateVehicle(device.id, { isPrecooling: !cap.isPrecooling.value });
+          updateDeviceCache(queryClient, device.id, data);
         },
       }),
     ],

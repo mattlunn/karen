@@ -165,6 +165,31 @@ export default async function (req: Request<{ id: string }>, res: Response, next
         break;
       }
 
+      case 'ELECTRIC_VEHICLE': {
+        const ev = device.getElectricVehicleCapability();
+        const modes = [
+          { getHistory: (hs: HistorySelector) => ev.getIsPreheatingHistory(hs), started: 'preheating-started', stopped: 'preheating-stopped' },
+          { getHistory: (hs: HistorySelector) => ev.getIsPrecoolingHistory(hs), started: 'precooling-started', stopped: 'precooling-stopped' },
+        ] as const;
+
+        for (const { getHistory, started, stopped } of modes) {
+          historyPromises.push(
+            getHistory(historySelector).then(history => {
+              for (const event of history) {
+                events.push({ type: started, timestamp: event.start.toISOString() });
+
+                if (event.end) {
+                  const durationSeconds = dayjs(event.end).diff(event.start, 'second');
+
+                  events.push({ type: stopped, timestamp: event.end.toISOString(), durationSeconds });
+                }
+              }
+            })
+          );
+        }
+        break;
+      }
+
       case 'HEAT_PUMP': {
         const heatPump = device.getHeatPumpCapability();
         historyPromises.push(

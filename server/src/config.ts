@@ -12,6 +12,13 @@ export interface AutomationConfig {
   parameters?: Record<string, unknown>;
 }
 
+export interface PreconditioningPreset {
+  temperature: number;
+  defrost: boolean;
+  rear_window_heater: boolean;
+  steering_wheel_heater: boolean;
+}
+
 export interface AppConfig {
   alexa: {
     id: string;
@@ -160,6 +167,11 @@ export interface AppConfig {
     charge_deadline_engage_days: number;
     charge_baseline_min_percentile: number;
     charge_baseline_max_percentile: number;
+    preconditioning: {
+      duration_minutes: number;
+      heat: PreconditioningPreset;
+      cool: PreconditioningPreset;
+    };
   };
   eink: {
     secret: string;

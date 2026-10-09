@@ -7,6 +7,7 @@ import * as client from './client';
 import { processVehicle, isAtHome } from './vehicle-state';
 import type { BridgeCommandResponse, BridgeVehicle } from './types';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
+import { buildClimateOptions, PreconditioningMode } from './preconditioning';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
 import { planCharge, isDeadlineEngaged, deadlineEngagesAt, isWithinSlots, ChargePlan } from './price-plan';
 import { toPriceSlots, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
@@ -125,6 +126,25 @@ async function processCommandResponse(device: Device, response: BridgeCommandRes
   await processVehicle(device, response.vehicle);
 }
 
+async function setPreconditioning(device: Device, mode: PreconditioningMode, value: boolean): Promise<void> {
+  const { preconditioning } = config.vehicle;
+
+  if (value) {
+    const preset = mode === 'HEAT' ? preconditioning.heat : preconditioning.cool;
+
+    await processCommandResponse(device, await client.startClimate(device.providerId, buildClimateOptions(preset, preconditioning.duration_minutes)));
+    return;
+  }
+
+  // Turning one mode off mustn't stop the other.
+  const ev = device.getElectricVehicleCapability();
+  const isOtherModeOn = mode === 'HEAT' ? await ev.getIsPrecooling() : await ev.getIsPreheating();
+
+  if (!isOtherModeOn) {
+    await processCommandResponse(device, await client.stopClimate(device.providerId));
+  }
+}
+
 Device.registerProvider('vehicle', {
   getCapabilities() {
     return ['ELECTRIC_VEHICLE', 'ENERGY_MONITOR', 'CONNECTIVITY'];
@@ -142,6 +162,14 @@ Device.registerProvider('vehicle', {
         } else {
           await processCommandResponse(device, await client.stopCharge(device.providerId));
         }
+      },
+
+      setIsPreheating(device: Device, value: boolean) {
+        return setPreconditioning(device, 'HEAT', value);
+      },
+
+      setIsPrecooling(device: Device, value: boolean) {
+        return setPreconditioning(device, 'COOL', value);
       },
 
       getNextChargeSchedule(device: Device): ScheduledCharge | null {

@@ -35,6 +35,14 @@ router.put<Record<string, never>, DeviceApiResponse, VehicleUpdateRequest>('/', 
     await ev.setManualChargeSchedule(body.manualChargeSchedule ?? null);
   }
 
+  if (body.isPreheating !== undefined) {
+    await ev.setIsPreheating(body.isPreheating);
+  }
+
+  if (body.isPrecooling !== undefined) {
+    await ev.setIsPrecooling(body.isPrecooling);
+  }
+
   const deviceResponse = await mapDeviceToResponse(device);
 
   const response: DeviceApiResponse = {

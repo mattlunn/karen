@@ -1,5 +1,5 @@
 import config from '../../config';
-import type { BridgeCommandResponse, BridgeVehicle } from './types';
+import type { BridgeCommandResponse, BridgeVehicle, ClimateOptions } from './types';
 
 async function request<T>(path: string, method: 'GET' | 'POST' = 'GET', body?: unknown): Promise<T> {
   const headers: Record<string, string> = {
@@ -38,4 +38,12 @@ export function stopCharge(vehicleId: string): Promise<BridgeCommandResponse> {
 
 export function setChargeLimits(vehicleId: string, limit: number): Promise<BridgeCommandResponse> {
   return request(`/vehicles/${vehicleId}/set_charge_limits`, 'POST', { ac: limit, dc: limit });
+}
+
+export function startClimate(vehicleId: string, options: ClimateOptions): Promise<BridgeCommandResponse> {
+  return request(`/vehicles/${vehicleId}/start_climate`, 'POST', options);
+}
+
+export function stopClimate(vehicleId: string): Promise<BridgeCommandResponse> {
+  return request(`/vehicles/${vehicleId}/stop_climate`, 'POST');
 }

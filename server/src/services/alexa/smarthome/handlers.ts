@@ -24,7 +24,9 @@ import {
   AlexaLaunchTargetRequest,
   AlexaRequestEndpoint
 } from './types';
-import { ALARM_ENDPOINT_ID, buildDiscoveryEndpoints } from './discovery';
+import { ALARM_ENDPOINT_ID, buildDiscoveryEndpoints, parsePreconditioningEndpointId, PreconditioningEndpointMode } from './discovery';
+import logger from '../../../logger';
+import bus, { NOTIFICATION_TO_ADMINS } from '../../../bus';
 
 export type AlexaRequestWithEndpoint = Extract<AlexaSmartHomeRequest, { endpoint: AlexaRequestEndpoint }>;
 
@@ -162,6 +164,27 @@ async function createTelevisionResponseProperties(device: Device, sampleTime: Da
   }];
 }
 
+async function createPreconditioningResponseProperties(device: Device, mode: PreconditioningEndpointMode, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
+  const ev = device.getElectricVehicleCapability();
+
+  const [isOn, connectivity] = await Promise.all([
+    mode === 'preheat' ? ev.getIsPreheating() : ev.getIsPrecooling(),
+    getConnectivityValue(device)
+  ]);
+
+  return [{
+    namespace: 'Alexa.PowerController',
+    name: 'powerState',
+    value: isOn ? 'ON' : 'OFF',
+    timeOfSample: sampleTime.toISOString()
+  }, {
+    namespace: 'Alexa.EndpointHealth',
+    name: 'connectivity',
+    value: { value: connectivity },
+    timeOfSample: sampleTime.toISOString()
+  }];
+}
+
 async function createAlarmResponseProperties(sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
   const activeArming = await Arming.getActiveArming();
   const mode: AlarmMode = activeArming ? activeArming.mode as AlarmMode : 'OFF';
@@ -238,6 +261,14 @@ export async function handleReportState(request: AlexaReportStateRequest) {
     return stateReport(request, then, await createAlarmResponseProperties(then));
   }
 
+  const preconditioning = parsePreconditioningEndpointId(endpointId);
+
+  if (preconditioning) {
+    const device = await Device.findByIdOrError(preconditioning.deviceId);
+
+    return stateReport(request, then, await createPreconditioningResponseProperties(device, preconditioning.mode, then));
+  }
+
   const device = await Device.findByIdOrError(endpointId);
   const capabilities = device.getCapabilities();
 
@@ -254,7 +285,42 @@ export async function handleReportState(request: AlexaReportStateRequest) {
   }
 }
 
+async function handlePreconditioningPowerControl(request: AlexaTurnOnOffRequest, deviceId: string, mode: PreconditioningEndpointMode) {
+  const device = await Device.findByIdOrError(deviceId);
+  const ev = device.getElectricVehicleCapability();
+  const turnOn = request.header.name === 'TurnOn';
+  const then = new Date();
+
+  // Not awaited: the car takes ~35s to act, and Alexa gives up on a response after 8s.
+  (mode === 'preheat' ? ev.setIsPreheating(turnOn) : ev.setIsPrecooling(turnOn)).catch((error) => {
+    logger.error(error);
+
+    bus.emit(NOTIFICATION_TO_ADMINS, {
+      message: `Alexa couldn't turn ${turnOn ? 'on' : 'off'} ${mode === 'preheat' ? 'preheating' : 'precooling'} for ${device.name}`,
+      priority: 1,
+    });
+  });
+
+  return controlResponse(request, then, [{
+    namespace: 'Alexa.PowerController',
+    name: 'powerState',
+    value: turnOn ? 'ON' : 'OFF',
+    timeOfSample: then.toISOString()
+  }, {
+    namespace: 'Alexa.EndpointHealth',
+    name: 'connectivity',
+    value: { value: await getConnectivityValue(device) },
+    timeOfSample: then.toISOString()
+  }]);
+}
+
 export async function handlePowerControl(request: AlexaTurnOnOffRequest) {
+  const preconditioning = parsePreconditioningEndpointId(request.endpoint.endpointId);
+
+  if (preconditioning) {
+    return handlePreconditioningPowerControl(request, preconditioning.deviceId, preconditioning.mode);
+  }
+
   const device = await Device.findByIdOrError(request.endpoint.endpointId);
   const capabilities = device.getCapabilities();
   const turnOn = request.header.name === 'TurnOn';
