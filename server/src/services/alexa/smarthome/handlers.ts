@@ -24,7 +24,7 @@ import {
   AlexaLaunchTargetRequest,
   AlexaRequestEndpoint
 } from './types';
-import { ALARM_ENDPOINT_ID, buildDiscoveryEndpoints, parsePreconditioningEndpointId, PreconditioningEndpointMode } from './discovery';
+import { ALARM_ENDPOINT_ID, PRECONDITIONING_ENDPOINTS, buildDiscoveryEndpoints } from './discovery';
 import logger from '../../../logger';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../../bus';
 
@@ -164,11 +164,21 @@ async function createTelevisionResponseProperties(device: Device, sampleTime: Da
   }];
 }
 
-async function createPreconditioningResponseProperties(device: Device, mode: PreconditioningEndpointMode, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
-  const ev = device.getElectricVehicleCapability();
+async function findVehicleOrError(): Promise<Device> {
+  const [device] = await Device.findByCapability('ELECTRIC_VEHICLE');
+
+  if (!device) {
+    throw new Error('No electric vehicle device found');
+  }
+
+  return device;
+}
+
+async function createPreconditioningResponseProperties(endpointId: string, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
+  const device = await findVehicleOrError();
 
   const [isOn, connectivity] = await Promise.all([
-    mode === 'preheat' ? ev.getIsPreheating() : ev.getIsPrecooling(),
+    PRECONDITIONING_ENDPOINTS[endpointId].getIsOn(device.getElectricVehicleCapability()),
     getConnectivityValue(device)
   ]);
 
@@ -261,12 +271,8 @@ export async function handleReportState(request: AlexaReportStateRequest) {
     return stateReport(request, then, await createAlarmResponseProperties(then));
   }
 
-  const preconditioning = parsePreconditioningEndpointId(endpointId);
-
-  if (preconditioning) {
-    const device = await Device.findByIdOrError(preconditioning.deviceId);
-
-    return stateReport(request, then, await createPreconditioningResponseProperties(device, preconditioning.mode, then));
+  if (endpointId in PRECONDITIONING_ENDPOINTS) {
+    return stateReport(request, then, await createPreconditioningResponseProperties(endpointId, then));
   }
 
   const device = await Device.findByIdOrError(endpointId);
@@ -285,18 +291,18 @@ export async function handleReportState(request: AlexaReportStateRequest) {
   }
 }
 
-async function handlePreconditioningPowerControl(request: AlexaTurnOnOffRequest, deviceId: string, mode: PreconditioningEndpointMode) {
-  const device = await Device.findByIdOrError(deviceId);
-  const ev = device.getElectricVehicleCapability();
+async function handlePreconditioningPowerControl(request: AlexaTurnOnOffRequest) {
+  const device = await findVehicleOrError();
+  const { friendlyName, setIsOn } = PRECONDITIONING_ENDPOINTS[request.endpoint.endpointId];
   const turnOn = request.header.name === 'TurnOn';
   const then = new Date();
 
   // Not awaited: the car takes ~35s to act, and Alexa gives up on a response after 8s.
-  (mode === 'preheat' ? ev.setIsPreheating(turnOn) : ev.setIsPrecooling(turnOn)).catch((error) => {
+  setIsOn(device.getElectricVehicleCapability(), turnOn).catch((error) => {
     logger.error(error);
 
     bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: `Alexa couldn't turn ${turnOn ? 'on' : 'off'} ${mode === 'preheat' ? 'preheating' : 'precooling'} for ${device.name}`,
+      message: `Alexa couldn't turn ${turnOn ? 'on' : 'off'} ${friendlyName}`,
       priority: 1,
     });
   });
@@ -315,10 +321,8 @@ async function handlePreconditioningPowerControl(request: AlexaTurnOnOffRequest,
 }
 
 export async function handlePowerControl(request: AlexaTurnOnOffRequest) {
-  const preconditioning = parsePreconditioningEndpointId(request.endpoint.endpointId);
-
-  if (preconditioning) {
-    return handlePreconditioningPowerControl(request, preconditioning.deviceId, preconditioning.mode);
+  if (request.endpoint.endpointId in PRECONDITIONING_ENDPOINTS) {
+    return handlePreconditioningPowerControl(request);
   }
 
   const device = await Device.findByIdOrError(request.endpoint.endpointId);

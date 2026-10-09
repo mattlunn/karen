@@ -1,20 +1,25 @@
 import { Device } from '../../../models';
+import { ElectricVehicleCapability } from '../../../models/capabilities';
 import { AlexaDiscoveryEndpoint } from './types';
 
 export const ALARM_ENDPOINT_ID = '044feaa3-6236-48b1-805f-56cd190ae96d';
 
-const PRECONDITIONING_FRIENDLY_NAMES = {
-  preheat: 'Car Heating',
-  precool: 'Car Cooling',
+export const PRECONDITIONING_ENDPOINTS: Record<string, {
+  friendlyName: string;
+  getIsOn: (ev: ElectricVehicleCapability) => Promise<boolean>;
+  setIsOn: (ev: ElectricVehicleCapability, value: boolean) => Promise<void>;
+}> = {
+  '883d49a3-82c7-4857-ab77-aca411e43bfb': {
+    friendlyName: 'Car Heating',
+    getIsOn: (ev) => ev.getIsPreheating(),
+    setIsOn: (ev, value) => ev.setIsPreheating(value),
+  },
+  '47c0c085-e92a-41a4-b5e5-4ad42ba09919': {
+    friendlyName: 'Car Cooling',
+    getIsOn: (ev) => ev.getIsPrecooling(),
+    setIsOn: (ev, value) => ev.setIsPrecooling(value),
+  },
 };
-
-export type PreconditioningEndpointMode = keyof typeof PRECONDITIONING_FRIENDLY_NAMES;
-
-export function parsePreconditioningEndpointId(endpointId: string): { deviceId: string; mode: PreconditioningEndpointMode } | null {
-  const match = /^(\d+)-(preheat|precool)$/.exec(endpointId);
-
-  return match ? { deviceId: match[1], mode: match[2] as PreconditioningEndpointMode } : null;
-}
 
 export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoint[] {
   const endpoints: AlexaDiscoveryEndpoint[] = [{
@@ -280,10 +285,10 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
         }]
       });
     } else if (capabilities.includes('ELECTRIC_VEHICLE')) {
-      for (const [mode, friendlyName] of Object.entries(PRECONDITIONING_FRIENDLY_NAMES)) {
+      for (const [endpointId, { friendlyName }] of Object.entries(PRECONDITIONING_ENDPOINTS)) {
         endpoints.push({
           friendlyName,
-          endpointId: `${device.id}-${mode}`,
+          endpointId,
           displayCategories: ['OTHER'],
           manufacturerName: device.manufacturer,
           description: `${friendlyName} for ${device.name}`,
