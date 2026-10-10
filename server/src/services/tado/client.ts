@@ -122,6 +122,10 @@ export type ZoneDevice = {
   characteristics: {
     capabilities: string[];
   };
+  mountingState?: {
+    value: string;
+    timestamp: ISODateTime;
+  };
   batteryState?: 'NORMAL' | 'LOW';
 };
 
