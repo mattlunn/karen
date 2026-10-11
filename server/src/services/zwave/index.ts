@@ -201,11 +201,11 @@ deviceHandlers.set('Yale SD-L1000-CH', [
   }
 ]);
 
-async function getClient() {
-  const client = new ZWaveClient(config.zwave);
-  await client.connect();
+// Pending during a connection attempt, rejected while waiting to retry after a disconnect.
+let currentClient: Promise<ZWaveClient>;
 
-  return client;
+function getClient() {
+  return currentClient;
 }
 
 (async function () {
@@ -262,13 +262,17 @@ async function getClient() {
           }
         });
 
-        client.connect().then(() => {
+        currentClient = client.connect().then(() => client);
+        currentClient.then(() => {
           logger.info('ZWave client connection established');
           backoffIndex = 0;
         }, rej);
       });
     } catch (e) {
       const timeout = BACKOFFS[Math.min(backoffIndex++, BACKOFFS.length - 1)];
+
+      currentClient = Promise.reject(e);
+      currentClient.catch(() => {});
 
       newrelic.noticeError(e as Error);
       logger.error(e, `Zwave client disconnected; waiting ${timeout} seconds before retrying...`);
