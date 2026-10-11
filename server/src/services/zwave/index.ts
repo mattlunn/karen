@@ -18,11 +18,11 @@ function sensitivityToZwave(sensitivity: number): number {
 }
 
 const deviceCapabilitiesMap = new Map<string, Capability[]>([
-  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'MOTION_SENSOR_SENSITIVITY', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
+  ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'MOTION_SENSOR_SENSITIVITY', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
   ['Fibargroup FGD212', ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY']],
-  ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']],
+  ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
   ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
-  ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR', 'CONNECTIVITY']]
+  ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']]
 ]);
 
 // zwave-js NodeStatus: 0=Unknown, 1=Asleep, 2=Awake, 3=Dead, 4=Alive.
@@ -45,6 +45,20 @@ type DeviceHandler<T extends boolean | number | string = boolean | number | stri
 };
 
 const deviceHandlers = new Map<string, DeviceHandler<any>[]>();
+
+const BATTERY_COMMAND_CLASS = 128;
+
+// zwave-js reports a low battery as a "battery low" notification rather than a level,
+// so any level report means the battery is no longer low.
+const batteryLevelHandler: DeviceHandler<number> = {
+  propertyKey: 'Battery.level',
+  propertyMapper(device: Device, value: number) {
+    return Promise.all([
+      device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value),
+      device.getBatteryLowIndicatorCapability().setIsBatteryLowState(false)
+    ]);
+  }
+};
 
 deviceHandlers.set('Fibargroup FGMS001', [
   // Some of the sensors trigger the first event for motion, others trigger the 2nd.
@@ -74,12 +88,7 @@ deviceHandlers.set('Fibargroup FGMS001', [
       return device.getLightSensorCapability().setIlluminanceState(value);
     }
   },
-  {
-    propertyKey: 'Battery.level',
-    propertyMapper(device: Device, value: number) {
-      return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
-    }
-  },
+  batteryLevelHandler,
   {
     propertyKey: 'Configuration.1',
     async propertyMapper(device: Device, value: number) {
@@ -151,21 +160,11 @@ deviceHandlers.set('Zooz ZSE44', [
       return device.getTemperatureSensorCapability().setCurrentTemperatureState(value);
     }
   },
-  {
-    propertyKey: 'Battery.level',
-    propertyMapper(device: Device, value: number) {
-      return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
-    }
-  }
+  batteryLevelHandler
 ]);
 
 deviceHandlers.set('Fibargroup FGPB-101', [
-  {
-    propertyKey: 'Battery.level',
-    propertyMapper(device: Device, value: number) {
-      return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
-    }
-  }
+  batteryLevelHandler
 ]);
 
 deviceHandlers.set('Yale SD-L1000-CH', [
@@ -187,18 +186,7 @@ deviceHandlers.set('Yale SD-L1000-CH', [
       return Promise.resolve();
     }
   },
-  {
-    propertyKey: 'Battery.isLow',
-    propertyMapper(device: Device, value: boolean) {
-      return device.getBatteryLowIndicatorCapability().setIsBatteryLowState(value);
-    }
-  },
-  {
-    propertyKey: 'Battery.level',
-    propertyMapper(device: Device, value: number) {
-      return device.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value);
-    }
-  }
+  batteryLevelHandler
 ]);
 
 const getClient = (function () {
@@ -246,6 +234,12 @@ const getClient = (function () {
                   eventHandler.propertyMapper(device, data.args.newValue, data.args.prevValue);
                 }
               }
+            }
+
+            if (data.source === 'node' && data.event === 'notification' && data.ccId === BATTERY_COMMAND_CLASS && data.args.eventType === 'battery low') {
+              const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
+
+              await device.getBatteryLowIndicatorCapability().setIsBatteryLowState(true);
             }
 
             if (data.source === 'node' && data.event === 'value notification') {
