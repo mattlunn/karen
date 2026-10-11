@@ -377,8 +377,8 @@ export async function deviceSummaryHandler(req: Request, res: Response) {
   });
 
   const rows: EnergyDeviceSummaryApiResponse['rows'] = costByEntity
-    .map(({ label, deviceId, byDay }, i) => toRow(label, deviceId, byDay, energyByEntity[i].byDay))
-    .sort((a, b) => b.lifetime.costPence - a.lifetime.costPence);
+    .map(({ label, deviceId, byDay }, i) => toRow(label, deviceId, byDay, energyByEntity[i].byDay));
+  let totalRow: EnergyDeviceSummaryApiResponse['rows'][number] | null = null;
 
   if (meter) {
     const [meterCost, meterEnergy] = await Promise.all([
@@ -391,10 +391,14 @@ export async function deviceSummaryHandler(req: Request, res: Response) {
     const residual = (total: Map<string, number>, monitoredByDay: Map<string, number>) =>
       new Map([...total].map(([day, value]) => [day, value - (monitoredByDay.get(day) ?? 0)]));
 
-    rows.push(
-      { ...toRow('Other', null, residual(meterCost, monitoredCost), residual(meterEnergy, monitoredEnergy)), role: 'residual' },
-      { ...toRow('Total', meter.id, meterCost, meterEnergy), role: 'total' }
-    );
+    rows.push({ ...toRow('Other', null, residual(meterCost, monitoredCost), residual(meterEnergy, monitoredEnergy)), role: 'residual' });
+    totalRow = { ...toRow('Total', meter.id, meterCost, meterEnergy), role: 'total' };
+  }
+
+  rows.sort((a, b) => b.lifetime.costPence - a.lifetime.costPence);
+
+  if (totalRow) {
+    rows.push(totalRow);
   }
 
   res.json({
