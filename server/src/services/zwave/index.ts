@@ -201,81 +201,85 @@ deviceHandlers.set('Yale SD-L1000-CH', [
   }
 ]);
 
-async function getClient() {
-  const client = new ZWaveClient(config.zwave);
-  await client.connect();
+const getClient = (function () {
+  // Pending during a connection attempt, rejected while waiting to retry after a disconnect.
+  let currentClient: Promise<ZWaveClient>;
 
-  return client;
-}
+  (async function () {
+    const BACKOFFS = [1, 5, 60];
+    let backoffIndex = 0;
 
-(async function () {
-  const BACKOFFS = [1, 5, 60];
-  let backoffIndex = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      logger.info('Starting ZWave client...');
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    logger.info('Starting ZWave client...');
+      try {
+        await new Promise((_, rej) => {
+          const client = new ZWaveClient(config.zwave);
 
-    try {
-      await new Promise((_, rej) => {
-        const client = new ZWaveClient(config.zwave);
+          client.on('disconnected', (e: Error) => {
+            rej(e);
+          });
 
-        client.on('disconnected', (e: Error) => {
-          rej(e);
-        });
+          client.on('event', async (data: any) => {
+            if (data.source === 'node' && (data.event === 'alive' || data.event === 'dead')) {
+              const device = await Device.findByProviderId('zwave', data.nodeId);
 
-        client.on('event', async (data: any) => {
-          if (data.source === 'node' && (data.event === 'alive' || data.event === 'dead')) {
-            const device = await Device.findByProviderId('zwave', data.nodeId);
-
-            if (device !== null) {
-              await device.getConnectivityCapability().setIsConnectedState(data.event === 'alive');
-            }
-          }
-
-          if (data.source === 'node' && data.event === 'value updated') {
-            const deviceId = data.nodeId;
-            const device = await Device.findByProviderIdOrError('zwave', deviceId);
-            const node = Array.from(client.getNodes()).find((x: any) => x.nodeId === deviceId) as any;
-            const nodeType = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
-            const handlers = deviceHandlers.get(nodeType);
-
-            if (handlers === undefined) {
-              logger.warn(`No Z-Wave deviceHandlers registered for node type "${nodeType}" (Device Id ${deviceId})`);
-            } else {
-              const eventHandler = handlers.find(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
-
-              if (eventHandler) {
-                eventHandler.propertyMapper(device, data.args.newValue, data.args.prevValue);
+              if (device !== null) {
+                await device.getConnectivityCapability().setIsConnectedState(data.event === 'alive');
               }
             }
-          }
 
-          if (data.source === 'node' && data.event === 'value notification') {
-            // Central Scene key attribute values: 0=single press, 1=released, 2=held, 3+=multi-press
-            if (data.args.commandClassName === 'Central Scene' && data.args.value !== 1) {
-              const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
-              const pressedAt = new Date();
+            if (data.source === 'node' && data.event === 'value updated') {
+              const deviceId = data.nodeId;
+              const device = await Device.findByProviderIdOrError('zwave', deviceId);
+              const node = Array.from(client.getNodes()).find((x: any) => x.nodeId === deviceId) as any;
+              const nodeType = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
+              const handlers = deviceHandlers.get(nodeType);
 
-              await device.getButtonCapability().setPressedState(true, pressedAt);
+              if (handlers === undefined) {
+                logger.warn(`No Z-Wave deviceHandlers registered for node type "${nodeType}" (Device Id ${deviceId})`);
+              } else {
+                const eventHandler = handlers.find(x => x.propertyKey === `${data.args.commandClassName}.${data.args.property}`);
+
+                if (eventHandler) {
+                  eventHandler.propertyMapper(device, data.args.newValue, data.args.prevValue);
+                }
+              }
             }
-          }
+
+            if (data.source === 'node' && data.event === 'value notification') {
+              // Central Scene key attribute values: 0=single press, 1=released, 2=held, 3+=multi-press
+              if (data.args.commandClassName === 'Central Scene' && data.args.value !== 1) {
+                const device = await Device.findByProviderIdOrError('zwave', data.nodeId);
+                const pressedAt = new Date();
+
+                await device.getButtonCapability().setPressedState(true, pressedAt);
+              }
+            }
+          });
+
+          currentClient = client.connect().then(() => client);
+          currentClient.then(() => {
+            logger.info('ZWave client connection established');
+            backoffIndex = 0;
+          }, rej);
         });
+      } catch (e) {
+        const timeout = BACKOFFS[Math.min(backoffIndex++, BACKOFFS.length - 1)];
 
-        client.connect().then(() => {
-          logger.info('ZWave client connection established');
-          backoffIndex = 0;
-        }, rej);
-      });
-    } catch (e) {
-      const timeout = BACKOFFS[Math.min(backoffIndex++, BACKOFFS.length - 1)];
+        currentClient = Promise.reject(e);
+        currentClient.catch(() => {});
 
-      newrelic.noticeError(e as Error);
-      logger.error(e, `Zwave client disconnected; waiting ${timeout} seconds before retrying...`);
+        newrelic.noticeError(e as Error);
+        logger.error(e, `Zwave client disconnected; waiting ${timeout} seconds before retrying...`);
 
-      await sleep(timeout * 1000);
+        await sleep(timeout * 1000);
+      }
     }
-  }
+  }());
+
+  return () => currentClient;
 }());
 
 Device.registerProvider('zwave', {
