@@ -3,21 +3,13 @@ import { DishwasherScheduledRun } from '../../models/capabilities';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
-import { findCheapestWindow, PriceSlot } from '../../helpers/prices';
+import { PriceSlot } from '../../helpers/prices';
 import ApiClient, { ProgramOption } from './lib/client';
+import { planRun, StoredRun } from './plan';
 
 const START_IN_RELATIVE = 'BSH.Common.Option.StartInRelative';
 const REMAINING_PROGRAM_TIME = 'BSH.Common.Option.RemainingProgramTime';
 const DISHWASHER_OPTION_PREFIX = 'Dishcare.Dishwasher.Option.';
-
-export type StoredRun = {
-  start: string;
-  end: string;
-  finishBy: string;
-  durationMinutes: number;
-  // Beyond this, the plan was made against AgilePredict's forecast rather than published prices.
-  publishedEnd: string | null;
-};
 
 // A run is only scheduled until it starts; after that the appliance is just running it.
 function getPendingRun(device: Device): StoredRun | null {
@@ -44,22 +36,6 @@ export function getScheduledRun(device: Device): DishwasherScheduledRun | null {
   const run = getPendingRun(device);
 
   return run === null ? null : toScheduledRun(run);
-}
-
-export function planRun(slots: PriceSlot[], durationMinutes: number, finishBy: Date, now: Date): StoredRun {
-  const window = findCheapestWindow(slots, durationMinutes, now, finishBy);
-
-  if (window === null) {
-    throw new Error(`There are no prices to plan a ${Math.round(durationMinutes)} minute run before ${dayjs(finishBy).format('HH:mm')}`);
-  }
-
-  return {
-    start: window.start.toISOString(),
-    end: dayjs(window.start).add(durationMinutes, 'minute').toISOString(),
-    finishBy: finishBy.toISOString(),
-    durationMinutes,
-    publishedEnd: slots.findLast((slot) => !slot.isEstimated)?.end.toISOString() ?? null,
-  };
 }
 
 async function getForwardSlots(until: Date): Promise<PriceSlot[]> {

@@ -1,4 +1,4 @@
-import { planRun } from './dishwasher';
+import { planRun } from './plan';
 import { PriceSlot } from '../../helpers/prices';
 
 function slots(start: string, pences: number[], isEstimated = false): PriceSlot[] {
