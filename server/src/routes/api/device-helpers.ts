@@ -352,6 +352,19 @@ export async function getCapabilityData(device: Device, capability: string, inst
       };
     }
 
+    case 'DISHWASHER': {
+      const run = device.getDishwasherCapability(instanceId).getScheduledRun();
+
+      return {
+        type: 'DISHWASHER' as const,
+        scheduledRun: run && {
+          start: run.start.toISOString(),
+          end: run.end.toISOString(),
+          finishBy: run.finishBy.toISOString(),
+        }
+      };
+    }
+
     default:
       return { type: null };
   }

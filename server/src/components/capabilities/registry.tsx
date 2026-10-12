@@ -747,6 +747,22 @@ export const registry: CapabilityUIRegistry = {
     ],
   },
 
+  DISHWASHER: {
+    priority: 104,
+    getCapabilityMetrics: (cap) => [
+      createCapability(null, {
+        icon: faCalendarCheck,
+        title: 'Scheduled Start',
+        value: cap.scheduledRun
+          ? `${humanDate(dayjs(cap.scheduledRun.start))} at ${dayjs(cap.scheduledRun.start).format('HH:mm')}`
+          : 'None',
+        footer: cap.scheduledRun ? `Finishes by ${dayjs(cap.scheduledRun.finishBy).format('HH:mm')}` : undefined,
+        iconColor: '#04A7F4',
+        iconHighlighted: cap.scheduledRun !== null,
+      }),
+    ],
+  },
+
   BIN_COLLECTION: {
     priority: 45,
     getCapabilityMetrics: (cap) => {

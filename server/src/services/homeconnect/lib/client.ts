@@ -1,92 +1,80 @@
-import logger from "../../../logger";
-import { EventEmitter } from 'events';
-import { EventSource } from 'eventsource';
+const API_BASE = 'https://api.home-connect.com/api';
 
-enum Events {
-  PROGRAM_START = 'PROGRAM_START',
-}
-
-type ApiClientConfig = {
-  access_token: string;
-}
-
-type OnProgramStartPayload = {
-  deviceId: string;
-}
-
-type Appliance = {
+export type Appliance = {
   connected: boolean;
   haId: string;
-  name: 'Oven' | 'Dishwasher' | 'Microwave'
-  type: 'Oven' | 'Dishwasher';
-}
+  name: string;
+  type: string;
+};
+
+export type ProgramOption = {
+  key: string;
+  value: number | string | boolean;
+  unit?: string;
+};
+
+export type Program = {
+  key: string;
+  options: ProgramOption[];
+};
 
 export default class ApiClient {
-  #accessToken: string;
-  #eventEmitter: EventEmitter;
+  #getAccessToken: () => Promise<string>;
 
-  constructor(config: ApiClientConfig) {
-    this.#accessToken = config.access_token;
-    this.#eventEmitter = new EventEmitter();
+  constructor(getAccessToken: () => Promise<string>) {
+    this.#getAccessToken = getAccessToken;
   }
 
-  async #request(path: string) {
-    const req = await fetch(`https://api.home-connect.com/api${path}`, {
+  async #request(path: string, init: RequestInit = {}): Promise<unknown> {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...init,
       headers: {
-        Authorization: `Bearer ${this.#accessToken}`
-      }
+        Authorization: `Bearer ${await this.#getAccessToken()}`,
+        Accept: 'application/vnd.bsh.sdk.v1+json',
+        'Content-Type': 'application/vnd.bsh.sdk.v1+json',
+      },
     });
 
-    const json = await req.json();
-
-    if (req.ok) {
-      return json.data;
-    } else {
-      throw new Error(`${req.status}: ${await req.text()}`);
+    if (res.status === 204) {
+      return null;
     }
+
+    const body = await res.json();
+
+    if (!res.ok) {
+      throw new Error(body.error?.description ?? `Home Connect API returned ${res.status} for ${path}`);
+    }
+
+    return body.data;
   }
 
   async getAppliances(): Promise<Appliance[]> {
-    return (await this.#request('/homeappliances')).homeappliances;
+    const data = await this.#request('/homeappliances') as { homeappliances: Appliance[] };
+
+    return data.homeappliances;
   }
 
-  subscribeToEvents() {
-    const accessToken = this.#accessToken;
-    const sse = new EventSource('https://api.home-connect.com/api/homeappliances/events', {
-      fetch: (url, init) => fetch(url, {
-        ...init,
-        headers: {
-          ...init?.headers as Record<string, string>,
-          Authorization: `Bearer ${accessToken}`
-        }
-      })
-    });
+  async getSelectedProgram(haId: string): Promise<Program> {
+    const data = await this.#request(`/homeappliances/${haId}/programs/selected`) as { key: string; options?: ProgramOption[] };
 
-    ['NOTIFY', 'EVENT', 'STATUS'].forEach((type) => {
-      sse.addEventListener(type, (message: MessageEvent) => {
-        const data = JSON.parse(message.data);
-
-        logger.info({
-          type,
-          data
-        });
-      });
-    });
-
-    sse.addEventListener('STATUS', (message: MessageEvent) => {
-      const data = JSON.parse(message.data);
-
-      this.#eventEmitter.emit(Events.PROGRAM_START, {
-        deviceId: data.haId
-      });
-    });
-
-    sse.onmessage = logger.info;
-
-    sse.onerror = logger.info;
+    return { key: data.key, options: data.options ?? [] };
   }
 
-  onProgramStart(listener: (payload: OnProgramStartPayload) => void) {
-    this.#eventEmitter.addListener(Events.PROGRAM_START, listener);
+  async startProgram(haId: string, program: Program): Promise<void> {
+    await this.#request(`/homeappliances/${haId}/programs/active`, {
+      method: 'PUT',
+      body: JSON.stringify({ data: program }),
+    });
+  }
+
+  async setActiveProgramOption(haId: string, option: ProgramOption): Promise<void> {
+    await this.#request(`/homeappliances/${haId}/programs/active/options/${option.key}`, {
+      method: 'PUT',
+      body: JSON.stringify({ data: option }),
+    });
+  }
+
+  async stopActiveProgram(haId: string): Promise<void> {
+    await this.#request(`/homeappliances/${haId}/programs/active`, { method: 'DELETE' });
   }
 }

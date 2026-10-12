@@ -574,4 +574,8 @@
       "eventName": "appliance_tablets_last_counted"
     }
   ]
+}, {
+  "name": "Dishwasher",
+  "capabilityModelClassName": "DishwasherBase",
+  "properties": []
 }]

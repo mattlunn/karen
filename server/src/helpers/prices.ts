@@ -90,14 +90,17 @@ function isContiguous(a: PriceSlot, b: PriceSlot): boolean {
 /**
  * Slides a window of `durationMinutes` over contiguous runs of in-range slots
  * and returns the cheapest (by mean pence, ties broken on earliest start).
- * Returns null when no contiguous run is long enough - there can be gaps at
- * the edge of published data.
+ * `slotWeights` weights that mean slot by slot from the window's start - e.g. an
+ * appliance's kWh per slot, for a load that isn't flat; slots past its end
+ * weigh nothing. Returns null when no contiguous run is long enough - there can
+ * be gaps at the edge of published data.
  */
 export function findCheapestWindow(
   slots: PriceSlot[],
   durationMinutes: number,
   notBefore: Date,
-  notAfter: Date
+  notAfter: Date,
+  slotWeights?: number[]
 ): CheapestWindow | null {
   const inRange = slots
     .filter(s => withinRange(s, notBefore, notAfter))
@@ -125,7 +128,9 @@ export function findCheapestWindow(
       continue;
     }
 
-    const averagePence = window.reduce((sum, s) => sum + s.pence, 0) / window.length;
+    const weights = window.map((_, j) => slotWeights === undefined ? 1 : slotWeights[j] ?? 0);
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    const averagePence = window.reduce((sum, s, j) => sum + s.pence * weights[j], 0) / totalWeight;
 
     if (best === null || averagePence < best.averagePence) {
       best = { start: window[0].start, end: window.at(-1)!.end, averagePence };
