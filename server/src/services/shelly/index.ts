@@ -53,6 +53,9 @@ Device.registerProvider('shelly', {
       case 'SBDW-002C':    // Shelly BLU Door/Window (via BLE gateway)
         return ['CONTACT_SENSOR', 'BATTERY_LEVEL_INDICATOR'];
 
+      case 'SBBT-104CUS':  // Shelly BLU RC Button 4 (via BLE gateway)
+        return ['BUTTON', 'BATTERY_LEVEL_INDICATOR'];
+
       case 'S3EM-002CXCEU': // Shelly EM Gen3 (two CT clamp channels)
         return ['ENERGY_MONITOR', 'CONNECTIVITY'];
 
@@ -73,6 +76,10 @@ Device.registerProvider('shelly', {
     // For Shelly EM Gen3.
     if (capability === 'ENERGY_MONITOR' && Array.isArray(device.meta.channels)) {
       return (device.meta.channels as { id: string; name: string }[]).map(({ id, name }) => ({ id, name }));
+    }
+
+    if (capability === 'BUTTON' && device.model === 'SBBT-104CUS') {
+      return [1, 2, 3, 4].map((button) => ({ id: `button${button}`, name: `Button ${button}` }));
     }
 
     return [{ id: null, name: null }];

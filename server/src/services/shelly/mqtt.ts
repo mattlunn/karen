@@ -36,6 +36,7 @@ function getClient(): MqttClient {
         `${TOPIC_PREFIX}/+/light/0/status`,
         `${TOPIC_PREFIX}/+/light/0/power`,
         `${TOPIC_PREFIX}/+/status/+`,
+        `${TOPIC_PREFIX}/+/events/rpc`,
         `${RPC_SRC}/rpc`,
       ], (err) => {
         if (err) {
@@ -196,16 +197,62 @@ async function handleMessage(topic: string, payload: string): Promise<void> {
     const child = children.find((d) => d.meta.gatewayProviderId === mqttId && (d.meta.sensors as Record<string, string> | undefined)?.[sensorId]);
 
     if (child) {
-      const property = (child.meta.sensors as Record<string, string>)[sensorId];
-
-      if (property === 'contact') {
-        await child.getContactSensorCapability().setIsOpenState(Boolean(data.value));
-      } else if (property === 'battery') {
-        await child.getBatteryLevelIndicatorCapability().setBatteryPercentageState(data.value);
-      }
+      await setBluSensorValue(child, sensorId, data.value);
     }
 
     return;
+  }
+
+  // Since Shelly firmware 1.6, BLU buttons get no `bthomesensor`; each press is a NotifyEvent
+  // from the gateway's `bthomedevice` instead, with a 0-based button `idx`.
+  if (subtopic === 'events/rpc') {
+    const message = JSON.parse(payload);
+
+    if (message.method !== 'NotifyEvent') {
+      return;
+    }
+
+    for (const event of message.params.events as BTHomeDeviceEvent[]) {
+      if (!event.component.startsWith('bthomedevice:') || !event.event.endsWith('_push')) {
+        continue;
+      }
+
+      const children = await Device.findByProvider('shelly');
+      const child = children.find((d) => d.meta.gatewayProviderId === mqttId && d.meta.bthomeDeviceId === event.id);
+
+      if (!child) {
+        continue;
+      }
+
+      await child.getButtonCapability(`button${event.idx + 1}`).setPressedState(true, new Date(event.ts * 1000));
+
+      // The gateway only publishes a sensor's status when its value changes, so this is the
+      // only regular battery report.
+      for (const readings of Object.values(event.sensors ?? {})) {
+        for (const reading of readings) {
+          await setBluSensorValue(child, String(reading.id), reading.value);
+        }
+      }
+    }
+  }
+}
+
+type BTHomeDeviceEvent = {
+  component: string;
+  id: number;
+  event: string;
+  idx: number;
+  ts: number;
+  sensors?: Record<string, { id: number; value: number | boolean }[]>;
+};
+
+async function setBluSensorValue(child: Device, sensorId: string, value: unknown): Promise<void> {
+  const property = (child.meta.sensors as Record<string, string>)[sensorId];
+
+  if (property === 'contact') {
+    await child.getContactSensorCapability().setIsOpenState(Boolean(value));
+  } else if (property === 'battery') {
+    await child.getBatteryLevelIndicatorCapability().setBatteryPercentageState(value as number);
   }
 }
 

@@ -52,7 +52,7 @@ export async function installWifiDevice(ip: string, name: string, roomId: number
 // Onboards a BLU (Bluetooth) sensor that's already been paired locally (not just cloud relay)
 // to a gateway device, e.g. via the Shelly app's Bluetooth settings for that gateway. `ip` is
 // the gateway's own IP; `mac` is the sensor's BLE MAC.
-export async function installBluSensor(ip: string, mac: string, name: string, roomId: number): Promise<Device> {
+export async function installBluSensor(ip: string, mac: string, name: string, roomId: number, model: 'SBDW-002C' | 'SBBT-104CUS'): Promise<Device> {
   const client = await DeviceClient.for(ip, config.shelly.user, config.shelly.password);
 
   if (!(client instanceof Gen2PlusDeviceClient)) {
@@ -60,10 +60,16 @@ export async function installBluSensor(ip: string, mac: string, name: string, ro
   }
 
   const gatewayProviderId = await client.getMqttId();
-  const sensors = await client.getBTHomeSensorsFor(mac);
+  const bthomeDevice = await client.getBTHomeDeviceFor(mac);
 
-  if (Object.keys(sensors).length === 0) {
+  if (bthomeDevice.id === null || Object.keys(bthomeDevice.sensors).length === 0) {
     throw new Error(`No known BTHome sensor objects found for ${mac} on ${ip}. Has it been paired locally to this gateway (not just cloud relay)?`);
+  }
+
+  // Button presses arrive as NotifyEvents from the gateway's `bthomedevice`, which it only
+  // publishes over MQTT with rpc_ntf on.
+  if (model === 'SBBT-104CUS') {
+    await client.enableMqttRpcNotifications();
   }
 
   let device = await Device.findByProviderId('shelly', mac);
@@ -75,9 +81,10 @@ export async function installBluSensor(ip: string, mac: string, name: string, ro
   device.name = name;
   device.roomId = roomId;
   device.manufacturer = 'Shelly';
-  device.model = 'SBDW-002C';
+  device.model = model;
   device.meta.gatewayProviderId = gatewayProviderId;
-  device.meta.sensors = sensors;
+  device.meta.bthomeDeviceId = bthomeDevice.id;
+  device.meta.sensors = bthomeDevice.sensors;
 
   await device.save();
 

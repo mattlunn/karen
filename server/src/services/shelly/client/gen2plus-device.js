@@ -126,10 +126,27 @@ export default class Gen2PlusDeviceClient {
       .map((component) => ({ id: `channel${component.config.id}`, name: component.config.name }));
   }
 
-  // Returns the `{ [localSensorId]: property }` mapping for a BTHome (BLU) device
-  // already paired to this gateway, restricted to object types Karen understands.
-  async getBTHomeSensorsFor(mac) {
-    const { components } = await this._request('/rpc/Shelly.GetComponents?dynamic_only=true');
+  // Shelly.GetComponents returns a page at a time; `total` says how many there are.
+  async _getDynamicComponents() {
+    const components = [];
+    let total;
+
+    do {
+      const page = await this._request(`/rpc/Shelly.GetComponents?dynamic_only=true&offset=${components.length}`);
+
+      components.push(...page.components);
+      total = page.total;
+    } while (components.length < total);
+
+    return components;
+  }
+
+  // Returns the gateway's local `bthomedevice` id for a BTHome (BLU) device already paired to
+  // it, and the `{ [localSensorId]: property }` mapping of its sensors, restricted to object
+  // types Karen understands.
+  async getBTHomeDeviceFor(mac) {
+    const components = await this._getDynamicComponents();
+    const device = components.find((component) => component.key.startsWith('bthomedevice:') && component.config.addr === mac);
     const sensors = {};
 
     for (const component of components) {
@@ -146,6 +163,10 @@ export default class Gen2PlusDeviceClient {
       }
     }
 
-    return sensors;
+    return { id: device?.config.id ?? null, sensors };
+  }
+
+  async enableMqttRpcNotifications() {
+    return await this._request(`/rpc/Mqtt.SetConfig?config=${encodeURIComponent(JSON.stringify({ rpc_ntf: true }))}`);
   }
 }
