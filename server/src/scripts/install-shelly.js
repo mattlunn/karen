@@ -9,7 +9,8 @@ const DEVICE_TYPES = [
   { label: 'Energy meter (power monitoring only)', kind: 'wifi' },
   { label: 'Presence sensor (motion, multi-zone)', kind: 'presence' },
   { label: 'Energy meter (CT clamps)', kind: 'energy-meter' },
-  { label: 'BLU door/window sensor (via BLE gateway)', kind: 'blu' },
+  { label: 'BLU door/window sensor (via BLE gateway)', kind: 'blu', model: 'SBDW-002C' },
+  { label: 'BLU RC Button 4 (via BLE gateway)', kind: 'blu', model: 'SBBT-104CUS' },
 ];
 
 // installWifiDevice() ends with a reboot, so the device is briefly unreachable straight
@@ -105,10 +106,10 @@ async function main() {
       console.log(`Detected ${channels.length} channel(s) from the device: ${channels.map((channel) => channel.name).join(', ')}`);
     } else if (type.kind === 'blu') {
       const ip = await rl.question('Gateway IP address: ');
-      const mac = await rl.question('Sensor BLE MAC: ');
+      const mac = await rl.question('Device BLE MAC: ');
       const name = await rl.question('Name: ');
       const roomId = await askForRoomId(rl);
-      const device = await installBluSensor(ip, mac, name, roomId);
+      const device = await installBluSensor(ip, mac, name, roomId, type.model);
 
       console.log(`Installed device ${device.id} (${device.model}) as "${device.name}"`);
     }
