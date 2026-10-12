@@ -23,7 +23,7 @@ function nextOccurrence(time: string, now: Date): Date {
 export default function ({ buttonName, dishwasherName, finishTimes }: z.infer<typeof parameters>) {
   DeviceCapabilityEvents.onButtonPressed(
     device => device.name === buttonName,
-    createBackgroundTransaction('automations:dishwasher-meal-buttons', async (event: BooleanEvent) => {
+    createBackgroundTransaction('automations:dishwasher', async (event: BooleanEvent) => {
       const time = event.instanceId === null ? undefined : finishTimes[event.instanceId];
 
       if (time === undefined) {
