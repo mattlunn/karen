@@ -10,8 +10,8 @@ export type StoredRun = {
   publishedEnd: string | null;
 };
 
-export function planRun(slots: PriceSlot[], durationMinutes: number, finishBy: Date, now: Date): StoredRun {
-  const window = findCheapestWindow(slots, durationMinutes, now, finishBy);
+export function planRun(slots: PriceSlot[], durationMinutes: number, powerProfileKwh: number[], finishBy: Date, now: Date): StoredRun {
+  const window = findCheapestWindow(slots, durationMinutes, now, finishBy, powerProfileKwh);
 
   if (window === null) {
     throw new Error(`There are no prices to plan a ${Math.round(durationMinutes)} minute run before ${dayjs(finishBy).format('HH:mm')}`);

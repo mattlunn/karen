@@ -1,4 +1,5 @@
 import { Device } from '../../models';
+import config from '../../config';
 import { DishwasherScheduledRun } from '../../models/capabilities';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import dayjs from '../../dayjs';
@@ -66,7 +67,7 @@ export async function scheduleToFinishBy(client: ApiClient, device: Device, fini
   }
 
   const now = new Date();
-  const run = planRun(await getForwardSlots(finishBy), remainingSeconds / 60, finishBy, now);
+  const run = planRun(await getForwardSlots(finishBy), remainingSeconds / 60, config.homeconnect.dishwasher_power_profile_kwh, finishBy, now);
 
   await client.startProgram(device.providerId, {
     key: program.key,
@@ -110,7 +111,7 @@ export async function replanScheduledRun(client: ApiClient, device: Device): Pro
     return;
   }
 
-  const replanned = planRun(slots, run.durationMinutes, finishBy, now);
+  const replanned = planRun(slots, run.durationMinutes, config.homeconnect.dishwasher_power_profile_kwh, finishBy, now);
 
   if (replanned.start === run.start) {
     await setPendingRun(device, replanned);

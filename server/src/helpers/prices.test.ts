@@ -90,6 +90,25 @@ describe('findCheapestWindow', () => {
     expect(win!.averagePence).toBeCloseTo(3);
   });
 
+  it('weights each slot of the window by slotWeights', () => {
+    // Flat, 60-120 is cheapest (2p); front-loaded, starting on the 1p slot wins.
+    const s = slots(0, [1, 10, 2, 2]);
+
+    const win = findCheapestWindow(s, 60, at(0), at(120), [0.9, 0.1]);
+
+    expect(win!.start).toEqual(at(0));
+    expect(win!.averagePence).toBeCloseTo(1.9);
+  });
+
+  it('gives slots past the end of slotWeights no weight', () => {
+    // Flat, 0-90 is cheapest; weighting only the first slot, starting on the 1p slot wins.
+    const s = slots(0, [2, 1, 50, 50, 3]);
+
+    const win = findCheapestWindow(s, 90, at(0), at(150), [1]);
+
+    expect(win!.start).toEqual(at(30));
+  });
+
   it('breaks ties on the earliest start', () => {
     const s = slots(0, [5, 5, 8, 5, 5]);
 
