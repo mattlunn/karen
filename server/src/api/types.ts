@@ -130,6 +130,9 @@ export type CapabilityApiResponseBase = {
   runsPerWeek: number;
   tabletsRemaining: number | null;
 } | {
+  type: 'DISHWASHER';
+  scheduledRun: DishwasherScheduledRunApiResponse | null;
+} | {
   type: null;
 };
 
@@ -352,6 +355,20 @@ export interface TelevisionUpdateRequest {
 // /api/device/:id/appliance endpoint
 export interface ApplianceUpdateRequest {
   tabletsRemaining: number;
+}
+
+export type Meal = 'BREAKFAST' | 'LUNCH' | 'DINNER';
+
+export interface DishwasherScheduledRunApiResponse {
+  meal: Meal;
+  start: string;
+  end: string;
+  finishBy: string;
+}
+
+// Requesting the meal that's already scheduled cancels it.
+export interface DishwasherUpdateRequest {
+  meal: Meal;
 }
 
 // /api/security endpoint

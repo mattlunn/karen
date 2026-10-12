@@ -14,6 +14,7 @@ import {
   ProviderHeatPumpCapability,
   ProviderEnergyCostCapability,
   ProviderApplianceCapability,
+  ProviderDishwasherCapability,
 
   LightSensorCapability,
   HumiditySensorCapability,
@@ -38,7 +39,8 @@ import {
   ConnectivityCapability,
   EnergyMonitorCapability,
   EnergyCostCapability,
-  ApplianceCapability
+  ApplianceCapability,
+  DishwasherCapability
 } from './capabilities';
 
 export class Device extends Model<InferAttributes<Device>, InferCreationAttributes<Device>> {
@@ -164,6 +166,10 @@ export class Device extends Model<InferAttributes<Device>, InferCreationAttribut
 
   getApplianceCapability(instanceId: string | null = null): ApplianceCapability {
     return new ApplianceCapability(this, instanceId);
+  }
+
+  getDishwasherCapability(instanceId: string | null = null): DishwasherCapability {
+    return new DishwasherCapability(this, instanceId);
   }
 
   getCapabilities(): Capability[] {
@@ -328,6 +334,7 @@ type ProviderHandler = {
   provideHeatPumpCapability?(): ProviderHeatPumpCapability;
   provideEnergyCostCapability?(): ProviderEnergyCostCapability;
   provideApplianceCapability?(): ProviderApplianceCapability;
+  provideDishwasherCapability?(): ProviderDishwasherCapability;
 
   getCapabilities(device: Device): Capability[];
 
