@@ -358,7 +358,6 @@ export async function getCapabilityData(device: Device, capability: string, inst
       return {
         type: 'DISHWASHER' as const,
         scheduledRun: run && {
-          meal: run.meal,
           start: run.start.toISOString(),
           end: run.end.toISOString(),
           finishBy: run.finishBy.toISOString(),

@@ -3,7 +3,7 @@ import setCron from '../../helpers/set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import ApiClient from './lib/client';
 import { getAccessToken } from './lib/auth';
-import { getScheduledRun, scheduleForMeal, cancelScheduledRun, replanScheduledRun } from './dishwasher';
+import { getScheduledRun, scheduleToFinishBy, cancelScheduledRun, replanScheduledRun } from './dishwasher';
 
 const client = new ApiClient(getAccessToken);
 
@@ -15,7 +15,7 @@ Device.registerProvider('homeconnect', {
   provideDishwasherCapability() {
     return {
       getScheduledRun,
-      scheduleForMeal: (device, meal) => scheduleForMeal(client, device, meal),
+      scheduleToFinishBy: (device, finishBy) => scheduleToFinishBy(client, device, finishBy),
       cancelScheduledRun: (device) => cancelScheduledRun(client, device),
     };
   },

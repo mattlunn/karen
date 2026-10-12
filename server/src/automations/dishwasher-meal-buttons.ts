@@ -3,33 +3,49 @@ import bus, { NOTIFICATION_TO_ADMINS } from '../bus';
 import { BooleanEvent, Device } from '../models';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { createBackgroundTransaction } from '../helpers/newrelic';
+import { normalizeTime } from '../helpers/time';
 import dayjs from '../dayjs';
+import { timeString } from './schema';
 
 export const parameters = z.object({
   buttonName: z.string(),
   dishwasherName: z.string(),
   // Keyed by the button's instance id, e.g. `button1`.
-  meals: z.record(z.string(), z.enum(['BREAKFAST', 'LUNCH', 'DINNER'])),
+  finishTimes: z.record(z.string(), timeString),
 });
 
-export default function ({ buttonName, dishwasherName, meals }: z.infer<typeof parameters>) {
+function nextOccurrence(time: string, now: Date): Date {
+  const today = normalizeTime(time, now);
+
+  return (today.isAfter(now) ? today : normalizeTime(time, dayjs(now).add(1, 'day').toDate())).toDate();
+}
+
+export default function ({ buttonName, dishwasherName, finishTimes }: z.infer<typeof parameters>) {
   DeviceCapabilityEvents.onButtonPressed(
     device => device.name === buttonName,
     createBackgroundTransaction('automations:dishwasher-meal-buttons', async (event: BooleanEvent) => {
-      const meal = event.instanceId === null ? undefined : meals[event.instanceId];
+      const time = event.instanceId === null ? undefined : finishTimes[event.instanceId];
 
-      if (meal === undefined) {
+      if (time === undefined) {
         return;
       }
 
       try {
-        const dishwasher = await Device.findByNameOrError(dishwasherName);
-        const run = await dishwasher.getDishwasherCapability().toggleMealSchedule(meal);
+        const dishwasher = (await Device.findByNameOrError(dishwasherName)).getDishwasherCapability();
+        const scheduled = dishwasher.getScheduledRun();
+
+        // Pressing the button for the run that's already scheduled cancels it.
+        if (scheduled !== null && dayjs(scheduled.finishBy).isSame(normalizeTime(time, scheduled.finishBy))) {
+          await dishwasher.cancelScheduledRun();
+
+          bus.emit(NOTIFICATION_TO_ADMINS, { message: '🍽️ Cancelled the dishwasher\'s scheduled run.' });
+          return;
+        }
+
+        const run = await dishwasher.scheduleToFinishBy(nextOccurrence(time, new Date()));
 
         bus.emit(NOTIFICATION_TO_ADMINS, {
-          message: run === null
-            ? '🍽️ Cancelled the dishwasher\'s scheduled run.'
-            : `🍽️ Dishwasher starts at ${dayjs(run.start).format('HH:mm')}, finishing by ${dayjs(run.finishBy).format('HH:mm')}.`
+          message: `🍽️ Dishwasher starts at ${dayjs(run.start).format('HH:mm')}, finishing by ${dayjs(run.finishBy).format('HH:mm')}.`
         });
       } catch (err) {
         bus.emit(NOTIFICATION_TO_ADMINS, {

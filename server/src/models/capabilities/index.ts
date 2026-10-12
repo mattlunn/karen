@@ -1,7 +1,6 @@
 import { Device } from '../';
 import { ProviderThermostatCapabilityBase, ProviderElectricVehicleCapabilityBase, ProviderTelevisionCapabilityBase, ProviderHeatPumpCapabilityBase, ProviderMotionSensorSensitivityCapabilityBase } from './capabilities.gen';
 import { PriceSlot } from '../../helpers/prices';
-import type { Meal } from '../../api/types';
 
 export { LightCapability } from './light';
 export { LockCapability } from './lock';
@@ -94,7 +93,6 @@ export type ProviderEnergyCostCapability = {
 }
 
 export interface DishwasherScheduledRun {
-  meal: Meal;
   start: Date;
   end: Date;
   finishBy: Date;
@@ -102,6 +100,6 @@ export interface DishwasherScheduledRun {
 
 export type ProviderDishwasherCapability = {
   getScheduledRun(device: Device): DishwasherScheduledRun | null;
-  scheduleForMeal(device: Device, meal: Meal): Promise<DishwasherScheduledRun>;
+  scheduleToFinishBy(device: Device, finishBy: Date): Promise<DishwasherScheduledRun>;
   cancelScheduledRun(device: Device): Promise<void>;
 }

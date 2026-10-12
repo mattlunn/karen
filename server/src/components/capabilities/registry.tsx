@@ -1,6 +1,5 @@
 import React from 'react';
-import { ActionIcon, Group, NativeSelect, NumberInput, Text } from '@mantine/core';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { NativeSelect, NumberInput } from '@mantine/core';
 import {
   faLightbulb,
   faThermometerQuarter,
@@ -43,12 +42,9 @@ import {
   faSterlingSign,
   faRotate,
   faSoap,
-  faMugSaucer,
-  faBreadSlice,
-  faUtensils,
 } from '@fortawesome/free-solid-svg-icons';
 import { useQueryClient, QueryClient } from '@tanstack/react-query';
-import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, SwitchUpdateRequest, TelevisionUpdateRequest, MotionSensorUpdateRequest, ApplianceUpdateRequest, VehicleUpdateRequest, DishwasherUpdateRequest, Meal } from '../../api/types';
+import type { CapabilityApiResponse, RestDeviceResponse, DeviceApiResponse, LightUpdateRequest, LockUpdateRequest, SwitchUpdateRequest, TelevisionUpdateRequest, MotionSensorUpdateRequest, ApplianceUpdateRequest, VehicleUpdateRequest } from '../../api/types';
 import ThermostatModal from '../modals/thermostat-modal';
 import ChargeScheduleModal from '../modals/charge-schedule-modal';
 import dayjs from '../../dayjs';
@@ -94,21 +90,6 @@ async function updateAppliance(deviceId: number, data: ApplianceUpdateRequest): 
   });
   if (!res.ok) throw new Error('Failed to update appliance');
   return res.json();
-}
-
-async function updateDishwasher(deviceId: number, data: DishwasherUpdateRequest): Promise<DeviceApiResponse> {
-  const res = await fetch(`/api/device/${deviceId}/dishwasher`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  const body = await res.json();
-
-  if (!res.ok) {
-    throw new Error(body.error ?? 'Failed to update dishwasher');
-  }
-
-  return body;
 }
 
 async function updateLock(deviceId: number, data: LockUpdateRequest): Promise<DeviceApiResponse> {
@@ -220,56 +201,6 @@ function NumberInputControl({ deviceId, initialValue, onSubmit }: {
   );
 }
 
-
-const MEALS: { meal: Meal; label: string; icon: typeof faUtensils }[] = [
-  { meal: 'BREAKFAST', label: 'Breakfast', icon: faMugSaucer },
-  { meal: 'LUNCH', label: 'Lunch', icon: faBreadSlice },
-  { meal: 'DINNER', label: 'Dinner', icon: faUtensils },
-];
-
-function MealScheduleControl({ deviceId, scheduledMeal }: { deviceId: number; scheduledMeal: Meal | null }) {
-  const queryClient = useQueryClient();
-  const variant = React.useContext(MetricDisplayContext);
-  const [pendingMeal, setPendingMeal] = React.useState<Meal | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const toggle = async (meal: Meal) => {
-    setPendingMeal(meal);
-    setError(null);
-
-    try {
-      updateDeviceCache(queryClient, deviceId, await updateDishwasher(deviceId, { meal }));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setPendingMeal(null);
-    }
-  };
-
-  return (
-    <>
-      <Group gap="xs" display={variant === 'compact' ? 'inline-flex' : 'flex'}>
-        {MEALS.map(({ meal, label, icon }) => (
-          <ActionIcon
-            key={meal}
-            variant={meal === scheduledMeal ? 'filled' : 'default'}
-            color="#04A7F4"
-            radius="xl"
-            size={variant === 'compact' ? 'md' : 'xl'}
-            loading={pendingMeal === meal}
-            disabled={pendingMeal !== null && pendingMeal !== meal}
-            onClick={() => toggle(meal)}
-            aria-label={label}
-            title={label}
-          >
-            <FontAwesomeIcon icon={icon} />
-          </ActionIcon>
-        ))}
-      </Group>
-      {error && <Text c="red" fz="xs" mt={4}>{error}</Text>}
-    </>
-  );
-}
 
 function NumericControl({ deviceId, selectedValue, min, max, increment, formatLabel = String, onClick }: {
   deviceId: number;
@@ -818,14 +749,14 @@ export const registry: CapabilityUIRegistry = {
 
   DISHWASHER: {
     priority: 104,
-    getCapabilityMetrics: (cap, device) => [
+    getCapabilityMetrics: (cap) => [
       createCapability(null, {
         icon: faCalendarCheck,
-        title: 'Finish By',
-        value: <MealScheduleControl deviceId={device.id} scheduledMeal={cap.scheduledRun?.meal ?? null} />,
-        footer: cap.scheduledRun
-          ? `Starts ${dayjs(cap.scheduledRun.start).format('HH:mm')}, finishes by ${dayjs(cap.scheduledRun.finishBy).format('HH:mm')}`
-          : 'Not scheduled',
+        title: 'Scheduled Start',
+        value: cap.scheduledRun
+          ? `${humanDate(dayjs(cap.scheduledRun.start))} at ${dayjs(cap.scheduledRun.start).format('HH:mm')}`
+          : 'None',
+        footer: cap.scheduledRun ? `Finishes by ${dayjs(cap.scheduledRun.finishBy).format('HH:mm')}` : undefined,
         iconColor: '#04A7F4',
         iconHighlighted: cap.scheduledRun !== null,
       }),

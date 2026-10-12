@@ -1,11 +1,9 @@
 import { Device } from '../../models';
 import { DishwasherScheduledRun } from '../../models/capabilities';
-import type { Meal } from '../../api/types';
 import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
-import { findCheapestWindow, startOfSlot, PriceSlot, SLOT_MINUTES } from '../../helpers/prices';
-import { nextMealTime } from '../../helpers/meals';
+import { findCheapestWindow, PriceSlot } from '../../helpers/prices';
 import ApiClient, { ProgramOption } from './lib/client';
 
 const START_IN_RELATIVE = 'BSH.Common.Option.StartInRelative';
@@ -13,7 +11,6 @@ const REMAINING_PROGRAM_TIME = 'BSH.Common.Option.RemainingProgramTime';
 const DISHWASHER_OPTION_PREFIX = 'Dishcare.Dishwasher.Option.';
 
 export type StoredRun = {
-  meal: Meal;
   start: string;
   end: string;
   finishBy: string;
@@ -37,7 +34,6 @@ async function setPendingRun(device: Device, run: StoredRun | undefined): Promis
 
 function toScheduledRun(run: StoredRun): DishwasherScheduledRun {
   return {
-    meal: run.meal,
     start: new Date(run.start),
     end: new Date(run.end),
     finishBy: new Date(run.finishBy),
@@ -50,7 +46,7 @@ export function getScheduledRun(device: Device): DishwasherScheduledRun | null {
   return run === null ? null : toScheduledRun(run);
 }
 
-export function planRun(slots: PriceSlot[], meal: Meal, durationMinutes: number, finishBy: Date, now: Date): StoredRun {
+export function planRun(slots: PriceSlot[], durationMinutes: number, finishBy: Date, now: Date): StoredRun {
   const window = findCheapestWindow(slots, durationMinutes, now, finishBy);
 
   if (window === null) {
@@ -58,21 +54,12 @@ export function planRun(slots: PriceSlot[], meal: Meal, durationMinutes: number,
   }
 
   return {
-    meal,
     start: window.start.toISOString(),
     end: dayjs(window.start).add(durationMinutes, 'minute').toISOString(),
     finishBy: finishBy.toISOString(),
     durationMinutes,
     publishedEnd: slots.findLast((slot) => !slot.isEstimated)?.end.toISOString() ?? null,
   };
-}
-
-// findCheapestWindow only considers whole slots starting from the next boundary, so this is the
-// soonest a run can finish.
-export function earliestFinish(durationMinutes: number, now: Date): Date {
-  const slots = Math.ceil(durationMinutes / SLOT_MINUTES);
-
-  return dayjs(startOfSlot(now)).add((slots + 1) * SLOT_MINUTES, 'minute').toDate();
 }
 
 async function getForwardSlots(until: Date): Promise<PriceSlot[]> {
@@ -89,7 +76,7 @@ function startInRelative(start: string, now: Date): ProgramOption {
   return { key: START_IN_RELATIVE, value: Math.max(0, dayjs(start).diff(now, 'second')), unit: 'seconds' };
 }
 
-export async function scheduleForMeal(client: ApiClient, device: Device, meal: Meal): Promise<DishwasherScheduledRun> {
+export async function scheduleToFinishBy(client: ApiClient, device: Device, finishBy: Date): Promise<DishwasherScheduledRun> {
   if (getPendingRun(device) !== null) {
     await client.stopActiveProgram(device.providerId);
     await setPendingRun(device, undefined);
@@ -103,9 +90,7 @@ export async function scheduleForMeal(client: ApiClient, device: Device, meal: M
   }
 
   const now = new Date();
-  const durationMinutes = remainingSeconds / 60;
-  const finishBy = nextMealTime(meal, earliestFinish(durationMinutes, now));
-  const run = planRun(await getForwardSlots(finishBy), meal, durationMinutes, finishBy, now);
+  const run = planRun(await getForwardSlots(finishBy), remainingSeconds / 60, finishBy, now);
 
   await client.startProgram(device.providerId, {
     key: program.key,
@@ -149,7 +134,7 @@ export async function replanScheduledRun(client: ApiClient, device: Device): Pro
     return;
   }
 
-  const replanned = planRun(slots, run.meal, run.durationMinutes, finishBy, now);
+  const replanned = planRun(slots, run.durationMinutes, finishBy, now);
 
   if (replanned.start === run.start) {
     await setPendingRun(device, replanned);
