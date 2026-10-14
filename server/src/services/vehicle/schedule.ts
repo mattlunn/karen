@@ -59,8 +59,11 @@ export function buildScheduleNotification(
 export function buildChargingFailureNotification(
   targetPercentage: number,
   targetTime: Dayjs,
+  isCarReachable: boolean,
 ): string {
   const targetStr = `${targetTime.format('HH:mm')} ${humanDate(targetTime)}`;
 
-  return `Car is plugged in but not charging; it won't reach ${targetPercentage}% by ${targetStr}. Check that the cable is fully plugged in and that the correct charge limit is set in the Kia app.`;
+  return isCarReachable
+    ? `Car is plugged in but not charging; it won't reach ${targetPercentage}% by ${targetStr}. Check that the cable is fully plugged in and that the correct charge limit is set in the Kia app.`
+    : `Karen can't reach the car through kia-connect-bridge, so it can't start charging; it won't reach ${targetPercentage}% by ${targetStr}. Check the bridge's logs, or start charging from the Kia app.`;
 }
