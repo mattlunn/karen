@@ -357,7 +357,7 @@ export async function getCapabilityData(device: Device, capability: string, inst
   }
 }
 
-function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fallback: Date): string {
+export function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fallback: Date): string {
   let latestDate: string = fallback.toISOString();
 
   for (const capability of capabilities) {
