@@ -4,6 +4,7 @@ import { ElectricVehicleCapability } from '../../models/capabilities';
 import config from '../../config';
 import { distanceInMetres } from '../../helpers/geo';
 import { getPreconditioningMode } from './preconditioning';
+import dayjs from '../../dayjs';
 
 const KM_TO_MILES = 0.621371;
 const HOME_RADIUS_METRES = 200;
@@ -15,51 +16,61 @@ export async function isAtHome(ev: ElectricVehicleCapability): Promise<boolean> 
   return event === null || !event.hasEnded();
 }
 
+// Clamped, since the library's correction for a mis-zoned Kia timestamp can push it
+// past now.
+function toReportedAt(carTimestamp: string | null, now: Date): Date {
+  return carTimestamp === null || dayjs(carTimestamp).isAfter(now) ? now : dayjs(carTimestamp).toDate();
+}
+
 // Charging elsewhere is on someone else's meter, so it isn't this house's load.
-async function updateCurrentPower(device: Device): Promise<void> {
+async function updateCurrentPower(device: Device, now: Date, reportedAt: Date): Promise<void> {
   const ev = device.getElectricVehicleCapability();
   const [isCharging, atHome] = await Promise.all([ev.getIsCharging(), isAtHome(ev)]);
 
   await device.getEnergyMonitorCapability().setCurrentPowerState(
-    isCharging && atHome ? config.vehicle.charge_power_watts : 0
+    isCharging && atHome ? config.vehicle.charge_power_watts : 0,
+    now,
+    reportedAt
   );
 }
 
 export async function processVehicle(device: Device, vehicle: BridgeVehicle): Promise<void> {
   const ev = device.getElectricVehicleCapability();
+  const now = new Date();
+  const reportedAt = toReportedAt(vehicle.last_updated_at, now);
 
   if (vehicle.ev_battery_percentage !== null) {
-    await ev.setChargePercentageState(vehicle.ev_battery_percentage);
+    await ev.setChargePercentageState(vehicle.ev_battery_percentage, now, reportedAt);
   }
 
   if (vehicle.ev_battery_is_charging !== null) {
-    await ev.setIsChargingState(vehicle.ev_battery_is_charging);
+    await ev.setIsChargingState(vehicle.ev_battery_is_charging, now, reportedAt);
   }
 
   if (vehicle.ev_battery_is_plugged_in !== null) {
-    await ev.setIsCableConnectedState(Boolean(vehicle.ev_battery_is_plugged_in));
+    await ev.setIsCableConnectedState(Boolean(vehicle.ev_battery_is_plugged_in), now, reportedAt);
   }
 
   if (vehicle.ev_charge_limits_ac !== null) {
-    await ev.setChargeLimitState(vehicle.ev_charge_limits_ac);
+    await ev.setChargeLimitState(vehicle.ev_charge_limits_ac, now, reportedAt);
   }
 
   if (vehicle.odometer !== null) {
-    await ev.setOdometerState(vehicle.odometer_unit === 'km' ? vehicle.odometer * KM_TO_MILES : vehicle.odometer);
+    await ev.setOdometerState(vehicle.odometer_unit === 'km' ? vehicle.odometer * KM_TO_MILES : vehicle.odometer, now, reportedAt);
   }
 
   if (vehicle.location_latitude !== null && vehicle.location_longitude !== null) {
     const location = { latitude: vehicle.location_latitude, longitude: vehicle.location_longitude };
 
-    await ev.setIsAtHomeState(distanceInMetres(location, config.location) <= HOME_RADIUS_METRES);
+    await ev.setIsAtHomeState(distanceInMetres(location, config.location) <= HOME_RADIUS_METRES, now, toReportedAt(vehicle.location_last_updated_at, now));
   }
 
   if (vehicle.air_control_is_on !== null) {
     const mode = getPreconditioningMode(vehicle, config.vehicle.preconditioning);
 
-    await ev.setIsPreheatingState(mode === 'HEAT');
-    await ev.setIsPrecoolingState(mode === 'COOL');
+    await ev.setIsPreheatingState(mode === 'HEAT', now, reportedAt);
+    await ev.setIsPrecoolingState(mode === 'COOL', now, reportedAt);
   }
 
-  await updateCurrentPower(device);
+  await updateCurrentPower(device, now, reportedAt);
 }
