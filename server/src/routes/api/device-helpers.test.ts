@@ -2,12 +2,16 @@ jest.mock('../../config', () => ({}));
 jest.mock('../../models', () => ({}));
 
 import { getLastSeenFromCapabilities } from './device-helpers';
-import type { BooleanStateApiResponse, CapabilityApiResponse } from '../../api/types';
+import type { BooleanStateApiResponse, CapabilityApiResponse, NumericStateApiResponse } from '../../api/types';
 
 const createdAt = new Date('2026-01-01T00:00:00.000Z');
 
 function state(value: boolean, lastReported: string): BooleanStateApiResponse {
   return { start: '2026-09-15T12:00:00.000Z', end: null, lastReported, value };
+}
+
+function reading(lastReported: string): NumericStateApiResponse {
+  return { start: '2026-09-15T12:00:00.000Z', end: null, lastReported, value: 0 };
 }
 
 function motionSensor(lastReported: string): CapabilityApiResponse {
@@ -16,6 +20,18 @@ function motionSensor(lastReported: string): CapabilityApiResponse {
 
 function connectivity(isConnected: boolean, lastReported: string): CapabilityApiResponse {
   return { type: 'CONNECTIVITY', isConnected: state(isConnected, lastReported), instanceId: null, instanceName: null };
+}
+
+function energyMonitor(currentPowerLastReported: string, dayTotalsLastReported: string): CapabilityApiResponse {
+  return {
+    type: 'ENERGY_MONITOR',
+    currentPower: reading(currentPowerLastReported),
+    dayEnergy: reading(dayTotalsLastReported),
+    dayCost: reading(dayTotalsLastReported),
+    agileAvgPrice: null,
+    instanceId: null,
+    instanceName: null
+  };
 }
 
 describe('getLastSeenFromCapabilities', () => {
@@ -39,5 +55,9 @@ describe('getLastSeenFromCapabilities', () => {
 
   it('falls back to the given date when a disconnected state is the only report', () => {
     expect(getLastSeenFromCapabilities([connectivity(false, '2026-10-15T07:07:00.000Z')], createdAt)).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  it('ignores daily energy totals Karen recomputes after the device stopped reporting', () => {
+    expect(getLastSeenFromCapabilities([energyMonitor('2026-09-20T14:41:00.000Z', '2026-10-15T07:22:00.000Z')], createdAt)).toBe('2026-09-20T14:41:00.000Z');
   });
 });

@@ -357,6 +357,11 @@ export async function getCapabilityData(device: Device, capability: string, inst
   }
 }
 
+const KAREN_COMPUTED_FIELDS: { [T in NonNullable<CapabilityApiResponse['type']>]?: (keyof Extract<CapabilityApiResponse, { type: T }>)[] } = {
+  HEAT_PUMP: ['dayPower', 'dayYield', 'dayCoP'],
+  ENERGY_MONITOR: ['dayEnergy', 'dayCost']
+};
+
 export function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fallback: Date): string {
   let latestDate: string = fallback.toISOString();
 
@@ -366,7 +371,13 @@ export function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[
       continue;
     }
 
-    for (const value of Object.values(capability)) {
+    const karenComputedFields: string[] = (capability.type && KAREN_COMPUTED_FIELDS[capability.type]) ?? [];
+
+    for (const [field, value] of Object.entries(capability)) {
+      if (karenComputedFields.includes(field)) {
+        continue;
+      }
+
       if (typeof value === 'object' && value !== null && 'lastReported' in value && latestDate < value.lastReported) {
         latestDate = value.lastReported;
       }
