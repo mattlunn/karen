@@ -361,6 +361,11 @@ function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fall
   let latestDate: string = fallback.toISOString();
 
   for (const capability of capabilities) {
+    // A disconnected state is re-confirmed by the broker or provider, not by the device itself.
+    if (capability.type === 'CONNECTIVITY' && !capability.isConnected.value) {
+      continue;
+    }
+
     for (const value of Object.values(capability)) {
       if (typeof value === 'object' && value !== null && 'lastReported' in value && latestDate < value.lastReported) {
         latestDate = value.lastReported;
