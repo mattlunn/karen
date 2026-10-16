@@ -357,11 +357,27 @@ export async function getCapabilityData(device: Device, capability: string, inst
   }
 }
 
-function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fallback: Date): string {
+const KAREN_COMPUTED_FIELDS: { [T in NonNullable<CapabilityApiResponse['type']>]?: (keyof Extract<CapabilityApiResponse, { type: T }>)[] } = {
+  HEAT_PUMP: ['dayPower', 'dayYield', 'dayCoP'],
+  ENERGY_MONITOR: ['dayEnergy', 'dayCost']
+};
+
+export function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fallback: Date): string {
   let latestDate: string = fallback.toISOString();
 
   for (const capability of capabilities) {
-    for (const value of Object.values(capability)) {
+    // A disconnected state is re-confirmed by the broker or provider, not by the device itself.
+    if (capability.type === 'CONNECTIVITY' && !capability.isConnected.value) {
+      continue;
+    }
+
+    const karenComputedFields: string[] = (capability.type && KAREN_COMPUTED_FIELDS[capability.type]) ?? [];
+
+    for (const [field, value] of Object.entries(capability)) {
+      if (karenComputedFields.includes(field)) {
+        continue;
+      }
+
       if (typeof value === 'object' && value !== null && 'lastReported' in value && latestDate < value.lastReported) {
         latestDate = value.lastReported;
       }
