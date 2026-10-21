@@ -19,6 +19,11 @@ export interface BridgeVehicle {
   // The climate's set temperature. Still reports the last value after climate stops.
   air_temperature: number | null;
   engine_is_running: boolean | number | null;
+  // When the bridge last refreshed from Kia, stamped only once it has logged in.
+  last_scanned_at: string | null;
+  // When the car itself reported the state (and, separately, its location).
+  last_updated_at: string | null;
+  location_last_updated_at: string | null;
 }
 
 export interface BridgeCommandResponse {

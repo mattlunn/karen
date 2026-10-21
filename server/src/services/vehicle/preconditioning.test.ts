@@ -19,6 +19,9 @@ function vehicle(climate: Pick<BridgeVehicle, 'air_control_is_on' | 'air_tempera
     odometer_unit: null,
     location_latitude: null,
     location_longitude: null,
+    last_scanned_at: null,
+    last_updated_at: null,
+    location_last_updated_at: null,
     ...climate,
   };
 }
