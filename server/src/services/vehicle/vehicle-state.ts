@@ -16,12 +16,6 @@ export async function isAtHome(ev: ElectricVehicleCapability): Promise<boolean> 
   return event === null || !event.hasEnded();
 }
 
-// Clamped, since the library's correction for a mis-zoned Kia timestamp can push it
-// past now.
-function toReportedAt(carTimestamp: string | null, now: Date): Date {
-  return carTimestamp === null || dayjs(carTimestamp).isAfter(now) ? now : dayjs(carTimestamp).toDate();
-}
-
 // Charging elsewhere is on someone else's meter, so it isn't this house's load.
 async function updateCurrentPower(device: Device, now: Date, reportedAt: Date): Promise<void> {
   const ev = device.getElectricVehicleCapability();
@@ -37,7 +31,7 @@ async function updateCurrentPower(device: Device, now: Date, reportedAt: Date): 
 export async function processVehicle(device: Device, vehicle: BridgeVehicle): Promise<void> {
   const ev = device.getElectricVehicleCapability();
   const now = new Date();
-  const reportedAt = toReportedAt(vehicle.last_updated_at, now);
+  const reportedAt = vehicle.last_updated_at === null ? now : dayjs(vehicle.last_updated_at).toDate();
 
   if (vehicle.ev_battery_percentage !== null) {
     await ev.setChargePercentageState(vehicle.ev_battery_percentage, now, reportedAt);
@@ -61,8 +55,9 @@ export async function processVehicle(device: Device, vehicle: BridgeVehicle): Pr
 
   if (vehicle.location_latitude !== null && vehicle.location_longitude !== null) {
     const location = { latitude: vehicle.location_latitude, longitude: vehicle.location_longitude };
+    const locationReportedAt = vehicle.location_last_updated_at === null ? now : dayjs(vehicle.location_last_updated_at).toDate();
 
-    await ev.setIsAtHomeState(distanceInMetres(location, config.location) <= HOME_RADIUS_METRES, now, toReportedAt(vehicle.location_last_updated_at, now));
+    await ev.setIsAtHomeState(distanceInMetres(location, config.location) <= HOME_RADIUS_METRES, now, locationReportedAt);
   }
 
   if (vehicle.air_control_is_on !== null) {
