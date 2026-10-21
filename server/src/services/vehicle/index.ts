@@ -109,9 +109,8 @@ async function fetchVehicle(): Promise<BridgeVehicle | null> {
   return vehicle;
 }
 
-// The vehicle is null when the car can't be reached, leaving its last known
-// state in place.
-async function syncCarState(): Promise<{ device: Device; vehicle: BridgeVehicle | null }> {
+// An unreachable car is marked disconnected, leaving its last known state in place.
+async function syncCarState(): Promise<Device> {
   let device = await findVehicleDevice();
   const vehicle = await fetchVehicle();
 
@@ -122,7 +121,7 @@ async function syncCarState(): Promise<{ device: Device; vehicle: BridgeVehicle 
 
     await device.getConnectivityCapability().setIsConnectedState(false);
 
-    return { device, vehicle };
+    return device;
   }
 
   device ??= Device.build({
@@ -141,7 +140,7 @@ async function syncCarState(): Promise<{ device: Device; vehicle: BridgeVehicle 
   await processVehicle(device, vehicle);
   await device.getConnectivityCapability().setIsConnectedState(true);
 
-  return { device, vehicle };
+  return device;
 }
 
 // Kia's own action status is usually UNKNOWN even when the command worked, so
@@ -275,13 +274,18 @@ Device.registerProvider('vehicle', {
   },
 
   async synchronize() {
-    const { device, vehicle } = await syncCarState();
+    const device = await syncCarState();
+    const ev = device.getElectricVehicleCapability();
+    const [isCarReachable, chargeLimit] = await Promise.all([
+      device.getConnectivityCapability().getIsConnected(),
+      ev.getChargeLimitEvent(),
+    ]);
 
     // The scheduler owns start/stop; the car's own limit is pinned at 100 so a
     // start command always takes effect (and if Karen is down it charges to
     // full rather than being stuck at a stale lower limit).
-    if (!isReadOnly() && vehicle !== null && vehicle.ev_charge_limits_ac !== null && vehicle.ev_charge_limits_ac !== 100) {
-      await device.getElectricVehicleCapability().setChargeLimit(100);
+    if (!isReadOnly() && isCarReachable && chargeLimit !== null && chargeLimit.value !== 100) {
+      await ev.setChargeLimit(100);
     }
   },
 });
@@ -497,8 +501,9 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
   });
 }
 
-async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapability, now: Dayjs, isCarReachable: boolean) {
-  const [atHome, isCableConnected, chargePercentage] = await Promise.all([
+async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
+  const [isCarReachable, atHome, isCableConnected, chargePercentage] = await Promise.all([
+    device.getConnectivityCapability().getIsConnected(),
     isAtHome(ev),
     ev.getIsCableConnected(),
     ev.getChargePercentage(),
@@ -542,13 +547,13 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
 // is for what isn't aligned: reacting to the cable being plugged in, and stopping
 // within five minutes of the charge limit rather than thirty.
 nowAndSetCron(createBackgroundTransaction('vehicle:poll', async () => {
-  const { device, vehicle } = await syncCarState();
+  const device = await syncCarState();
   const ev = device.getElectricVehicleCapability();
   const now = dayjs();
 
   await clearNextChargeIfExpired(device, now);
   await chooseNextCharge(device, now);
-  await runPriceAwareCharging(device, ev, now, vehicle !== null);
+  await runPriceAwareCharging(device, ev, now);
 }), '*/5 * * * *');
 
 nowAndSetCron(createBackgroundTransaction('vehicle:monthly-mileage', async () => {
