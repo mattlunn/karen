@@ -390,8 +390,12 @@ function isReadOnly(): boolean {
 // synchronize), so a start command always takes effect and this is just:
 // charge while inside a planned slot and below target, otherwise stop. Re-issued
 // each tick until the car reports it stuck.
-async function applyPlan(ev: ElectricVehicleCapability, now: Dayjs, plan: ChargePlan | null, chargePercentage: number, isCarReachable: boolean) {
-  const isCharging = await ev.getIsCharging();
+async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, chargePercentage: number) {
+  const ev = device.getElectricVehicleCapability();
+  const [isCarReachable, isCharging] = await Promise.all([
+    device.getConnectivityCapability().getIsConnected(),
+    ev.getIsCharging(),
+  ]);
   const desired = plan !== null && isWithinSlots(plan.slots, now.toDate()) && chargePercentage < plan.target;
 
   if (isReadOnly()) {
@@ -502,8 +506,7 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
 }
 
 async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapability, now: Dayjs) {
-  const [isCarReachable, atHome, isCableConnected, chargePercentage] = await Promise.all([
-    device.getConnectivityCapability().getIsConnected(),
+  const [atHome, isCableConnected, chargePercentage] = await Promise.all([
     isAtHome(ev),
     ev.getIsCableConnected(),
     ev.getChargePercentage(),
@@ -523,7 +526,7 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
   // rebuilt from live SoC when the cable goes back in.
   if (!isCableConnected) {
     await clearPlan(device);
-    await applyPlan(ev, now, null, chargePercentage, isCarReachable);
+    await applyPlan(device, now, null, chargePercentage);
     return;
   }
 
@@ -540,7 +543,7 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
     plan = await createPlan(device, slots, now, chargePercentage);
   }
 
-  await applyPlan(ev, now, plan, chargePercentage, isCarReachable);
+  await applyPlan(device, now, plan, chargePercentage);
 }
 
 // Aligned ticks hit the half-hour slot boundaries exactly, so the 5-minute cadence
