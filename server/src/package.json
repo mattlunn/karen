@@ -113,8 +113,5 @@
     "lint:tsc": "tsc"
   },
   "author": "",
-  "license": "ISC",
-  "overrides": {
-    "debug": "^4.3.7"
-  }
+  "license": "ISC"
 }

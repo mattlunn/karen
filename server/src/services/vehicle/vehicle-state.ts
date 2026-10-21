@@ -50,7 +50,11 @@ export async function processVehicle(device: Device, vehicle: BridgeVehicle): Pr
   }
 
   if (vehicle.odometer !== null) {
-    await ev.setOdometerState(vehicle.odometer_unit === 'km' ? vehicle.odometer * KM_TO_MILES : vehicle.odometer, now, reportedAt);
+    const miles = vehicle.odometer_unit === 'km' ? vehicle.odometer * KM_TO_MILES : vehicle.odometer;
+
+    // events.value is a FLOAT, read back to ~6 significant figures, so an unrounded
+    // reading never equals the stored one and every poll would start a new event.
+    await ev.setOdometerState(Math.round(miles * 10) / 10, now, reportedAt);
   }
 
   if (vehicle.location_latitude !== null && vehicle.location_longitude !== null) {
