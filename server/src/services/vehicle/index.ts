@@ -403,33 +403,30 @@ async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, ch
     return;
   }
 
-  // Ahead of the command, so a command that throws can't skip it.
-  updateDeadlineAlert(now, plan, desired && !(isCarReachable && isCharging), isCarReachable);
+  // Only a deadline plan alerts: a charge that's merely opportunistic failing to
+  // start isn't worth waking anybody for. Ahead of the command, so a command that
+  // throws can't skip it.
+  const isFailingDeadlineCharge = plan !== null && plan.deadline !== null && desired && !(isCarReachable && isCharging);
+
+  if (isFailingDeadlineCharge) {
+    deadlineNotChargingSince ??= now;
+
+    if (!deadlineAlertSent && now.diff(deadlineNotChargingSince, 'minute') >= NOT_CHARGING_ALERT_MINUTES) {
+      deadlineAlertSent = true;
+
+      bus.emit(NOTIFICATION_TO_ADMINS, {
+        message: buildChargingFailureNotification(plan.target, dayjs(plan.deadline), isCarReachable),
+        priority: 1,
+      });
+    }
+  } else {
+    deadlineNotChargingSince = null;
+    deadlineAlertSent = false;
+  }
 
   if (isCarReachable && desired !== isCharging) {
     logger.info(`Price-aware charging: setting isCharging=${desired}`);
     await ev.setIsCharging(desired);
-  }
-}
-
-function updateDeadlineAlert(now: Dayjs, plan: ChargePlan | null, isFailingToCharge: boolean, isCarReachable: boolean) {
-  // Only a deadline plan alerts: a charge that's merely opportunistic failing to
-  // start isn't worth waking anybody for.
-  if (plan === null || plan.deadline === null || !isFailingToCharge) {
-    deadlineNotChargingSince = null;
-    deadlineAlertSent = false;
-    return;
-  }
-
-  deadlineNotChargingSince ??= now;
-
-  if (!deadlineAlertSent && now.diff(deadlineNotChargingSince, 'minute') >= NOT_CHARGING_ALERT_MINUTES) {
-    deadlineAlertSent = true;
-
-    bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: buildChargingFailureNotification(plan.target, dayjs(plan.deadline), isCarReachable),
-      priority: 1,
-    });
   }
 }
 
