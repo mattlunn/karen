@@ -48,8 +48,6 @@ alarmActivationFactory(instance);
 armingFactory(instance);
 logFactory(instance);
 
-const LogDevice = instance.define('log_device', {}, { tableName: 'log_devices', timestamps: false });
-
 Recording.belongsTo(Event);
 Stay.belongsTo(User);
 Device.hasMany(Event);
@@ -64,7 +62,7 @@ AlarmActivation.belongsTo(Device, {
   as: 'triggeringDevice'
 });
 Log.belongsTo(User);
-Log.belongsToMany(Device, { through: LogDevice, foreignKey: 'logId', otherKey: 'deviceId' });
-Device.belongsToMany(Log, { through: LogDevice, foreignKey: 'deviceId', otherKey: 'logId' });
+Log.belongsToMany(Device, { through: 'log_devices', foreignKey: 'logId', otherKey: 'deviceId', timestamps: false });
+Device.belongsToMany(Log, { through: 'log_devices', foreignKey: 'deviceId', otherKey: 'logId', timestamps: false });
 
 export { Op } from 'sequelize';
