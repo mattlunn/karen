@@ -126,91 +126,106 @@
       "name": "DayCoP",
       "isWriteable": false,
       "type": "number",
-      "eventName": "cop_day"
+      "eventName": "cop_day",
+      "isComputed": true
     },
     {
       "name": "DayHeatingCoP",
       "isWriteable": false,
       "type": "number",
-      "eventName": "cop_day_heating"
+      "eventName": "cop_day_heating",
+      "isComputed": true
     },
     {
       "name": "DayDHWCoP",
       "isWriteable": false,
       "type": "number",
-      "eventName": "cop_day_dhw"
+      "eventName": "cop_day_dhw",
+      "isComputed": true
     },
     {
       "name": "DayPower",
       "isWriteable": false,
       "type": "number",
-      "eventName": "power_day"
+      "eventName": "power_day",
+      "isComputed": true
     },
     {
       "name": "DayYield",
       "isWriteable": false,
       "type": "number",
-      "eventName": "yield_day"
+      "eventName": "yield_day",
+      "isComputed": true
     },
     {
       "name": "DayHeatingPower",
       "isWriteable": false,
       "type": "number",
-      "eventName": "power_day_heating"
+      "eventName": "power_day_heating",
+      "isComputed": true
     },
     {
       "name": "DayHeatingYield",
       "isWriteable": false,
       "type": "number",
-      "eventName": "yield_day_heating"
+      "eventName": "yield_day_heating",
+      "isComputed": true
     },
     {
       "name": "DayDHWPower",
       "isWriteable": false,
       "type": "number",
-      "eventName": "power_day_dhw"
+      "eventName": "power_day_dhw",
+      "isComputed": true
     },
     {
       "name": "DayDHWYield",
       "isWriteable": false,
       "type": "number",
-      "eventName": "yield_day_dhw"
+      "eventName": "yield_day_dhw",
+      "isComputed": true
     },
     {
       "name": "DayCumulativePower",
       "isWriteable": false,
       "type": "number",
-      "eventName": "cumulative_power_day"
+      "eventName": "cumulative_power_day",
+      "isComputed": true
     },
     {
       "name": "DayCumulativeYield",
       "isWriteable": false,
       "type": "number",
-      "eventName": "cumulative_yield_day"
+      "eventName": "cumulative_yield_day",
+      "isComputed": true
     },
     {
       "name": "DayHeatingCumulativePower",
       "isWriteable": false,
       "type": "number",
-      "eventName": "cumulative_power_day_heating"
+      "eventName": "cumulative_power_day_heating",
+      "isComputed": true
     },
     {
       "name": "DayHeatingCumulativeYield",
       "isWriteable": false,
       "type": "number",
-      "eventName": "cumulative_yield_day_heating"
+      "eventName": "cumulative_yield_day_heating",
+      "isComputed": true
     },
     {
       "name": "DayDHWCumulativePower",
       "isWriteable": false,
       "type": "number",
-      "eventName": "cumulative_power_day_dhw"
+      "eventName": "cumulative_power_day_dhw",
+      "isComputed": true
     },
     {
       "name": "DayDHWCumulativeYield",
       "isWriteable": false,
       "type": "number",
-      "eventName": "cumulative_yield_day_dhw"
+      "eventName": "cumulative_yield_day_dhw",
+      "isComputed": true
     },
     {
       "name": "DetailedStatus",
@@ -434,13 +449,15 @@
       "name": "MonthlyMileage",
       "isWriteable": false,
       "type": "number",
-      "eventName": "monthly_mileage"
+      "eventName": "monthly_mileage",
+      "isComputed": true
     },
     {
       "name": "MonthlyEfficiency",
       "isWriteable": false,
       "type": "number",
-      "eventName": "monthly_efficiency"
+      "eventName": "monthly_efficiency",
+      "isComputed": true
     },
     {
       "name": "IsCableConnected",
@@ -537,13 +554,15 @@
       "name": "DayEnergy",
       "isWriteable": false,
       "type": "number",
-      "eventName": "energy_day_energy"
+      "eventName": "energy_day_energy",
+      "isComputed": true
     },
     {
       "name": "DayCost",
       "isWriteable": false,
       "type": "number",
-      "eventName": "energy_day_cost"
+      "eventName": "energy_day_cost",
+      "isComputed": true
     }
   ]
 }, {

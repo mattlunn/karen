@@ -1,5 +1,5 @@
 import { Device, NumericEvent, BooleanEvent, StringEvent } from '../../models';
-import { EnergyMonitorCapability } from '../../models/capabilities';
+import { EnergyMonitorCapability, COMPUTED_EVENT_TYPES } from '../../models/capabilities';
 import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse, RestDeviceResponse, CapabilityApiResponse, CapabilityApiResponseBase } from '../../api/types';
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
@@ -25,14 +25,15 @@ export function mapNumericState(eventPromise: Promise<NumericEvent | null>, devi
   return eventPromise.then(event => {
     if (!event) {
       const createdAt = device.createdAt.toISOString();
-      return { start: createdAt, end: null, lastReported: createdAt, value: null };
+      return { start: createdAt, end: null, lastReported: createdAt, value: null, isComputed: false };
     }
 
     return {
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
       lastReported: event.lastReported.toISOString(),
-      value: event.value
+      value: event.value,
+      isComputed: COMPUTED_EVENT_TYPES.includes(event.type)
     };
   });
 }
@@ -41,7 +42,7 @@ export function mapBooleanState(eventPromise: Promise<BooleanEvent | null>, devi
   return eventPromise.then(event => {
     if (!event) {
       const createdAt = device.createdAt.toISOString();
-      return { start: createdAt, end: null, lastReported: createdAt, value: null };
+      return { start: createdAt, end: null, lastReported: createdAt, value: null, isComputed: false };
     }
 
     if (event.end) {
@@ -49,7 +50,8 @@ export function mapBooleanState(eventPromise: Promise<BooleanEvent | null>, devi
         start: event.end.toISOString(),
         end: null,
         lastReported: event.lastReported.toISOString(),
-        value: false
+        value: false,
+        isComputed: COMPUTED_EVENT_TYPES.includes(event.type)
       };
     }
 
@@ -57,7 +59,8 @@ export function mapBooleanState(eventPromise: Promise<BooleanEvent | null>, devi
       start: event.start.toISOString(),
       end: null,
       lastReported: event.lastReported.toISOString(),
-      value: true
+      value: true,
+      isComputed: COMPUTED_EVENT_TYPES.includes(event.type)
     };
   });
 }
@@ -66,14 +69,15 @@ export function mapStringState(eventPromise: Promise<StringEvent | null>, device
   return eventPromise.then(event => {
     if (!event) {
       const createdAt = device.createdAt.toISOString();
-      return { start: createdAt, end: null, lastReported: createdAt, value: null };
+      return { start: createdAt, end: null, lastReported: createdAt, value: null, isComputed: false };
     }
 
     return {
       start: event.start.toISOString(),
       end: event.end?.toISOString() ?? null,
       lastReported: event.lastReported.toISOString(),
-      value: event.value
+      value: event.value,
+      isComputed: COMPUTED_EVENT_TYPES.includes(event.type)
     };
   });
 }
@@ -357,12 +361,17 @@ export async function getCapabilityData(device: Device, capability: string, inst
   }
 }
 
-function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fallback: Date): string {
+export function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[], fallback: Date): string {
   let latestDate: string = fallback.toISOString();
 
   for (const capability of capabilities) {
+    // A disconnected state is re-confirmed by the broker or provider, not by the device itself.
+    if (capability.type === 'CONNECTIVITY' && !capability.isConnected.value) {
+      continue;
+    }
+
     for (const value of Object.values(capability)) {
-      if (typeof value === 'object' && value !== null && 'lastReported' in value && latestDate < value.lastReported) {
+      if (typeof value === 'object' && value !== null && 'lastReported' in value && !value.isComputed && latestDate < value.lastReported) {
         latestDate = value.lastReported;
       }
     }

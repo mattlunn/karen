@@ -89,6 +89,7 @@ export class BooleanEvent {
   protected event: Event;
 
   public id: number;
+  public type: string;
   public value: boolean;
   public instanceId: string | null;
   public start: Date;
@@ -99,6 +100,7 @@ export class BooleanEvent {
   constructor(e: Event) {
     this.event = e;
     this.id = e.id;
+    this.type = e.type;
     this.value = !!e.value;
     this.instanceId = e.instanceId ?? null;
     this.start = e.start;
@@ -120,6 +122,7 @@ export class NumericEvent {
   protected event: Event;
 
   public id: number;
+  public type: string;
   public value: number;
   public instanceId: string | null;
   public start: Date;
@@ -130,6 +133,7 @@ export class NumericEvent {
   constructor(e: Event) {
     this.event = e;
     this.id = e.id;
+    this.type = e.type;
     this.value = e.value;
     this.instanceId = e.instanceId ?? null;
     this.start = e.start;
@@ -147,6 +151,7 @@ export class StringEvent {
   protected event: Event;
 
   public id: number;
+  public type: string;
   public value: string;
   public instanceId: string | null;
   public start: Date;
@@ -157,6 +162,7 @@ export class StringEvent {
   constructor(e: Event) {
     this.event = e;
     this.id = e.id;
+    this.type = e.type;
     this.value = e.stringValue ?? '';
     this.instanceId = e.instanceId ?? null;
     this.start = e.start;

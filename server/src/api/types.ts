@@ -153,6 +153,7 @@ export type BooleanStateApiResponse = {
   end: string | null;
   lastReported: string;
   value: boolean | null;
+  isComputed: boolean;
 };
 
 export type NumericStateApiResponse = {
@@ -160,6 +161,7 @@ export type NumericStateApiResponse = {
   end: string | null;
   lastReported: string;
   value: number | null;
+  isComputed: boolean;
 };
 
 export type EnumStateApiResponse = {
@@ -167,6 +169,7 @@ export type EnumStateApiResponse = {
   end: string | null;
   lastReported: string;
   value: string | null;
+  isComputed: boolean;
 };
 
 export type TelevisionSourceApiResponse = {
