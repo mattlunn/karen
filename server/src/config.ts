@@ -129,6 +129,10 @@ export interface AppConfig {
     dhw_legionella_max_interval_days: number;
     dhw_legionella_alert_grace_days: number;
     dhw_legionella_alert_check_cron: string;
+    system_pressure_check_cron: string;
+    system_pressure_average_minutes: number;
+    system_pressure_low_bar: number;
+    system_pressure_recovered_bar: number;
   };
   homeconnect: {
     client_id: string;

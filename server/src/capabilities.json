@@ -87,6 +87,12 @@
       "eventName": "system_pressure"
     },
     {
+      "name": "IsSystemPressureLow",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "system_pressure_low"
+    },
+    {
       "name": "DHWTemperature",
       "isWriteable": false,
       "type": "number",
