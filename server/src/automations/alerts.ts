@@ -12,17 +12,14 @@ export const parameters = z.strictObject({
     checkCron: z.string(),
     averageMinutes: z.number().positive(),
     lowBar: z.number().positive(),
-    recoveredBar: z.number().positive(),
-    trendCron: z.string(),
-    trendDays: z.number().int().positive(),
-    trendDropBar: z.number().positive()
+    recoveredBar: z.number().positive()
   }).refine(({ lowBar, recoveredBar }) => recoveredBar > lowBar, {
     message: 'recoveredBar must be above lowBar'
   })
 });
 
 export default function ({ systemPressure }: z.infer<typeof parameters>) {
-  const { checkCron, averageMinutes, lowBar, recoveredBar, trendCron, trendDays, trendDropBar } = systemPressure;
+  const { checkCron, averageMinutes, lowBar, recoveredBar } = systemPressure;
   const lowSinceByDeviceId = new Map<number, Date>();
 
   setCron(createBackgroundTransaction('automations:alerts:system-pressure', async () => {
@@ -54,26 +51,4 @@ export default function ({ systemPressure }: z.infer<typeof parameters>) {
       }
     }
   }), checkCron);
-
-  setCron(createBackgroundTransaction('automations:alerts:system-pressure-trend', async () => {
-    const until = new Date();
-    const midpoint = dayjs(until).subtract(trendDays, 'day').toDate();
-    const since = dayjs(midpoint).subtract(trendDays, 'day').toDate();
-
-    for (const device of await Device.findByCapability('HEAT_PUMP')) {
-      const history = await device.getHeatPumpCapability().getSystemPressureHistory({ since, until });
-      const previousAverage = timeWeightedAverage(history, since, midpoint);
-      const recentAverage = timeWeightedAverage(history, midpoint, until);
-
-      if (previousAverage === null || recentAverage === null) {
-        continue;
-      }
-
-      if (previousAverage - recentAverage >= trendDropBar) {
-        bus.emit(NOTIFICATION_TO_ADMINS, {
-          message: `📉 Heating system pressure has averaged ${recentAverage.toFixed(2)} bar over the last ${trendDays} days, down from ${previousAverage.toFixed(2)} bar the ${trendDays} days before. The system may be losing pressure.`
-        });
-      }
-    }
-  }), trendCron);
 }
