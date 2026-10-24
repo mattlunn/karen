@@ -59,9 +59,12 @@ function resolveNextChargeSchedule(device: Device): ScheduleChargeRequest | null
   return next ? { targetPercentage: next.targetPercentage, targetTime: next.targetTime.toISOString() } : null;
 }
 
-// A deadline plan is active and we've commanded charging, but the car still
-// isn't charging after this long - raise one alert (cable / car-asleep).
+// A deadline slot is active but the car still isn't charging after this long -
+// raise one alert (cable / car asleep / bridge unreachable).
 const NOT_CHARGING_ALERT_MINUTES = 15;
+
+// Three of the bridge's 10-minute refreshes.
+const BRIDGE_STALE_AFTER_MINUTES = 30;
 
 // Karen supports a single car, so the device is found by provider rather than
 // by Kia's vehicle id, which syncCarState keeps up to date.
@@ -81,41 +84,63 @@ async function findVehicleDeviceOrError(): Promise<Device> {
   return device;
 }
 
-async function syncCarState(): Promise<{ device: Device; vehicle: BridgeVehicle }> {
-  let device = await findVehicleDevice();
+async function fetchVehicle(): Promise<BridgeVehicle | null> {
+  let vehicles: BridgeVehicle[];
 
   try {
-    const vehicles = await client.listVehicles();
-
-    if (vehicles.length !== 1) {
-      throw new Error(`Expected exactly one vehicle from kia-connect-bridge, got ${vehicles.length}`);
-    }
-
-    const [vehicle] = vehicles;
-
-    device ??= Device.build({
-      provider: 'vehicle',
-      providerId: vehicle.id,
-      name: vehicle.name ?? 'Car',
-    });
-
-    device.providerId = vehicle.id;
-
-    if (vehicle.model !== null) {
-      device.model = vehicle.model;
-    }
-
-    await device.save();
-    await processVehicle(device, vehicle);
-    await device.getConnectivityCapability().setIsConnectedState(true);
-
-    return { device, vehicle };
-  } catch (e) {
-    if (device) {
-      await device.getConnectivityCapability().setIsConnectedState(false);
-    }
-    throw e;
+    vehicles = await client.listVehicles();
+  } catch (e: any) {
+    logger.warn(`kia-connect-bridge unreachable: ${e.message}`);
+    return null;
   }
+
+  if (vehicles.length !== 1) {
+    throw new Error(`Expected exactly one vehicle from kia-connect-bridge, got ${vehicles.length}`);
+  }
+
+  const [vehicle] = vehicles;
+
+  // The bridge keeps serving its last copy of the car when it can't reach Kia.
+  if (vehicle.last_scanned_at === null || dayjs().diff(vehicle.last_scanned_at, 'minute') >= BRIDGE_STALE_AFTER_MINUTES) {
+    logger.warn(`kia-connect-bridge hasn't refreshed from Kia since ${vehicle.last_scanned_at}`);
+    return null;
+  }
+
+  return vehicle;
+}
+
+// An unreachable car is marked disconnected, leaving its last known state in place.
+async function syncCarState(): Promise<Device> {
+  let device = await findVehicleDevice();
+  const vehicle = await fetchVehicle();
+
+  if (vehicle === null) {
+    if (device === undefined) {
+      throw new Error('kia-connect-bridge unavailable, and no vehicle device to mark disconnected');
+    }
+
+    await device.getConnectivityCapability().setIsConnectedState(false);
+
+    return device;
+  }
+
+  device ??= Device.build({
+    provider: 'vehicle',
+    providerId: vehicle.id,
+    name: vehicle.name ?? 'Car',
+  });
+
+  device.providerId = vehicle.id;
+
+  if (vehicle.model !== null) {
+    device.model = vehicle.model;
+  }
+
+  await device.save();
+  await processVehicle(device, vehicle);
+  await device.getConnectivityCapability().setIsConnectedState(true);
+
+  return device;
 }
 
 // Kia's own action status is usually UNKNOWN even when the command worked, so
@@ -249,13 +274,18 @@ Device.registerProvider('vehicle', {
   },
 
   async synchronize() {
-    const { device, vehicle } = await syncCarState();
+    const device = await syncCarState();
+    const ev = device.getElectricVehicleCapability();
+    const [isCarReachable, chargeLimit] = await Promise.all([
+      device.getConnectivityCapability().getIsConnected(),
+      ev.getChargeLimitEvent(),
+    ]);
 
     // The scheduler owns start/stop; the car's own limit is pinned at 100 so a
     // start command always takes effect (and if Karen is down it charges to
     // full rather than being stuck at a stale lower limit).
-    if (!isReadOnly() && vehicle.ev_charge_limits_ac !== null && vehicle.ev_charge_limits_ac !== 100) {
-      await device.getElectricVehicleCapability().setChargeLimit(100);
+    if (!isReadOnly() && isCarReachable && chargeLimit !== null && chargeLimit.value !== 100) {
+      await ev.setChargeLimit(100);
     }
   },
 });
@@ -360,8 +390,12 @@ function isReadOnly(): boolean {
 // synchronize), so a start command always takes effect and this is just:
 // charge while inside a planned slot and below target, otherwise stop. Re-issued
 // each tick until the car reports it stuck.
-async function applyPlan(ev: ElectricVehicleCapability, now: Dayjs, plan: ChargePlan | null, chargePercentage: number) {
-  const isCharging = await ev.getIsCharging();
+async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, chargePercentage: number) {
+  const ev = device.getElectricVehicleCapability();
+  const [isCarReachable, isCharging] = await Promise.all([
+    device.getConnectivityCapability().getIsConnected(),
+    ev.getIsCharging(),
+  ]);
   const desired = plan !== null && isWithinSlots(plan.slots, now.toDate()) && chargePercentage < plan.target;
 
   if (isReadOnly()) {
@@ -369,28 +403,30 @@ async function applyPlan(ev: ElectricVehicleCapability, now: Dayjs, plan: Charge
     return;
   }
 
-  if (desired !== isCharging) {
-    logger.info(`Price-aware charging: setting isCharging=${desired}`);
-    await ev.setIsCharging(desired);
-  }
-
   // Only a deadline plan alerts: a charge that's merely opportunistic failing to
-  // start isn't worth waking anybody for.
-  if (plan === null || plan.deadline === null || !(desired && !isCharging)) {
+  // start isn't worth waking anybody for. Ahead of the command, so a command that
+  // throws can't skip it.
+  const isFailingDeadlineCharge = plan !== null && plan.deadline !== null && desired && !(isCarReachable && isCharging);
+
+  if (isFailingDeadlineCharge) {
+    deadlineNotChargingSince ??= now;
+
+    if (!deadlineAlertSent && now.diff(deadlineNotChargingSince, 'minute') >= NOT_CHARGING_ALERT_MINUTES) {
+      deadlineAlertSent = true;
+
+      bus.emit(NOTIFICATION_TO_ADMINS, {
+        message: buildChargingFailureNotification(plan.target, dayjs(plan.deadline), isCarReachable),
+        priority: 1,
+      });
+    }
+  } else {
     deadlineNotChargingSince = null;
     deadlineAlertSent = false;
-    return;
   }
 
-  deadlineNotChargingSince ??= now;
-
-  if (!deadlineAlertSent && now.diff(deadlineNotChargingSince, 'minute') >= NOT_CHARGING_ALERT_MINUTES) {
-    deadlineAlertSent = true;
-
-    bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: buildChargingFailureNotification(plan.target, dayjs(plan.deadline)),
-      priority: 1,
-    });
+  if (isCarReachable && desired !== isCharging) {
+    logger.info(`Price-aware charging: setting isCharging=${desired}`);
+    await ev.setIsCharging(desired);
   }
 }
 
@@ -487,7 +523,7 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
   // rebuilt from live SoC when the cable goes back in.
   if (!isCableConnected) {
     await clearPlan(device);
-    await applyPlan(ev, now, null, chargePercentage);
+    await applyPlan(device, now, null, chargePercentage);
     return;
   }
 
@@ -504,14 +540,14 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
     plan = await createPlan(device, slots, now, chargePercentage);
   }
 
-  await applyPlan(ev, now, plan, chargePercentage);
+  await applyPlan(device, now, plan, chargePercentage);
 }
 
 // Aligned ticks hit the half-hour slot boundaries exactly, so the 5-minute cadence
 // is for what isn't aligned: reacting to the cable being plugged in, and stopping
 // within five minutes of the charge limit rather than thirty.
 nowAndSetCron(createBackgroundTransaction('vehicle:poll', async () => {
-  const { device } = await syncCarState();
+  const device = await syncCarState();
   const ev = device.getElectricVehicleCapability();
   const now = dayjs();
 
