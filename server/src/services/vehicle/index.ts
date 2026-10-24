@@ -325,10 +325,9 @@ async function chooseNextCharge(device: Device, now: Dayjs) {
 // Price-aware charging
 // ---------------------------------------------------------------------------
 
-// A deadline block wants charging but the car isn't - since when, and have we
-// alerted for it. Reset once it charges (or leaves the block).
+// Since when a deadline block has wanted charging that the car isn't doing.
+// Reset once it charges (or leaves the block).
 let deadlineNotChargingSince: Dayjs | null = null;
-let deadlineAlertSent = false;
 
 async function getEnergyCostCapability() {
   const [device] = await Device.findByCapability('ENERGY_COST');
@@ -410,9 +409,7 @@ async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, ch
   if (isFailingDeadlineCharge) {
     deadlineNotChargingSince ??= now;
 
-    if (!deadlineAlertSent && now.diff(deadlineNotChargingSince, 'minute') >= NOT_CHARGING_ALERT_MINUTES) {
-      deadlineAlertSent = true;
-
+    if (now.diff(deadlineNotChargingSince, 'minute') >= NOT_CHARGING_ALERT_MINUTES && await ev.setIsDeadlineChargeFailingState(true)) {
       await Log.notify({
         severity: 'warning',
         devices: [device],
@@ -421,7 +418,16 @@ async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, ch
     }
   } else {
     deadlineNotChargingSince = null;
-    deadlineAlertSent = false;
+
+    // Only worth a message when it cleared because the car started charging;
+    // a plan change or the car leaving resolves it silently.
+    if (await ev.setIsDeadlineChargeFailingState(false) && isCarReachable && isCharging) {
+      await Log.notify({
+        severity: 'notice',
+        devices: [device],
+        message: '✅ Car is now charging.',
+      });
+    }
   }
 
   if (isCarReachable && desired !== isCharging) {
@@ -513,9 +519,9 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
   // charge however it's been told to there.
   if (!atHome) {
     await clearPlan(device);
+    await ev.setIsDeadlineChargeFailingState(false);
 
     deadlineNotChargingSince = null;
-    deadlineAlertSent = false;
     return;
   }
 

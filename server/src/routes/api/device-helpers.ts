@@ -140,6 +140,8 @@ export async function getCapabilityData(device: Device, capability: string, inst
         actualFlowTemperature: mapNumericState(heatPump.getActualFlowTemperatureEvent(), device),
         returnTemperature: mapNumericState(heatPump.getReturnTemperatureEvent(), device),
         systemPressure: mapNumericState(heatPump.getSystemPressureEvent(), device),
+        isSystemPressureLow: mapBooleanState(heatPump.getIsSystemPressureLowEvent(), device),
+        isLegionellaOverdue: mapBooleanState(heatPump.getIsLegionellaOverdueEvent(), device),
         dayPower: mapNumericState(heatPump.getDayPowerEvent(), device),
         dayYield: mapNumericState(heatPump.getDayYieldEvent(), device),
         dayCoP: mapNumericState(heatPump.getDayCoPEvent(), device)
@@ -303,6 +305,7 @@ export async function getCapabilityData(device: Device, capability: string, inst
         isAtHome: mapBooleanState(ev.getIsAtHomeEvent(), device),
         isPreheating: mapBooleanState(ev.getIsPreheatingEvent(), device),
         isPrecooling: mapBooleanState(ev.getIsPrecoolingEvent(), device),
+        isDeadlineChargeFailing: mapBooleanState(ev.getIsDeadlineChargeFailingEvent(), device),
         odometer: mapNumericState(ev.getOdometerEvent(), device),
         chargeSchedule: ev.getNextChargeSchedule(),
         chargeType: ev.getChargeType(),
@@ -336,7 +339,8 @@ export async function getCapabilityData(device: Device, capability: string, inst
       const energyCost = device.getEnergyCostCapability(instanceId);
       return awaitPromises({
         type: 'ENERGY_COST' as const,
-        standingCharge: mapNumericState(energyCost.getStandingChargeEvent(), device)
+        standingCharge: mapNumericState(energyCost.getStandingChargeEvent(), device),
+        isMissingForwardPrices: mapBooleanState(energyCost.getIsMissingForwardPricesEvent(), device)
       });
     }
 

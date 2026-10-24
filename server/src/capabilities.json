@@ -93,6 +93,12 @@
       "eventName": "system_pressure_low"
     },
     {
+      "name": "IsLegionellaOverdue",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "legionella_overdue"
+    },
+    {
       "name": "DHWTemperature",
       "isWriteable": false,
       "type": "number",
@@ -482,6 +488,12 @@
       "isWriteable": true,
       "type": "boolean",
       "eventName": "is_precooling"
+    },
+    {
+      "name": "IsDeadlineChargeFailing",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "is_deadline_charge_failing"
     }
   ]
 }, {
@@ -580,6 +592,12 @@
       "isWriteable": false,
       "type": "number",
       "eventName": "energy_standing_charge"
+    },
+    {
+      "name": "IsMissingForwardPrices",
+      "isWriteable": false,
+      "type": "boolean",
+      "eventName": "energy_forward_prices_missing"
     }
   ]
 }, {

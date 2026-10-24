@@ -105,28 +105,44 @@ async function pollRates(device: Device) {
     (since, to) => getStandingCharges(agreements, since, to),
     (standingCharge) => energyCost.setStandingChargeState(standingCharge.value, standingCharge.start)
   );
+
+  if (await hasForwardPrices(device) && await energyCost.setIsMissingForwardPricesState(false)) {
+    await Log.notify({
+      severity: 'notice',
+      devices: [device],
+      message: '✅ Agile Octopus prices are available again.',
+    });
+  }
 }
 
-// Checked once each evening: if we don't hold unit rates covering the next 24h
-// (on Agile, tomorrow's publish ~16:00-19:00), the DHW / EV schedulers can't
-// plan and just sit off - so tell admins.
-async function checkForwardPricesAvailable() {
-  const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
+async function hasForwardPrices(device: Device): Promise<boolean> {
   const now = new Date();
   const until = dayjs(now).add(24, 'hour').toDate();
   const events = await device.getEnergyCostCapability().getUnitRateHistory({ since: now, until });
 
-  if (haveForecastThrough(events, until)) {
+  return haveForecastThrough(events, until);
+}
+
+// Checked once each evening: if we don't hold unit rates covering the next 24h
+// (on Agile, tomorrow's publish ~16:00-19:00), the DHW / EV schedulers can't
+// plan and just sit off - so tell admins. Earlier in the day, tomorrow's prices
+// are legitimately unpublished, which is why only this check marks them missing.
+async function checkForwardPricesAvailable() {
+  const device = await Device.findByProviderIdOrError('octopus', PROVIDER_ID);
+
+  if (await hasForwardPrices(device)) {
     return;
   }
 
-  logger.warn('Octopus: no forward prices for the next 24h');
+  if (await device.getEnergyCostCapability().setIsMissingForwardPricesState(true)) {
+    logger.warn('Octopus: no forward prices for the next 24h');
 
-  await Log.notify({
-    severity: 'notice',
-    devices: [device],
-    message: 'No Agile Octopus prices available yet. Devices relying on forecasting (e.g. DHW and EV) are impacted.',
-  });
+    await Log.notify({
+      severity: 'notice',
+      devices: [device],
+      message: 'No Agile Octopus prices available yet. Devices relying on forecasting (e.g. DHW and EV) are impacted.',
+    });
+  }
 }
 
 // Home Mini telemetry: near-real-time (sub-minute) wattage readings, polled
