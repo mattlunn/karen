@@ -1,10 +1,9 @@
-import { Device } from '../../models';
+import { Device, Log } from '../../models';
 import config from '../../config';
 import dayjs from '../../dayjs';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import setCron from '../../helpers/set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
-import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
 import { haveForecastThrough, PriceSlot, SLOT_MINUTES } from '../../helpers/prices';
 import type { Capability } from '../../models/capabilities';
@@ -123,7 +122,9 @@ async function checkForwardPricesAvailable() {
 
   logger.warn('Octopus: no forward prices for the next 24h');
 
-  bus.emit(NOTIFICATION_TO_ADMINS, {
+  await Log.notify({
+    severity: 'notice',
+    devices: [device],
     message: 'No Agile Octopus prices available yet. Devices relying on forecasting (e.g. DHW and EV) are impacted.',
   });
 }

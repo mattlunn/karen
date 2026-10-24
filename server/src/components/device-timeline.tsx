@@ -1,16 +1,58 @@
 import React, { useState, useMemo } from 'react';
-import { Checkbox, Group, Title } from '@mantine/core';
-import { faLightbulb, faPersonWalking, faFireBurner, faHandPointer, faSignal, faDoorOpen, faToggleOn, faToggleOff, faRotate, faFire, faSnowflake } from '@fortawesome/free-solid-svg-icons';
+import { Checkbox, Group, Text, Title } from '@mantine/core';
+import { faLightbulb, faPersonWalking, faFireBurner, faHandPointer, faSignal, faDoorOpen, faToggleOn, faToggleOff, faRotate, faFire, faSnowflake, faCircleInfo, faBell, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { useDeviceTimeline } from '../hooks/queries/use-device-timeline';
 import { useDateRange, DateRangeSelector } from './date-range';
 import { DateRange, DateRangePreset } from './date-range/types';
 import Timeline, { TimelineItem } from './timeline/timeline';
-import { DeviceTimelineEventApiResponse } from '../api/types';
+import { DeviceTimelineEventApiResponse, LogSeverity } from '../api/types';
 import { formatDuration } from '../helpers/date';
 
 type DeviceTimelineProps = {
   deviceId: number;
 };
+
+type LogEvent = Extract<DeviceTimelineEventApiResponse, { type: 'log' }>;
+
+const LOG_SEVERITY_ICONS: Record<LogSeverity, { icon: IconProp; iconColor?: string }> = {
+  info: { icon: faCircleInfo },
+  notice: { icon: faBell, iconColor: '#04A7F4' },
+  warning: { icon: faTriangleExclamation, iconColor: '#ffa24d' },
+  critical: { icon: faTriangleExclamation, iconColor: '#cc3333' },
+};
+
+function describeLogRecipients(event: LogEvent): string | null {
+  if (event.severity === 'info') {
+    return null;
+  }
+
+  switch (event.audience) {
+    case 'admins':
+      return 'Sent to admins';
+    case 'all':
+      return 'Sent to everyone';
+    case 'absent':
+      return 'Sent to everyone away';
+    case 'user':
+      return `Sent to ${event.userHandle}`;
+  }
+}
+
+function mapLogToTimelineItem(event: LogEvent): TimelineItem {
+  const recipients = describeLogRecipients(event);
+
+  return {
+    ...LOG_SEVERITY_ICONS[event.severity],
+    timestamp: event.timestamp,
+    title: (
+      <>
+        {event.message}
+        {recipients && <Text span c="dimmed" size="sm"> &middot; {recipients}</Text>}
+      </>
+    ),
+  };
+}
 
 function mapEventToTimelineItem(event: DeviceTimelineEventApiResponse): TimelineItem | null {
   switch (event.type) {
@@ -55,6 +97,8 @@ function mapEventToTimelineItem(event: DeviceTimelineEventApiResponse): Timeline
       return { icon: faSnowflake, title: 'Precooling started', timestamp: event.timestamp, iconColor: '#04A7F4' };
     case 'precooling-stopped':
       return { icon: faSnowflake, title: `Precooling stopped after ${formatDuration(event.durationSeconds)}`, timestamp: event.timestamp };
+    case 'log':
+      return mapLogToTimelineItem(event);
   }
 
   return null;

@@ -1,8 +1,7 @@
 import { z } from 'zod';
-import { Device, Arming, User, AlarmActivation, BooleanEvent } from '../models';
-import { callWithKarenMessage } from '../services/twilio';
-import bus, { NOTIFICATION_TO_ALL } from '../bus';
+import { Device, Arming, AlarmActivation, BooleanEvent, Log } from '../models';
 import dayjs from '../dayjs';
+import logger from '../logger';
 import sleep from '../helpers/sleep';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
@@ -36,14 +35,6 @@ async function turnOnAllTheLights() {
 
   for (const light of lights) {
     light.getLightCapability().setIsOn(true);
-  }
-}
-
-async function notifyAbsentUsersOfEvent(message: string) {
-  const usersWithNumber = await User.getAbsentUsersWithMobileNumber();
-
-  for (const user of usersWithNumber) {
-    callWithKarenMessage(user, message);
   }
 }
 
@@ -153,7 +144,10 @@ export default async function ({
           triggeringDeviceId: device.id
         });
 
-        bus.emit(NOTIFICATION_TO_ALL, {
+        await Log.notify({
+          severity: 'notice',
+          audience: 'all',
+          devices: [device],
           message: `🔕 ${description}. Further alerts will be suppressed until ${dayjs(suppressFurtherAlertsUntil).format('HH:mm')}.`
         });
 
@@ -167,7 +161,8 @@ export default async function ({
         triggeringDeviceId: device.id
       });
 
-      notifyAbsentUsersOfEvent(description);
+      Log.notify({ severity: 'critical', audience: 'absent', devices: [device], message: description })
+        .catch(e => logger.error(e, 'Failed to log alarm activation'));
       turnOnAllTheLights();
 
       if (arming.mode === ArmingMode.NIGHT) {

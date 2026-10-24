@@ -9,6 +9,7 @@ import tokenFactory from './token';
 import eventFactory, { Event } from './event';
 import recordingFactory, { Recording } from './recording';
 import deviceFactory, { Device } from './device';
+import logFactory, { Log } from './log';
 import logger from '../logger';
 
 const instance = new Sequelize(config.database.name, config.database.user, config.database.password, {
@@ -35,6 +36,7 @@ export { Stay } from './stay';
 export { Room } from './room';
 export { AlarmActivation } from './alarm_activation';
 export { Arming } from './arming';
+export { Log } from './log';
 
 deviceFactory(instance);
 eventFactory(instance);
@@ -44,6 +46,9 @@ stayFactory(instance);
 roomFactory(instance);
 alarmActivationFactory(instance);
 armingFactory(instance);
+logFactory(instance);
+
+const LogDevice = instance.define('log_device', {}, { tableName: 'log_devices', timestamps: false });
 
 Recording.belongsTo(Event);
 Stay.belongsTo(User);
@@ -58,5 +63,8 @@ AlarmActivation.belongsTo(Device, {
   foreignKey: 'triggeringDeviceId',
   as: 'triggeringDevice'
 });
+Log.belongsTo(User);
+Log.belongsToMany(Device, { through: LogDevice, foreignKey: 'logId', otherKey: 'deviceId' });
+Device.belongsToMany(Log, { through: LogDevice, foreignKey: 'deviceId', otherKey: 'logId' });
 
 export { Op } from 'sequelize';

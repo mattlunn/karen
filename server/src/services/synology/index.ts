@@ -1,7 +1,7 @@
 import dayjs, { Dayjs } from '../../dayjs';
 import config from '../../config';
 import logger from '../../logger';
-import { Event, BooleanEvent, Recording, Stay, Device, Op } from '../../models';
+import { Event, BooleanEvent, Recording, Stay, Device, Log, Op } from '../../models';
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
 import { v4 as uuidv4 } from 'uuid';
@@ -9,7 +9,6 @@ import sleep from '../../helpers/sleep';
 import { enqueueWorkItem } from '../../queue';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import setCron from '../../helpers/set-cron';
-import bus, { NOTIFICATION_TO_ALL } from '../../bus';
 
 export { makeSynologyRequest };
 
@@ -123,7 +122,10 @@ export async function onDoorbellRing(cameraId: string) {
     id: 6
   }, false);
 
-  bus.emit(NOTIFICATION_TO_ALL, {
+  await Log.notify({
+    severity: 'notice',
+    audience: 'all',
+    devices: [device],
     message: 'Someone is at the door',
     image,
     sound: 'doorbell'

@@ -1,11 +1,10 @@
-import { Device } from '../../models';
+import { Device, Log } from '../../models';
 import { HeatPumpCapability, HeatPumpDHWMode, DHWPlannedWindow, DHWTargetReason } from '../../models/capabilities';
 import config from '../../config';
 import dayjs from '../../dayjs';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import setCron from '../../helpers/set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
-import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
 import EbusClient from './client';
 import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow } from '../../helpers/prices';
@@ -266,8 +265,10 @@ async function alertIfLegionellaOverdue(): Promise<void> {
 
   logger.warn(`DHW: hot water has not reached ${legionellaThreshold()}°C in over ${days} days`);
 
-  bus.emit(NOTIFICATION_TO_ADMINS, {
-    message: `🚨 Hot water has not reached ${legionellaThreshold()}°C in over ${days} days. The legionella cycle may be failing to complete.`,
+  await Log.notify({
+    severity: 'notice',
+    devices: [device],
+    message: `Hot water has not reached ${legionellaThreshold()}°C in over ${days} days. The legionella cycle may be failing to complete.`,
   });
 }
 

@@ -44,6 +44,13 @@ export interface AppConfig {
   pushover: {
     admin_token: string;
     application_token: string;
+    mode: 'readonly' | 'readwrite' | undefined;
+  };
+  twilio: {
+    account_sid: string;
+    auth_token: string;
+    number: string;
+    mode: 'readonly' | 'readwrite' | undefined;
   };
   database: {
     host: string;

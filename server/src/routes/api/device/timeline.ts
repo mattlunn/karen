@@ -1,4 +1,4 @@
-import { Device, BooleanEvent, StringEvent } from '../../../models';
+import { Device, BooleanEvent, StringEvent, Log } from '../../../models';
 import { Request, Response, NextFunction } from 'express';
 import dayjs from '../../../dayjs';
 import { TimeRangeSelector, HistorySelector } from '../../../models/capabilities/helpers';
@@ -206,6 +206,21 @@ export default async function (req: Request<{ id: string }>, res: Response, next
       }
     }
   }
+
+  historyPromises.push(
+    Log.findForDevice(device, historySelector).then(logs => {
+      for (const log of logs) {
+        events.push({
+          type: 'log',
+          timestamp: log.createdAt.toISOString(),
+          severity: log.severity,
+          message: log.message,
+          audience: log.audience,
+          userHandle: log.user?.handle ?? null
+        });
+      }
+    })
+  );
 
   await Promise.all(historyPromises);
 

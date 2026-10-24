@@ -6,7 +6,6 @@ describe('buildChargingFailureNotification', () => {
     const targetTime = dayjs().hour(8).minute(30).second(0).millisecond(0);
     const message = buildChargingFailureNotification(80, targetTime, true);
 
-    expect(message.startsWith('‼️ ')).toBe(true);
     expect(message).toContain('80%');
     expect(message).toContain('08:30');
     expect(message).toContain('not charging');
@@ -23,7 +22,6 @@ describe('buildChargingFailureNotification', () => {
     const targetTime = dayjs().hour(8).minute(30).second(0).millisecond(0);
     const message = buildChargingFailureNotification(80, targetTime, false);
 
-    expect(message.startsWith('‼️ ')).toBe(true);
     expect(message).toContain('80%');
     expect(message).toContain('offline');
     expect(message).not.toContain('cable');

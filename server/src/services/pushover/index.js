@@ -1,55 +1,66 @@
 import Push from 'pushover-notifications';
 import config from '../../config';
 import logger from '../../logger';
-import bus, { NOTIFICATION_TO_ADMINS, NOTIFICATION_TO_ALL, NOTIFICATION_TO_USER } from '../../bus';
-import { User } from '../../models';
- 
+import bus, { LOG_CREATED } from '../../bus';
+
 const push = new Push({
   token: config.pushover.application_token,
   onerror: logger.error.bind(logger)
 });
 
-function sendNotificationToUsers(ids, e) {
-  const event = {
-    ...e,
-    user: ids.join(',')
-  };
+const SEVERITY_OPTIONS = {
+  notice: { priority: 0 },
+  warning: { priority: 1 },
+  critical: { priority: 2, retry: 60, expire: 3600 }
+};
 
-  if (event.image) {
-    event.file = {
-      name: 'image.jpg',
-      data: event.image
-    };
+const SEVERITY_PREFIXES = {
+  warning: '⚠️ ',
+  critical: '🚨 '
+};
 
-    delete event.image;
+async function getRecipientTokens(log) {
+  if (log.audience === 'admins') {
+    return [config.pushover.admin_token];
   }
 
-  logger.info(`Sending a notification to ${ids.length} user(s)`);
+  const users = await log.getAudienceUsers();
 
-  push.send(event, (err) => {
-    if (err) {
-      logger.error(err);
-    }
-  });
+  return users.flatMap(user => user.pushoverToken ? [user.pushoverToken] : []);
 }
 
-bus.on(NOTIFICATION_TO_ADMINS, (e) => {
-  sendNotificationToUsers([config.pushover.admin_token], e);
-});
-
-bus.on(NOTIFICATION_TO_ALL, async (e) => {
-  const users = await User.getThoseWithPushoverToken();
-
-  sendNotificationToUsers(users.map(x => x.pushoverToken), e);
-});
-
-bus.on(NOTIFICATION_TO_USER, async ({ userHandle, ...event }) => {
-  const [user] = await User.findByHandles([userHandle]);
-
-  if (!user?.pushoverToken) {
-    logger.warn(`No pushoverToken for user handle "${userHandle}"; notification dropped`);
+bus.on(LOG_CREATED, async ({ log, image, sound }) => {
+  if (log.severity === 'info') {
     return;
   }
 
-  sendNotificationToUsers([user.pushoverToken], event);
+  try {
+    const tokens = await getRecipientTokens(log);
+    const message = `${SEVERITY_PREFIXES[log.severity] ?? ''}${log.message}`;
+
+    if (tokens.length === 0) {
+      return;
+    }
+
+    if (config.pushover.mode === 'readonly') {
+      logger.info(`Pushover: [readonly] would send "${message}" to ${tokens.length} recipient(s)`);
+      return;
+    }
+
+    logger.info(`Sending a notification to ${tokens.length} recipient(s)`);
+
+    push.send({
+      ...SEVERITY_OPTIONS[log.severity],
+      message,
+      sound,
+      user: tokens.join(','),
+      ...(image && { file: { name: 'image.jpg', data: image } })
+    }, (err) => {
+      if (err) {
+        logger.error(err);
+      }
+    });
+  } catch (e) {
+    logger.error(e, `Failed to send "${log.message}" to Pushover`);
+  }
 });

@@ -243,6 +243,9 @@ export type HistoryApiResponse = {
   bars?: HistoryBarApiResponse[];
 };
 
+export type LogSeverity = 'info' | 'notice' | 'warning' | 'critical';
+export type LogAudience = 'admins' | 'all' | 'absent' | 'user';
+
 // Device Timeline API response types (/api/device/:id/timeline)
 export type DeviceTimelineEventApiResponse = {
   type: 'light-on' | 'light-off' | 'motion-start' | 'motion-end' | 'heatpump-mode' | 'button-press' | 'connectivity-online' | 'connectivity-offline' | 'switch-on' | 'appliance-started' | 'preheating-started' | 'precooling-started';
@@ -257,6 +260,13 @@ export type DeviceTimelineEventApiResponse = {
   type: 'switch-off' | 'appliance-finished' | 'preheating-stopped' | 'precooling-stopped';
   timestamp: string;
   durationSeconds: number;
+} | {
+  type: 'log';
+  timestamp: string;
+  severity: LogSeverity;
+  message: string;
+  audience: LogAudience;
+  userHandle: string | null;
 };
 
 export type DeviceTimelineApiResponse = {

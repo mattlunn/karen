@@ -1,4 +1,4 @@
-import { Device, Arming } from '../../../models';
+import { Device, Arming, Log } from '../../../models';
 import { ArmingMode } from '../../../models/arming';
 import { AlarmMode } from '../../../api/types';
 import { exchangeAuthenticationToken } from './client';
@@ -26,7 +26,6 @@ import {
 } from './types';
 import { ALARM_ENDPOINT_ID, PRECONDITIONING_ENDPOINTS, buildDiscoveryEndpoints } from './discovery';
 import logger from '../../../logger';
-import bus, { NOTIFICATION_TO_ADMINS } from '../../../bus';
 
 export type AlexaRequestWithEndpoint = Extract<AlexaSmartHomeRequest, { endpoint: AlexaRequestEndpoint }>;
 
@@ -301,9 +300,10 @@ async function handlePreconditioningPowerControl(request: AlexaTurnOnOffRequest)
   setIsOn(device.getElectricVehicleCapability(), turnOn).catch((error) => {
     logger.error(error);
 
-    bus.emit(NOTIFICATION_TO_ADMINS, {
+    return Log.notify({
+      severity: 'warning',
+      devices: [device],
       message: `Alexa couldn't turn ${turnOn ? 'on' : 'off'} ${friendlyName}`,
-      priority: 1,
     });
   });
 
