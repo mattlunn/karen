@@ -1,7 +1,10 @@
 import { Device } from '../../models';
 import { HeatPumpMode, HeatPumpDHWMode } from '../../models/capabilities';
 import config from '../../config';
+import dayjs from '../../dayjs';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
+import setCron from '../../helpers/set-cron';
+import { filterClampAndSortHistory } from '../../helpers/history';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import EbusClient from './client';
 import { storeRunningMetrics } from './history';
@@ -106,6 +109,36 @@ nowAndSetCron(createBackgroundTransaction('ebusd:poll', async () => {
     throw failures[0].reason;
   }
 }), config.ebusd.poll_cron);
+
+// Averaged, as the pressure briefly dips each time the heat pump cycles.
+setCron(createBackgroundTransaction('ebusd:system-pressure', async () => {
+  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
+  const heatPumpCapability = device.getHeatPumpCapability();
+  const until = new Date();
+  const since = dayjs(until).subtract(config.ebusd.system_pressure_average_minutes, 'minute').toDate();
+  const history = filterClampAndSortHistory(await heatPumpCapability.getSystemPressureHistory({ since, until }), since, until, false);
+  let weightedPressure = 0;
+  let coveredMilliseconds = 0;
+
+  for (const event of history) {
+    const duration = dayjs(event.end).diff(event.start);
+
+    weightedPressure += event.value * duration;
+    coveredMilliseconds += duration;
+  }
+
+  if (coveredMilliseconds === 0) {
+    return;
+  }
+
+  const averagePressure = weightedPressure / coveredMilliseconds;
+
+  if (averagePressure < config.ebusd.system_pressure_low_bar) {
+    await heatPumpCapability.setIsSystemPressureLowState(true);
+  } else if (averagePressure >= config.ebusd.system_pressure_recovered_bar) {
+    await heatPumpCapability.setIsSystemPressureLowState(false);
+  }
+}), config.ebusd.system_pressure_check_cron);
 
 nowAndSetCron(createBackgroundTransaction('ebusd:daily-metrics', async () => {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
