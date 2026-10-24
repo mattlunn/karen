@@ -55,6 +55,8 @@ export type CapabilityApiResponseBase = {
   actualFlowTemperature: NumericStateApiResponse;
   returnTemperature: NumericStateApiResponse;
   systemPressure: NumericStateApiResponse;
+  isSystemPressureLow: BooleanStateApiResponse;
+  isLegionellaOverdue: BooleanStateApiResponse;
   dayPower: NumericStateApiResponse;
   dayYield: NumericStateApiResponse;
   dayCoP: NumericStateApiResponse;
@@ -93,6 +95,7 @@ export type CapabilityApiResponseBase = {
   isAtHome: BooleanStateApiResponse;
   isPreheating: BooleanStateApiResponse;
   isPrecooling: BooleanStateApiResponse;
+  isDeadlineChargeFailing: BooleanStateApiResponse;
   odometer: NumericStateApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string; startsAt: string } | null;
   chargeType: 'BAU' | 'DEADLINE' | 'PLUNGE' | null;
@@ -124,6 +127,7 @@ export type CapabilityApiResponseBase = {
 } | {
   type: 'ENERGY_COST';
   standingCharge: NumericStateApiResponse;
+  isMissingForwardPrices: BooleanStateApiResponse;
 } | {
   type: 'APPLIANCE';
   isRunning: BooleanStateApiResponse;

@@ -394,6 +394,7 @@ export const registry: CapabilityUIRegistry = {
         value: (e) => e.value ? 'Yes' : 'No',
         iconColor: '#2ecc71',
         iconHighlighted: (e) => e.value,
+        isIssue: cap.isDeadlineChargeFailing.value === true,
       }),
       createCapability(null, {
         icon: faGauge,
@@ -596,6 +597,7 @@ export const registry: CapabilityUIRegistry = {
           ? `${humanDate(dayjs(cap.lastLegionellaCycle))} at ${dayjs(cap.lastLegionellaCycle).format('HH:mm')}`
           : 'Never',
         footer: cap.lastLegionellaCycle ? dayjs(cap.lastLegionellaCycle).fromNow() : undefined,
+        isIssue: cap.isLegionellaOverdue.value === true,
       }),
       createCapability(null, {
         icon: faCalendarDay,
@@ -621,6 +623,7 @@ export const registry: CapabilityUIRegistry = {
         icon: faGauge,
         title: 'System Pressure',
         value: (e) => `${e.value.toFixed(1)} bar`,
+        isIssue: cap.isSystemPressureLow.value === true,
       }),
     ],
     getGraphSections: () => [
@@ -1010,6 +1013,12 @@ export const registry: CapabilityUIRegistry = {
         icon: faSterlingSign,
         title: 'Standing Charge',
         value: (e) => `${e.value.toFixed(2)}p/day`,
+      }),
+      createCapability(null, {
+        icon: faCalendarDay,
+        title: 'Forward Prices',
+        value: cap.isMissingForwardPrices.value ? 'Missing' : 'Available',
+        isIssue: cap.isMissingForwardPrices.value === true,
       }),
     ],
     getGraphSections: () => [

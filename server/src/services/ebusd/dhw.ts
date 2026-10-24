@@ -242,8 +242,9 @@ async function reconcile(): Promise<void> {
 }
 
 // Recovery is resolveTarget retrying a legionella block on each Auto cycle until
-// it lands; this only tells admins when that still hasn't happened in time.
-async function alertIfLegionellaOverdue(): Promise<void> {
+// it lands; this only tells admins when that still hasn't happened in time, and
+// once it finally has.
+async function updateLegionellaOverdue(): Promise<void> {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
   const heatPump = device.getHeatPumpCapability();
   const days = config.ebusd.dhw_legionella_max_interval_days;
@@ -260,16 +261,26 @@ async function alertIfLegionellaOverdue(): Promise<void> {
   const [lastCycle] = await getLegionellaCycles(device, dayjs().subtract(lookbackDays, 'day').toDate(), new Date(), 1);
 
   if (lastCycle != null) {
+    if (await heatPump.setIsLegionellaOverdueState(false)) {
+      await Log.notify({
+        severity: 'notice',
+        devices: [device],
+        message: `✅ Hot water has reached ${legionellaThreshold()}°C again, so the legionella cycle has completed.`,
+      });
+    }
+
     return;
   }
 
-  logger.warn(`DHW: hot water has not reached ${legionellaThreshold()}°C in over ${days} days`);
+  if (await heatPump.setIsLegionellaOverdueState(true)) {
+    logger.warn(`DHW: hot water has not reached ${legionellaThreshold()}°C in over ${days} days`);
 
-  await Log.notify({
-    severity: 'notice',
-    devices: [device],
-    message: `Hot water has not reached ${legionellaThreshold()}°C in over ${days} days. The legionella cycle may be failing to complete.`,
-  });
+    await Log.notify({
+      severity: 'notice',
+      devices: [device],
+      message: `Hot water has not reached ${legionellaThreshold()}°C in over ${days} days. The legionella cycle may be failing to complete.`,
+    });
+  }
 }
 
 export async function setDHWMode(mode: HeatPumpDHWMode): Promise<void> {
@@ -314,7 +325,7 @@ nowAndSetCron(
 // already sends the alert.
 if (config.ebusd.dhw_plan_mode !== 'readonly') {
   setCron(
-    createBackgroundTransaction('ebusd:dhw-legionella-check', alertIfLegionellaOverdue),
+    createBackgroundTransaction('ebusd:dhw-legionella-check', updateLegionellaOverdue),
     config.ebusd.dhw_legionella_alert_check_cron
   );
 }
