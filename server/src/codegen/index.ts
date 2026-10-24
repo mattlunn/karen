@@ -17,6 +17,8 @@ type PropertyDescriptor = {
   isWriteable: boolean;
   eventName: string;
   isMomentary?: boolean;
+  // Recalculated by a scheduled job from other properties' history, so its events can be deleted and rebuilt.
+  isComputed?: boolean;
 } & ({
   type: 'boolean';
 } | {
@@ -67,6 +69,7 @@ function describeProperty(capabilityName: string, p: PropertyDescriptor) {
     isBoolean: p.type === 'boolean',
     isString: p.type === 'string',
     isMomentary: p.isMomentary ?? false,
+    isComputed: p.isComputed ?? false,
     isWriteable: p.isWriteable,
     eventType,
     valueType,
@@ -101,12 +104,14 @@ const enumAliases = capabilities.flatMap(c =>
     }))
 );
 
+const computedEventTypes = capabilities.flatMap(c => c.properties.filter(p => p.isComputed).map(p => p.fieldName));
+
 function generateCapabilityModels() {
   const template = Handlebars.compile(readFileSync('./codegen/templates/capabilities.ts.hbs', 'utf-8'));
   const filePath = `../models/capabilities/capabilities.gen.ts`;
   const providers = capabilities.filter(x => x.properties.some(x => x.isWriteable));
 
-  writeFileSync(`${__dirname}/${filePath}`, template({ capabilities, providers, enumAliases }));
+  writeFileSync(`${__dirname}/${filePath}`, template({ capabilities, providers, enumAliases, computedEventTypes }));
 
   console.log(`Wrote ${filePath}`);
 }

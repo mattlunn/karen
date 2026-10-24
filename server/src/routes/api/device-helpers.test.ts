@@ -7,11 +7,11 @@ import type { BooleanStateApiResponse, CapabilityApiResponse, NumericStateApiRes
 const createdAt = new Date('2026-01-01T00:00:00.000Z');
 
 function state(value: boolean, lastReported: string): BooleanStateApiResponse {
-  return { start: '2026-09-15T12:00:00.000Z', end: null, lastReported, value };
+  return { start: '2026-09-15T12:00:00.000Z', end: null, lastReported, value, isComputed: false };
 }
 
-function reading(lastReported: string): NumericStateApiResponse {
-  return { start: '2026-09-15T12:00:00.000Z', end: null, lastReported, value: 0 };
+function reading(lastReported: string, isComputed: boolean): NumericStateApiResponse {
+  return { start: '2026-09-15T12:00:00.000Z', end: null, lastReported, value: 0, isComputed };
 }
 
 function motionSensor(lastReported: string): CapabilityApiResponse {
@@ -25,9 +25,9 @@ function connectivity(isConnected: boolean, lastReported: string): CapabilityApi
 function energyMonitor(currentPowerLastReported: string, dayTotalsLastReported: string): CapabilityApiResponse {
   return {
     type: 'ENERGY_MONITOR',
-    currentPower: reading(currentPowerLastReported),
-    dayEnergy: reading(dayTotalsLastReported),
-    dayCost: reading(dayTotalsLastReported),
+    currentPower: reading(currentPowerLastReported, false),
+    dayEnergy: reading(dayTotalsLastReported, true),
+    dayCost: reading(dayTotalsLastReported, true),
     agileAvgPrice: null,
     instanceId: null,
     instanceName: null
