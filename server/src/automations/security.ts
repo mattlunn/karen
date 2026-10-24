@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { Device, Arming, AlarmActivation, BooleanEvent, Log } from '../models';
 import dayjs from '../dayjs';
-import logger from '../logger';
 import sleep from '../helpers/sleep';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
@@ -161,8 +160,7 @@ export default async function ({
         triggeringDeviceId: device.id
       });
 
-      Log.notify({ severity: 'critical', audience: 'absent', devices: [device], message: description })
-        .catch(e => logger.error(e, 'Failed to log alarm activation'));
+      Log.notify({ severity: 'critical', audience: 'absent', devices: [device], message: description });
       turnOnAllTheLights();
 
       if (arming.mode === ArmingMode.NIGHT) {
