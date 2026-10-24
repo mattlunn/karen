@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import bus, { NOTIFICATION_TO_ADMINS, FIRST_USER_HOME, LAST_USER_LEAVES, STAY_START, STAY_END } from '../bus';
-import { Device, Stay } from '../models';
+import bus, { FIRST_USER_HOME, LAST_USER_LEAVES, STAY_START, STAY_END } from '../bus';
+import { Device, Log, Stay } from '../models';
 import dayjs, { Dayjs } from '../dayjs';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
@@ -70,7 +70,7 @@ export default function ({
   async function checkAwayWarmup(
     etaTime: Date
   ): Promise<void> {
-    const setTargetTemperatureActors = [];
+    const warmups: { device: Device, start: () => Promise<void> }[] = [];
     let earliestWarmup: Dayjs | null = null;
 
     for (const device of await Device.findByCapability('THERMOSTAT')) {
@@ -84,11 +84,14 @@ export default function ({
           earliestWarmup = startTime;
         }
 
-        setTargetTemperatureActors.push(async () => {
-          if (await thermostat.getNextScheduledChange() === null) {
-            await thermostat.setIsOn(true);
-          } else {
-            await thermostat.setTargetTemperatureUntilNextScheduledChange(scheduledTemp);
+        warmups.push({
+          device,
+          start: async () => {
+            if (await thermostat.getNextScheduledChange() === null) {
+              await thermostat.setIsOn(true);
+            } else {
+              await thermostat.setTargetTemperatureUntilNextScheduledChange(scheduledTemp);
+            }
           }
         });
       }
@@ -113,12 +116,14 @@ export default function ({
       return;
     }
 
-    for (const setTargetTemperature of setTargetTemperatureActors) {
-      await setTargetTemperature();
+    for (const { start } of warmups) {
+      await start();
     }
 
-    bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: `Pre-heating started.`
+    await Log.notify({
+      severity: 'info',
+      devices: warmups.map(({ device }) => device),
+      message: 'Pre-heating started.'
     });
   }
 

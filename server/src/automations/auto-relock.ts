@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import bus, { NOTIFICATION_TO_ADMINS } from '../bus';
-import { BooleanEvent, Device } from '../models';
+import { BooleanEvent, Device, Log } from '../models';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 
@@ -39,7 +38,9 @@ export default function ({ locks }: z.infer<typeof parameters>) {
           // An abort means a newer unlock (or a door opening) superseded this
           // relock; that's expected, not a failure worth alerting on.
           if (!controller.signal.aborted) {
-            bus.emit(NOTIFICATION_TO_ADMINS, {
+            await Log.notify({
+              severity: 'warning',
+              devices: [device],
               message: `Failed to auto-relock ${lockName}: ${err instanceof Error ? err.message : String(err)}`
             });
           }

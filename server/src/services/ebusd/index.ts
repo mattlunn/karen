@@ -1,4 +1,4 @@
-import { Device } from '../../models';
+import { Device, Log } from '../../models';
 import { HeatPumpMode, HeatPumpDHWMode } from '../../models/capabilities';
 import config from '../../config';
 import dayjs from '../../dayjs';
@@ -6,6 +6,7 @@ import nowAndSetCron from '../../helpers/now-and-set-cron';
 import setCron from '../../helpers/set-cron';
 import { filterClampAndSortHistory } from '../../helpers/history';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
+import { formatDuration } from '../../helpers/date';
 import EbusClient from './client';
 import { storeRunningMetrics } from './history';
 import { setDHWMode, setDHWBoost, getPlannedDHWWindow, getLegionellaCycles } from './dhw';
@@ -134,9 +135,23 @@ setCron(createBackgroundTransaction('ebusd:system-pressure', async () => {
   const averagePressure = weightedPressure / coveredMilliseconds;
 
   if (averagePressure < config.ebusd.system_pressure_low_bar) {
-    await heatPumpCapability.setIsSystemPressureLowState(true);
+    if (await heatPumpCapability.setIsSystemPressureLowState(true)) {
+      await Log.notify({
+        severity: 'notice',
+        devices: [device],
+        message: 'Heating system pressure is low.'
+      });
+    }
   } else if (averagePressure >= config.ebusd.system_pressure_recovered_bar) {
-    await heatPumpCapability.setIsSystemPressureLowState(false);
+    const event = await heatPumpCapability.setIsSystemPressureLowState(false);
+
+    if (event) {
+      await Log.notify({
+        severity: 'notice',
+        devices: [device],
+        message: `✅ Heating system pressure has recovered, after being low for ${formatDuration(dayjs(event.end).diff(event.start, 'second'))}.`
+      });
+    }
   }
 }), config.ebusd.system_pressure_check_cron);
 

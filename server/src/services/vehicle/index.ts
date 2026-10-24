@@ -1,4 +1,4 @@
-import { Device } from '../../models';
+import { Device, Log } from '../../models';
 import { ElectricVehicleCapability, ScheduleChargeRequest, ScheduledCharge, ChargeType } from '../../models/capabilities';
 import config from '../../config';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
@@ -13,7 +13,6 @@ import { planCharge, isDeadlineEngaged, deadlineEngagesAt, isWithinSlots, Charge
 import { toPriceSlots, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
-import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 
 // The current plan, persisted on device.meta.chargePlan (separately from
 // device.meta.chargeSchedule, which is just the target). It is fixed for a
@@ -414,9 +413,10 @@ async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, ch
     if (!deadlineAlertSent && now.diff(deadlineNotChargingSince, 'minute') >= NOT_CHARGING_ALERT_MINUTES) {
       deadlineAlertSent = true;
 
-      bus.emit(NOTIFICATION_TO_ADMINS, {
+      await Log.notify({
+        severity: 'warning',
+        devices: [device],
         message: buildChargingFailureNotification(plan.target, dayjs(plan.deadline), isCarReachable),
-        priority: 1,
       });
     }
   } else {
