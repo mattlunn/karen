@@ -371,7 +371,7 @@ export function getLastSeenFromCapabilities(capabilities: CapabilityApiResponse[
     }
 
     for (const value of Object.values(capability)) {
-      if (typeof value === 'object' && value !== null && 'lastReported' in value && !('isComputed' in value && value.isComputed) && latestDate < value.lastReported) {
+      if (typeof value === 'object' && value !== null && 'lastReported' in value && !value.isComputed && latestDate < value.lastReported) {
         latestDate = value.lastReported;
       }
     }
