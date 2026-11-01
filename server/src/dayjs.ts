@@ -37,7 +37,7 @@ function dayjs(input?: DateInput, format?: string): Dayjs {
     return dayjsLib.tz();
   }
   if (format !== undefined) {
-    return dayjsLib.tz(input, format);
+    return dayjsLib.tz(input, format, 'Europe/London');
   }
   return dayjsLib(input).tz('Europe/London');
 }

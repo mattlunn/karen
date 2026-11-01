@@ -6,6 +6,8 @@ import { useDateRange } from './use-date-range';
 import { getPresetRange } from './date-range-context';
 import { DateRangePreset, DateRange } from './types';
 
+const MANTINE_DATE_TIME_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+
 const presetOptions = [
   { value: 'last6hours', label: 'Last 6 hours' },
   { value: 'today', label: 'Today' },
@@ -71,15 +73,15 @@ export function DateRangeSelector({ preset, range, onPresetChange, onRangeChange
         <>
           <DateTimePicker
             size="xs"
-            value={pendingSince.toDate()}
-            onChange={(date) => date && setPendingSince(dayjs(date))}
-            maxDate={pendingUntil.toDate()}
+            value={pendingSince.format(MANTINE_DATE_TIME_FORMAT)}
+            onChange={(date) => date && setPendingSince(dayjs(date, MANTINE_DATE_TIME_FORMAT))}
+            maxDate={pendingUntil.format(MANTINE_DATE_TIME_FORMAT)}
           />
           <DateTimePicker
             size="xs"
-            value={pendingUntil.toDate()}
-            onChange={(date) => date && setPendingUntil(dayjs(date))}
-            minDate={pendingSince.toDate()}
+            value={pendingUntil.format(MANTINE_DATE_TIME_FORMAT)}
+            onChange={(date) => date && setPendingUntil(dayjs(date, MANTINE_DATE_TIME_FORMAT))}
+            minDate={pendingSince.format(MANTINE_DATE_TIME_FORMAT)}
           />
           <Button size="xs" onClick={handleSubmitCustomRange}>
             Apply

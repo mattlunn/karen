@@ -24,7 +24,7 @@ export default function EtaPicker({ id, eta, closeModal }: EtaPickerProps) {
     <>
       <Title order={3} mb="md">When will <strong>{id}</strong> be home?</Title>
 
-      <DateTimeSelect value={selectedDate} onChange={setSelectedDate} minDate={new Date()} />
+      <DateTimeSelect value={selectedDate} onChange={setSelectedDate} minDate={dayjs()} />
 
       <Group justify="flex-end" mt="xl">
         <Button variant="default" onClick={closeModal}>Cancel</Button>
