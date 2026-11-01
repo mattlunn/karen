@@ -1,4 +1,4 @@
-import dayjsLib, { Dayjs } from 'dayjs';
+import dayjsLib, { Dayjs, ManipulateType, OpUnitType, QUnitType } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import duration from 'dayjs/plugin/duration';
@@ -49,4 +49,4 @@ dayjs.unix = dayjsLib.unix;
 dayjs.utc = dayjsLib.utc;
 
 export default dayjs;
-export { Dayjs };
+export type { Dayjs, ManipulateType, OpUnitType, QUnitType };

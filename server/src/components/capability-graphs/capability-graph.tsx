@@ -18,7 +18,7 @@ import {
 } from 'chart.js';
 import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
-import 'chartjs-adapter-dayjs-4';
+import './chartjs-dayjs-adapter';
 import dayjs from '../../dayjs';
 import { BooleanEventApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
 import { filterClampAndSortHistory } from '../../helpers/history';
