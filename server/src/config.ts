@@ -173,11 +173,8 @@ export interface AppConfig {
       anchor_date: string;
       interval_weeks: number;
     }[];
-    charge_baseline_history_days: number;
     charge_plunge_limit: number;
     charge_deadline_engage_days: number;
-    charge_baseline_min_percentile: number;
-    charge_baseline_max_percentile: number;
     preconditioning: {
       duration_minutes: number;
       heat: PreconditioningPreset;

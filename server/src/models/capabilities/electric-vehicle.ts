@@ -26,16 +26,4 @@ export class ElectricVehicleCapability extends ElectricVehicleBaseCapability {
       .provideElectricVehicleCapability!()
       .getChargeType(this.device);
   }
-
-  getChargePriceCap(): Promise<number | null> {
-    return Device.getProviderCapabilities(this.device.provider)
-      .provideElectricVehicleCapability!()
-      .getChargePriceCap(this.device);
-  }
-
-  getChargePriceCapCurve(): Promise<{ chargePercentage: number; pence: number }[]> {
-    return Device.getProviderCapabilities(this.device.provider)
-      .provideElectricVehicleCapability!()
-      .getChargePriceCapCurve();
-  }
 }

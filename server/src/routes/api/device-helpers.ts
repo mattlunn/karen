@@ -306,8 +306,6 @@ export async function getCapabilityData(device: Device, capability: string, inst
         odometer: mapNumericState(ev.getOdometerEvent(), device),
         chargeSchedule: ev.getNextChargeSchedule(),
         chargeType: ev.getChargeType(),
-        chargePriceCap: ev.getChargePriceCap(),
-        chargePriceCapCurve: ev.getChargePriceCapCurve(),
       });
     }
 
