@@ -7,9 +7,21 @@ import {
   NumericEventApiResponse
 } from '../../api/types';
 import { filterClampAndSortHistory } from '../../helpers/history';
-import dayjs from '../../dayjs';
+import dayjs, { Dayjs } from '../../dayjs';
 
 type NumericHistory = HistoryDetailsApiResponse<NumericEventApiResponse>;
+
+// The wrapper's day arithmetic isn't DST-safe (add(1, 'day') is a flat 24 hours, and startOf('day')
+// depends on the host's TZ), so these go via the London calendar date instead.
+function startOfDay(instant: string | Date): Dayjs {
+  return dayjs.tz(dayjs(instant).format('YYYY-MM-DD'), 'Europe/London');
+}
+
+function startOfNextDay(day: Dayjs): Dayjs {
+  const nextDate = dayjs.utc(day.format('YYYY-MM-DD')).add(1, 'day').format('YYYY-MM-DD');
+
+  return dayjs.tz(nextDate, 'Europe/London');
+}
 
 export function mapBooleanHistoryToResponse(
   fetchHistory: (hs: HistorySelector) => Promise<BooleanEvent[]>,
@@ -70,7 +82,7 @@ export function bucketByDay(history: NumericHistory): Map<string, number> {
   for (const event of events) {
     const end = Date.parse(event.end ?? history.until);
 
-    for (let day = dayjs(event.start).startOf('day'); day.valueOf() < end; day = day.add(1, 'day')) {
+    for (let day = startOfDay(event.start); day.valueOf() < end; day = startOfNextDay(day)) {
       byDay.set(day.toISOString(), event.value);
     }
   }
@@ -82,7 +94,7 @@ export function bucketByDay(history: NumericHistory): Map<string, number> {
 export function daysInRange(since: Date, until: Date): string[] {
   const days: string[] = [];
 
-  for (let day = dayjs(since).startOf('day'); day.valueOf() < until.getTime(); day = day.add(1, 'day')) {
+  for (let day = startOfDay(since); day.valueOf() < until.getTime(); day = startOfNextDay(day)) {
     days.push(day.toISOString());
   }
 
@@ -107,7 +119,7 @@ export function daysToLineData(
       continue;
     }
 
-    const end = dayjs(day).add(1, 'day').toISOString();
+    const end = startOfNextDay(dayjs(day)).toISOString();
 
     history.push({ start: day, end, lastReported: end, value });
   }
