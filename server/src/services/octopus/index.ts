@@ -23,9 +23,9 @@ Device.registerProvider('octopus', {
   },
 
   // Beyond what Octopus has published, assume its latest day repeats, which is
-  // exact for a fixed-window tariff like Cosy. Built per call rather than persisted as events, so a forecast can never be
-  // mistaken for - or contaminate the trailing median built from - a settled
-  // price.
+  // exact for a fixed-window tariff like Cosy. Built per call rather than
+  // persisted as events, so a forecast can never be mistaken for - or
+  // contaminate the trailing median built from - a settled price.
   provideEnergyCostCapability() {
     return {
       async getForecastSlots(device: Device, since: Date, until: Date): Promise<PriceSlot[]> {
