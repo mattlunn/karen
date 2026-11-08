@@ -1,3 +1,5 @@
+import dayjs from '../dayjs';
+
 export const SLOT_MINUTES = 30;
 
 export interface PriceSlot {
@@ -69,6 +71,30 @@ export function toPriceSlots(
     while (cursor + slotMs <= limit) {
       slots.push({ start: new Date(cursor), end: new Date(cursor + slotMs), pence: event.value, isEstimated: false });
       cursor += slotMs;
+    }
+  }
+
+  return slots;
+}
+
+// Matched on London time of day rather than a flat 24h offset, so a tariff's
+// fixed daily windows stay put across a clock change. `recent` must be in start
+// order: where a time of day appears more than once, the latest price wins.
+export function repeatLatestDay(
+  recent: PriceSlot[],
+  since: Date,
+  until: Date,
+  slotMinutes = SLOT_MINUTES
+): PriceSlot[] {
+  const penceByTimeOfDay = new Map(recent.map(s => [dayjs(s.start).format('HH:mm'), s.pence]));
+  const slotMs = slotMinutes * 60 * 1000;
+  const slots: PriceSlot[] = [];
+
+  for (let cursor = since.getTime(); cursor + slotMs <= until.getTime(); cursor += slotMs) {
+    const pence = penceByTimeOfDay.get(dayjs(cursor).format('HH:mm'));
+
+    if (pence !== undefined) {
+      slots.push({ start: new Date(cursor), end: new Date(cursor + slotMs), pence, isEstimated: true });
     }
   }
 

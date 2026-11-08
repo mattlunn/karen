@@ -5,10 +5,9 @@ import nowAndSetCron from '../../helpers/now-and-set-cron';
 import setCron from '../../helpers/set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import logger from '../../logger';
-import { haveForecastThrough, PriceSlot, SLOT_MINUTES } from '../../helpers/prices';
+import { haveForecastThrough, PriceSlot, repeatLatestDay, toPriceSlots } from '../../helpers/prices';
 import type { Capability } from '../../models/capabilities';
 import { getAgreements, getUnitRates, getStandingCharges, getSmartMeterDeviceId, getTelemetry } from './clients/octopus';
-import { getForecastRates } from './clients/agileforecast';
 
 const PROVIDER_ID = 'electricity-meter';
 
@@ -23,23 +22,19 @@ Device.registerProvider('octopus', {
     return ['ENERGY_MONITOR', 'ENERGY_COST'];
   },
 
-  // Beyond the ~31h Octopus itself ever publishes, forecast prices from
-  // AgilePredict extend the horizon the EV deadline planner can see. Fetched
-  // live per call rather than persisted as events, so a forecast can never be
-  // mistaken for - or contaminate the trailing median built from - a settled
-  // price.
+  // Beyond what Octopus has published, assume its latest day repeats, which is
+  // exact for a fixed-window tariff like Cosy. Built per call rather than
+  // persisted as events, so a forecast can never be mistaken for - or
+  // contaminate the trailing median built from - a settled price.
   provideEnergyCostCapability() {
     return {
-      async getForecastSlots(_device: Device, since: Date, until: Date): Promise<PriceSlot[]> {
-        const agreements = await getAgreements();
-        const rates = await getForecastRates(agreements, since, until);
+      async getForecastSlots(device: Device, since: Date, until: Date): Promise<PriceSlot[]> {
+        // Two days, since the 24h before a clock change spans 23 or 25 local
+        // hours and so misses one time of day.
+        const recentStart = dayjs(since).subtract(2, 'day').toDate();
+        const events = await device.getEnergyCostCapability().getUnitRateHistory({ since: recentStart, until: since });
 
-        return rates.map(r => ({
-          start: r.start,
-          end: dayjs(r.start).add(SLOT_MINUTES, 'minute').toDate(),
-          pence: r.value,
-          isEstimated: true,
-        }));
+        return repeatLatestDay(toPriceSlots(events, recentStart, since), since, until);
       },
     };
   },
