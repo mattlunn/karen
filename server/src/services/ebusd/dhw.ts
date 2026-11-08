@@ -8,7 +8,7 @@ import { createBackgroundTransaction } from '../../helpers/newrelic';
 import logger from '../../logger';
 import EbusClient from './client';
 import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow } from '../../helpers/prices';
-import { isWithinWindow } from '../../helpers/date';
+import { isWithinWindow, isInDailyWindow } from '../../helpers/date';
 
 // The current Auto plan: a single cheap block, written once and never revised
 // until it rolls over. Persisted on device.meta rather than held in memory,
@@ -145,7 +145,9 @@ async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): P
     return false;
   }
 
-  const window = findCheapestWindow(toPriceSlots(events, now, until), blockMinutes, now, until);
+  const permittedSlots = toPriceSlots(events, now, until)
+    .filter(slot => config.ebusd.dhw_permitted_windows.some(w => isInDailyWindow(w, slot.start)));
+  const window = findCheapestWindow(permittedSlots, blockMinutes, now, until);
 
   if (window === null) {
     return false;

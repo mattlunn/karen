@@ -44,3 +44,22 @@ export function formatDuration(seconds: number): string {
 export function isWithinWindow(window: { start: Date, end: Date }, date: Date): boolean {
   return date >= window.start && date < window.end;
 }
+
+// London times of day ("HH:mm"), repeating daily; `to` may be "24:00".
+export interface DailyWindow {
+  from: string;
+  to: string;
+}
+
+function minutesOfDay(timeOfDay: string): number {
+  const [hours, minutes] = timeOfDay.split(':').map(Number);
+
+  return hours * 60 + minutes;
+}
+
+export function isInDailyWindow(window: DailyWindow, date: Date): boolean {
+  const london = dayjs(date);
+  const minutes = london.hour() * 60 + london.minute();
+
+  return minutes >= minutesOfDay(window.from) && minutes < minutesOfDay(window.to);
+}
