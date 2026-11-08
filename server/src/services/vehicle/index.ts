@@ -465,10 +465,11 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
 
 // A plan is fixed so it can't jitter as prices are restated, with two exceptions.
 //
-// Prices reaching past where the plan's ran out - published or forecast - are
-// strictly more information than it was built from. Agile publishes early
-// afternoon, and business as usual only plans on published prices, so holding
-// the old plan spends the evening on slots the new day beats outright.
+// Prices published past where the plan's ran out are strictly more information
+// than it was built from. Agile publishes early afternoon, and business as usual
+// only plans on published prices, so holding the old plan spends the evening on
+// slots the new day beats outright. The forecast beyond them is the latest
+// published day repeated, so its far end advancing with the clock adds nothing.
 //
 // And a plan made while a deadline was still far off must not sit frozen while
 // that deadline creeps into engagement range, or it is missed outright. A
@@ -479,10 +480,9 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
     return true;
   }
 
-  const forecastEnd = slots.at(-1)?.end;
   const publishedEnd = slots.findLast(s => !s.isEstimated)?.end;
 
-  if ((forecastEnd !== undefined && forecastEnd > plan.end) || (publishedEnd !== undefined && publishedEnd > plan.publishedEnd)) {
+  if (publishedEnd !== undefined && publishedEnd > plan.publishedEnd) {
     return true;
   }
 
