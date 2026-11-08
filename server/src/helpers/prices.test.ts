@@ -3,6 +3,7 @@ import {
   findCheapestWindow,
   groupIntoBlocks,
   haveForecastThrough,
+  repeatLatestDay,
   startOfSlot,
   PriceSlot,
 } from './prices';
@@ -192,5 +193,64 @@ describe('haveForecastThrough', () => {
 
   it('does not depend on event order', () => {
     expect(haveForecastThrough([...closedRates(0, 6)].reverse(), at(120))).toBe(true);
+  });
+});
+
+describe('repeatLatestDay', () => {
+  // A Cosy-shaped day in London time: cheap 04-07, 13-16, 22-24, peak 16-19, day rate otherwise.
+  function cosyPence(hour: number): number {
+    if ((hour >= 4 && hour < 7) || (hour >= 13 && hour < 16) || hour >= 22) {
+      return 14;
+    }
+
+    return hour >= 16 && hour < 19 ? 43 : 29;
+  }
+
+  function cosyDay(londonMidnight: string): PriceSlot[] {
+    const start = new Date(londonMidnight);
+
+    return Array.from({ length: 48 }, (_, i) => ({
+      start: new Date(start.getTime() + i * 30 * 60_000),
+      end: new Date(start.getTime() + (i + 1) * 30 * 60_000),
+      pence: cosyPence(Math.floor(i / 2)),
+      isEstimated: false,
+    }));
+  }
+
+  function penceAt(forecast: PriceSlot[], iso: string): number | undefined {
+    return forecast.find(s => s.start.getTime() === new Date(iso).getTime())?.pence;
+  }
+
+  it('repeats the latest day across every following day, flagged as estimated', () => {
+    const forecast = repeatLatestDay(cosyDay('2026-11-09T00:00:00Z'), new Date('2026-11-10T00:00:00Z'), new Date('2026-11-13T00:00:00Z'));
+
+    expect(forecast).toHaveLength(3 * 48);
+    expect(forecast.every(s => s.isEstimated)).toBe(true);
+    expect(penceAt(forecast, '2026-11-12T13:00:00Z')).toBe(14);
+    expect(penceAt(forecast, '2026-11-12T17:30:00Z')).toBe(43);
+    expect(penceAt(forecast, '2026-11-12T10:00:00Z')).toBe(29);
+  });
+
+  it('keeps each price on the same London time of day across a clock change', () => {
+    // Saturday 24 Oct is BST (16:00 London = 15:00Z); Monday 26 Oct is GMT (16:00 London = 16:00Z).
+    const forecast = repeatLatestDay(cosyDay('2026-10-23T23:00:00Z'), new Date('2026-10-26T00:00:00Z'), new Date('2026-10-27T00:00:00Z'));
+
+    expect(penceAt(forecast, '2026-10-26T15:30:00Z')).toBe(14);
+    expect(penceAt(forecast, '2026-10-26T16:00:00Z')).toBe(43);
+    expect(penceAt(forecast, '2026-10-26T19:00:00Z')).toBe(29);
+  });
+
+  it('skips a time of day the latest day has no price for', () => {
+    const latestDay = cosyDay('2026-11-09T00:00:00Z').filter(s => s.start.getUTCHours() !== 3);
+    const forecast = repeatLatestDay(latestDay, new Date('2026-11-10T00:00:00Z'), new Date('2026-11-11T00:00:00Z'));
+
+    expect(forecast).toHaveLength(46);
+    expect(penceAt(forecast, '2026-11-10T03:00:00Z')).toBeUndefined();
+  });
+
+  it('drops a partial slot at the end of the window', () => {
+    const forecast = repeatLatestDay(cosyDay('2026-11-09T00:00:00Z'), new Date('2026-11-10T00:00:00Z'), new Date('2026-11-10T01:15:00Z'));
+
+    expect(forecast.map(s => s.start.toISOString())).toEqual(['2026-11-10T00:00:00.000Z', '2026-11-10T00:30:00.000Z']);
   });
 });
