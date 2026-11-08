@@ -84,14 +84,22 @@ Device.registerProvider('tado', {
     return {
       async setTargetTemperature(device: Device, value: number) {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
-        const response = await client.setHeatingPowerForZone(device.providerId, value, false);
+        const response = await client.setHeatingPowerForZone(device.providerId, value, 'MANUAL');
 
         await updateTargetTemperatureFromOverlay(device, response);
       },
 
       async setTargetTemperatureUntilNextScheduledChange(device: Device, value: number) {
         const client = new TadoClient(await getAccessToken(), config.tado.home_id);
-        const response = await client.setHeatingPowerForZone(device.providerId, value, true);
+        const response = await client.setHeatingPowerForZone(device.providerId, value, 'NEXT_TIME_BLOCK');
+
+        await updateTargetTemperatureFromOverlay(device, response);
+      },
+
+      async setTargetTemperatureUntil(device: Device, value: number, until: Date) {
+        const client = new TadoClient(await getAccessToken(), config.tado.home_id);
+        const durationInSeconds = Math.round(dayjs(until).diff(dayjs(), 'second', true));
+        const response = await client.setHeatingPowerForZone(device.providerId, value, { durationInSeconds });
 
         await updateTargetTemperatureFromOverlay(device, response);
       },
@@ -110,7 +118,7 @@ Device.registerProvider('tado', {
             }
           }
         } else /* value === false */ {
-          await client.setHeatingPowerForZone(device.providerId, false, false);
+          await client.setHeatingPowerForZone(device.providerId, false, 'MANUAL');
         }
       },
 

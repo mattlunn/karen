@@ -38,6 +38,7 @@ export interface ProviderThermostatCapability extends ProviderThermostatCapabili
   getNextScheduledChange(device: Device): Promise<ScheduledChange | null>;
   getScheduledTemperatureAtTime(device: Device, timestamp: Date): Promise<number | null>;
   setTargetTemperatureUntilNextScheduledChange(device: Device, value: number): Promise<void>;
+  setTargetTemperatureUntil(device: Device, value: number, until: Date): Promise<void>;
   getWarmupRate(device: Device): Promise<number>;
 }
 

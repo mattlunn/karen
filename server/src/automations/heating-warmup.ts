@@ -5,16 +5,71 @@ import dayjs, { Dayjs } from '../dayjs';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
 import nowAndSetCron from '../helpers/now-and-set-cron';
+import { isInDailyWindow, timeOfDayOn } from '../helpers/date';
+import { halfHourTimeOfDay } from './schema';
 
 export const parameters = z.object({
   checkCron: z.string(),
   minWarmUpRatePerHour: z.number().positive(),
-  dhwAutoLeadTimeHours: z.number().positive()
+  dhwAutoLeadTimeHours: z.number().positive(),
+  targetOffsetWindows: z.array(z.object({
+    from: halfHourTimeOfDay,
+    to: halfHourTimeOfDay,
+    offset: z.number()
+  }))
 });
 
 type WarmupState = Date | null;
 
 let currentWarmupState: WarmupState = null;
+
+interface ActiveOffsetWindow {
+  // Identifies this day's occurrence of the window.
+  key: string;
+  end: Date;
+  offset: number;
+}
+
+// A null `value` means the room's target was changed by hand, so it's left
+// alone for the rest of the window.
+export interface OffsetWrite {
+  windowKey: string;
+  value: number | null;
+}
+
+function isSameTemperature(a: number, b: number): boolean {
+  return Math.abs(a - b) < 0.05;
+}
+
+// `untouchedTargets` are the targets a room can show without anyone having
+// changed it by hand: its schedule, a warm-up towards the next block, or the
+// away setback. They're only checked while someone's home to make that change.
+export function resolveOffsetWrite({ window, base, current, untouchedTargets, previous, isSomeoneHome }: {
+  window: ActiveOffsetWindow;
+  base: number;
+  current: number;
+  untouchedTargets: number[];
+  previous: OffsetWrite | undefined;
+  isSomeoneHome: boolean;
+}): { write: number | null; record: OffsetWrite } {
+  const desired = base + window.offset;
+  const isOurs = previous?.value != null && isSameTemperature(current, previous.value);
+  const leaveAlone = { write: null, record: { windowKey: window.key, value: null } };
+
+  if (previous?.windowKey === window.key) {
+    if (!isOurs) {
+      return leaveAlone;
+    }
+
+    return { write: isSameTemperature(desired, previous.value!) ? null : desired, record: { windowKey: window.key, value: desired } };
+  }
+
+  if (isSomeoneHome && !isOurs && !untouchedTargets.some(t => isSameTemperature(current, t))) {
+    return leaveAlone;
+  }
+
+  return { write: desired, record: { windowKey: window.key, value: desired } };
+}
 
 export function getPreWarmStartTime(): WarmupState {
   return currentWarmupState;
@@ -23,8 +78,21 @@ export function getPreWarmStartTime(): WarmupState {
 export default function ({
   checkCron,
   minWarmUpRatePerHour,
-  dhwAutoLeadTimeHours
+  dhwAutoLeadTimeHours,
+  targetOffsetWindows
 }: z.infer<typeof parameters>) {
+  const offsetWrites = new Map<number, OffsetWrite>();
+
+  function findActiveOffsetWindow(now: Date): ActiveOffsetWindow | null {
+    const window = targetOffsetWindows.find(w => isInDailyWindow(w, now));
+
+    return window === undefined ? null : {
+      key: `${dayjs(now).format('YYYY-MM-DD')} ${window.from}`,
+      end: timeOfDayOn(window.to, now),
+      offset: window.offset,
+    };
+  }
+
   async function calculateWarmupStartTime(device: Device, nextTarget: number, targetTime: Date): Promise<Dayjs | null>{
     const [currentTemp, currentTarget] = await Promise.all([
       device.getThermostatCapability().getCurrentTemperature(),
@@ -43,7 +111,51 @@ export default function ({
     return dayjs(targetTime).subtract(hoursNeeded, 'hour');
   }
 
-  async function checkAtHomeWarmup(): Promise<void> {
+  // The next scheduled temperature, once it's time to start warming up to it.
+  async function getDueWarmupTarget(device: Device): Promise<number | null> {
+    const nextScheduledChange = await device.getThermostatCapability().getNextScheduledChange();
+
+    if (nextScheduledChange === null) {
+      return null;
+    }
+
+    const startTime = await calculateWarmupStartTime(device, nextScheduledChange.temperature, nextScheduledChange.timestamp);
+
+    return startTime !== null && dayjs().isAfter(startTime) ? nextScheduledChange.temperature : null;
+  }
+
+  async function applyTargetOffset(device: Device, window: ActiveOffsetWindow, isSomeoneHome: boolean): Promise<void> {
+    const thermostat = device.getThermostatCapability();
+    const scheduled = await thermostat.getScheduledTemperatureAtTime(new Date());
+
+    if (scheduled === null) {
+      return;
+    }
+
+    const [warmupTarget, current, setback] = await Promise.all([
+      getDueWarmupTarget(device),
+      thermostat.getTargetTemperature(),
+      thermostat.getSetbackTemperature(),
+    ]);
+    const base = warmupTarget ?? scheduled;
+    const { write, record } = resolveOffsetWrite({
+      window,
+      base,
+      current,
+      untouchedTargets: [scheduled, base, setback],
+      previous: offsetWrites.get(device.id),
+      isSomeoneHome,
+    });
+
+    offsetWrites.set(device.id, record);
+
+    if (write !== null) {
+      await thermostat.setTargetTemperatureUntil(write, window.end);
+      logger.info(`Heating: ${device.name} target ${write}°C (${base}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${window.end.toISOString()}`);
+    }
+  }
+
+  async function checkAtHomeWarmup(window: ActiveOffsetWindow | null): Promise<void> {
     const thermostatDevices = await Device.findByCapability('THERMOSTAT');
 
     currentWarmupState = null;
@@ -55,20 +167,22 @@ export default function ({
         continue;
       }
 
-      const nextScheduledChange = await thermostat.getNextScheduledChange();
+      if (window !== null) {
+        await applyTargetOffset(device, window, true);
+        continue;
+      }
 
-      if (nextScheduledChange) {
-        const startTime = await calculateWarmupStartTime(device, nextScheduledChange.temperature, nextScheduledChange.timestamp);
+      const warmupTarget = await getDueWarmupTarget(device);
 
-        if (dayjs().isAfter(startTime)) {
-          await thermostat.setTargetTemperatureUntilNextScheduledChange(nextScheduledChange.temperature);
-        }
+      if (warmupTarget !== null) {
+        await thermostat.setTargetTemperatureUntilNextScheduledChange(warmupTarget);
       }
     }
   }
 
   async function checkAwayWarmup(
-    etaTime: Date
+    etaTime: Date,
+    window: ActiveOffsetWindow | null
   ): Promise<void> {
     const warmups: { device: Device, start: () => Promise<void> }[] = [];
     let earliestWarmup: Dayjs | null = null;
@@ -112,6 +226,15 @@ export default function ({
       }
     }
 
+    // Due home before the window ends, so the house is worth heating ahead of it.
+    if (window !== null && etaTime < window.end) {
+      for (const { device } of warmups) {
+        await applyTargetOffset(device, window, false);
+      }
+
+      return;
+    }
+
     if (earliestWarmup === null || earliestWarmup.isAfter(dayjs())) {
       return;
     }
@@ -128,13 +251,15 @@ export default function ({
   }
 
   const runCheck = createBackgroundTransaction('automations:heating-warmup', async () => {
-    const isSomeoneHome = await Stay.checkIfSomeoneHomeAt(new Date());
+    const now = new Date();
+    const isSomeoneHome = await Stay.checkIfSomeoneHomeAt(now);
     const nextEta = await Stay.findNextUpcomingEta();
+    const window = findActiveOffsetWindow(now);
 
     if (isSomeoneHome) {
-      await checkAtHomeWarmup();
+      await checkAtHomeWarmup(window);
     } else if (nextEta) {
-      await checkAwayWarmup(nextEta.eta);
+      await checkAwayWarmup(nextEta.eta, window);
     }
   });
 

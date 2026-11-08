@@ -13,6 +13,13 @@ export const timeString = z.string().regex(
   'must be "HH:MM", "sunrise" or "sunset", optionally followed by an offset such as "+ 30m"'
 );
 
+// A time of day on the half hour, so it lines up with half-hourly prices;
+// "24:00" ends a window at midnight.
+export const halfHourTimeOfDay = z.string().regex(
+  /^(([01]\d|2[0-3]):(00|30)|24:00)$/,
+  'must be "HH:00" or "HH:30" (or "24:00")'
+);
+
 // A start/end pair is the shape most of the scheduling automations take.
 export const timeRange = z.object({
   start: timeString,
