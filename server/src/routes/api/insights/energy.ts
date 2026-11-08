@@ -25,7 +25,7 @@ import {
   daysToLineData,
   dailyUnitRate,
 } from '../history-helpers';
-import { AGILE_SWITCHOVER } from '../device-helpers';
+import { CURRENT_TARIFF_START } from '../device-helpers';
 import { asyncMap } from '../../../helpers/array';
 import dayjs from '../../../dayjs';
 
@@ -351,7 +351,7 @@ function periodTotals(
 export async function deviceSummaryHandler(req: Request, res: Response) {
   const now = new Date();
   const lastMonthSince = dayjs(now).subtract(1, 'month').startOf('day').toDate();
-  const selector = { since: AGILE_SWITCHOVER, until: now };
+  const selector = { since: CURRENT_TARIFF_START, until: now };
   const { meter, monitored } = await splitMeterFromMonitored();
 
   const costFor = (energyMonitor: EnergyMonitorCapability) =>
@@ -372,13 +372,13 @@ export async function deviceSummaryHandler(req: Request, res: Response) {
   ) => ({
     label,
     deviceId,
-    lifetime: periodTotals(AGILE_SWITCHOVER, costPence, energy),
+    thisTariff: periodTotals(CURRENT_TARIFF_START, costPence, energy),
     lastMonth: periodTotals(lastMonthSince, costPence, energy)
   });
 
   const rows: EnergyDeviceSummaryApiResponse['rows'] = costByEntity
     .map(({ label, deviceId, byDay }, i) => toRow(label, deviceId, byDay, energyByEntity[i].byDay))
-    .sort((a, b) => b.lifetime.costPence - a.lifetime.costPence);
+    .sort((a, b) => b.thisTariff.costPence - a.thisTariff.costPence);
 
   if (meter) {
     const [meterCost, meterEnergy] = await Promise.all([
@@ -398,7 +398,7 @@ export async function deviceSummaryHandler(req: Request, res: Response) {
   }
 
   res.json({
-    lifetimeSince: AGILE_SWITCHOVER.toISOString(),
+    thisTariffSince: CURRENT_TARIFF_START.toISOString(),
     rows
   } satisfies EnergyDeviceSummaryApiResponse);
 }

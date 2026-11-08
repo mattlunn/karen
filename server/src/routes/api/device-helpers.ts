@@ -4,13 +4,9 @@ import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse,
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
 
-// Usage before this was on a standard tariff, so energy insights' lifetime
-// totals start here rather than dragging in years of flat-rate history.
-export const AGILE_SWITCHOVER = dayjs.tz('2026-08-30 00:00', 'Europe/London').toDate();
-
-// Averaging across tariffs would blend unrelated rate structures, so a device's
-// average unit price only covers the tariff the house is on now.
-const CURRENT_TARIFF_START = dayjs.tz('2026-11-08 00:00', 'Europe/London').toDate();
+// Averaging across tariffs would blend unrelated rate structures, so per-device
+// unit prices and totals only cover the tariff the house is on now.
+export const CURRENT_TARIFF_START = dayjs.tz('2026-11-08 00:00', 'Europe/London').toDate();
 
 async function calculateAvgUnitPrice(energyMonitor: EnergyMonitorCapability, since: Date): Promise<number | null> {
   const until = new Date();

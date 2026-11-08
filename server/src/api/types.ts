@@ -460,15 +460,15 @@ export type EnergyPeriodTotalsApiResponse = {
 };
 
 // /api/insights/energy/device-summary endpoint - per sub-metered entity
-// ("Lights" rolled up) totals since the Agile switchover and over the last
-// month, followed by the "Other" residual and the whole-house "Total".
+// ("Lights" rolled up) totals since the current tariff started and over the
+// last month, followed by the "Other" residual and the whole-house "Total".
 export type EnergyDeviceSummaryApiResponse = {
-  lifetimeSince: string;
+  thisTariffSince: string;
   rows: {
     label: string;
     deviceId: number | null;
     role?: 'residual' | 'total';
-    lifetime: EnergyPeriodTotalsApiResponse;
+    thisTariff: EnergyPeriodTotalsApiResponse;
     lastMonth: EnergyPeriodTotalsApiResponse;
   }[];
 };
