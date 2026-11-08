@@ -35,7 +35,6 @@ function plan(overrides: Partial<PlanOptions> = {}) {
     slots: [],
     now: at(0),
     chargePercentage: 0,
-    baselinePenceFor: () => null,
     schedule: null,
     chargeRatePercentPerHour: RATE,
     defaultLimit: 80,
@@ -47,86 +46,55 @@ function plan(overrides: Partial<PlanOptions> = {}) {
 }
 
 describe('planCharge - business as usual', () => {
-  it('charges across a cheap day except for an evening spike', () => {
-    // Cheap all day (8p) bar a 16:00-19:00 spike (40p); trailing median 20p.
-    const slots = [...run(0, 16, 8), ...run(16, 19, 40), ...run(19, 24, 8)];
+  // Cosy-shaped: cheap 04-07, 13-16 and 22-24, a 16-19 peak, the day rate otherwise.
+  const cosyDay = [
+    ...run(0, 4, 29), ...run(4, 7, 14), ...run(7, 13, 29), ...run(13, 16, 14),
+    ...run(16, 19, 43), ...run(19, 22, 29), ...run(22, 24, 14),
+  ];
 
-    const { slots: picked, target } = plan({ slots, baselinePenceFor: () => 20, chargePercentage: 0 });
+  it('charges only in the cheapest published slots, earliest first', () => {
+    const { slots: picked, target } = plan({ slots: cosyDay, chargePercentage: 20 });
 
-    expect(totalHours(picked)).toBeCloseTo(8); // 0% -> 80% at 10%/h
-    expect(anyOverlap(picked, 16, 19)).toBe(false);
+    expect(totalHours(picked)).toBeCloseTo(6); // 20% -> 80% at 10%/h
+    expect(anyOverlap(picked, 4, 7)).toBe(true);
+    expect(anyOverlap(picked, 13, 16)).toBe(true);
+    expect(anyOverlap(picked, 22, 24)).toBe(false);
+    expect(anyOverlap(picked, 0, 4) || anyOverlap(picked, 7, 13) || anyOverlap(picked, 16, 22)).toBe(false);
     expect(target).toBe(80);
   });
 
-  it('swaps earlier slots for cheaper later ones once at the limit', () => {
-    const slots = [...run(0, 12, 8), ...run(12, 16, 5), ...run(16, 24, 8)];
+  it('stops short of the limit rather than pay more than the cheapest price', () => {
+    const { slots: picked } = plan({ slots: [...run(0, 2, 10), ...run(2, 24, 20)], chargePercentage: 0 });
 
-    const { slots: picked } = plan({ slots, baselinePenceFor: () => 20, chargePercentage: 60 });
-
-    expect(totalHours(picked)).toBeCloseTo(2); // 60% -> 80%
-    expect(anyOverlap(picked, 0, 12)).toBe(false);
-    expect(anyOverlap(picked, 12, 14)).toBe(true);
+    expect(totalHours(picked)).toBeCloseTo(2);
+    expect(anyOverlap(picked, 2, 24)).toBe(false);
   });
 
-  it('swaps in a cheaper slot even when it is above its own bar', () => {
-    // The bar is 16p at 70% and 11p at 75%, so only the first 15p slot is taken
-    // outright; the 12p slot later misses its bar but still beats that 15p.
-    const slots = [...run(0, 1, 15), ...run(1, 2, 40), ...run(2, 2.5, 12), ...run(2.5, 24, 40)];
-
-    const { slots: picked } = plan({ slots, baselinePenceFor: soc => 86 - soc, chargePercentage: 70 });
-
-    expect(picked).toEqual([{ start: at(2), end: at(2.5), isEstimated: false }]);
-  });
-
-  describe('a mediocre night ahead of a cheap midday', () => {
-    // The bar sheds 1p per 10% charged: 28p at 20%, 23.5p at 65%.
-    const slots = [...run(0, 2, 25), ...run(2, 10, 40), ...run(10, 14, 12), ...run(14, 24, 40)];
-    const baselinePenceFor = (soc: number) => 30 - soc / 10;
-
-    it('charges overnight while the battery is low, then through the dip', () => {
-      const { slots: picked } = plan({ slots, baselinePenceFor, chargePercentage: 20 });
-
-      expect(totalHours(picked)).toBeCloseTo(6); // 20% -> 80%
-      expect(anyOverlap(picked, 0, 2)).toBe(true);
-      expect(anyOverlap(picked, 10, 12)).toBe(true);
-    });
-
-    it('holds out for the dip when the battery is nearly full', () => {
-      const { slots: picked } = plan({ slots, baselinePenceFor, chargePercentage: 65 });
-
-      expect(totalHours(picked)).toBeCloseTo(1.5); // 65% -> 80%
-      expect(anyOverlap(picked, 0, 2)).toBe(false);
-    });
-  });
-
-  it('ignores forecast slots, however cheap', () => {
+  it('judges the cheapest price among published slots only, ignoring cheaper forecast ones', () => {
     const slots = [
       ...run(0, 4, 30),
       ...run(4, 24, 5).map(s => ({ ...s, isEstimated: true })),
     ];
 
-    expect(plan({ slots, baselinePenceFor: () => 20 }).slots).toEqual([]);
-  });
+    const { slots: picked } = plan({ slots, chargePercentage: 0 });
 
-  it('charges nothing when every slot is above the baseline', () => {
-    expect(plan({ slots: run(0, 24, 30), baselinePenceFor: () => 20 }).slots).toEqual([]);
+    expect(totalHours(picked)).toBeCloseTo(4);
+    expect(picked.every(s => !s.isEstimated)).toBe(true);
   });
 
   it('charges nothing once already at the default limit', () => {
-    const { slots: picked, target } = plan({ slots: run(0, 24, 5), baselinePenceFor: () => 20, chargePercentage: 80 });
+    const { slots: picked, target } = plan({ slots: cosyDay, chargePercentage: 80 });
 
     expect(picked).toEqual([]);
     expect(target).toBe(80);
   });
 
-  it('charges nothing without a baseline to judge cheap against', () => {
-    expect(plan({ slots: run(0, 24, 5), baselinePenceFor: () => null }).slots).toEqual([]);
-  });
-
   it('ignores slots already in the past', () => {
-    const { slots: picked } = plan({ slots: run(0, 24, 5), now: at(10), baselinePenceFor: () => 20 });
+    const { slots: picked } = plan({ slots: cosyDay, now: at(10), chargePercentage: 70 });
 
-    expect(picked[0].start.getTime()).toBeGreaterThanOrEqual(at(10).getTime());
+    expect(picked).toEqual([
+      { start: at(13), end: at(13.5), isEstimated: false }, { start: at(13.5), end: at(14), isEstimated: false },
+    ]);
   });
 
   it('takes fragmented cheap slots rather than discarding them', () => {
@@ -137,41 +105,10 @@ describe('planCharge - business as usual', () => {
       slots.push({ start: at(h), end: at(h + 0.5), pence: h % 1 === 0 ? 5 : 9, isEstimated: false });
     }
 
-    const { slots: picked } = plan({ slots, baselinePenceFor: () => 7, chargePercentage: 70 });
+    const { slots: picked } = plan({ slots, chargePercentage: 70 });
 
     expect(totalHours(picked)).toBeCloseTo(1);
     expect(picked.every(s => s.start.getTime() % 3_600_000 === 0)).toBe(true);
-  });
-
-  it('stops short of the quota once the falling bar drops below the price', () => {
-    // A flat 20p bar would take the full 8h quota of these 9p slots. The bar
-    // instead starts at 20p and sheds 1p per 1% charged, crossing 9p three
-    // slots in (10%/h, so 5% a slot).
-    const { slots: picked } = plan({
-      slots: run(0, 24, 9), chargePercentage: 0,
-      baselinePenceFor: soc => 20 - soc,
-    });
-
-    expect(totalHours(picked)).toBeCloseTo(1.5);
-  });
-
-  it('takes nothing when the bar is already below the cheapest slot', () => {
-    const { slots: picked } = plan({
-      slots: run(0, 24, 9), chargePercentage: 60,
-      baselinePenceFor: soc => 68 - soc, // 8p at 60%, falling
-    });
-
-    expect(picked).toEqual([]);
-  });
-
-  it('buys more of the same price when starting emptier', () => {
-    const slots = run(0, 24, 9);
-    const baselinePenceFor = (soc: number) => 20 - soc / 10;
-
-    const fromEmpty = plan({ slots, chargePercentage: 0, baselinePenceFor });
-    const fromHalf = plan({ slots, chargePercentage: 40, baselinePenceFor });
-
-    expect(totalHours(fromEmpty.slots)).toBeGreaterThan(totalHours(fromHalf.slots));
   });
 });
 
@@ -243,9 +180,27 @@ describe('planCharge - deadline', () => {
     expect(picked.every(s => s.end.getTime() <= at(6).getTime())).toBe(true);
   });
 
+  it('takes the latest of equally cheap slots before the deadline', () => {
+    const { slots: picked } = plan({ slots: run(0, 20, 5), schedule, chargePercentage: 90 });
+
+    expect(picked).toEqual([
+      { start: at(19), end: at(19.5), isEstimated: false }, { start: at(19.5), end: at(20), isEstimated: false },
+    ]);
+  });
+
+  it('buys the hours it must take at a dearer rate as close to the deadline as it can', () => {
+    // 6h needed plus a 4h buffer, but only 8h at the cheap rate before the deadline.
+    const slots = [...run(0, 4, 14), ...run(4, 12, 29), ...run(12, 16, 14), ...run(16, 20, 29)];
+    const { slots: picked } = plan({ slots, schedule, chargePercentage: 40, startBufferHours: 4 });
+
+    expect(totalHours(picked)).toBeCloseTo(10);
+    expect(anyOverlap(picked, 4, 12) || anyOverlap(picked, 16, 18)).toBe(false);
+    expect(anyOverlap(picked, 18, 20)).toBe(true);
+  });
+
   it('falls back to business as usual when the deadline is further off than the engage window', () => {
     const { target, deadline } = plan({
-      slots: run(0, 24, 5), baselinePenceFor: () => 20, chargePercentage: 60,
+      slots: run(0, 24, 5), chargePercentage: 60,
       schedule: { targetPercentage: 100, targetTime: at(24 * 10) }, // 10 days out, past the 7-day engage window
     });
 
@@ -258,7 +213,7 @@ describe('planCharge - plunge', () => {
   it('adds negative slots beyond the default limit and raises the target', () => {
     const slots = [...run(0, 4, 8), ...run(4, 6, -1), ...run(6, 24, 8)];
 
-    const { slots: picked, target } = plan({ slots, baselinePenceFor: () => 20, chargePercentage: 80 });
+    const { slots: picked, target } = plan({ slots, chargePercentage: 80 });
 
     // Already at the default limit, so business as usual plans nothing.
     expect(picked).toEqual([
@@ -269,24 +224,24 @@ describe('planCharge - plunge', () => {
   });
 
   it('leaves the target alone when no slot is negative', () => {
-    const { target } = plan({ slots: run(0, 24, 5), baselinePenceFor: () => 20, chargePercentage: 80 });
+    const { target } = plan({ slots: run(0, 24, 5), chargePercentage: 80 });
 
     expect(target).toBe(80);
   });
 
-  it('applies without a baseline, when business as usual cannot plan', () => {
+  it('applies once business as usual has nothing left to do', () => {
     const slots = [...run(0, 4, 8), ...run(4, 6, -1)];
 
-    const { slots: picked, target } = plan({ slots, baselinePenceFor: () => null, chargePercentage: 90 });
+    const { slots: picked, target } = plan({ slots, chargePercentage: 90 });
 
     expect(totalHours(picked)).toBeCloseTo(1); // 90% -> 100% at 10%/h
     expect(target).toBe(100);
   });
 
   it('counts slots business as usual already took toward its own quota', () => {
-    // Every slot is both below baseline and negative, so the plunge pass should
+    // Every slot is both the cheapest and negative, so the plunge pass should
     // top the plan up to its quota rather than double-count.
-    const { slots: picked } = plan({ slots: run(0, 24, -1), baselinePenceFor: () => 20, chargePercentage: 0 });
+    const { slots: picked } = plan({ slots: run(0, 24, -1), chargePercentage: 0 });
 
     expect(totalHours(picked)).toBeCloseTo(10); // 0% -> 100%, not 8 + 10
   });
@@ -305,7 +260,7 @@ describe('planCharge - plunge', () => {
   it('ignores negative slots already in the past', () => {
     const slots = [...run(0, 2, -1), ...run(2, 6, 8), ...run(6, 8, -1)];
 
-    const { slots: picked } = plan({ slots, now: at(4), baselinePenceFor: () => null, chargePercentage: 90 });
+    const { slots: picked } = plan({ slots, now: at(4), chargePercentage: 90 });
 
     expect(picked.every(s => s.start.getTime() >= at(6).getTime())).toBe(true);
   });
@@ -313,33 +268,33 @@ describe('planCharge - plunge', () => {
 
 describe('planCharge - plan end', () => {
   it('ends the plan where the published prices do', () => {
-    const { end } = plan({ slots: run(0, 10, 5), baselinePenceFor: () => 20 });
+    const { end } = plan({ slots: run(0, 10, 5) });
 
     expect(end).toEqual(at(10));
   });
 
   it('takes a long publication whole rather than capping it', () => {
-    const { end } = plan({ slots: run(0, 36, 5), baselinePenceFor: () => 20 });
+    const { end } = plan({ slots: run(0, 36, 5) });
 
     expect(end).toEqual(at(36));
   });
 
   it('ignores slots that have already passed', () => {
-    const { end } = plan({ slots: run(0, 10, 5), baselinePenceFor: () => 20, now: at(4) });
+    const { end } = plan({ slots: run(0, 10, 5), now: at(4) });
 
     expect(end).toEqual(at(10));
   });
 
   it('marks where published prices give way to forecast ones', () => {
     const slots = [...run(0, 10, 5), ...run(10, 20, 5).map(s => ({ ...s, isEstimated: true }))];
-    const { end, publishedEnd } = plan({ slots, baselinePenceFor: () => 20 });
+    const { end, publishedEnd } = plan({ slots });
 
     expect(end).toEqual(at(20));
     expect(publishedEnd).toEqual(at(10));
   });
 
   it('expires immediately when there are no prices at all', () => {
-    const { end, slots: picked } = plan({ slots: [], baselinePenceFor: () => 20 });
+    const { end, slots: picked } = plan({ slots: [] });
 
     expect(end).toEqual(at(0));
     expect(picked).toEqual([]);
@@ -426,7 +381,7 @@ describe('planCharge - in-progress slots', () => {
     const slots = [...run(0, 0.5, -3), ...run(0.5, 24, 30)];
 
     const { slots: picked } = plan({
-      slots, baselinePenceFor: () => 20, now: at(0.1), chargePercentage: 79,
+      slots, now: at(0.1), chargePercentage: 79,
     });
 
     expect(picked).toHaveLength(1);
@@ -438,7 +393,7 @@ describe('planCharge - in-progress slots', () => {
     const slots = run(0, 24, 5);
 
     const { slots: picked } = plan({
-      slots, baselinePenceFor: () => 20, now: at(1), chargePercentage: 79,
+      slots, now: at(1), chargePercentage: 79,
     });
 
     expect(picked.every(s => s.end > at(1))).toBe(true);

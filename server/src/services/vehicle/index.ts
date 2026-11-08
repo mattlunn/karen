@@ -10,7 +10,7 @@ import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { buildClimateOptions, PreconditioningMode } from './preconditioning';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
 import { planCharge, isDeadlineEngaged, deadlineEngagesAt, isWithinSlots, ChargePlan } from './price-plan';
-import { toPriceSlots, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
+import { groupIntoBlocks, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
 
@@ -252,23 +252,6 @@ Device.registerProvider('vehicle', {
 
         return 'BAU';
       },
-
-      async getChargePriceCap(device: Device): Promise<number | null> {
-        const chargePercentage = await device.getElectricVehicleCapability().getChargePercentage();
-        const baselinePenceFor = await getBaselinePenceFor(new Date());
-
-        return baselinePenceFor(chargePercentage);
-      },
-
-      async getChargePriceCapCurve(): Promise<{ chargePercentage: number; pence: number }[]> {
-        const baselinePenceFor = await getBaselinePenceFor(new Date());
-
-        return Array.from({ length: 101 }, (_, chargePercentage) => chargePercentage).flatMap((chargePercentage) => {
-          const pence = baselinePenceFor(chargePercentage);
-
-          return pence === null ? [] : [{ chargePercentage, pence }];
-        });
-      },
     };
   },
 
@@ -340,32 +323,6 @@ async function getEnergyCostCapability() {
   return device.getEnergyCostCapability();
 }
 
-async function getBaselinePenceFor(now: Date): Promise<(chargePercentage: number) => number | null> {
-  const energyCost = await getEnergyCostCapability();
-  const since = dayjs(now).subtract(config.vehicle.charge_baseline_history_days, 'day').toDate();
-  const events = await energyCost.getUnitRateHistory({ since, until: now });
-  // Sorted here rather than per call, since the plan asks for a bar once a slot.
-  const pences = toPriceSlots(events, since, now).map(s => s.pence).sort((a, b) => a - b);
-  const { charge_baseline_min_percentile: minP, charge_baseline_max_percentile: maxP, default_charge_limit: limit } = config.vehicle;
-
-  // The percentile scales linearly from charge_baseline_max_percentile at 0% to
-  // charge_baseline_min_percentile at default_charge_limit, so BAU accepts more
-  // mediocre prices while the battery is low and holds out for genuine bargains
-  // as it nears the limit. Clamped there since BAU never charges past the limit.
-  return (chargePercentage: number) => {
-    if (pences.length === 0) {
-      return null;
-    }
-
-    const progress = Math.min(chargePercentage, limit) / limit;
-    const rank = (maxP - (maxP - minP) * progress) / 100 * (pences.length - 1);
-    const lo = Math.floor(rank);
-    const hi = Math.ceil(rank);
-
-    return pences[lo] + (pences[hi] - pences[lo]) * (rank - lo);
-  };
-}
-
 function chargeRatePercentPerHour(): number {
   return (config.vehicle.charge_power_watts / 1000) / config.vehicle.battery_capacity_kwh * 100;
 }
@@ -431,15 +388,12 @@ async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, ch
 }
 
 async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, chargePercentage: number): Promise<ChargePlan> {
-  const baselinePenceFor = await getBaselinePenceFor(now.toDate());
-
   // With no forward prices this yields an empty plan and nothing charges until
   // they arrive, pending the admin acting on the Octopus alert.
   const plan = planCharge({
     slots,
     now: now.toDate(),
     chargePercentage,
-    baselinePenceFor,
     schedule: getSchedule(device),
     chargeRatePercentPerHour: chargeRatePercentPerHour(),
     defaultLimit: config.vehicle.default_charge_limit,
