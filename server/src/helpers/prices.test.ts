@@ -240,6 +240,28 @@ describe('repeatLatestDay', () => {
     expect(penceAt(forecast, '2026-10-26T19:00:00Z')).toBe(29);
   });
 
+  it('takes the latest price where a time of day appears more than once', () => {
+    const olderDay = cosyDay('2026-11-08T00:00:00Z').map(s => ({ ...s, pence: s.pence + 100 }));
+    const forecast = repeatLatestDay([...olderDay, ...cosyDay('2026-11-09T00:00:00Z')], new Date('2026-11-10T00:00:00Z'), new Date('2026-11-11T00:00:00Z'));
+
+    expect(forecast).toHaveLength(48);
+    expect(penceAt(forecast, '2026-11-10T13:00:00Z')).toBe(14);
+  });
+
+  it('covers every time of day from the two days spanning a clock change', () => {
+    // 24h back from 22:30 on 25 Oct (GMT) only reaches 23:30 BST the day before, missing 22:30-23:30.
+    const since = new Date('2026-10-25T22:30:00Z');
+    const recent = Array.from({ length: 96 }, (_, i) => ({
+      start: new Date(since.getTime() - (96 - i) * 30 * 60_000),
+      end: new Date(since.getTime() - (95 - i) * 30 * 60_000),
+      pence: 1,
+      isEstimated: false,
+    }));
+    const forecast = repeatLatestDay(recent, since, new Date('2026-10-27T22:30:00Z'));
+
+    expect(forecast).toHaveLength(96);
+  });
+
   it('skips a time of day the latest day has no price for', () => {
     const latestDay = cosyDay('2026-11-09T00:00:00Z').filter(s => s.start.getUTCHours() !== 3);
     const forecast = repeatLatestDay(latestDay, new Date('2026-11-10T00:00:00Z'), new Date('2026-11-11T00:00:00Z'));

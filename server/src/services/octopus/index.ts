@@ -29,10 +29,12 @@ Device.registerProvider('octopus', {
   provideEnergyCostCapability() {
     return {
       async getForecastSlots(device: Device, since: Date, until: Date): Promise<PriceSlot[]> {
-        const latestDayStart = dayjs(since).subtract(1, 'day').toDate();
-        const events = await device.getEnergyCostCapability().getUnitRateHistory({ since: latestDayStart, until: since });
+        // Two days, since the 24h before a clock change spans 23 or 25 local
+        // hours and so misses one time of day.
+        const recentStart = dayjs(since).subtract(2, 'day').toDate();
+        const events = await device.getEnergyCostCapability().getUnitRateHistory({ since: recentStart, until: since });
 
-        return repeatLatestDay(toPriceSlots(events, latestDayStart, since), since, until);
+        return repeatLatestDay(toPriceSlots(events, recentStart, since), since, until);
       },
     };
   },

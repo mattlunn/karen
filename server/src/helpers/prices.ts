@@ -78,14 +78,15 @@ export function toPriceSlots(
 }
 
 // Matched on London time of day rather than a flat 24h offset, so a tariff's
-// fixed daily windows stay put across a clock change.
+// fixed daily windows stay put across a clock change. `recent` must be in start
+// order: where a time of day appears more than once, the latest price wins.
 export function repeatLatestDay(
-  latestDay: PriceSlot[],
+  recent: PriceSlot[],
   since: Date,
   until: Date,
   slotMinutes = SLOT_MINUTES
 ): PriceSlot[] {
-  const penceByTimeOfDay = new Map(latestDay.map(s => [dayjs(s.start).format('HH:mm'), s.pence]));
+  const penceByTimeOfDay = new Map(recent.map(s => [dayjs(s.start).format('HH:mm'), s.pence]));
   const slotMs = slotMinutes * 60 * 1000;
   const slots: PriceSlot[] = [];
 
