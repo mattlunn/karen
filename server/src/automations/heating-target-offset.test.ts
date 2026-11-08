@@ -1,4 +1,4 @@
-import { resolveOffsetWrite, OffsetWrite } from './heating-warmup';
+import { resolveOffsetWrite, OffsetWrite } from './heating-target-offset';
 
 const preheat = { key: '2026-11-09 13:00', end: new Date('2026-11-09T16:00:00Z'), offset: 1 };
 const peak = { key: '2026-11-09 16:00', end: new Date('2026-11-09T19:00:00Z'), offset: -0.5 };
