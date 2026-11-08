@@ -28,7 +28,8 @@ function energyMonitor(currentPowerLastReported: string, dayTotalsLastReported: 
     currentPower: reading(currentPowerLastReported, false),
     dayEnergy: reading(dayTotalsLastReported, true),
     dayCost: reading(dayTotalsLastReported, true),
-    agileAvgPrice: null,
+    avgUnitPrice: null,
+    avgUnitPriceSince: dayTotalsLastReported,
     instanceId: null,
     instanceName: null
   };

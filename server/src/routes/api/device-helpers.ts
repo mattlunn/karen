@@ -4,11 +4,15 @@ import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse,
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
 
-// Scoped to Agile-priced usage only, so a device that predates the switchover
-// doesn't drag in years of standard-tariff history and dilute the average.
+// Usage before this was on a standard tariff, so energy insights' lifetime
+// totals start here rather than dragging in years of flat-rate history.
 export const AGILE_SWITCHOVER = dayjs.tz('2026-08-30 00:00', 'Europe/London').toDate();
 
-async function calculateAgileAvgPrice(energyMonitor: EnergyMonitorCapability, since: Date): Promise<number | null> {
+// Averaging across tariffs would blend unrelated rate structures, so a device's
+// average unit price only covers the tariff the house is on now.
+const CURRENT_TARIFF_START = dayjs.tz('2026-11-08 00:00', 'Europe/London').toDate();
+
+async function calculateAvgUnitPrice(energyMonitor: EnergyMonitorCapability, since: Date): Promise<number | null> {
   const until = new Date();
   const [energyHistory, costHistory] = await Promise.all([
     energyMonitor.getDayEnergyHistory({ since, until }),
@@ -321,14 +325,15 @@ export async function getCapabilityData(device: Device, capability: string, inst
 
     case 'ENERGY_MONITOR': {
       const energyMonitor = device.getEnergyMonitorCapability(instanceId);
-      const agileSince = device.createdAt > AGILE_SWITCHOVER ? device.createdAt : AGILE_SWITCHOVER;
+      const avgUnitPriceSince = device.createdAt > CURRENT_TARIFF_START ? device.createdAt : CURRENT_TARIFF_START;
 
       return awaitPromises({
         type: 'ENERGY_MONITOR' as const,
         currentPower: mapNumericState(energyMonitor.getCurrentPowerEvent(), device),
         dayEnergy: mapNumericState(energyMonitor.getDayEnergyEvent(), device),
         dayCost: mapNumericState(energyMonitor.getDayCostEvent(), device),
-        agileAvgPrice: calculateAgileAvgPrice(energyMonitor, agileSince)
+        avgUnitPrice: calculateAvgUnitPrice(energyMonitor, avgUnitPriceSince),
+        avgUnitPriceSince: avgUnitPriceSince.toISOString()
       });
     }
 
