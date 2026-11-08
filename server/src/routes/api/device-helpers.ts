@@ -4,11 +4,11 @@ import { NumericStateApiResponse, BooleanStateApiResponse, EnumStateApiResponse,
 import dayjs from '../../dayjs';
 import { awaitPromises } from '../../helpers/promises';
 
-// Scoped to Agile-priced usage only, so a device that predates the switchover
-// doesn't drag in years of standard-tariff history and dilute the average.
-export const AGILE_SWITCHOVER = dayjs.tz('2026-08-30 00:00', 'Europe/London').toDate();
+// Averaging across tariffs would blend unrelated rate structures, so per-device
+// unit prices and totals only cover the tariff the house is on now.
+export const CURRENT_TARIFF_START = dayjs.tz('2026-11-08 00:00', 'Europe/London').toDate();
 
-async function calculateAgileAvgPrice(energyMonitor: EnergyMonitorCapability, since: Date): Promise<number | null> {
+async function calculateAvgUnitPrice(energyMonitor: EnergyMonitorCapability, since: Date): Promise<number | null> {
   const until = new Date();
   const [energyHistory, costHistory] = await Promise.all([
     energyMonitor.getDayEnergyHistory({ since, until }),
@@ -321,14 +321,15 @@ export async function getCapabilityData(device: Device, capability: string, inst
 
     case 'ENERGY_MONITOR': {
       const energyMonitor = device.getEnergyMonitorCapability(instanceId);
-      const agileSince = device.createdAt > AGILE_SWITCHOVER ? device.createdAt : AGILE_SWITCHOVER;
+      const avgUnitPriceSince = device.createdAt > CURRENT_TARIFF_START ? device.createdAt : CURRENT_TARIFF_START;
 
       return awaitPromises({
         type: 'ENERGY_MONITOR' as const,
         currentPower: mapNumericState(energyMonitor.getCurrentPowerEvent(), device),
         dayEnergy: mapNumericState(energyMonitor.getDayEnergyEvent(), device),
         dayCost: mapNumericState(energyMonitor.getDayCostEvent(), device),
-        agileAvgPrice: calculateAgileAvgPrice(energyMonitor, agileSince)
+        avgUnitPrice: calculateAvgUnitPrice(energyMonitor, avgUnitPriceSince),
+        avgUnitPriceSince: avgUnitPriceSince.toISOString()
       });
     }
 

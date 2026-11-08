@@ -968,8 +968,9 @@ export const registry: CapabilityUIRegistry = {
       }),
       createCapability(null, {
         icon: faSterlingSign,
-        title: 'Agile Avg Price',
-        value: v(cap.agileAvgPrice, (rate) => `${rate.toFixed(1)}p/kWh`),
+        title: 'Avg Unit Price',
+        value: v(cap.avgUnitPrice, (rate) => `${rate.toFixed(1)}p/kWh`),
+        footer: `Since ${dayjs(cap.avgUnitPriceSince).format('D MMM YYYY')}`,
       }),
     ],
     getGraphSections: () => [

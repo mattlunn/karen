@@ -125,7 +125,7 @@ async function checkForwardPricesAvailable() {
   await Log.notify({
     severity: 'notice',
     devices: [device],
-    message: 'No Agile Octopus prices available yet. Devices relying on forecasting (e.g. DHW and EV) are impacted.',
+    message: 'No Octopus prices available for the next 24 hours yet. Devices relying on forecasting (e.g. DHW and EV) are impacted.',
   });
 }
 
