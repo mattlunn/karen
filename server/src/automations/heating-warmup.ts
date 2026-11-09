@@ -98,9 +98,14 @@ export default function ({
       }
 
       const target = scheduled + window.offset;
+      // Ends with the room's current block if that comes first, so the next
+      // block isn't held at this one's offset target.
+      const until = nextScheduledChange !== null && window.end.isAfter(nextScheduledChange.timestamp)
+        ? nextScheduledChange.timestamp
+        : window.end.toDate();
 
-      await thermostat.setTargetTemperatureUntil(target, window.end.toDate());
-      logger.info(`Heating: ${device.name} target ${target}°C (${scheduled}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${window.end.toISOString()}`);
+      await thermostat.setTargetTemperatureUntil(target, until);
+      logger.info(`Heating: ${device.name} target ${target}°C (${scheduled}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${until.toISOString()}`);
     }
   }
 
