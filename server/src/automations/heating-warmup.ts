@@ -7,7 +7,6 @@ import logger from '../logger';
 import nowAndSetCron from '../helpers/now-and-set-cron';
 import { findTimeWindowContaining } from '../helpers/time';
 import { timeRange } from './schema';
-import { resolveOffsetTarget, ActiveOffsetWindow } from './heating-target-offset';
 
 export const parameters = z.object({
   checkCron: z.string(),
@@ -20,6 +19,15 @@ type WarmupState = Date | null;
 
 let currentWarmupState: WarmupState = null;
 
+interface OffsetWindow {
+  end: Date;
+  offset: number;
+}
+
+function isSameTemperature(a: number, b: number): boolean {
+  return Math.abs(a - b) < 0.05;
+}
+
 export function getPreWarmStartTime(): WarmupState {
   return currentWarmupState;
 }
@@ -30,9 +38,7 @@ export default function ({
   dhwAutoLeadTimeHours,
   targetOffsetWindows
 }: z.infer<typeof parameters>) {
-  const configuredOffsets = targetOffsetWindows.map(w => w.offset);
-
-  function findOffsetWindowAt(time: Date): ActiveOffsetWindow | null {
+  function findOffsetWindowAt(time: Date): OffsetWindow | null {
     for (const { start, end, offset } of targetOffsetWindows) {
       const occurrence = findTimeWindowContaining(start, end, time);
 
@@ -75,29 +81,7 @@ export default function ({
     return startTime !== null && dayjs().isAfter(startTime) ? nextScheduledChange.temperature : null;
   }
 
-  async function applyTargetOffset(device: Device, window: ActiveOffsetWindow): Promise<void> {
-    const thermostat = device.getThermostatCapability();
-    const scheduled = await thermostat.getScheduledTemperatureAtTime(new Date());
-
-    if (scheduled === null) {
-      return;
-    }
-
-    const [warmupTarget, current, setback] = await Promise.all([
-      getDueWarmupTarget(device),
-      thermostat.getTargetTemperature(),
-      thermostat.getSetbackTemperature(),
-    ]);
-    const base = warmupTarget ?? scheduled;
-    const target = resolveOffsetTarget({ scheduled, base, setback, offset: window.offset, configuredOffsets, current });
-
-    if (target !== null) {
-      await thermostat.setTargetTemperatureUntil(target, window.end);
-      logger.info(`Heating: ${device.name} target ${target}°C (${base}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${window.end.toISOString()}`);
-    }
-  }
-
-  async function checkAtHomeWarmup(window: ActiveOffsetWindow | null): Promise<void> {
+  async function checkAtHomeWarmup(window: OffsetWindow | null): Promise<void> {
     const thermostatDevices = await Device.findByCapability('THERMOSTAT');
 
     currentWarmupState = null;
@@ -109,15 +93,33 @@ export default function ({
         continue;
       }
 
-      if (window !== null) {
-        await applyTargetOffset(device, window);
+      const warmupTarget = await getDueWarmupTarget(device);
+
+      if (window === null) {
+        if (warmupTarget !== null) {
+          await thermostat.setTargetTemperatureUntilNextScheduledChange(warmupTarget);
+        }
+
         continue;
       }
 
-      const warmupTarget = await getDueWarmupTarget(device);
+      const scheduled = await thermostat.getScheduledTemperatureAtTime(new Date());
 
-      if (warmupTarget !== null) {
-        await thermostat.setTargetTemperatureUntilNextScheduledChange(warmupTarget);
+      if (scheduled === null) {
+        continue;
+      }
+
+      // Any other target was set by hand, or is an override (this window's
+      // offset included) that stands until it lapses.
+      const isUntouched = isSameTemperature(targetTemperature, scheduled)
+        || (warmupTarget !== null && isSameTemperature(targetTemperature, warmupTarget));
+
+      if (isUntouched) {
+        const base = warmupTarget ?? scheduled;
+        const target = base + window.offset;
+
+        await thermostat.setTargetTemperatureUntil(target, window.end);
+        logger.info(`Heating: ${device.name} target ${target}°C (${base}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${window.end.toISOString()}`);
       }
     }
   }
