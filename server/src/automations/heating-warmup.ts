@@ -16,16 +16,17 @@ export const parameters = z.object({
 });
 
 type WarmupState = Date | null;
+type OffsetWindows = z.infer<typeof parameters>['targetOffsetWindows'];
 
 let currentWarmupState: WarmupState = null;
 
-function getMatchingOffsetWindow(time: Date, windows: z.infer<typeof parameters>['targetOffsetWindows']): { start: Dayjs; end: Dayjs; offset: number } | null {
-  for (const window of windows) {
-    const start = normalizeTime(window.start, time);
-    const end = normalizeTime(window.end, time);
+function getMatchingOffsetWindow(time: Date, windows: OffsetWindows): { start: Dayjs; end: Dayjs; offset: number } | null {
+  for (const offsetWindow of windows) {
+    const start = normalizeTime(offsetWindow.start, time);
+    const end = normalizeTime(offsetWindow.end, time);
 
     if (start.isSameOrBefore(time) && end.isAfter(time)) {
-      return { start, end, offset: window.offset };
+      return { start, end, offset: offsetWindow.offset };
     }
   }
 
@@ -63,7 +64,7 @@ export default function ({
   async function checkAtHomeWarmup(): Promise<void> {
     const thermostatDevices = await Device.findByCapability('THERMOSTAT');
     const now = new Date();
-    const window = getMatchingOffsetWindow(now, targetOffsetWindows);
+    const offsetWindow = getMatchingOffsetWindow(now, targetOffsetWindows);
 
     currentWarmupState = null;
 
@@ -85,7 +86,7 @@ export default function ({
         }
       }
 
-      if (window === null) {
+      if (offsetWindow === null) {
         continue;
       }
 
@@ -97,15 +98,15 @@ export default function ({
         continue;
       }
 
-      const target = scheduled + window.offset;
+      const target = scheduled + offsetWindow.offset;
       // Ends with the room's current block if that comes first, so the next
       // block isn't held at this one's offset target.
-      const until = nextScheduledChange !== null && window.end.isAfter(nextScheduledChange.timestamp)
+      const until = nextScheduledChange !== null && offsetWindow.end.isAfter(nextScheduledChange.timestamp)
         ? nextScheduledChange.timestamp
-        : window.end.toDate();
+        : offsetWindow.end.toDate();
 
       await thermostat.setTargetTemperatureUntil(target, until);
-      logger.info(`Heating: ${device.name} target ${target}°C (${scheduled}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${until.toISOString()}`);
+      logger.info(`Heating: ${device.name} target ${target}°C (${scheduled}°C ${offsetWindow.offset >= 0 ? '+' : ''}${offsetWindow.offset}) until ${until.toISOString()}`);
     }
   }
 
