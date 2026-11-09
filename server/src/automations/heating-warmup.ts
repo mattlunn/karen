@@ -58,21 +58,10 @@ export default function ({
     return dayjs(targetTime).subtract(hoursNeeded, 'hour');
   }
 
-  // The next scheduled temperature, once it's time to start warming up to it.
-  async function getDueWarmupTarget(device: Device): Promise<number | null> {
-    const nextScheduledChange = await device.getThermostatCapability().getNextScheduledChange();
-
-    if (nextScheduledChange === null) {
-      return null;
-    }
-
-    const startTime = await calculateWarmupStartTime(device, nextScheduledChange.temperature, nextScheduledChange.timestamp);
-
-    return startTime !== null && dayjs().isAfter(startTime) ? nextScheduledChange.temperature : null;
-  }
-
-  async function checkAtHomeWarmup(window: OffsetWindow | null): Promise<void> {
+  async function checkAtHomeWarmup(): Promise<void> {
     const thermostatDevices = await Device.findByCapability('THERMOSTAT');
+    const now = new Date();
+    const window = findOffsetWindowAt(now);
 
     currentWarmupState = null;
 
@@ -83,31 +72,34 @@ export default function ({
         continue;
       }
 
-      const warmupTarget = await getDueWarmupTarget(device);
+      const nextScheduledChange = await thermostat.getNextScheduledChange();
+
+      if (nextScheduledChange) {
+        const startTime = await calculateWarmupStartTime(device, nextScheduledChange.temperature, nextScheduledChange.timestamp);
+
+        if (dayjs().isAfter(startTime)) {
+          await thermostat.setTargetTemperatureUntilNextScheduledChange(nextScheduledChange.temperature);
+          continue;
+        }
+      }
 
       if (window === null) {
-        if (warmupTarget !== null) {
-          await thermostat.setTargetTemperatureUntilNextScheduledChange(warmupTarget);
-        }
-
         continue;
       }
 
-      const now = new Date();
       const scheduled = await thermostat.getScheduledTemperatureAtTime(now);
 
       // Off, set by hand, or already under an override (this window's offset
       // included) that stands until it lapses.
-      if (scheduled === null || (targetTemperature !== scheduled && targetTemperature !== warmupTarget)) {
+      if (scheduled === null || targetTemperature !== scheduled) {
         continue;
       }
 
-      const base = warmupTarget ?? scheduled;
-      const target = base + window.offset;
+      const target = scheduled + window.offset;
       const until = endOfOffsetWindowAt(window, now);
 
       await thermostat.setTargetTemperatureUntil(target, until);
-      logger.info(`Heating: ${device.name} target ${target}°C (${base}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${until.toISOString()}`);
+      logger.info(`Heating: ${device.name} target ${target}°C (${scheduled}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${until.toISOString()}`);
     }
   }
 
@@ -176,12 +168,11 @@ export default function ({
   }
 
   const runCheck = createBackgroundTransaction('automations:heating-warmup', async () => {
-    const now = new Date();
-    const isSomeoneHome = await Stay.checkIfSomeoneHomeAt(now);
+    const isSomeoneHome = await Stay.checkIfSomeoneHomeAt(new Date());
     const nextEta = await Stay.findNextUpcomingEta();
 
     if (isSomeoneHome) {
-      await checkAtHomeWarmup(findOffsetWindowAt(now));
+      await checkAtHomeWarmup();
     } else if (nextEta) {
       await checkAwayWarmup(nextEta.eta);
     }
