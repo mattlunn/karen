@@ -65,3 +65,7 @@ export function timeOfDayOn(timeOfDay: string, date: Date): Date {
 export function isInDailyWindow(window: DailyWindow, date: Date): boolean {
   return date >= timeOfDayOn(window.from, date) && date < timeOfDayOn(window.to, date);
 }
+
+export function fitsInDailyWindow(window: DailyWindow, start: Date, end: Date): boolean {
+  return isInDailyWindow(window, start) && end <= timeOfDayOn(window.to, start);
+}

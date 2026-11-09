@@ -6,18 +6,14 @@ import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
 import nowAndSetCron from '../helpers/now-and-set-cron';
 import { isInDailyWindow, timeOfDayOn } from '../helpers/date';
-import { halfHourTimeOfDay } from './schema';
+import { dailyWindow } from './schema';
 import { resolveOffsetWrite, ActiveOffsetWindow, OffsetWrite } from './heating-target-offset';
 
 export const parameters = z.object({
   checkCron: z.string(),
   minWarmUpRatePerHour: z.number().positive(),
   dhwAutoLeadTimeHours: z.number().positive(),
-  targetOffsetWindows: z.array(z.object({
-    from: halfHourTimeOfDay,
-    to: halfHourTimeOfDay,
-    offset: z.number()
-  }))
+  targetOffsetWindows: z.array(dailyWindow.and(z.object({ offset: z.number() })))
 });
 
 type WarmupState = Date | null;

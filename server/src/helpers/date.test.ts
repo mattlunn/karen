@@ -1,4 +1,4 @@
-import { isInDailyWindow, timeOfDayOn } from './date';
+import { isInDailyWindow, fitsInDailyWindow, timeOfDayOn } from './date';
 
 describe('timeOfDayOn', () => {
   it('lands on that time of the same day, in local time', () => {
@@ -37,5 +37,19 @@ describe('isInDailyWindow', () => {
 
     expect(isInDailyWindow(late, new Date('2026-11-09T23:30:00Z'))).toBe(true);
     expect(isInDailyWindow(late, new Date('2026-11-10T00:00:00Z'))).toBe(false);
+  });
+});
+
+describe('fitsInDailyWindow', () => {
+  const morning = { from: '04:15', to: '07:00' };
+  const slot = (iso: string) => [new Date(iso), new Date(new Date(iso).getTime() + 30 * 60_000)] as const;
+
+  it('takes a slot wholly inside the window', () => {
+    expect(fitsInDailyWindow(morning, ...slot('2026-11-09T06:30:00Z'))).toBe(true);
+  });
+
+  it('drops a slot the window only partly covers', () => {
+    expect(fitsInDailyWindow(morning, ...slot('2026-11-09T04:00:00Z'))).toBe(false);
+    expect(fitsInDailyWindow({ from: '04:00', to: '06:45' }, ...slot('2026-11-09T06:30:00Z'))).toBe(false);
   });
 });

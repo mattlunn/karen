@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { Device, Log } from '../../models';
 import { HeatPumpCapability, HeatPumpDHWMode, DHWPlannedWindow, DHWTargetReason } from '../../models/capabilities';
 import config from '../../config';
@@ -8,7 +9,16 @@ import { createBackgroundTransaction } from '../../helpers/newrelic';
 import logger from '../../logger';
 import EbusClient from './client';
 import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow } from '../../helpers/prices';
-import { isWithinWindow, isInDailyWindow } from '../../helpers/date';
+import { isWithinWindow, fitsInDailyWindow } from '../../helpers/date';
+import { dailyWindow } from '../../automations/schema';
+
+const permittedWindowsCheck = z.array(dailyWindow).safeParse(config.ebusd.dhw_permitted_windows);
+
+if (!permittedWindowsCheck.success) {
+  throw new Error(`config is invalid; ebusd.dhw_permitted_windows:\n${z.prettifyError(permittedWindowsCheck.error)}`);
+}
+
+const permittedWindows = permittedWindowsCheck.data;
 
 // The current Auto plan: a single cheap block, written once and never revised
 // until it rolls over. Persisted on device.meta rather than held in memory,
@@ -146,7 +156,7 @@ async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): P
   }
 
   const permittedSlots = toPriceSlots(events, now, until)
-    .filter(slot => config.ebusd.dhw_permitted_windows.some(w => isInDailyWindow(w, slot.start)));
+    .filter(slot => permittedWindows.some(w => fitsInDailyWindow(w, slot.start, slot.end)));
   const window = findCheapestWindow(permittedSlots, blockMinutes, now, until);
 
   if (window === null) {

@@ -129,7 +129,6 @@ export interface AppConfig {
     min_mode_duration_minutes: number | undefined;
     dhw_plan_mode: 'readonly' | 'readwrite' | undefined;
     dhw_planning_horizon_hours: number;
-    // On the half hour, so each window covers whole price slots.
     dhw_permitted_windows: DailyWindow[];
     dhw_check_cron: string;
     dhw_standard_target_temp: number;
