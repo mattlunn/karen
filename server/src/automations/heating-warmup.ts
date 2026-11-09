@@ -5,7 +5,7 @@ import dayjs, { Dayjs } from '../dayjs';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
 import nowAndSetCron from '../helpers/now-and-set-cron';
-import { isWithinTime, findTimeWindowContaining } from '../helpers/time';
+import { normalizeTime } from '../helpers/time';
 import { timeRange } from './schema';
 
 export const parameters = z.object({
@@ -16,14 +16,20 @@ export const parameters = z.object({
 });
 
 type WarmupState = Date | null;
-type OffsetWindow = z.infer<typeof parameters>['targetOffsetWindows'][number];
 
 let currentWarmupState: WarmupState = null;
 
-// When the occurrence of `window` that `time` falls in ends; for a window
-// crossing midnight, that can be the day after the one `end` reads against.
-function endOfOffsetWindowAt(window: OffsetWindow, time: Date): Date {
-  return findTimeWindowContaining(window.start, window.end, time)!.end;
+function getMatchingOffsetWindow(time: Date, windows: z.infer<typeof parameters>['targetOffsetWindows']): { start: Dayjs; end: Dayjs; offset: number } | null {
+  for (const window of windows) {
+    const start = normalizeTime(window.start, time);
+    const end = normalizeTime(window.end, time);
+
+    if (start.isSameOrBefore(time) && end.isAfter(time)) {
+      return { start, end, offset: window.offset };
+    }
+  }
+
+  return null;
 }
 
 export function getPreWarmStartTime(): WarmupState {
@@ -36,10 +42,6 @@ export default function ({
   dhwAutoLeadTimeHours,
   targetOffsetWindows
 }: z.infer<typeof parameters>) {
-  function findOffsetWindowAt(time: Date): OffsetWindow | null {
-    return targetOffsetWindows.find(w => isWithinTime(w.start, w.end, time)) ?? null;
-  }
-
   async function calculateWarmupStartTime(device: Device, nextTarget: number, targetTime: Date): Promise<Dayjs | null>{
     const [currentTemp, currentTarget] = await Promise.all([
       device.getThermostatCapability().getCurrentTemperature(),
@@ -61,7 +63,7 @@ export default function ({
   async function checkAtHomeWarmup(): Promise<void> {
     const thermostatDevices = await Device.findByCapability('THERMOSTAT');
     const now = new Date();
-    const window = findOffsetWindowAt(now);
+    const window = getMatchingOffsetWindow(now, targetOffsetWindows);
 
     currentWarmupState = null;
 
@@ -96,10 +98,9 @@ export default function ({
       }
 
       const target = scheduled + window.offset;
-      const until = endOfOffsetWindowAt(window, now);
 
-      await thermostat.setTargetTemperatureUntil(target, until);
-      logger.info(`Heating: ${device.name} target ${target}°C (${scheduled}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${until.toISOString()}`);
+      await thermostat.setTargetTemperatureUntil(target, window.end.toDate());
+      logger.info(`Heating: ${device.name} target ${target}°C (${scheduled}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${window.end.toISOString()}`);
     }
   }
 
@@ -107,7 +108,7 @@ export default function ({
     etaTime: Date
   ): Promise<void> {
     const warmups: { device: Device, start: () => Promise<void> }[] = [];
-    const etaWindow = findOffsetWindowAt(etaTime);
+    const etaWindow = getMatchingOffsetWindow(etaTime, targetOffsetWindows);
     let earliestWarmup: Dayjs | null = null;
 
     for (const device of await Device.findByCapability('THERMOSTAT')) {
@@ -126,7 +127,7 @@ export default function ({
           device,
           start: async () => {
             if (etaWindow !== null) {
-              await thermostat.setTargetTemperatureUntil(targetTemp, endOfOffsetWindowAt(etaWindow, etaTime));
+              await thermostat.setTargetTemperatureUntil(targetTemp, etaWindow.end.toDate());
             } else if (await thermostat.getNextScheduledChange() === null) {
               await thermostat.setIsOn(true);
             } else {
