@@ -5,7 +5,7 @@ import dayjs, { Dayjs } from '../dayjs';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
 import nowAndSetCron from '../helpers/now-and-set-cron';
-import { findTimeWindowContaining } from '../helpers/time';
+import { isWithinTime, findTimeWindowContaining } from '../helpers/time';
 import { timeRange } from './schema';
 
 export const parameters = z.object({
@@ -16,16 +16,14 @@ export const parameters = z.object({
 });
 
 type WarmupState = Date | null;
+type OffsetWindow = z.infer<typeof parameters>['targetOffsetWindows'][number];
 
 let currentWarmupState: WarmupState = null;
 
-interface OffsetWindow {
-  end: Date;
-  offset: number;
-}
-
-function isSameTemperature(a: number, b: number): boolean {
-  return Math.abs(a - b) < 0.05;
+// When the occurrence of `window` that `time` falls in ends; for a window
+// crossing midnight, that can be the day after the one `end` reads against.
+function endOfOffsetWindowAt(window: OffsetWindow, time: Date): Date {
+  return findTimeWindowContaining(window.start, window.end, time)!.end;
 }
 
 export function getPreWarmStartTime(): WarmupState {
@@ -39,15 +37,7 @@ export default function ({
   targetOffsetWindows
 }: z.infer<typeof parameters>) {
   function findOffsetWindowAt(time: Date): OffsetWindow | null {
-    for (const { start, end, offset } of targetOffsetWindows) {
-      const occurrence = findTimeWindowContaining(start, end, time);
-
-      if (occurrence !== null) {
-        return { end: occurrence.end, offset };
-      }
-    }
-
-    return null;
+    return targetOffsetWindows.find(w => isWithinTime(w.start, w.end, time)) ?? null;
   }
 
   async function calculateWarmupStartTime(device: Device, nextTarget: number, targetTime: Date): Promise<Dayjs | null>{
@@ -103,24 +93,21 @@ export default function ({
         continue;
       }
 
-      const scheduled = await thermostat.getScheduledTemperatureAtTime(new Date());
+      const now = new Date();
+      const scheduled = await thermostat.getScheduledTemperatureAtTime(now);
 
-      if (scheduled === null) {
+      // Off, set by hand, or already under an override (this window's offset
+      // included) that stands until it lapses.
+      if (scheduled === null || (targetTemperature !== scheduled && targetTemperature !== warmupTarget)) {
         continue;
       }
 
-      // Any other target was set by hand, or is an override (this window's
-      // offset included) that stands until it lapses.
-      const isUntouched = isSameTemperature(targetTemperature, scheduled)
-        || (warmupTarget !== null && isSameTemperature(targetTemperature, warmupTarget));
+      const base = warmupTarget ?? scheduled;
+      const target = base + window.offset;
+      const until = endOfOffsetWindowAt(window, now);
 
-      if (isUntouched) {
-        const base = warmupTarget ?? scheduled;
-        const target = base + window.offset;
-
-        await thermostat.setTargetTemperatureUntil(target, window.end);
-        logger.info(`Heating: ${device.name} target ${target}°C (${base}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${window.end.toISOString()}`);
-      }
+      await thermostat.setTargetTemperatureUntil(target, until);
+      logger.info(`Heating: ${device.name} target ${target}°C (${base}°C ${window.offset >= 0 ? '+' : ''}${window.offset}) until ${until.toISOString()}`);
     }
   }
 
@@ -147,7 +134,7 @@ export default function ({
           device,
           start: async () => {
             if (etaWindow !== null) {
-              await thermostat.setTargetTemperatureUntil(targetTemp, etaWindow.end);
+              await thermostat.setTargetTemperatureUntil(targetTemp, endOfOffsetWindowAt(etaWindow, etaTime));
             } else if (await thermostat.getNextScheduledChange() === null) {
               await thermostat.setIsOn(true);
             } else {
