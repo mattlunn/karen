@@ -48,8 +48,10 @@ export function normalizeTime(time, date = new Date()) {
   return normalizedBase;
 }
 
-// Has tests!
-export function isWithinTime(start, end, date = new Date()) {
+// The occurrence of the start/end window that `date` falls in, or null. For a
+// window crossing midnight ("23:00" to "06:00 + 1d") checked after midnight,
+// that's the one which started the day before.
+export function findTimeWindowContaining(start, end, date = new Date()) {
   let normalizedStart = normalizeTime(start, date);
   let normalizedEnd = normalizeTime(end, date);
 
@@ -58,5 +60,12 @@ export function isWithinTime(start, end, date = new Date()) {
     normalizedEnd = normalizedEnd.subtract(1, 'd');
   }
 
-  return normalizedStart.isSameOrBefore(date) && normalizedEnd.isAfter(date);
+  return normalizedStart.isSameOrBefore(date) && normalizedEnd.isAfter(date)
+    ? { start: normalizedStart.toDate(), end: normalizedEnd.toDate() }
+    : null;
+}
+
+// Has tests!
+export function isWithinTime(start, end, date = new Date()) {
+  return findTimeWindowContaining(start, end, date) !== null;
 }

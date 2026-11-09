@@ -13,13 +13,6 @@ export const timeString = z.string().regex(
   'must be "HH:MM", "sunrise" or "sunset", optionally followed by an offset such as "+ 30m"'
 );
 
-// "24:00" ends a window at midnight.
-export const timeOfDay = z.string().regex(/^(([01]\d|2[0-3]):[0-5]\d|24:00)$/, 'must be "HH:MM" (or "24:00")');
-
-// Zero-padded, so comparing the strings orders the times.
-export const dailyWindow = z.object({ from: timeOfDay, to: timeOfDay })
-  .refine(w => w.from < w.to, 'from must be before to; a window can\'t cross midnight');
-
 // A start/end pair is the shape most of the scheduling automations take.
 export const timeRange = z.object({
   start: timeString,

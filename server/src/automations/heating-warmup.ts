@@ -5,15 +5,15 @@ import dayjs, { Dayjs } from '../dayjs';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
 import nowAndSetCron from '../helpers/now-and-set-cron';
-import { isInDailyWindow, timeOfDayOn } from '../helpers/date';
-import { dailyWindow } from './schema';
+import { findTimeWindowContaining } from '../helpers/time';
+import { timeRange } from './schema';
 import { resolveOffsetTarget, ActiveOffsetWindow } from './heating-target-offset';
 
 export const parameters = z.object({
   checkCron: z.string(),
   minWarmUpRatePerHour: z.number().positive(),
   dhwAutoLeadTimeHours: z.number().positive(),
-  targetOffsetWindows: z.array(dailyWindow.and(z.object({ offset: z.number() })))
+  targetOffsetWindows: z.array(timeRange.extend({ offset: z.number() }))
 });
 
 type WarmupState = Date | null;
@@ -33,9 +33,15 @@ export default function ({
   const configuredOffsets = targetOffsetWindows.map(w => w.offset);
 
   function findOffsetWindowAt(time: Date): ActiveOffsetWindow | null {
-    const window = targetOffsetWindows.find(w => isInDailyWindow(w, time));
+    for (const { start, end, offset } of targetOffsetWindows) {
+      const occurrence = findTimeWindowContaining(start, end, time);
 
-    return window === undefined ? null : { end: timeOfDayOn(window.to, time), offset: window.offset };
+      if (occurrence !== null) {
+        return { end: occurrence.end, offset };
+      }
+    }
+
+    return null;
   }
 
   async function calculateWarmupStartTime(device: Device, nextTarget: number, targetTime: Date): Promise<Dayjs | null>{
@@ -128,7 +134,7 @@ export default function ({
       const scheduledTemp = await thermostat.getScheduledTemperatureAtTime(etaTime);
 
       if (scheduledTemp) {
-        const targetTemp = scheduledTemp + (etaWindow?.offset ?? 0);
+        const targetTemp = etaWindow === null ? scheduledTemp : scheduledTemp + etaWindow.offset;
         const startTime = await calculateWarmupStartTime(device, targetTemp, etaTime);
 
         if (earliestWarmup === null || startTime?.isBefore(earliestWarmup)) {

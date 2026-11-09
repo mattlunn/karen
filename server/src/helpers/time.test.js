@@ -1,6 +1,6 @@
 jest.mock('../config', () => ({}));
 
-import { isWithinTime, normalizeTime } from './time';
+import { isWithinTime, normalizeTime, findTimeWindowContaining } from './time';
 import getSunriseAndSunset from './sun';
 import dayjs from '../dayjs';
 
@@ -36,6 +36,26 @@ describe('isWithinTime', () => {
     getSunriseAndSunset.mockImplementation(() => ({ sunrise: getTime(7, 30) }));
 
     expect(isWithinTime('06:00', 'sunrise', getTime(6, 30))).toBe(true);
+  });
+});
+
+describe('findTimeWindowContaining', () => {
+  it('returns the occurrence the time falls in', () => {
+    expect(findTimeWindowContaining('13:00', '16:00', getTime(14, 0))).toEqual({
+      start: getTime(13, 0).toDate(),
+      end: getTime(16, 0).toDate(),
+    });
+  });
+
+  it('returns the occurrence that started yesterday for a window crossing midnight', () => {
+    expect(findTimeWindowContaining('23:00', '06:00 + 1d', getTime(2, 0))).toEqual({
+      start: getTime(23, 0).subtract(1, 'd').toDate(),
+      end: getTime(6, 0).toDate(),
+    });
+  });
+
+  it('returns null outside the window', () => {
+    expect(findTimeWindowContaining('13:00', '16:00', getTime(16, 0))).toBeNull();
   });
 });
 

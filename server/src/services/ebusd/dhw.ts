@@ -9,16 +9,23 @@ import { createBackgroundTransaction } from '../../helpers/newrelic';
 import logger from '../../logger';
 import EbusClient from './client';
 import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow } from '../../helpers/prices';
-import { isWithinWindow, fitsInDailyWindow } from '../../helpers/date';
-import { dailyWindow } from '../../automations/schema';
+import { isWithinWindow } from '../../helpers/date';
+import { isWithinTime } from '../../helpers/time';
+import { timeRange } from '../../automations/schema';
 
-const permittedWindowsCheck = z.array(dailyWindow).safeParse(config.ebusd.dhw_permitted_windows);
+const permittedWindowsCheck = z.array(timeRange).safeParse(config.ebusd.dhw_permitted_windows);
 
 if (!permittedWindowsCheck.success) {
   throw new Error(`config is invalid; ebusd.dhw_permitted_windows:\n${z.prettifyError(permittedWindowsCheck.error)}`);
 }
 
 const permittedWindows = permittedWindowsCheck.data;
+
+// Whole slots only: the slot's first and last instant both fall in the window.
+function isPermittedSlot(window: { start: string; end: string }, slot: { start: Date; end: Date }): boolean {
+  return isWithinTime(window.start, window.end, slot.start)
+    && isWithinTime(window.start, window.end, dayjs(slot.end).subtract(1, 'millisecond').toDate());
+}
 
 // The current Auto plan: a single cheap block, written once and never revised
 // until it rolls over. Persisted on device.meta rather than held in memory,
@@ -156,7 +163,7 @@ async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): P
   }
 
   const permittedSlots = toPriceSlots(events, now, until)
-    .filter(slot => permittedWindows.some(w => fitsInDailyWindow(w, slot.start, slot.end)));
+    .filter(slot => permittedWindows.some(w => isPermittedSlot(w, slot)));
   const window = findCheapestWindow(permittedSlots, blockMinutes, now, until);
 
   if (window === null) {
