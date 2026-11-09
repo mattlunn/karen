@@ -100,6 +100,8 @@ export type ZoneState = {
 
 export type ZonesState = Record<number, ZoneState>;
 
+export type OverlayTermination = 'NEXT_TIME_BLOCK' | 'MANUAL' | { durationInSeconds: number };
+
 export type ZoneOverlayResponse = {
   type: "MANUAL",
   setting: ZoneSetting,
@@ -241,7 +243,7 @@ export default class TadoClient {
     return data.minimumAwayTemperature.celsius;
   }
 
-  setHeatingPowerForZone(zone: string, value: number | false, endAtNextTimeBlock: boolean): Promise<ZoneOverlayResponse> {
+  setHeatingPowerForZone(zone: string, value: number | false, termination: OverlayTermination): Promise<ZoneOverlayResponse> {
     return this._request(`/zones/${zone}/overlay`, {
       setting: {
         type: 'HEATING',
@@ -250,9 +252,9 @@ export default class TadoClient {
           celsius: value
         }
       },
-      termination: {
-        typeSkillBasedApp: endAtNextTimeBlock ? 'NEXT_TIME_BLOCK' : 'MANUAL'
-      }
+      termination: typeof termination === 'string'
+        ? { typeSkillBasedApp: termination }
+        : { typeSkillBasedApp: 'TIMER', durationInSeconds: termination.durationInSeconds }
     });
   }
 

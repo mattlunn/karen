@@ -45,23 +45,3 @@ export function isWithinWindow(window: { start: Date, end: Date }, date: Date): 
   return date >= window.start && date < window.end;
 }
 
-// Times of day ("HH:mm"), repeating daily; `to` may be "24:00".
-export interface DailyWindow {
-  from: string;
-  to: string;
-}
-
-// That time of day on `date`'s day; "24:00" is the following midnight.
-export function timeOfDayOn(timeOfDay: string, date: Date): Date {
-  const [hours, minutes] = timeOfDay.split(':').map(Number);
-
-  if (hours === 24) {
-    return dayjs(date).add(1, 'day').startOf('day').toDate();
-  }
-
-  return dayjs(date).hour(hours).minute(minutes).second(0).millisecond(0).toDate();
-}
-
-export function isInDailyWindow(window: DailyWindow, date: Date): boolean {
-  return date >= timeOfDayOn(window.from, date) && date < timeOfDayOn(window.to, date);
-}
