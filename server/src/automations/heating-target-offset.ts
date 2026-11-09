@@ -1,47 +1,30 @@
 export interface ActiveOffsetWindow {
-  // Identifies this day's occurrence of the window.
-  key: string;
   end: Date;
   offset: number;
-}
-
-// A null `value` means the room's target was changed by hand, so it's left
-// alone for the rest of the window.
-export interface OffsetWrite {
-  windowKey: string;
-  value: number | null;
 }
 
 function isSameTemperature(a: number, b: number): boolean {
   return Math.abs(a - b) < 0.05;
 }
 
-// `untouchedTargets` are the targets a room can show without anyone having
-// changed it by hand: its schedule, a warm-up towards the next block, or the
-// away setback. They're only checked while someone's home to make that change.
-export function resolveOffsetWrite({ window, base, current, untouchedTargets, previous, isSomeoneHome }: {
-  window: ActiveOffsetWindow;
+// The target to set, or null to leave the room as it is. A room counts as
+// changed by hand when its target is none that Karen or Tado would set: its
+// schedule, its due warm-up (`base`), its away setback, or either of the first
+// two plus one of the configured offsets.
+export function resolveOffsetTarget({ scheduled, base, setback, offset, configuredOffsets, current }: {
+  scheduled: number;
   base: number;
+  setback: number;
+  offset: number;
+  configuredOffsets: number[];
   current: number;
-  untouchedTargets: number[];
-  previous: OffsetWrite | undefined;
-  isSomeoneHome: boolean;
-}): { write: number | null; record: OffsetWrite } {
-  const desired = base + window.offset;
-  const isOurs = previous?.value != null && isSameTemperature(current, previous.value);
-  const leaveAlone = { write: null, record: { windowKey: window.key, value: null } };
+}): number | null {
+  const desired = base + offset;
+  const untouched = [scheduled, base, setback, ...configuredOffsets.flatMap(o => [scheduled + o, base + o])];
 
-  if (previous?.windowKey === window.key) {
-    if (!isOurs) {
-      return leaveAlone;
-    }
-
-    return { write: isSameTemperature(desired, previous.value!) ? null : desired, record: { windowKey: window.key, value: desired } };
+  if (!untouched.some(t => isSameTemperature(current, t))) {
+    return null;
   }
 
-  if (isSomeoneHome && !isOurs && !untouchedTargets.some(t => isSameTemperature(current, t))) {
-    return leaveAlone;
-  }
-
-  return { write: desired, record: { windowKey: window.key, value: desired } };
+  return isSameTemperature(current, desired) ? null : desired;
 }
