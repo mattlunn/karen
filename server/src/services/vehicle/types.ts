@@ -7,8 +7,8 @@ export interface BridgeVehicle {
   model: string | null;
   ev_battery_percentage: number | null;
   ev_battery_is_charging: boolean | null;
-  // Reported as an int (e.g. 1 when plugged in on AC), so read as truthy.
-  ev_battery_is_plugged_in: boolean | number | null;
+  // 1 when plugged in, 0 when not. The bridge's ev_battery_is_plugged_in is never false, only true or null.
+  ev_connector_fastening_state: number | null;
   ev_charge_limits_ac: number | null;
   odometer: number | null;
   odometer_unit: string | null;

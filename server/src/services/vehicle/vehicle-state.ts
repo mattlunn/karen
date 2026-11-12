@@ -41,8 +41,8 @@ export async function processVehicle(device: Device, vehicle: BridgeVehicle): Pr
     await ev.setIsChargingState(vehicle.ev_battery_is_charging, now, reportedAt);
   }
 
-  if (vehicle.ev_battery_is_plugged_in !== null) {
-    await ev.setIsCableConnectedState(Boolean(vehicle.ev_battery_is_plugged_in), now, reportedAt);
+  if (vehicle.ev_connector_fastening_state !== null) {
+    await ev.setIsCableConnectedState(vehicle.ev_connector_fastening_state === 1, now, reportedAt);
   }
 
   if (vehicle.ev_charge_limits_ac !== null) {
