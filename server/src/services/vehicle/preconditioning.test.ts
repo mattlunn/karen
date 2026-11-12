@@ -13,7 +13,7 @@ function vehicle(climate: Pick<BridgeVehicle, 'air_control_is_on' | 'air_tempera
     model: null,
     ev_battery_percentage: null,
     ev_battery_is_charging: null,
-    ev_battery_is_plugged_in: null,
+    ev_connector_fastening_state: null,
     ev_charge_limits_ac: null,
     odometer: null,
     odometer_unit: null,
