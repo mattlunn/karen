@@ -34,6 +34,7 @@ export interface BridgeCommandResponse {
 
 // hyundai_kia_connect_api's ClimateRequestOptions. On CCS2 cars, `heating: 1`
 // switches on the rear window heater; the steering wheel heater is separate.
+// Seats are physical positions, which the library maps to driver/passenger.
 export interface ClimateOptions {
   set_temp: number;
   duration: number;
@@ -41,4 +42,7 @@ export interface ClimateOptions {
   defrost: boolean;
   heating: 0 | 1;
   steering_wheel: 0 | 1;
+  // Seat climate codes as the Kia app sends them: 2 is off, 8 is the highest heat.
+  front_left_seat: 2 | 8;
+  front_right_seat: 2 | 8;
 }
