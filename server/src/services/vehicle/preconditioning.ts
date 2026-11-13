@@ -27,7 +27,7 @@ export function buildClimateOptions(preset: PreconditioningPreset, durationMinut
     defrost: preset.defrost,
     heating: preset.rear_window_heater ? 1 : 0,
     steering_wheel: preset.steering_wheel_heater ? 1 : 0,
-    front_left_seat: preset.front_seat_heaters ? 8 : 0,
-    front_right_seat: preset.front_seat_heaters ? 8 : 0,
+    front_left_seat: preset.front_seat_heaters ? 8 : 2,
+    front_right_seat: preset.front_seat_heaters ? 8 : 2,
   };
 }

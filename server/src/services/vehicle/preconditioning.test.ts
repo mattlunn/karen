@@ -72,8 +72,8 @@ describe('buildClimateOptions', () => {
       defrost: false,
       heating: 0,
       steering_wheel: 0,
-      front_left_seat: 0,
-      front_right_seat: 0,
+      front_left_seat: 2,
+      front_right_seat: 2,
     });
   });
 });
