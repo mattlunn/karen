@@ -2,8 +2,8 @@ import { getPreconditioningMode, buildClimateOptions } from './preconditioning';
 import type { BridgeVehicle } from './types';
 
 const presets = {
-  heat: { temperature: 24, defrost: true, rear_window_heater: true, steering_wheel_heater: true },
-  cool: { temperature: 18, defrost: false, rear_window_heater: false, steering_wheel_heater: false },
+  heat: { temperature: 24, defrost: true, rear_window_heater: true, steering_wheel_heater: true, front_seat_heaters: true },
+  cool: { temperature: 18, defrost: false, rear_window_heater: false, steering_wheel_heater: false, front_seat_heaters: false },
 };
 
 function vehicle(climate: Pick<BridgeVehicle, 'air_control_is_on' | 'air_temperature' | 'engine_is_running'>): BridgeVehicle {
@@ -51,7 +51,7 @@ describe('getPreconditioningMode', () => {
 });
 
 describe('buildClimateOptions', () => {
-  it('maps the heat preset, with the steering wheel heater as its own option', () => {
+  it('maps the heat preset, with the steering wheel and front seat heaters as their own options', () => {
     expect(buildClimateOptions(presets.heat, 10)).toEqual({
       set_temp: 24,
       duration: 10,
@@ -59,6 +59,8 @@ describe('buildClimateOptions', () => {
       defrost: true,
       heating: 1,
       steering_wheel: 1,
+      front_left_seat: 8,
+      front_right_seat: 8,
     });
   });
 
@@ -70,6 +72,8 @@ describe('buildClimateOptions', () => {
       defrost: false,
       heating: 0,
       steering_wheel: 0,
+      front_left_seat: 0,
+      front_right_seat: 0,
     });
   });
 });

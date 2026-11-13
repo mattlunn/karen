@@ -17,6 +17,7 @@ export interface PreconditioningPreset {
   defrost: boolean;
   rear_window_heater: boolean;
   steering_wheel_heater: boolean;
+  front_seat_heaters: boolean;
 }
 
 export interface AppConfig {
