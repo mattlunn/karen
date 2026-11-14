@@ -63,6 +63,7 @@ export interface AppConfig {
     host: string;
     user: string;
     password: string;
+    ping_after_quiet_hours: number;
   };
   tado: {
     home_id: number;

@@ -500,7 +500,7 @@ nowAndSetCron(createBackgroundTransaction('zwave:connectivity', async () => {
       isConnected = false;
     } else if (node.isListening || node.isFrequentListening) {
       // zwave-js only marks a node Dead when a message to it fails, so a quiet node has to be sent one.
-      isConnected = lastSeen?.isAfter(dayjs().subtract(4, 'hour')) || (await makeRequest('node.ping', { nodeId: node.nodeId }) as { responded: boolean }).responded;
+      isConnected = lastSeen?.isAfter(dayjs().subtract(config.zwave.ping_after_quiet_hours, 'hour')) || (await makeRequest('node.ping', { nodeId: node.nodeId }) as { responded: boolean }).responded;
     } else {
       // A sleeping node can't be pinged; the ping just waits for its next wake-up.
       const wakeUpIntervalSeconds = node.values.find((value: any) => value.commandClass === WAKE_UP_COMMAND_CLASS && value.property === 'wakeUpInterval')?.value ?? 0;
