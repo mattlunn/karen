@@ -24,6 +24,7 @@ export default class ZWaveClient {
   #socket: ws | null;
   #events = new EventEmitter();
   #msgs = new Map();
+  #nodeIds = new Set<number>();
 
   constructor(options: ZWaveClientOptions) {
     this.#options = options;
@@ -37,9 +38,9 @@ export default class ZWaveClient {
   }
 
   getNodes = async (): Promise<any[]> => {
-    const { state }: any = await this.makeRequest('start_listening');
+    const results: any[] = await Promise.all(Array.from(this.#nodeIds, (nodeId) => this.makeRequest('node.get_state', { nodeId })));
 
-    return state.nodes;
+    return results.map(({ state }) => state);
   };
 
   connect = async () => {
@@ -85,6 +86,14 @@ export default class ZWaveClient {
           }
     
           case 'event': {
+            if (message.event.source === 'controller' && message.event.event === 'node added') {
+              this.#nodeIds.add(message.event.node.nodeId);
+            }
+
+            if (message.event.source === 'controller' && message.event.event === 'node removed') {
+              this.#nodeIds.delete(message.event.node.nodeId);
+            }
+
             this.#events.emit('event', message.event);
             break;
           }
@@ -99,7 +108,12 @@ export default class ZWaveClient {
       this.#socket.on('open', async () => {
         try {
           await this.makeRequest('set_api_schema', { schemaVersion: 20 });
-          await this.makeRequest('start_listening');
+
+          const { state }: any = await this.makeRequest('start_listening');
+
+          for (const node of state.nodes) {
+            this.#nodeIds.add(node.nodeId);
+          }
 
           res();
         } catch (e) {
