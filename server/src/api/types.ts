@@ -215,6 +215,7 @@ export type HistoryLineApiResponse = {
   yAxisID?: string;
   borderDash?: number[];
   period?: 'day' | 'month';
+  filled?: boolean;
   // A computed catch-all (whole-house total minus everything individually
   // metered), drawn with a diagonal hatch so it reads as different in kind.
   role?: 'residual';
@@ -235,7 +236,7 @@ export type HistoryBarApiResponse = {
   data: HistoryDetailsApiResponse<NumericEventApiResponse>;
   label: string;
   yAxisID?: string;
-  period?: 'day' | 'month';
+  period: 'day' | 'month';
   role?: 'residual';
 };
 
