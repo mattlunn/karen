@@ -505,7 +505,7 @@ nowAndSetCron(createBackgroundTransaction('zwave:connectivity', async () => {
       // A sleeping node can't be pinged; the ping just waits for its next wake-up.
       const wakeUpIntervalSeconds = node.values.find((value: any) => value.commandClass === WAKE_UP_COMMAND_CLASS && value.property === 'wakeUpInterval')?.value ?? 0;
 
-      isConnected = lastSeen?.isAfter(dayjs().subtract(wakeUpIntervalSeconds * 2, 'second')) ?? false;
+      isConnected = lastSeen?.isAfter(dayjs().subtract(wakeUpIntervalSeconds, 'second')) ?? false;
     }
 
     await device.getConnectivityCapability().setIsConnectedState(isConnected);
