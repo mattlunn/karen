@@ -221,8 +221,7 @@ const getClient = (function () {
             if (data.source === 'node' && data.event === 'value updated') {
               const deviceId = data.nodeId;
               const device = await Device.findByProviderIdOrError('zwave', deviceId);
-              const node = Array.from(client.getNodes()).find((x: any) => x.nodeId === deviceId) as any;
-              const nodeType = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
+              const nodeType = `${device.manufacturer} ${device.model}`;
               const handlers = deviceHandlers.get(nodeType);
 
               if (handlers === undefined) {
@@ -437,7 +436,7 @@ Device.registerProvider('zwave', {
       }
     */
 
-    for (const node of client.getNodes()) {
+    for (const node of await client.getNodes()) {
       if (node.ready) {
         const manufacturer = node.deviceConfig.manufacturer;
         const model = node.deviceConfig.label;
