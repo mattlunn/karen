@@ -8,7 +8,6 @@ import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
-import { checkConnectivity } from './connectivity';
 
 // Z-Wave Fibaro FGMS001: lower value = more sensitive (range 8-255, default 15)
 // App model: higher value = more sensitive (range 0-100)
@@ -27,6 +26,10 @@ const deviceCapabilitiesMap = new Map<string, Capability[]>([
   ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
   ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']]
 ]);
+
+// zwave-js NodeStatus: 0=Unknown, 1=Asleep, 2=Awake, 3=Dead, 4=Alive.
+const ZWAVE_NODE_STATUS_DEAD = 3;
+const WAKE_UP_COMMAND_CLASS = 132;
 
 type DeviceHandler<T extends boolean | number | string = boolean | number | string> = {
   propertyKey: string,
@@ -482,7 +485,6 @@ Device.registerProvider('zwave', {
 
 nowAndSetCron(createBackgroundTransaction('zwave:connectivity', async () => {
   const { getNodes, makeRequest } = await getClient();
-  const now = new Date();
 
   for (const node of await getNodes()) {
     try {
@@ -492,15 +494,22 @@ nowAndSetCron(createBackgroundTransaction('zwave:connectivity', async () => {
         continue;
       }
 
-      const check = checkConnectivity(node, now);
+      const lastSeen = node.statistics?.lastSeen ? dayjs(node.statistics.lastSeen) : null;
+      let isConnected: boolean;
 
-      if (check === 'ping') {
-        const { responded } = await makeRequest('node.ping', { nodeId: node.nodeId }) as { responded: boolean };
+      if (node.status === ZWAVE_NODE_STATUS_DEAD) {
+        isConnected = false;
+      } else if (node.isListening || node.isFrequentListening) {
+        // zwave-js only marks a node Dead when a message to it fails, so a quiet node has to be sent one.
+        isConnected = lastSeen?.isAfter(dayjs().subtract(4, 'hour')) || (await makeRequest('node.ping', { nodeId: node.nodeId }) as { responded: boolean }).responded;
+      } else {
+        // A sleeping node can't be pinged; the ping just waits for its next wake-up.
+        const wakeUpIntervalSeconds = node.values.find((value: any) => value.commandClass === WAKE_UP_COMMAND_CLASS && value.property === 'wakeUpInterval')?.value ?? 0;
 
-        await device.getConnectivityCapability().setIsConnectedState(responded);
-      } else if (check !== 'unknowable') {
-        await device.getConnectivityCapability().setIsConnectedState(check === 'connected');
+        isConnected = lastSeen?.isAfter(dayjs().subtract(wakeUpIntervalSeconds * 2, 'second')) ?? false;
       }
+
+      await device.getConnectivityCapability().setIsConnectedState(isConnected);
     } catch (e) {
       newrelic.noticeError(e as Error);
       logger.error(e, `Failed to check connectivity of zwave node ${node.nodeId}`);
