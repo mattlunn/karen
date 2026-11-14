@@ -349,6 +349,23 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         hatchedBarIndexes.push(datasets.length);
       }
 
+      // Without a period the value is a held state rather than a per-bucket
+      // total, so it fills the whole span it was held for.
+      if (!bar.period) {
+        datasets.push({
+          type: 'line',
+          fill: 'start',
+          data: mapNumericDataToDataset(bar.data),
+          label: bar.label,
+          yAxisID: bar.yAxisID || 'y',
+          pointRadius: 0,
+          borderWidth: 1,
+          stepped: true
+        });
+
+        continue;
+      }
+
       datasets.push({
         type: 'bar',
         data: mapNumericDataToAggregateDataset(bar.data, bar.period),
