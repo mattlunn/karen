@@ -6,6 +6,9 @@ import logger from '../../logger';
 import config from '../../config';
 import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
+import { createBackgroundTransaction } from '../../helpers/newrelic';
+import { checkConnectivity } from './connectivity';
 
 // Z-Wave Fibaro FGMS001: lower value = more sensitive (range 8-255, default 15)
 // App model: higher value = more sensitive (range 0-100)
@@ -21,23 +24,9 @@ const deviceCapabilitiesMap = new Map<string, Capability[]>([
   ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'MOTION_SENSOR_SENSITIVITY', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
   ['Fibargroup FGD212', ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY']],
   ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
-  ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']],
+  ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
   ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']]
 ]);
-
-// zwave-js NodeStatus: 0=Unknown, 1=Asleep, 2=Awake, 3=Dead, 4=Alive.
-// Battery-powered devices spend most of their time asleep but are still reachable;
-// only "Dead" means the controller has lost contact.
-const ZWAVE_NODE_STATUS_DEAD = 3;
-
-// zwave-js only marks a node "Dead" after actively trying to reach it and failing.
-// Sleeping (battery) nodes are never actively probed, so a dead-battery node just
-// stays "Asleep" forever and never becomes "Dead". node.statistics.lastSeen ("the
-// last time a command was received from or successfully sent to the node") is a
-// generic per-node check-in signal, independent of which capability last reported,
-// so we fall back to it to catch nodes that have gone quiet without zwave-js itself
-// noticing.
-const CONNECTIVITY_STALE_AFTER_MS = dayjs.duration(24, 'hours').asMilliseconds();
 
 type DeviceHandler<T extends boolean | number | string = boolean | number | string> = {
   propertyKey: string,
@@ -463,14 +452,6 @@ Device.registerProvider('zwave', {
 
             await knownDevice.save();
 
-            if (knownDevice.getCapabilities().includes('CONNECTIVITY')) {
-              const isDead = node.status === ZWAVE_NODE_STATUS_DEAD;
-              const lastSeen = node.statistics?.lastSeen ? new Date(node.statistics.lastSeen) : null;
-              const isStale = lastSeen !== null && (Date.now() - lastSeen.getTime()) > CONNECTIVITY_STALE_AFTER_MS;
-
-              await knownDevice.getConnectivityCapability().setIsConnectedState(!isDead && !isStale);
-            }
-
             if (knownDevice.getCapabilities().includes('MOTION_SENSOR_SENSITIVITY')) {
               // Read every sync rather than only when unset: nothing pushes a
               // Configuration.1 report to us outside of our own writes (the
@@ -498,3 +479,31 @@ Device.registerProvider('zwave', {
     }
   }
 });
+
+nowAndSetCron(createBackgroundTransaction('zwave:connectivity', async () => {
+  const { getNodes, makeRequest } = await getClient();
+  const now = new Date();
+
+  for (const node of await getNodes()) {
+    try {
+      const device = await Device.findByProviderId('zwave', node.nodeId);
+
+      if (device === null || !device.getCapabilities().includes('CONNECTIVITY')) {
+        continue;
+      }
+
+      const check = checkConnectivity(node, now);
+
+      if (check === 'ping') {
+        const { responded } = await makeRequest('node.ping', { nodeId: node.nodeId }) as { responded: boolean };
+
+        await device.getConnectivityCapability().setIsConnectedState(responded);
+      } else if (check !== 'unknowable') {
+        await device.getConnectivityCapability().setIsConnectedState(check === 'connected');
+      }
+    } catch (e) {
+      newrelic.noticeError(e as Error);
+      logger.error(e, `Failed to check connectivity of zwave node ${node.nodeId}`);
+    }
+  }
+}), '0 * * * *');
