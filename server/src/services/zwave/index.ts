@@ -21,8 +21,8 @@ const deviceCapabilitiesMap = new Map<string, Capability[]>([
   ['Fibargroup FGMS001', ['LIGHT_SENSOR', 'TEMPERATURE_SENSOR', 'MOTION_SENSOR', 'MOTION_SENSOR_SENSITIVITY', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
   ['Fibargroup FGD212', ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY']],
   ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
-  ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
-  ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']]
+  ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']],
+  ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']]
 ]);
 
 // zwave-js NodeStatus: 0=Unknown, 1=Asleep, 2=Awake, 3=Dead, 4=Alive.
@@ -213,7 +213,7 @@ const getClient = (function () {
             if (data.source === 'node' && (data.event === 'alive' || data.event === 'dead')) {
               const device = await Device.findByProviderId('zwave', data.nodeId);
 
-              if (device !== null) {
+              if (device !== null && device.getCapabilities().includes('CONNECTIVITY')) {
                 await device.getConnectivityCapability().setIsConnectedState(data.event === 'alive');
               }
             }
@@ -464,11 +464,13 @@ Device.registerProvider('zwave', {
 
             await knownDevice.save();
 
-            const isDead = node.status === ZWAVE_NODE_STATUS_DEAD;
-            const lastSeen = node.statistics?.lastSeen ? new Date(node.statistics.lastSeen) : null;
-            const isStale = lastSeen !== null && (Date.now() - lastSeen.getTime()) > CONNECTIVITY_STALE_AFTER_MS;
+            if (knownDevice.getCapabilities().includes('CONNECTIVITY')) {
+              const isDead = node.status === ZWAVE_NODE_STATUS_DEAD;
+              const lastSeen = node.statistics?.lastSeen ? new Date(node.statistics.lastSeen) : null;
+              const isStale = lastSeen !== null && (Date.now() - lastSeen.getTime()) > CONNECTIVITY_STALE_AFTER_MS;
 
-            await knownDevice.getConnectivityCapability().setIsConnectedState(!isDead && !isStale);
+              await knownDevice.getConnectivityCapability().setIsConnectedState(!isDead && !isStale);
+            }
 
             if (knownDevice.getCapabilities().includes('MOTION_SENSOR_SENSITIVITY')) {
               // Read every sync rather than only when unset: nothing pushes a
