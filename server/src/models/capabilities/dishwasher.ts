@@ -14,10 +14,4 @@ export class DishwasherCapability extends DishwasherBaseCapability {
       .provideDishwasherCapability!()
       .scheduleToFinishBy(this.device, finishBy);
   }
-
-  cancelScheduledRun(): Promise<void> {
-    return Device.getProviderCapabilities(this.device.provider)
-      .provideDishwasherCapability!()
-      .cancelScheduledRun(this.device);
-  }
 }

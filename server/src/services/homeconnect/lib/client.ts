@@ -67,7 +67,10 @@ export default class ApiClient {
     });
   }
 
-  async stopActiveProgram(haId: string): Promise<void> {
-    await this.#request(`/homeappliances/${haId}/programs/active`, { method: 'DELETE' });
+  async setActiveProgramOption(haId: string, option: ProgramOption): Promise<void> {
+    await this.#request(`/homeappliances/${haId}/programs/active/options/${option.key}`, {
+      method: 'PUT',
+      body: JSON.stringify({ data: option }),
+    });
   }
 }

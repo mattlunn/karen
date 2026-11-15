@@ -100,5 +100,4 @@ export interface DishwasherScheduledRun {
 export type ProviderDishwasherCapability = {
   getScheduledRun(device: Device): DishwasherScheduledRun | null;
   scheduleToFinishBy(device: Device, finishBy: Date): Promise<DishwasherScheduledRun>;
-  cancelScheduledRun(device: Device): Promise<void>;
 }

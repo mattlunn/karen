@@ -69,8 +69,10 @@ Device.registerProvider('homeconnect', {
       },
 
       async scheduleToFinishBy(device: Device, finishBy: Date) {
-        if (await client.getOperationState(device.providerId) !== OPERATION_STATE_READY) {
-          throw new Error('The dishwasher already has a program queued or running');
+        const state = await client.getOperationState(device.providerId);
+
+        if (state !== OPERATION_STATE_READY && state !== OPERATION_STATE_DELAYED_START) {
+          throw new Error('The dishwasher is already running');
         }
 
         const now = new Date();
@@ -88,27 +90,18 @@ Device.registerProvider('homeconnect', {
           finishBy: finishBy.toISOString(),
         };
 
-        await client.startProgram(device.providerId, { key: ECO_50, options: [startInRelative(run.start, now)] });
+        // A queued program can't be replaced, but its start can be moved.
+        if (state === OPERATION_STATE_DELAYED_START) {
+          await client.setActiveProgramOption(device.providerId, startInRelative(run.start, now));
+        } else {
+          await client.startProgram(device.providerId, { key: ECO_50, options: [startInRelative(run.start, now)] });
+        }
 
         await setPendingRun(device, run);
 
         logger.info(`Dishwasher: scheduled Eco 50 for ${run.start} - ${run.end}, to finish by ${run.finishBy}`);
 
         return toScheduledRun(run);
-      },
-
-      async cancelScheduledRun(device: Device) {
-        if (getPendingRun(device) === null) {
-          return;
-        }
-
-        // The stored run goes stale if the panel is used, and stopping the active program mid-cycle
-        // would end a clean in progress.
-        if (await client.getOperationState(device.providerId) === OPERATION_STATE_DELAYED_START) {
-          await client.stopActiveProgram(device.providerId);
-        }
-
-        await setPendingRun(device, undefined);
       },
     };
   },
