@@ -53,4 +53,10 @@ describe('normalizeTime', () => {
 
     expect(result.format('HH:mmZ')).toBe(`17:00${expectedOffset}`);
   });
+
+  it('resolves "now" to the given date, offset as usual', () => {
+    const date = new Date('2026-11-15T20:10:00Z');
+
+    expect(normalizeTime('now + 24h', date).toDate()).toEqual(new Date('2026-11-16T20:10:00Z'));
+  });
 });

@@ -25,7 +25,6 @@
     "cookie-parser": "^1.4.5",
     "croner": "^11.0.0",
     "dayjs": "^1.11.19",
-    "eventsource": "^5.1.4",
     "express": "^5.0.0",
     "handlebars": "^4.7.8",
     "iso8601-duration": "^2.0.0",

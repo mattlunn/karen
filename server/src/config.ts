@@ -148,7 +148,8 @@ export interface AppConfig {
     client_id: string;
     client_secret: string;
     secret: string;
-    access_token: string;
+    dishwasher_power_profile_kwh: number[];
+    dishwasher_run_minutes: number;
   };
   raildata: {
     api_key: string;

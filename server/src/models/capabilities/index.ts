@@ -13,6 +13,7 @@ export { TelevisionCapability } from './television';
 export { BinCollectionCapability } from './bin-collection';
 export { EnergyCostCapability } from './energy-cost';
 export { ApplianceCapability } from './appliance';
+export { DishwasherCapability } from './dishwasher';
 export * from './capabilities.gen';
 
 export type DHWTargetReason = 'STANDARD' | 'PLUNGE' | 'LEGIONELLA';
@@ -88,4 +89,15 @@ export type ProviderSpeakerCapability = {
 
 export type ProviderEnergyCostCapability = {
   getForecastSlots(device: Device, since: Date, until: Date): Promise<PriceSlot[]>;
+}
+
+export interface DishwasherScheduledRun {
+  start: Date;
+  end: Date;
+  finishBy: Date;
+}
+
+export type ProviderDishwasherCapability = {
+  getScheduledRun(device: Device): DishwasherScheduledRun | null;
+  scheduleToFinishBy(device: Device, finishBy: Date): Promise<DishwasherScheduledRun>;
 }

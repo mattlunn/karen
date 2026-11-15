@@ -129,6 +129,9 @@ export type CapabilityApiResponseBase = {
   runsPerWeek: number;
   tabletsRemaining: number | null;
 } | {
+  type: 'DISHWASHER';
+  scheduledRun: DishwasherScheduledRunApiResponse | null;
+} | {
   type: null;
 };
 
@@ -365,6 +368,12 @@ export interface TelevisionUpdateRequest {
 // /api/device/:id/appliance endpoint
 export interface ApplianceUpdateRequest {
   tabletsRemaining: number;
+}
+
+export interface DishwasherScheduledRunApiResponse {
+  start: string;
+  end: string;
+  finishBy: string;
 }
 
 // /api/security endpoint
