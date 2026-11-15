@@ -6,6 +6,8 @@ import logger from '../../logger';
 import config from '../../config';
 import newrelic from 'newrelic';
 import sleep from '../../helpers/sleep';
+import nowAndSetCron from '../../helpers/now-and-set-cron';
+import { createBackgroundTransaction } from '../../helpers/newrelic';
 
 // Z-Wave Fibaro FGMS001: lower value = more sensitive (range 8-255, default 15)
 // App model: higher value = more sensitive (range 0-100)
@@ -22,22 +24,12 @@ const deviceCapabilitiesMap = new Map<string, Capability[]>([
   ['Fibargroup FGD212', ['LIGHT', 'ENERGY_MONITOR', 'CONNECTIVITY']],
   ['Zooz ZSE44', ['TEMPERATURE_SENSOR', 'HUMIDITY_SENSOR', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
   ['Yale SD-L1000-CH', ['LOCK', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']],
-  ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR', 'CONNECTIVITY']]
+  ['Fibargroup FGPB-101', ['BUTTON', 'BATTERY_LEVEL_INDICATOR', 'BATTERY_LOW_INDICATOR']]
 ]);
 
 // zwave-js NodeStatus: 0=Unknown, 1=Asleep, 2=Awake, 3=Dead, 4=Alive.
-// Battery-powered devices spend most of their time asleep but are still reachable;
-// only "Dead" means the controller has lost contact.
 const ZWAVE_NODE_STATUS_DEAD = 3;
-
-// zwave-js only marks a node "Dead" after actively trying to reach it and failing.
-// Sleeping (battery) nodes are never actively probed, so a dead-battery node just
-// stays "Asleep" forever and never becomes "Dead". node.statistics.lastSeen ("the
-// last time a command was received from or successfully sent to the node") is a
-// generic per-node check-in signal, independent of which capability last reported,
-// so we fall back to it to catch nodes that have gone quiet without zwave-js itself
-// noticing.
-const CONNECTIVITY_STALE_AFTER_MS = dayjs.duration(24, 'hours').asMilliseconds();
+const WAKE_UP_COMMAND_CLASS = 132;
 
 type DeviceHandler<T extends boolean | number | string = boolean | number | string> = {
   propertyKey: string,
@@ -213,7 +205,7 @@ const getClient = (function () {
             if (data.source === 'node' && (data.event === 'alive' || data.event === 'dead')) {
               const device = await Device.findByProviderId('zwave', data.nodeId);
 
-              if (device !== null) {
+              if (device !== null && device.getCapabilities().includes('CONNECTIVITY')) {
                 await device.getConnectivityCapability().setIsConnectedState(data.event === 'alive');
               }
             }
@@ -221,8 +213,7 @@ const getClient = (function () {
             if (data.source === 'node' && data.event === 'value updated') {
               const deviceId = data.nodeId;
               const device = await Device.findByProviderIdOrError('zwave', deviceId);
-              const node = Array.from(client.getNodes()).find((x: any) => x.nodeId === deviceId) as any;
-              const nodeType = `${node.deviceConfig.manufacturer} ${node.deviceConfig.label}`;
+              const nodeType = `${device.manufacturer} ${device.model}`;
               const handlers = deviceHandlers.get(nodeType);
 
               if (handlers === undefined) {
@@ -437,7 +428,7 @@ Device.registerProvider('zwave', {
       }
     */
 
-    for (const node of client.getNodes()) {
+    for (const node of await client.getNodes()) {
       if (node.ready) {
         const manufacturer = node.deviceConfig.manufacturer;
         const model = node.deviceConfig.label;
@@ -463,12 +454,6 @@ Device.registerProvider('zwave', {
             knownDevice.model = model;
 
             await knownDevice.save();
-
-            const isDead = node.status === ZWAVE_NODE_STATUS_DEAD;
-            const lastSeen = node.statistics?.lastSeen ? new Date(node.statistics.lastSeen) : null;
-            const isStale = lastSeen !== null && (Date.now() - lastSeen.getTime()) > CONNECTIVITY_STALE_AFTER_MS;
-
-            await knownDevice.getConnectivityCapability().setIsConnectedState(!isDead && !isStale);
 
             if (knownDevice.getCapabilities().includes('MOTION_SENSOR_SENSITIVITY')) {
               // Read every sync rather than only when unset: nothing pushes a
@@ -497,3 +482,32 @@ Device.registerProvider('zwave', {
     }
   }
 });
+
+nowAndSetCron(createBackgroundTransaction('zwave:connectivity', async () => {
+  const { getNodes, makeRequest } = await getClient();
+
+  for (const node of await getNodes()) {
+    const device = await Device.findByProviderId('zwave', node.nodeId);
+
+    if (device === null || !device.getCapabilities().includes('CONNECTIVITY')) {
+      continue;
+    }
+
+    const lastSeen = node.statistics?.lastSeen ? dayjs(node.statistics.lastSeen) : null;
+    let isConnected: boolean;
+
+    if (node.status === ZWAVE_NODE_STATUS_DEAD) {
+      isConnected = false;
+    } else if (node.isListening || node.isFrequentListening) {
+      // zwave-js only marks a node Dead when a message to it fails, so a quiet node has to be sent one.
+      isConnected = lastSeen?.isAfter(dayjs().subtract(config.zwave.ping_after_quiet_hours, 'hour')) || (await makeRequest('node.ping', { nodeId: node.nodeId }) as { responded: boolean }).responded;
+    } else {
+      // A sleeping node can't be pinged; the ping just waits for its next wake-up.
+      const wakeUpIntervalSeconds = node.values.find((value: any) => value.commandClass === WAKE_UP_COMMAND_CLASS && value.property === 'wakeUpInterval')?.value ?? 0;
+
+      isConnected = lastSeen?.isAfter(dayjs().subtract(wakeUpIntervalSeconds, 'second')) ?? false;
+    }
+
+    await device.getConnectivityCapability().setIsConnectedState(isConnected);
+  }
+}), '0 * * * *');

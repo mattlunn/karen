@@ -39,6 +39,7 @@ export interface ProviderThermostatCapability extends ProviderThermostatCapabili
   getNextScheduledChange(device: Device): Promise<ScheduledChange | null>;
   getScheduledTemperatureAtTime(device: Device, timestamp: Date): Promise<number | null>;
   setTargetTemperatureUntilNextScheduledChange(device: Device, value: number): Promise<void>;
+  setTargetTemperatureUntil(device: Device, value: number, until: Date): Promise<void>;
   getWarmupRate(device: Device): Promise<number>;
 }
 
@@ -62,8 +63,6 @@ export interface ProviderElectricVehicleCapability extends ProviderElectricVehic
   setManualChargeSchedule(device: Device, schedule: ScheduleChargeRequest | null): Promise<void>;
   getPlannedChargeBlocks(device: Device): { start: string; end: string }[];
   getChargeType(device: Device): ChargeType | null;
-  getChargePriceCap(device: Device): Promise<number | null>;
-  getChargePriceCapCurve(): Promise<{ chargePercentage: number; pence: number }[]>;
 }
 
 export interface ProviderMotionSensorSensitivityCapability extends ProviderMotionSensorSensitivityCapabilityBase {

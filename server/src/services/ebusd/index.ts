@@ -1,8 +1,12 @@
-import { Device } from '../../models';
+import { Device, Log } from '../../models';
 import { HeatPumpMode, HeatPumpDHWMode } from '../../models/capabilities';
 import config from '../../config';
+import dayjs from '../../dayjs';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
+import setCron from '../../helpers/set-cron';
+import { filterClampAndSortHistory } from '../../helpers/history';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
+import { formatDuration } from '../../helpers/date';
 import EbusClient from './client';
 import { storeRunningMetrics } from './history';
 import { setDHWMode, setDHWBoost, getPlannedDHWWindow, getLegionellaCycles } from './dhw';
@@ -14,6 +18,9 @@ const STATUSCODE_TO_MODE: Record<string, HeatPumpMode> = {
   'Deicing active': 'DEICING',
   'Frost protection': 'FROST_PROTECTION',
 };
+
+// The 10kW aroTHERM Plus is the 12kW unit, software-limited to this compressor speed.
+const MAX_COMPRESSOR_MODULATION = 82;
 
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
@@ -68,8 +75,7 @@ nowAndSetCron(createBackgroundTransaction('ebusd:poll', async () => {
     updateState(() => client.getDesiredFlowTemperature(), (v) => heatPumpCapability.setDesiredFlowTemperatureState(roundTo1DecimalPlace(v))),
     updateState(() => client.getReturnTemperature(), (v) => heatPumpCapability.setReturnTemperatureState(roundTo1DecimalPlace(v))),
 
-    updateState(() => client.getCompressorPower(), (v) => heatPumpCapability.setCompressorPowerState(v)),
-    updateState(() => client.getCompressorModulation(), (v) => heatPumpCapability.setCompressorModulationState(v)),
+    updateState(() => client.getCompressorModulation(), (v) => heatPumpCapability.setCompressorModulationState(roundTo1DecimalPlace(v * 100 / MAX_COMPRESSOR_MODULATION))),
 
     updateState(() => client.getHotWaterCylinderTemperature(), (v) => heatPumpCapability.setDHWTemperatureState(v)),
     updateState(() => client.getSystemPressure(), (v) => heatPumpCapability.setSystemPressureState(v)),
@@ -106,6 +112,50 @@ nowAndSetCron(createBackgroundTransaction('ebusd:poll', async () => {
     throw failures[0].reason;
   }
 }), config.ebusd.poll_cron);
+
+// Averaged, as the pressure briefly dips each time the heat pump cycles.
+setCron(createBackgroundTransaction('ebusd:system-pressure', async () => {
+  const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');
+  const heatPumpCapability = device.getHeatPumpCapability();
+  const until = new Date();
+  const since = dayjs(until).subtract(config.ebusd.system_pressure_average_minutes, 'minute').toDate();
+  const history = filterClampAndSortHistory(await heatPumpCapability.getSystemPressureHistory({ since, until }), since, until, false);
+  let weightedPressure = 0;
+  let coveredMilliseconds = 0;
+
+  for (const event of history) {
+    const duration = dayjs(event.end).diff(event.start);
+
+    weightedPressure += event.value * duration;
+    coveredMilliseconds += duration;
+  }
+
+  if (coveredMilliseconds === 0) {
+    return;
+  }
+
+  const averagePressure = weightedPressure / coveredMilliseconds;
+
+  if (averagePressure < config.ebusd.system_pressure_low_bar) {
+    if (await heatPumpCapability.setIsSystemPressureLowState(true)) {
+      await Log.notify({
+        severity: 'notice',
+        devices: [device],
+        message: 'Heating system pressure is low.'
+      });
+    }
+  } else if (averagePressure >= config.ebusd.system_pressure_recovered_bar) {
+    const event = await heatPumpCapability.setIsSystemPressureLowState(false);
+
+    if (event) {
+      await Log.notify({
+        severity: 'notice',
+        devices: [device],
+        message: `✅ Heating system pressure has recovered, after being low for ${formatDuration(dayjs(event.end).diff(event.start, 'second'))}.`
+      });
+    }
+  }
+}), config.ebusd.system_pressure_check_cron);
 
 nowAndSetCron(createBackgroundTransaction('ebusd:daily-metrics', async () => {
   const device = await Device.findByProviderIdOrError('ebusd', 'heatpump');

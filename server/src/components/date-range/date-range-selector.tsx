@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NativeSelect, Group, Button } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
-import dayjs, { Dayjs } from '../../dayjs';
+import { Dayjs, fromLondonWallClock, toLondonWallClock } from '../../dayjs';
 import { useDateRange } from './use-date-range';
 import { getPresetRange } from './date-range-context';
 import { DateRangePreset, DateRange } from './types';
@@ -71,15 +71,15 @@ export function DateRangeSelector({ preset, range, onPresetChange, onRangeChange
         <>
           <DateTimePicker
             size="xs"
-            value={pendingSince.toDate()}
-            onChange={(date) => date && setPendingSince(dayjs(date))}
-            maxDate={pendingUntil.toDate()}
+            value={toLondonWallClock(pendingSince)}
+            onChange={(date) => date && setPendingSince(fromLondonWallClock(date))}
+            maxDate={toLondonWallClock(pendingUntil)}
           />
           <DateTimePicker
             size="xs"
-            value={pendingUntil.toDate()}
-            onChange={(date) => date && setPendingUntil(dayjs(date))}
-            minDate={pendingSince.toDate()}
+            value={toLondonWallClock(pendingUntil)}
+            onChange={(date) => date && setPendingUntil(fromLondonWallClock(date))}
+            minDate={toLondonWallClock(pendingSince)}
           />
           <Button size="xs" onClick={handleSubmitCustomRange}>
             Apply

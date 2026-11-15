@@ -31,10 +31,6 @@ export interface PlanOptions {
   slots: PriceSlot[];
   now: Date;
   chargePercentage: number;
-  // The most BAU will pay at a given battery level, or null with no price
-  // history to judge against. Evaluated per slot as the plan fills, so the
-  // bar tightens across a single plan rather than only between plans.
-  baselinePenceFor: (chargePercentage: number) => number | null;
   schedule: ChargeDeadline | null;
   chargeRatePercentPerHour: number;
   defaultLimit: number;
@@ -43,7 +39,7 @@ export interface PlanOptions {
   startBufferHours: number;
 }
 
-type EngagementOptions = Omit<PlanOptions, 'slots' | 'baselinePenceFor' | 'defaultLimit' | 'plungeLimit' | 'schedule'> & {
+type EngagementOptions = Omit<PlanOptions, 'slots' | 'defaultLimit' | 'plungeLimit' | 'schedule'> & {
   schedule: ChargeDeadline;
 };
 
@@ -73,8 +69,9 @@ export function isDeadlineEngaged(options: EngagementOptions): boolean {
 
 /**
  * Builds the plan for one publication, as up to three passes over a single pool of
- * forward price slots sorted cheapest-first. Each pass tops the same plan up to
- * its own quota, so a slot one pass has already taken counts toward the next.
+ * forward price slots sorted cheapest-first, latest first among equal prices.
+ * Each pass tops the same plan up to its own quota, so a slot one pass has
+ * already taken counts toward the next.
  * Slots beyond the ~31h Octopus itself publishes come from forecast prices
  * (`isEstimated: true`) out to `deadlineEngageDays`, so the deadline pass below
  * always has real or forecast prices for its whole window.
@@ -83,30 +80,26 @@ export function isDeadlineEngaged(options: EngagementOptions): boolean {
  *    to exactly the hours of charge still needed. A picked slot that's still
  *    estimated isn't acted on until it's current, so nothing actually charges
  *    off a forecast price before real prices have had a chance to supersede it.
- * 2. Business as usual, otherwise: published slots in time order, each taken if
- *    it beats the bar at the battery level the car will have reached by then -
- *    so each kWh is judged at the level it actually charges at, and a slot
- *    later on can't crowd out an acceptable one sooner. A slot that isn't taken
- *    but is cheaper than the dearest one already taken replaces it: the same
- *    charge for less, and dropping an earlier slot only loosens the bars of
- *    those between. Judging cheap against
- *    recent history rather than a percentile of the publication means a
- *    uniformly cheap day charges freely while an expensive day charges only in
- *    the dips. Forecast slots are left out, since a charge booked days ahead
- *    on a guessed price stands in for one the car could take now.
+ * 2. Business as usual, otherwise: the published slots at the lowest published
+ *    price, earliest first, up to what reaches `defaultLimit`. On a tariff with
+ *    fixed cheap windows that's every cheap window until the car is full enough.
+ *    Forecast slots are left out, since a charge booked days ahead on a guessed
+ *    price stands in for one the car could take now.
  * 3. Plunge, always: negative-priced slots, up to what reaches `plungeLimit`.
  *    Charging is worth it at any hour the grid is paying us to consume, so this
- *    ignores both the baseline and `defaultLimit`.
+ *    ignores `defaultLimit`.
  */
 export function planCharge(options: PlanOptions): ChargePlan {
   const {
-    slots, now, chargePercentage, baselinePenceFor, schedule,
+    slots, now, chargePercentage, schedule,
     chargeRatePercentPerHour, defaultLimit, plungeLimit, startBufferHours,
   } = options;
 
+  // Ties go to the latest slot: the car charges through its plan in time order,
+  // so the extra hours a deadline charge books are best placed near the deadline.
   const pool = slots
     .filter(s => s.end > now)
-    .sort((a, b) => a.pence - b.pence || a.start.getTime() - b.start.getTime());
+    .sort((a, b) => a.pence - b.pence || b.start.getTime() - a.start.getTime());
 
   if (pool.length === 0) {
     return { end: now, publishedEnd: now, slots: [], target: defaultLimit, deadline: null };
@@ -158,34 +151,13 @@ export function planCharge(options: PlanOptions): ChargePlan {
   }
 
   if (deadline === null) {
-    const quota = quotaFor(defaultLimit);
-    // Dearest last, and the latest of equally dear, so that's the one displaced.
-    const taken: PriceSlot[] = [];
+    const published = slots.filter(s => s.end > now && !s.isEstimated);
+    const cheapest = Math.min(...published.map(s => s.pence));
 
-    function insertByPrice(slot: PriceSlot) {
-      taken.splice(taken.findLastIndex(s => s.pence <= slot.pence) + 1, 0, slot);
-    }
-
-    for (const slot of slots) {
-      if (slot.end <= now || slot.isEstimated) {
-        continue;
-      }
-
-      const bar = baselinePenceFor(chargePercentage + taken.length * slotHours * chargeRatePercentPerHour);
-
-      if (bar === null) {
-        break;
-      }
-
-      if (taken.length < quota && slot.pence < bar) {
-        insertByPrice(slot);
-      } else if (taken.length > 0 && slot.pence < taken.at(-1)!.pence) {
-        taken.pop();
-        insertByPrice(slot);
-      }
-    }
-
-    taken.forEach(s => picked.add(s));
+    published
+      .filter(s => s.pence === cheapest)
+      .slice(0, quotaFor(defaultLimit))
+      .forEach(s => picked.add(s));
   }
 
   if (take(s => s.pence < 0, quotaFor(plungeLimit)) > 0) {

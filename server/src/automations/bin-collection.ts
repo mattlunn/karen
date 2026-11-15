@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { timeString } from './schema';
-import bus, { NOTIFICATION_TO_ALL } from '../bus';
-import { Device } from '../models';
+import { Device, Log } from '../models';
 import config from '../config';
 import dayjs from '../dayjs';
 import logger from '../logger';
@@ -22,9 +21,10 @@ export default function ({ reminderTime }: z.infer<typeof parameters>) {
       const overrideFromTomorrow = config.bins.overrides.find(o => o.originalDate === tomorrowStr);
       const overrideToTomorrow = config.bins.overrides.find(o => o.newDate === tomorrowStr);
 
-      const collectTomorrow: string[] = [];
-      const movedFromTomorrow: string[] = [];
-      const overrideTomorrow: string[] = [];
+      const collectTomorrow: Device[] = [];
+      const movedFromTomorrow: Device[] = [];
+      const overrideTomorrow: Device[] = [];
+      const names = (bins: Device[]) => joinWithAnd(bins.map(bin => bin.name));
 
       for (const device of devices) {
         const cap = device.getBinCollectionCapability();
@@ -32,20 +32,23 @@ export default function ({ reminderTime }: z.infer<typeof parameters>) {
 
         if (dayjs(next.date).isSame(tomorrow, 'day')) {
           if (next.isOverride) {
-            overrideTomorrow.push(device.name);
+            overrideTomorrow.push(device);
           } else {
-            collectTomorrow.push(device.name);
+            collectTomorrow.push(device);
           }
         }
 
         if (overrideFromTomorrow && cap.getOverrideForOriginalDate(tomorrow.toDate())) {
-          movedFromTomorrow.push(device.name);
+          movedFromTomorrow.push(device);
         }
       }
 
       if (collectTomorrow.length > 0) {
-        bus.emit(NOTIFICATION_TO_ALL, {
-          message: `🗑️ Put out the ${joinWithAnd(collectTomorrow)} bin${pluralise(collectTomorrow)} - collection tomorrow (${tomorrow.format('ddd D MMM')})`,
+        await Log.notify({
+          severity: 'notice',
+          audience: 'all',
+          devices: collectTomorrow,
+          message: `🗑️ Put out the ${names(collectTomorrow)} bin${pluralise(collectTomorrow)} - collection tomorrow (${tomorrow.format('ddd D MMM')})`,
         });
       }
 
@@ -53,15 +56,21 @@ export default function ({ reminderTime }: z.infer<typeof parameters>) {
         const movedFrom = overrideToTomorrow
           ? `, moved from ${dayjs(overrideToTomorrow.originalDate).format('ddd D MMM')}`
           : '';
-        bus.emit(NOTIFICATION_TO_ALL, {
-          message: `🗑️ Put out the ${joinWithAnd(overrideTomorrow)} bin${pluralise(overrideTomorrow)} - collection tomorrow (${tomorrow.format('ddd D MMM')}${movedFrom})`,
+        await Log.notify({
+          severity: 'notice',
+          audience: 'all',
+          devices: overrideTomorrow,
+          message: `🗑️ Put out the ${names(overrideTomorrow)} bin${pluralise(overrideTomorrow)} - collection tomorrow (${tomorrow.format('ddd D MMM')}${movedFrom})`,
         });
       }
 
       if (movedFromTomorrow.length > 0) {
         const newDate = dayjs(overrideFromTomorrow!.newDate);
-        bus.emit(NOTIFICATION_TO_ALL, {
-          message: `‼️ 🗑️ ${joinWithAnd(movedFromTomorrow)} bin collection moved to ${newDate.format('ddd D MMM')}`,
+        await Log.notify({
+          severity: 'notice',
+          audience: 'all',
+          devices: movedFromTomorrow,
+          message: `🗑️ ${names(movedFromTomorrow)} bin collection moved to ${newDate.format('ddd D MMM')}`,
         });
       }
     } catch (e) {

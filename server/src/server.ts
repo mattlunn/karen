@@ -32,6 +32,7 @@ require('./services/tado');
 require('./services/alexa');
 require('./services/zwave');
 require('./services/pushover');
+require('./services/twilio');
 require('./services/shelly');
 require('./services/sony-bravia');
 require('./services/ebusd');

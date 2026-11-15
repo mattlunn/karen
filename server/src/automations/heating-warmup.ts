@@ -1,20 +1,37 @@
 import { z } from 'zod';
-import bus, { NOTIFICATION_TO_ADMINS, FIRST_USER_HOME, LAST_USER_LEAVES, STAY_START, STAY_END } from '../bus';
-import { Device, Stay } from '../models';
+import bus, { FIRST_USER_HOME, LAST_USER_LEAVES, STAY_START, STAY_END } from '../bus';
+import { Device, Log, Stay } from '../models';
 import dayjs, { Dayjs } from '../dayjs';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import logger from '../logger';
 import nowAndSetCron from '../helpers/now-and-set-cron';
+import { normalizeTime } from '../helpers/time';
+import { timeRange } from './schema';
 
 export const parameters = z.object({
   checkCron: z.string(),
   minWarmUpRatePerHour: z.number().positive(),
-  dhwAutoLeadTimeHours: z.number().positive()
+  dhwAutoLeadTimeHours: z.number().positive(),
+  targetOffsetWindows: z.array(timeRange.extend({ offset: z.number() }))
 });
 
 type WarmupState = Date | null;
+type OffsetWindows = z.infer<typeof parameters>['targetOffsetWindows'];
 
 let currentWarmupState: WarmupState = null;
+
+function getMatchingOffsetWindow(time: Date, windows: OffsetWindows): { start: Dayjs; end: Dayjs; offset: number } | null {
+  for (const offsetWindow of windows) {
+    const start = normalizeTime(offsetWindow.start, time);
+    const end = normalizeTime(offsetWindow.end, time);
+
+    if (start.isSameOrBefore(time) && end.isAfter(time)) {
+      return { start, end, offset: offsetWindow.offset };
+    }
+  }
+
+  return null;
+}
 
 export function getPreWarmStartTime(): WarmupState {
   return currentWarmupState;
@@ -23,7 +40,8 @@ export function getPreWarmStartTime(): WarmupState {
 export default function ({
   checkCron,
   minWarmUpRatePerHour,
-  dhwAutoLeadTimeHours
+  dhwAutoLeadTimeHours,
+  targetOffsetWindows
 }: z.infer<typeof parameters>) {
   async function calculateWarmupStartTime(device: Device, nextTarget: number, targetTime: Date): Promise<Dayjs | null>{
     const [currentTemp, currentTarget] = await Promise.all([
@@ -45,6 +63,8 @@ export default function ({
 
   async function checkAtHomeWarmup(): Promise<void> {
     const thermostatDevices = await Device.findByCapability('THERMOSTAT');
+    const now = new Date();
+    const offsetWindow = getMatchingOffsetWindow(now, targetOffsetWindows);
 
     currentWarmupState = null;
 
@@ -62,15 +82,39 @@ export default function ({
 
         if (dayjs().isAfter(startTime)) {
           await thermostat.setTargetTemperatureUntilNextScheduledChange(nextScheduledChange.temperature);
+          continue;
         }
       }
+
+      if (offsetWindow === null) {
+        continue;
+      }
+
+      const scheduled = await thermostat.getScheduledTemperatureAtTime(now);
+
+      // Off, set by hand, or already under an override (this window's offset
+      // included) that stands until it lapses.
+      if (scheduled === null || targetTemperature !== scheduled) {
+        continue;
+      }
+
+      const target = scheduled + offsetWindow.offset;
+      // Ends with the room's current block if that comes first, so the next
+      // block isn't held at this one's offset target.
+      const until = nextScheduledChange !== null && offsetWindow.end.isAfter(nextScheduledChange.timestamp)
+        ? nextScheduledChange.timestamp
+        : offsetWindow.end.toDate();
+
+      await thermostat.setTargetTemperatureUntil(target, until);
+      logger.info(`Heating: ${device.name} target ${target}°C (${scheduled}°C ${offsetWindow.offset >= 0 ? '+' : ''}${offsetWindow.offset}) until ${until.toISOString()}`);
     }
   }
 
   async function checkAwayWarmup(
     etaTime: Date
   ): Promise<void> {
-    const setTargetTemperatureActors = [];
+    const warmups: { device: Device, start: () => Promise<void> }[] = [];
+    const etaWindow = getMatchingOffsetWindow(etaTime, targetOffsetWindows);
     let earliestWarmup: Dayjs | null = null;
 
     for (const device of await Device.findByCapability('THERMOSTAT')) {
@@ -78,17 +122,23 @@ export default function ({
       const scheduledTemp = await thermostat.getScheduledTemperatureAtTime(etaTime);
 
       if (scheduledTemp) {
-        const startTime = await calculateWarmupStartTime(device, scheduledTemp, etaTime);
+        const targetTemp = etaWindow === null ? scheduledTemp : scheduledTemp + etaWindow.offset;
+        const startTime = await calculateWarmupStartTime(device, targetTemp, etaTime);
 
         if (earliestWarmup === null || startTime?.isBefore(earliestWarmup)) {
           earliestWarmup = startTime;
         }
 
-        setTargetTemperatureActors.push(async () => {
-          if (await thermostat.getNextScheduledChange() === null) {
-            await thermostat.setIsOn(true);
-          } else {
-            await thermostat.setTargetTemperatureUntilNextScheduledChange(scheduledTemp);
+        warmups.push({
+          device,
+          start: async () => {
+            if (etaWindow !== null) {
+              await thermostat.setTargetTemperatureUntil(targetTemp, etaWindow.end.toDate());
+            } else if (await thermostat.getNextScheduledChange() === null) {
+              await thermostat.setIsOn(true);
+            } else {
+              await thermostat.setTargetTemperatureUntilNextScheduledChange(scheduledTemp);
+            }
           }
         });
       }
@@ -113,12 +163,14 @@ export default function ({
       return;
     }
 
-    for (const setTargetTemperature of setTargetTemperatureActors) {
-      await setTargetTemperature();
+    for (const { start } of warmups) {
+      await start();
     }
 
-    bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: `Pre-heating started.`
+    await Log.notify({
+      severity: 'info',
+      devices: warmups.map(({ device }) => device),
+      message: 'Pre-heating started.'
     });
   }
 

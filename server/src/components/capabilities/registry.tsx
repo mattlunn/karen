@@ -406,11 +406,6 @@ export const registry: CapabilityUIRegistry = {
           : undefined,
       }),
       createCapability(null, {
-        icon: faSterlingSign,
-        title: 'Charge Price Cap',
-        value: v(cap.chargePriceCap, (pence) => `${pence.toFixed(1)}p/kWh`),
-      }),
-      createCapability(null, {
         icon: faCalendarCheck,
         title: 'Schedule',
         value: cap.chargeSchedule
@@ -625,8 +620,15 @@ export const registry: CapabilityUIRegistry = {
     ],
     getGraphSections: () => [
       { title: 'Power', graphs: [{ id: 'heatpump-power' }] },
-      { title: 'Compressor Power', graphs: [{ id: 'heatpump-compressor-power', yMin: 0 }] },
-      { title: 'Compressor Modulation', graphs: [{ id: 'heatpump-compressor-modulation', yMin: 0, yMax: 100 }] },
+      {
+        title: 'Compressor Modulation',
+        graphs: [{
+          id: 'heatpump-compressor-modulation',
+          yMin: 0,
+          yMax: 100,
+          zones: [{ min: 0, max: 33.5, color: 'rgba(134, 142, 150, 0.15)' }],
+        }],
+      },
       { title: 'Cumulative Energy (kWh)', graphs: [{ id: 'heatpump-cumulative-energy', yMin: 0 }] },
       { title: 'Outside Temperature', graphs: [{ id: 'heatpump-outside-temp', yMin: -10 }] },
       { title: 'DHW Temperature', graphs: [{ id: 'heatpump-dhw-temp' }] },
@@ -984,8 +986,9 @@ export const registry: CapabilityUIRegistry = {
       }),
       createCapability(null, {
         icon: faSterlingSign,
-        title: 'Agile Avg Price',
-        value: v(cap.agileAvgPrice, (rate) => `${rate.toFixed(1)}p/kWh`),
+        title: 'Avg Unit Price',
+        value: v(cap.avgUnitPrice, (rate) => `${rate.toFixed(1)}p/kWh`),
+        footer: `Since ${dayjs(cap.avgUnitPriceSince).format('D MMM YYYY')}`,
       }),
     ],
     getGraphSections: () => [

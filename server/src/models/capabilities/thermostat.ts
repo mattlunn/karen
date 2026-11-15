@@ -9,6 +9,12 @@ export class ThermostatCapability extends ThermostatBaseCapability {
       .setTargetTemperatureUntilNextScheduledChange(this.device, value);
   }
 
+  setTargetTemperatureUntil(value: number, until: Date): Promise<void> {
+    return Device.getProviderCapabilities(this.device.provider)
+      .provideThermostatCapability!()
+      .setTargetTemperatureUntil(this.device, value, until);
+  }
+
   async getNextScheduledChange(): Promise<ScheduledChange | null> {
     return Device.getProviderCapabilities(this.device.provider)
       .provideThermostatCapability!()

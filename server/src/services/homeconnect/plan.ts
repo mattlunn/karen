@@ -6,7 +6,7 @@ export type StoredRun = {
   end: string;
   finishBy: string;
   durationMinutes: number;
-  // Beyond this, the plan was made against AgilePredict's forecast rather than published prices.
+  // Beyond this, the plan was made against forecast rather than published prices.
   publishedEnd: string | null;
 };
 

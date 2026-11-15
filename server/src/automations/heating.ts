@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import bus, { NOTIFICATION_TO_ADMINS } from '../bus';
-import { Device } from '../models';
+import { Device, Log } from '../models';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { asyncFilterAndMap } from '../helpers/array';
@@ -32,7 +31,9 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOnThreshold 
 
     await heatingDevice.getSwitchCapability().setIsOn(true);
 
-    bus.emit(NOTIFICATION_TO_ADMINS, {
+    await Log.notify({
+      severity: 'info',
+      devices: [triggeringDevice, heatingDevice],
       message: `Turning heating on, as ${triggeringDevice.name} is ${delta.toFixed(1)}° below target of ${target}°C`
     });
   }
@@ -67,7 +68,9 @@ export default function ({ heatingSwitchName, temperatureDeltaSwitchOnThreshold 
 
     await heatingDevice.getSwitchCapability().setIsOn(false);
 
-    bus.emit(NOTIFICATION_TO_ADMINS, {
+    await Log.notify({
+      severity: 'info',
+      devices: [heatingDevice, heatPumps[0]],
       message: 'Turning heating off, as heat pump has modulated to 0 and no thermostats are requesting heat'
     });
   }

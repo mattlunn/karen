@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import bus, { LAST_USER_LEAVES, FIRST_USER_HOME, NOTIFICATION_TO_ADMINS } from '../bus';
-import { Device, Arming, Stay } from '../models';
+import bus, { LAST_USER_LEAVES, FIRST_USER_HOME } from '../bus';
+import { Device, Arming, Log, Stay } from '../models';
 import { asyncFilter, joinWithAnd, pluralise } from '../helpers/array';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { ArmingMode } from '../models/arming';
@@ -118,7 +118,6 @@ export default function (config: z.infer<typeof parameters>) {
 
       const houseIsUnsecured = locksUnsecured.length > 0 || openContactSensors.length > 0;
       const somethingCouldntBeTurnedOff = lightsFailedToTurnOff.length > 0 || heating.failedToTurnOff;
-      const prefix = `${houseIsUnsecured ? '‼️' : ''}${somethingCouldntBeTurnedOff ? '⚠️' : ''}`;
 
       const lightsStatus = lightsFailedToTurnOff.length
         ? `${lightsFailedToTurnOff.length} light${pluralise(lightsFailedToTurnOff)} could not be turned off,`
@@ -129,7 +128,7 @@ export default function (config: z.infer<typeof parameters>) {
         : `the heating ${heating.turnedBack ? 'has been turned off' : 'was already off'}, and`;
 
       const notification = [
-        `${prefix ? `${prefix} ` : ''}No-one is home.`,
+        'No-one is home.',
         lightsStatus,
         heatingStatus,
         activeArming.mode === ArmingMode.AWAY ? 'the alarm is on.' : 'the alarm is already set to Night Mode.',
@@ -137,12 +136,15 @@ export default function (config: z.infer<typeof parameters>) {
         openContactSensors.length === 0 ? 'All the doors and windows are shut.' : `The ${joinWithAnd(openContactSensors.map(x => x.name))} ${openContactSensors.length === 1 ? 'is' : 'are'} open!`
       ].join(' ');
 
-      bus.emit(NOTIFICATION_TO_ADMINS, {
+      await Log.notify({
+        severity: houseIsUnsecured || somethingCouldntBeTurnedOff ? 'warning' : 'info',
+        devices: [...locksUnsecured, ...openContactSensors, ...lightsFailedToTurnOff],
         message: notification
       });
     } catch (e) {
-      bus.emit(NOTIFICATION_TO_ADMINS, {
-        message: `💥‼️⚠️ No-one is home, but there was a problem securing the house, turning off the heating and lights, or turning on the alarm!`
+      await Log.notify({
+        severity: 'warning',
+        message: 'No-one is home, but there was a problem securing the house, turning off the heating and lights, or turning on the alarm!'
       });
 
       throw e;

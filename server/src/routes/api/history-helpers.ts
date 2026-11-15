@@ -70,7 +70,7 @@ export function bucketByDay(history: NumericHistory): Map<string, number> {
   for (const event of events) {
     const end = Date.parse(event.end ?? history.until);
 
-    for (let day = dayjs(event.start).startOf('day'); day.valueOf() < end; day = day.add(1, 'day')) {
+    for (let day = dayjs(event.start).startOf('day'); day.valueOf() < end; day = day.add(1, 'day').startOf('day')) {
       byDay.set(day.toISOString(), event.value);
     }
   }
@@ -82,7 +82,7 @@ export function bucketByDay(history: NumericHistory): Map<string, number> {
 export function daysInRange(since: Date, until: Date): string[] {
   const days: string[] = [];
 
-  for (let day = dayjs(since).startOf('day'); day.valueOf() < until.getTime(); day = day.add(1, 'day')) {
+  for (let day = dayjs(since).startOf('day'); day.valueOf() < until.getTime(); day = day.add(1, 'day').startOf('day')) {
     days.push(day.toISOString());
   }
 
@@ -107,7 +107,7 @@ export function daysToLineData(
       continue;
     }
 
-    const end = dayjs(day).add(1, 'day').toISOString();
+    const end = dayjs(day).add(1, 'day').startOf('day').toISOString();
 
     history.push({ start: day, end, lastReported: end, value });
   }

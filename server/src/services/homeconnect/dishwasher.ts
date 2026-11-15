@@ -1,7 +1,6 @@
-import { Device } from '../../models';
+import { Device, Log } from '../../models';
 import config from '../../config';
 import { DishwasherScheduledRun } from '../../models/capabilities';
-import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
 import { PriceSlot } from '../../helpers/prices';
@@ -123,7 +122,9 @@ export async function replanScheduledRun(client: ApiClient, device: Device): Pro
   } catch (err) {
     logger.error(err, 'Dishwasher: failed to move the scheduled start');
 
-    bus.emit(NOTIFICATION_TO_ADMINS, {
+    await Log.notify({
+      severity: 'warning',
+      devices: [device],
       message: `🍽️ Couldn't move the dishwasher's start to ${dayjs(replanned.start).format('HH:mm')}: ${(err as Error).message}. It was due to start at ${dayjs(run.start).format('HH:mm')}.`
     });
 
@@ -133,7 +134,9 @@ export async function replanScheduledRun(client: ApiClient, device: Device): Pro
 
   await setPendingRun(device, replanned);
 
-  bus.emit(NOTIFICATION_TO_ADMINS, {
+  await Log.notify({
+    severity: 'info',
+    devices: [device],
     message: `🍽️ Now that prices are published, the dishwasher starts at ${dayjs(replanned.start).format('HH:mm')} instead of ${dayjs(run.start).format('HH:mm')}, finishing by ${dayjs(replanned.finishBy).format('HH:mm')}.`
   });
 }

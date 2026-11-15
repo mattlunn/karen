@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { timeString } from './schema';
-import bus, { NOTIFICATION_TO_USER } from '../bus';
+import { Log } from '../models';
 import dayjs from '../dayjs';
 import logger from '../logger';
 import scheduleDaily from '../helpers/schedule-daily';
@@ -67,7 +67,7 @@ function runAlert(alert: TrainAlert, checkInterval: number) {
       const message = formatMessage(status, alert.from, alert.to);
 
       if (alwaysSend || message !== lastSentMessage) {
-        bus.emit(NOTIFICATION_TO_USER, { userHandle: alert.user, message });
+        await Log.notify({ severity: 'notice', audience: { user: alert.user }, message });
         lastSentMessage = message;
       }
     } catch (e) {

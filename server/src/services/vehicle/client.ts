@@ -20,7 +20,7 @@ async function request<T>(path: string, method: 'GET' | 'POST' = 'GET', body?: u
     throw new Error(`kia-connect-bridge request failed (${response.status} ${method} ${path}): ${await response.text()}`);
   }
 
-  return response.json();
+  return (await response.json()).data;
 }
 
 export function listVehicles(): Promise<BridgeVehicle[]> {

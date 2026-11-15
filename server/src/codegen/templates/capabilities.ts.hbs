@@ -22,6 +22,12 @@ import bus from '../../bus';
 export type {{name}} = {{{values}}};
 {{/each}}
 
+export const COMPUTED_EVENT_TYPES: string[] = [
+{{#each computedEventTypes}}
+  '{{this}}',
+{{/each}}
+];
+
 {{#each capabilities}}
 export class {{className}} {
   protected device: Device;

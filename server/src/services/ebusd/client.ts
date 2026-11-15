@@ -116,10 +116,6 @@ export default class EbusClient {
     return this.#read({ value: 'State07', circuit: 'hmu', field: 'DisplaySystemPressure' }, toNumberWithin(0, 3));
   }
 
-  async getCompressorPower(): Promise<number> {
-    return this.#read({ value: 'State07', circuit: 'hmu', field: 'power' }, toNumberWithin(0, 90));
-  }
-
   async getCompressorModulation(): Promise<number> {
     return this.#read({ value: 'State00', circuit: 'hmu', field: 'S00_CompressorModulation' }, toNumberWithin(0, 100));
   }

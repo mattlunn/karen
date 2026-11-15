@@ -44,3 +44,4 @@ export function formatDuration(seconds: number): string {
 export function isWithinWindow(window: { start: Date, end: Date }, date: Date): boolean {
   return date >= window.start && date < window.end;
 }
+

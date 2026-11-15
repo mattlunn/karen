@@ -17,6 +17,7 @@ export interface PreconditioningPreset {
   defrost: boolean;
   rear_window_heater: boolean;
   steering_wheel_heater: boolean;
+  front_seat_heaters: boolean;
 }
 
 export interface AppConfig {
@@ -44,6 +45,13 @@ export interface AppConfig {
   pushover: {
     admin_token: string;
     application_token: string;
+    mode: 'readonly' | 'readwrite' | undefined;
+  };
+  twilio: {
+    account_sid: string;
+    auth_token: string;
+    number: string;
+    mode: 'readonly' | 'readwrite' | undefined;
   };
   database: {
     host: string;
@@ -55,6 +63,7 @@ export interface AppConfig {
     host: string;
     user: string;
     password: string;
+    ping_after_quiet_hours: number;
   };
   tado: {
     home_id: number;
@@ -121,6 +130,7 @@ export interface AppConfig {
     min_mode_duration_minutes: number | undefined;
     dhw_plan_mode: 'readonly' | 'readwrite' | undefined;
     dhw_planning_horizon_hours: number;
+    dhw_permitted_windows: { start: string; end: string }[];
     dhw_check_cron: string;
     dhw_standard_target_temp: number;
     dhw_plunge_target_temp: number;
@@ -129,6 +139,10 @@ export interface AppConfig {
     dhw_legionella_max_interval_days: number;
     dhw_legionella_alert_grace_days: number;
     dhw_legionella_alert_check_cron: string;
+    system_pressure_check_cron: string;
+    system_pressure_average_minutes: number;
+    system_pressure_low_bar: number;
+    system_pressure_recovered_bar: number;
   };
   homeconnect: {
     client_id: string;
@@ -162,11 +176,8 @@ export interface AppConfig {
       anchor_date: string;
       interval_weeks: number;
     }[];
-    charge_baseline_history_days: number;
     charge_plunge_limit: number;
     charge_deadline_engage_days: number;
-    charge_baseline_min_percentile: number;
-    charge_baseline_max_percentile: number;
     preconditioning: {
       duration_minutes: number;
       heat: PreconditioningPreset;

@@ -1,4 +1,4 @@
-import { Device } from '../../models';
+import { Device, Log } from '../../models';
 import { ElectricVehicleCapability, ScheduleChargeRequest, ScheduledCharge, ChargeType } from '../../models/capabilities';
 import config from '../../config';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
@@ -10,10 +10,9 @@ import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { buildClimateOptions, PreconditioningMode } from './preconditioning';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
 import { planCharge, isDeadlineEngaged, deadlineEngagesAt, isWithinSlots, ChargePlan } from './price-plan';
-import { toPriceSlots, groupIntoBlocks, PriceSlot } from '../../helpers/prices';
+import { groupIntoBlocks, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
-import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 
 // The current plan, persisted on device.meta.chargePlan (separately from
 // device.meta.chargeSchedule, which is just the target). It is fixed for a
@@ -59,9 +58,12 @@ function resolveNextChargeSchedule(device: Device): ScheduleChargeRequest | null
   return next ? { targetPercentage: next.targetPercentage, targetTime: next.targetTime.toISOString() } : null;
 }
 
-// A deadline plan is active and we've commanded charging, but the car still
-// isn't charging after this long - raise one alert (cable / car-asleep).
+// A deadline slot is active but the car still isn't charging after this long -
+// raise one alert (cable / car asleep / bridge unreachable).
 const NOT_CHARGING_ALERT_MINUTES = 15;
+
+// Three of the bridge's 10-minute refreshes.
+const BRIDGE_STALE_AFTER_MINUTES = 30;
 
 // Karen supports a single car, so the device is found by provider rather than
 // by Kia's vehicle id, which syncCarState keeps up to date.
@@ -81,41 +83,63 @@ async function findVehicleDeviceOrError(): Promise<Device> {
   return device;
 }
 
-async function syncCarState(): Promise<{ device: Device; vehicle: BridgeVehicle }> {
-  let device = await findVehicleDevice();
+async function fetchVehicle(): Promise<BridgeVehicle | null> {
+  let vehicles: BridgeVehicle[];
 
   try {
-    const vehicles = await client.listVehicles();
-
-    if (vehicles.length !== 1) {
-      throw new Error(`Expected exactly one vehicle from kia-connect-bridge, got ${vehicles.length}`);
-    }
-
-    const [vehicle] = vehicles;
-
-    device ??= Device.build({
-      provider: 'vehicle',
-      providerId: vehicle.id,
-      name: vehicle.name ?? 'Car',
-    });
-
-    device.providerId = vehicle.id;
-
-    if (vehicle.model !== null) {
-      device.model = vehicle.model;
-    }
-
-    await device.save();
-    await processVehicle(device, vehicle);
-    await device.getConnectivityCapability().setIsConnectedState(true);
-
-    return { device, vehicle };
-  } catch (e) {
-    if (device) {
-      await device.getConnectivityCapability().setIsConnectedState(false);
-    }
-    throw e;
+    vehicles = await client.listVehicles();
+  } catch (e: any) {
+    logger.warn(`kia-connect-bridge unreachable: ${e.message}`);
+    return null;
   }
+
+  if (vehicles.length !== 1) {
+    throw new Error(`Expected exactly one vehicle from kia-connect-bridge, got ${vehicles.length}`);
+  }
+
+  const [vehicle] = vehicles;
+
+  // The bridge keeps serving its last copy of the car when it can't reach Kia.
+  if (vehicle.last_scanned_at === null || dayjs().diff(vehicle.last_scanned_at, 'minute') >= BRIDGE_STALE_AFTER_MINUTES) {
+    logger.warn(`kia-connect-bridge hasn't refreshed from Kia since ${vehicle.last_scanned_at}`);
+    return null;
+  }
+
+  return vehicle;
+}
+
+// An unreachable car is marked disconnected, leaving its last known state in place.
+async function syncCarState(): Promise<Device> {
+  let device = await findVehicleDevice();
+  const vehicle = await fetchVehicle();
+
+  if (vehicle === null) {
+    if (device === undefined) {
+      throw new Error('kia-connect-bridge unavailable, and no vehicle device to mark disconnected');
+    }
+
+    await device.getConnectivityCapability().setIsConnectedState(false);
+
+    return device;
+  }
+
+  device ??= Device.build({
+    provider: 'vehicle',
+    providerId: vehicle.id,
+    name: vehicle.name ?? 'Car',
+  });
+
+  device.providerId = vehicle.id;
+
+  if (vehicle.model !== null) {
+    device.model = vehicle.model;
+  }
+
+  await device.save();
+  await processVehicle(device, vehicle);
+  await device.getConnectivityCapability().setIsConnectedState(true);
+
+  return device;
 }
 
 // Kia's own action status is usually UNKNOWN even when the command worked, so
@@ -228,34 +252,22 @@ Device.registerProvider('vehicle', {
 
         return 'BAU';
       },
-
-      async getChargePriceCap(device: Device): Promise<number | null> {
-        const chargePercentage = await device.getElectricVehicleCapability().getChargePercentage();
-        const baselinePenceFor = await getBaselinePenceFor(new Date());
-
-        return baselinePenceFor(chargePercentage);
-      },
-
-      async getChargePriceCapCurve(): Promise<{ chargePercentage: number; pence: number }[]> {
-        const baselinePenceFor = await getBaselinePenceFor(new Date());
-
-        return Array.from({ length: 101 }, (_, chargePercentage) => chargePercentage).flatMap((chargePercentage) => {
-          const pence = baselinePenceFor(chargePercentage);
-
-          return pence === null ? [] : [{ chargePercentage, pence }];
-        });
-      },
     };
   },
 
   async synchronize() {
-    const { device, vehicle } = await syncCarState();
+    const device = await syncCarState();
+    const ev = device.getElectricVehicleCapability();
+    const [isCarReachable, chargeLimit] = await Promise.all([
+      device.getConnectivityCapability().getIsConnected(),
+      ev.getChargeLimitEvent(),
+    ]);
 
     // The scheduler owns start/stop; the car's own limit is pinned at 100 so a
     // start command always takes effect (and if Karen is down it charges to
     // full rather than being stuck at a stale lower limit).
-    if (!isReadOnly() && vehicle.ev_charge_limits_ac !== null && vehicle.ev_charge_limits_ac !== 100) {
-      await device.getElectricVehicleCapability().setChargeLimit(100);
+    if (!isReadOnly() && isCarReachable && chargeLimit !== null && chargeLimit.value !== 100) {
+      await ev.setChargeLimit(100);
     }
   },
 });
@@ -311,32 +323,6 @@ async function getEnergyCostCapability() {
   return device.getEnergyCostCapability();
 }
 
-async function getBaselinePenceFor(now: Date): Promise<(chargePercentage: number) => number | null> {
-  const energyCost = await getEnergyCostCapability();
-  const since = dayjs(now).subtract(config.vehicle.charge_baseline_history_days, 'day').toDate();
-  const events = await energyCost.getUnitRateHistory({ since, until: now });
-  // Sorted here rather than per call, since the plan asks for a bar once a slot.
-  const pences = toPriceSlots(events, since, now).map(s => s.pence).sort((a, b) => a - b);
-  const { charge_baseline_min_percentile: minP, charge_baseline_max_percentile: maxP, default_charge_limit: limit } = config.vehicle;
-
-  // The percentile scales linearly from charge_baseline_max_percentile at 0% to
-  // charge_baseline_min_percentile at default_charge_limit, so BAU accepts more
-  // mediocre prices while the battery is low and holds out for genuine bargains
-  // as it nears the limit. Clamped there since BAU never charges past the limit.
-  return (chargePercentage: number) => {
-    if (pences.length === 0) {
-      return null;
-    }
-
-    const progress = Math.min(chargePercentage, limit) / limit;
-    const rank = (maxP - (maxP - minP) * progress) / 100 * (pences.length - 1);
-    const lo = Math.floor(rank);
-    const hi = Math.ceil(rank);
-
-    return pences[lo] + (pences[hi] - pences[lo]) * (rank - lo);
-  };
-}
-
 function chargeRatePercentPerHour(): number {
   return (config.vehicle.charge_power_watts / 1000) / config.vehicle.battery_capacity_kwh * 100;
 }
@@ -360,8 +346,12 @@ function isReadOnly(): boolean {
 // synchronize), so a start command always takes effect and this is just:
 // charge while inside a planned slot and below target, otherwise stop. Re-issued
 // each tick until the car reports it stuck.
-async function applyPlan(ev: ElectricVehicleCapability, now: Dayjs, plan: ChargePlan | null, chargePercentage: number) {
-  const isCharging = await ev.getIsCharging();
+async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, chargePercentage: number) {
+  const ev = device.getElectricVehicleCapability();
+  const [isCarReachable, isCharging] = await Promise.all([
+    device.getConnectivityCapability().getIsConnected(),
+    ev.getIsCharging(),
+  ]);
   const desired = plan !== null && isWithinSlots(plan.slots, now.toDate()) && chargePercentage < plan.target;
 
   if (isReadOnly()) {
@@ -369,41 +359,41 @@ async function applyPlan(ev: ElectricVehicleCapability, now: Dayjs, plan: Charge
     return;
   }
 
-  if (desired !== isCharging) {
-    logger.info(`Price-aware charging: setting isCharging=${desired}`);
-    await ev.setIsCharging(desired);
-  }
-
   // Only a deadline plan alerts: a charge that's merely opportunistic failing to
-  // start isn't worth waking anybody for.
-  if (plan === null || plan.deadline === null || !(desired && !isCharging)) {
+  // start isn't worth waking anybody for. Ahead of the command, so a command that
+  // throws can't skip it.
+  const isFailingDeadlineCharge = plan !== null && plan.deadline !== null && desired && !(isCarReachable && isCharging);
+
+  if (isFailingDeadlineCharge) {
+    deadlineNotChargingSince ??= now;
+
+    if (!deadlineAlertSent && now.diff(deadlineNotChargingSince, 'minute') >= NOT_CHARGING_ALERT_MINUTES) {
+      deadlineAlertSent = true;
+
+      await Log.notify({
+        severity: 'warning',
+        devices: [device],
+        message: buildChargingFailureNotification(plan.target, dayjs(plan.deadline), isCarReachable),
+      });
+    }
+  } else {
     deadlineNotChargingSince = null;
     deadlineAlertSent = false;
-    return;
   }
 
-  deadlineNotChargingSince ??= now;
-
-  if (!deadlineAlertSent && now.diff(deadlineNotChargingSince, 'minute') >= NOT_CHARGING_ALERT_MINUTES) {
-    deadlineAlertSent = true;
-
-    bus.emit(NOTIFICATION_TO_ADMINS, {
-      message: buildChargingFailureNotification(plan.target, dayjs(plan.deadline)),
-      priority: 1,
-    });
+  if (isCarReachable && desired !== isCharging) {
+    logger.info(`Price-aware charging: setting isCharging=${desired}`);
+    await ev.setIsCharging(desired);
   }
 }
 
 async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, chargePercentage: number): Promise<ChargePlan> {
-  const baselinePenceFor = await getBaselinePenceFor(now.toDate());
-
   // With no forward prices this yields an empty plan and nothing charges until
   // they arrive, pending the admin acting on the Octopus alert.
   const plan = planCharge({
     slots,
     now: now.toDate(),
     chargePercentage,
-    baselinePenceFor,
     schedule: getSchedule(device),
     chargeRatePercentPerHour: chargeRatePercentPerHour(),
     defaultLimit: config.vehicle.default_charge_limit,
@@ -429,10 +419,11 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
 
 // A plan is fixed so it can't jitter as prices are restated, with two exceptions.
 //
-// Prices reaching past where the plan's ran out - published or forecast - are
-// strictly more information than it was built from. Agile publishes early
-// afternoon, and business as usual only plans on published prices, so holding
-// the old plan spends the evening on slots the new day beats outright.
+// Prices published past where the plan's ran out are strictly more information
+// than it was built from. Agile publishes early afternoon, and business as usual
+// only plans on published prices, so holding the old plan spends the evening on
+// slots the new day beats outright. The forecast beyond them is the latest
+// published day repeated, so its far end advancing with the clock adds nothing.
 //
 // And a plan made while a deadline was still far off must not sit frozen while
 // that deadline creeps into engagement range, or it is missed outright. A
@@ -443,10 +434,9 @@ function needsReplan(device: Device, plan: ChargePlan, slots: PriceSlot[], now: 
     return true;
   }
 
-  const forecastEnd = slots.at(-1)?.end;
   const publishedEnd = slots.findLast(s => !s.isEstimated)?.end;
 
-  if ((forecastEnd !== undefined && forecastEnd > plan.end) || (publishedEnd !== undefined && publishedEnd > plan.publishedEnd)) {
+  if (publishedEnd !== undefined && publishedEnd > plan.publishedEnd) {
     return true;
   }
 
@@ -487,7 +477,7 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
   // rebuilt from live SoC when the cable goes back in.
   if (!isCableConnected) {
     await clearPlan(device);
-    await applyPlan(ev, now, null, chargePercentage);
+    await applyPlan(device, now, null, chargePercentage);
     return;
   }
 
@@ -504,14 +494,14 @@ async function runPriceAwareCharging(device: Device, ev: ElectricVehicleCapabili
     plan = await createPlan(device, slots, now, chargePercentage);
   }
 
-  await applyPlan(ev, now, plan, chargePercentage);
+  await applyPlan(device, now, plan, chargePercentage);
 }
 
 // Aligned ticks hit the half-hour slot boundaries exactly, so the 5-minute cadence
 // is for what isn't aligned: reacting to the cable being plugged in, and stopping
 // within five minutes of the charge limit rather than thirty.
 nowAndSetCron(createBackgroundTransaction('vehicle:poll', async () => {
-  const { device } = await syncCarState();
+  const device = await syncCarState();
   const ev = device.getElectricVehicleCapability();
   const now = dayjs();
 

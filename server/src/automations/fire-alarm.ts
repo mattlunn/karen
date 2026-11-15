@@ -1,7 +1,5 @@
 import { z } from 'zod';
-import { BooleanEvent, Device, User } from '../models';
-import { callWithKarenMessage } from '../services/twilio';
-import bus, { NOTIFICATION_TO_ALL } from '../bus';
+import { BooleanEvent, Device, Log, User } from '../models';
 import dayjs from '../dayjs';
 import logger from '../logger';
 import { createBackgroundTransaction } from '../helpers/newrelic';
@@ -32,24 +30,20 @@ export default function ({ deviceName }: z.infer<typeof parameters>) {
 
     logger.warn({ event: 'fire-alarm-triggered' }, message);
 
-    bus.emit(NOTIFICATION_TO_ALL, { message, priority: 2, retry: 60, expire: 3600 });
-
-    for (const user of await User.getUsersWithMobileNumber()) {
-      callWithKarenMessage(user, message);
-    }
+    await Log.notify({ severity: 'critical', audience: 'all', devices: [await event.getDevice()], message });
   }));
 
   DeviceCapabilityEvents.onConnectivityIsConnectedEnd(isThisDevice, createBackgroundTransaction('automations:fire-alarm:offline', async (event: BooleanEvent) => {
     const message = `Fire alarm has gone offline as of ${dayjs(event.start).format('HH:mm')}.`;
 
     logger.warn({ event: 'fire-alarm-offline' }, message);
-    bus.emit(NOTIFICATION_TO_ALL, { message, priority: 1 });
+    await Log.notify({ severity: 'warning', audience: 'all', devices: [await event.getDevice()], message });
   }));
 
   DeviceCapabilityEvents.onConnectivityIsConnectedStart(isThisDevice, createBackgroundTransaction('automations:fire-alarm:online', async (event: BooleanEvent) => {
     const message = `Fire alarm is back online as of ${dayjs(event.start).format('HH:mm')}.`;
 
     logger.info({ event: 'fire-alarm-online' }, message);
-    bus.emit(NOTIFICATION_TO_ALL, { message, priority: 0 });
+    await Log.notify({ severity: 'notice', audience: 'all', devices: [await event.getDevice()], message });
   }));
 }

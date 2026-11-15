@@ -65,7 +65,7 @@ function DeviceSummaryTable() {
               {/* Each PeriodHeading underlines itself, so the underlines break between the groups. */}
               <Table.Tr style={{ borderBottom: 'none' }}>
                 <Table.Th rowSpan={2}>Device</Table.Th>
-                <PeriodHeading>Lifetime (since {dayjs(data.lifetimeSince).format('D MMM YYYY')})</PeriodHeading>
+                <PeriodHeading>This tariff (since {dayjs(data.thisTariffSince).format('D MMM YYYY')})</PeriodHeading>
                 <PeriodHeading>Last month</PeriodHeading>
               </Table.Tr>
               <Table.Tr>
@@ -75,12 +75,12 @@ function DeviceSummaryTable() {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {data.rows.map(({ label, deviceId, role, lifetime, lastMonth }) => (
+              {data.rows.map(({ label, deviceId, role, thisTariff, lastMonth }) => (
                 <Table.Tr key={label} fw={role === 'total' ? 700 : undefined} c={role === 'residual' ? 'dimmed' : undefined}>
                   <Table.Td>
                     {deviceId === null ? label : <Anchor component={Link} to={`/device/${deviceId}`} inherit>{label}</Anchor>}
                   </Table.Td>
-                  <PeriodCells totals={lifetime} />
+                  <PeriodCells totals={thisTariff} />
                   <PeriodCells totals={lastMonth} />
                 </Table.Tr>
               ))}

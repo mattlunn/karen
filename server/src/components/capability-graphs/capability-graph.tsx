@@ -18,7 +18,7 @@ import {
 } from 'chart.js';
 import AnnotationPlugin from 'chartjs-plugin-annotation';
 import { Chart } from 'react-chartjs-2';
-import 'chartjs-adapter-dayjs-4';
+import './chartjs-dayjs-adapter';
 import dayjs from '../../dayjs';
 import { BooleanEventApiResponse, EnumEventApiResponse, HistoryDetailsApiResponse, NumericEventApiResponse } from '../../api/types';
 import { filterClampAndSortHistory } from '../../helpers/history';
@@ -163,14 +163,15 @@ export type CapabilityGraphProps = {
     label: string,
     yAxisID?: string,
     borderDash?: number[],
-    period?: 'day' | 'month'
+    period?: 'day' | 'month',
+    filled?: boolean
   }[]
 
   bars?: {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
     yAxisID?: string,
-    period?: 'day' | 'month',
+    period: 'day' | 'month',
     hatched?: boolean
   }[]
 
@@ -251,7 +252,8 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     label: x.label,
     yAxisID: x.yAxisID || 'y',
     ...(x.period ? { tension: 0.3 } : {}),
-    ...(x.borderDash ? { borderDash: x.borderDash } : {})
+    ...(x.borderDash ? { borderDash: x.borderDash } : {}),
+    ...(x.filled ? { fill: 'start', pointRadius: 0, borderWidth: 1, stepped: true } : {})
   }));
 
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);

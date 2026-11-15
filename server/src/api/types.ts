@@ -96,8 +96,6 @@ export type CapabilityApiResponseBase = {
   odometer: NumericStateApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string; startsAt: string } | null;
   chargeType: 'BAU' | 'DEADLINE' | 'PLUNGE' | null;
-  chargePriceCap: number | null;
-  chargePriceCapCurve: { chargePercentage: number; pence: number }[];
 } | {
   type: 'ALARM_SENSOR';
   isTriggered: BooleanStateApiResponse;
@@ -120,7 +118,8 @@ export type CapabilityApiResponseBase = {
   currentPower: NumericStateApiResponse;
   dayEnergy: NumericStateApiResponse;
   dayCost: NumericStateApiResponse;
-  agileAvgPrice: number | null;
+  avgUnitPrice: number | null;
+  avgUnitPriceSince: string;
 } | {
   type: 'ENERGY_COST';
   standingCharge: NumericStateApiResponse;
@@ -156,6 +155,7 @@ export type BooleanStateApiResponse = {
   end: string | null;
   lastReported: string;
   value: boolean | null;
+  isComputed: boolean;
 };
 
 export type NumericStateApiResponse = {
@@ -163,6 +163,7 @@ export type NumericStateApiResponse = {
   end: string | null;
   lastReported: string;
   value: number | null;
+  isComputed: boolean;
 };
 
 export type EnumStateApiResponse = {
@@ -170,6 +171,7 @@ export type EnumStateApiResponse = {
   end: string | null;
   lastReported: string;
   value: string | null;
+  isComputed: boolean;
 };
 
 export type TelevisionSourceApiResponse = {
@@ -216,6 +218,7 @@ export type HistoryLineApiResponse = {
   yAxisID?: string;
   borderDash?: number[];
   period?: 'day' | 'month';
+  filled?: boolean;
   // A computed catch-all (whole-house total minus everything individually
   // metered), drawn with a diagonal hatch so it reads as different in kind.
   role?: 'residual';
@@ -236,7 +239,7 @@ export type HistoryBarApiResponse = {
   data: HistoryDetailsApiResponse<NumericEventApiResponse>;
   label: string;
   yAxisID?: string;
-  period?: 'day' | 'month';
+  period: 'day' | 'month';
   role?: 'residual';
 };
 
@@ -245,6 +248,9 @@ export type HistoryApiResponse = {
   modes?: HistoryModesApiResponse[];
   bars?: HistoryBarApiResponse[];
 };
+
+export type LogSeverity = 'info' | 'notice' | 'warning' | 'critical';
+export type LogAudience = 'admins' | 'all' | 'absent' | 'user';
 
 // Device Timeline API response types (/api/device/:id/timeline)
 export type DeviceTimelineEventApiResponse = {
@@ -260,6 +266,13 @@ export type DeviceTimelineEventApiResponse = {
   type: 'switch-off' | 'appliance-finished' | 'preheating-stopped' | 'precooling-stopped';
   timestamp: string;
   durationSeconds: number;
+} | {
+  type: 'log';
+  timestamp: string;
+  severity: LogSeverity;
+  message: string;
+  audience: LogAudience;
+  userHandle: string | null;
 };
 
 export type DeviceTimelineApiResponse = {
@@ -455,15 +468,15 @@ export type EnergyPeriodTotalsApiResponse = {
 };
 
 // /api/insights/energy/device-summary endpoint - per sub-metered entity
-// ("Lights" rolled up) totals since the Agile switchover and over the last
-// month, followed by the "Other" residual and the whole-house "Total".
+// ("Lights" rolled up) totals since the current tariff started and over the
+// last month, followed by the "Other" residual and the whole-house "Total".
 export type EnergyDeviceSummaryApiResponse = {
-  lifetimeSince: string;
+  thisTariffSince: string;
   rows: {
     label: string;
     deviceId: number | null;
     role?: 'residual' | 'total';
-    lifetime: EnergyPeriodTotalsApiResponse;
+    thisTariff: EnergyPeriodTotalsApiResponse;
     lastMonth: EnergyPeriodTotalsApiResponse;
   }[];
 };

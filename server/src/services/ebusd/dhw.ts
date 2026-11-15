@@ -1,15 +1,31 @@
-import { Device } from '../../models';
+import { z } from 'zod';
+import { Device, Log } from '../../models';
 import { HeatPumpCapability, HeatPumpDHWMode, DHWPlannedWindow, DHWTargetReason } from '../../models/capabilities';
 import config from '../../config';
 import dayjs from '../../dayjs';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import setCron from '../../helpers/set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
-import bus, { NOTIFICATION_TO_ADMINS } from '../../bus';
 import logger from '../../logger';
 import EbusClient from './client';
 import { toPriceSlots, findCheapestWindow, haveForecastThrough, CheapestWindow } from '../../helpers/prices';
 import { isWithinWindow } from '../../helpers/date';
+import { isWithinTime } from '../../helpers/time';
+import { timeRange } from '../../automations/schema';
+
+const permittedWindowsCheck = z.array(timeRange).safeParse(config.ebusd.dhw_permitted_windows);
+
+if (!permittedWindowsCheck.success) {
+  throw new Error(`config is invalid; ebusd.dhw_permitted_windows:\n${z.prettifyError(permittedWindowsCheck.error)}`);
+}
+
+const permittedWindows = permittedWindowsCheck.data;
+
+// Whole slots only: the slot's first and last instant both fall in the window.
+function isPermittedSlot(window: { start: string; end: string }, slot: { start: Date; end: Date }): boolean {
+  return isWithinTime(window.start, window.end, slot.start)
+    && isWithinTime(window.start, window.end, dayjs(slot.end).subtract(1, 'millisecond').toDate());
+}
 
 // The current Auto plan: a single cheap block, written once and never revised
 // until it rolls over. Persisted on device.meta rather than held in memory,
@@ -146,7 +162,9 @@ async function resolveAutoState(device: Device, heatPump: HeatPumpCapability): P
     return false;
   }
 
-  const window = findCheapestWindow(toPriceSlots(events, now, until), blockMinutes, now, until);
+  const permittedSlots = toPriceSlots(events, now, until)
+    .filter(slot => permittedWindows.some(w => isPermittedSlot(w, slot)));
+  const window = findCheapestWindow(permittedSlots, blockMinutes, now, until);
 
   if (window === null) {
     return false;
@@ -266,8 +284,10 @@ async function alertIfLegionellaOverdue(): Promise<void> {
 
   logger.warn(`DHW: hot water has not reached ${legionellaThreshold()}°C in over ${days} days`);
 
-  bus.emit(NOTIFICATION_TO_ADMINS, {
-    message: `🚨 Hot water has not reached ${legionellaThreshold()}°C in over ${days} days. The legionella cycle may be failing to complete.`,
+  await Log.notify({
+    severity: 'notice',
+    devices: [device],
+    message: `Hot water has not reached ${legionellaThreshold()}°C in over ${days} days. The legionella cycle may be failing to complete.`,
   });
 }
 

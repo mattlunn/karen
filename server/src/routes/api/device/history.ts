@@ -18,6 +18,7 @@ export type HistoryLineResponse = {
   label: string;
   yAxisID?: string;
   period?: 'day' | 'month';
+  filled?: boolean;
 };
 
 export type HistoryModeDetail = {
@@ -35,7 +36,7 @@ export type HistoryBarResponse = {
   data: HistoryDetailsApiResponse<NumericEventApiResponse>;
   label: string;
   yAxisID?: string;
-  period?: 'day' | 'month';
+  period: 'day' | 'month';
 };
 
 export type HistoryResponse = {
@@ -89,20 +90,6 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         ]
       }])
     });
-  }],
-
-  // Heat Pump - Compressor Power
-  ['heatpump-compressor-power', async (device, selector) => {
-    const heatPump = device.getHeatPumpCapability();
-
-    return {
-      lines: [
-        {
-          data: await mapNumericHistoryToResponse((hs) => heatPump.getCompressorPowerHistory(hs), selector),
-          label: 'Compressor Power (W)'
-        }
-      ]
-    };
   }],
 
   // Heat Pump - Compressor Modulation
@@ -260,11 +247,9 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         mapNumericHistoryToResponse((hs) => thermostat.getCurrentTemperatureHistory(hs), selector)
           .then(data => ({ data, label: 'Current Temperature', yAxisID: 'yTemperature' })),
         mapNumericHistoryToResponse((hs) => thermostat.getTargetTemperatureHistory(hs), selector)
-          .then(data => ({ data, label: 'Target Temperature', yAxisID: 'yTemperature' }))
-      ]),
-      bars: Promise.all([
+          .then(data => ({ data, label: 'Target Temperature', yAxisID: 'yTemperature' })),
         mapNumericHistoryToResponse((hs) => thermostat.getPowerHistory(hs), selector)
-          .then(data => ({ data, label: 'Power', yAxisID: 'yPercentage' }))
+          .then(data => ({ data, label: 'Power', yAxisID: 'yPercentage', filled: true }))
       ])
     });
   }],

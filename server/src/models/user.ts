@@ -1,4 +1,4 @@
-import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, NonAttribute, CreationOptional, Op } from 'sequelize';
+import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, NonAttribute, CreationOptional } from 'sequelize';
 import bcrypt from 'bcrypt';
 import { createHash } from 'crypto';
 import { Stay } from './stay';
@@ -50,16 +50,6 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     });
   }
 
-  static getThoseWithPushoverToken() {
-    return this.findAll({
-      where: {
-        pushoverToken: {
-          [Op.not]: null
-        }
-      }
-    });
-  }
-
   static async getUsersAtHome(): Promise<User[]> {
     const [currentStays, allUsers] = await Promise.all([
       Stay.findCurrentStays(),
@@ -70,20 +60,14 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
     return allUsers.filter(u => homeUserIds.has(u.id));
   }
 
-  static async getAbsentUsersWithMobileNumber(): Promise<User[]> {
+  static async getAbsentUsers(): Promise<User[]> {
     const [currentStays, allUsers] = await Promise.all([
       Stay.findCurrentStays(),
       this.findAll()
     ]);
     const homeUserIds = new Set(currentStays.map(s => s.userId));
 
-    return allUsers.filter(u => !!u.mobileNumber && !homeUserIds.has(u.id));
-  }
-
-  static async getUsersWithMobileNumber(): Promise<User[]> {
-    const allUsers = await this.findAll();
-
-    return allUsers.filter(u => !!u.mobileNumber);
+    return allUsers.filter(u => !homeUserIds.has(u.id));
   }
 }
 

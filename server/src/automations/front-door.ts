@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import bus, { STAY_START, NOTIFICATION_TO_ADMINS } from '../bus';
-import { Device, Stay } from '../models';
+import bus, { STAY_START } from '../bus';
+import { Device, Log, Stay } from '../models';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 
 export const parameters = z.object({
@@ -20,7 +20,9 @@ export default function ({ doorLockName }: z.infer<typeof parameters>) {
 
       await device.getLockCapability().setIsLocked(false);
 
-      bus.emit(NOTIFICATION_TO_ADMINS, {
+      await Log.notify({
+        severity: 'notice',
+        devices: [device],
         message: `Unlocking the front door, as ${user.handle} has just got home`
       });
     }

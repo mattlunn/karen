@@ -56,7 +56,7 @@ export class UnifiClient {
     if (!this.#loginPromise) {
       this.#loginPromise = (async () => {
         this.#cookies = {};
-        await this.#apiRequest('POST', '/api/login', {
+        await this.#apiRequest('POST', '/api/auth/login', {
           username: this.username,
           password: this.password,
           rememberMe: true,
@@ -70,13 +70,13 @@ export class UnifiClient {
 
   async getAllUsers(): Promise<UnifiUser[]> {
     return this.#withRetry(() =>
-      this.#apiRequest<UnifiUser[]>('GET', `/api/s/${this.site}/stat/alluser?type=all&within=8760`),
+      this.#apiRequest<UnifiUser[]>('GET', `/proxy/network/api/s/${this.site}/stat/alluser?type=all&within=8760`),
     );
   }
 
   async getClientDevices(): Promise<UnifiDevice[]> {
     return this.#withRetry(() =>
-      this.#apiRequest<UnifiDevice[]>('GET', `/api/s/${this.site}/stat/sta/`),
+      this.#apiRequest<UnifiDevice[]>('GET', `/proxy/network/api/s/${this.site}/stat/sta/`),
     );
   }
 
