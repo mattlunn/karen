@@ -92,7 +92,8 @@ Device.registerProvider('homeconnect', {
 
         const now = new Date();
         const durationMinutes = remainingSeconds / 60;
-        const slots = await getForwardSlots(dayjs(finishBy).add(durationMinutes + SLOT_MINUTES, 'minute').toDate());
+        // A run finishing by the deadline can still end part-way through its last slot, which is priced whole.
+        const slots = await getForwardSlots(dayjs(finishBy).add(SLOT_MINUTES, 'minute').toDate());
         const run = planRun(slots, durationMinutes, config.homeconnect.dishwasher_power_profile_kwh, finishBy, now);
 
         await client.startProgram(device.providerId, {
