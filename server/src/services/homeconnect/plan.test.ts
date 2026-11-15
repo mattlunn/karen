@@ -37,15 +37,6 @@ describe('planRun', () => {
     expect(run.start).toBe('2026-10-12T21:30:00.000Z');
   });
 
-  it('records where published prices end', () => {
-    const prices = [
-      ...slots('2026-10-12T21:30:00Z', [10, 10]),
-      ...slots('2026-10-12T22:30:00Z', [5, 5], true),
-    ];
-
-    expect(planRun(prices, 60, PROFILE, finishBy, now).publishedEnd).toBe('2026-10-12T22:30:00.000Z');
-  });
-
   it('throws when no run fits before the deadline', () => {
     expect(() => planRun(slots('2026-10-12T21:30:00Z', [10]), 60, PROFILE, finishBy, now)).toThrow('before');
   });

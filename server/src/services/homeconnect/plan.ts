@@ -5,9 +5,6 @@ export type StoredRun = {
   start: string;
   end: string;
   finishBy: string;
-  durationMinutes: number;
-  // Beyond this, the plan was made against forecast rather than published prices.
-  publishedEnd: string | null;
 };
 
 export function planRun(slots: PriceSlot[], durationMinutes: number, powerProfileKwh: number[], finishBy: Date, now: Date): StoredRun {
@@ -21,7 +18,5 @@ export function planRun(slots: PriceSlot[], durationMinutes: number, powerProfil
     start: window.start.toISOString(),
     end: dayjs(window.start).add(durationMinutes, 'minute').toISOString(),
     finishBy: finishBy.toISOString(),
-    durationMinutes,
-    publishedEnd: slots.findLast((slot) => !slot.isEstimated)?.end.toISOString() ?? null,
   };
 }

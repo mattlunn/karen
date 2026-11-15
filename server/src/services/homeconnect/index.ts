@@ -1,9 +1,7 @@
 import { Device } from '../../models';
-import setCron from '../../helpers/set-cron';
-import { createBackgroundTransaction } from '../../helpers/newrelic';
 import ApiClient from './lib/client';
 import { getAccessToken } from './lib/auth';
-import { getScheduledRun, scheduleToFinishBy, cancelScheduledRun, replanScheduledRun } from './dishwasher';
+import { getScheduledRun, scheduleToFinishBy, cancelScheduledRun } from './dishwasher';
 
 const client = new ApiClient(getAccessToken);
 
@@ -37,9 +35,3 @@ Device.registerProvider('homeconnect', {
     }
   }
 });
-
-setCron(createBackgroundTransaction('homeconnect:replan-dishwasher', async () => {
-  for (const device of await Device.findByProvider('homeconnect')) {
-    await replanScheduledRun(client, device);
-  }
-}), '*/15 * * * *');

@@ -1,4 +1,4 @@
-import { Device, Log } from '../../models';
+import { Device } from '../../models';
 import config from '../../config';
 import { DishwasherScheduledRun } from '../../models/capabilities';
 import dayjs from '../../dayjs';
@@ -90,53 +90,4 @@ export async function cancelScheduledRun(client: ApiClient, device: Device): Pro
 
   await client.stopActiveProgram(device.providerId);
   await setPendingRun(device, undefined);
-}
-
-// Moves a pending run once Octopus publishes prices further than when it was planned, since the
-// part of the plan beyond the old frontier was based on a forecast.
-export async function replanScheduledRun(client: ApiClient, device: Device): Promise<void> {
-  const run = getPendingRun(device);
-
-  if (run === null) {
-    return;
-  }
-
-  const now = new Date();
-  const finishBy = new Date(run.finishBy);
-  const slots = await getForwardSlots(finishBy);
-  const publishedEnd = slots.findLast((slot) => !slot.isEstimated)?.end;
-
-  if (publishedEnd === undefined || (run.publishedEnd !== null && !dayjs(publishedEnd).isAfter(run.publishedEnd))) {
-    return;
-  }
-
-  const replanned = planRun(slots, run.durationMinutes, config.homeconnect.dishwasher_power_profile_kwh, finishBy, now);
-
-  if (replanned.start === run.start) {
-    await setPendingRun(device, replanned);
-    return;
-  }
-
-  try {
-    await client.setActiveProgramOption(device.providerId, startInRelative(replanned.start, now));
-  } catch (err) {
-    logger.error(err, 'Dishwasher: failed to move the scheduled start');
-
-    await Log.notify({
-      severity: 'warning',
-      devices: [device],
-      message: `🍽️ Couldn't move the dishwasher's start to ${dayjs(replanned.start).format('HH:mm')}: ${(err as Error).message}. It was due to start at ${dayjs(run.start).format('HH:mm')}.`
-    });
-
-    await setPendingRun(device, { ...run, publishedEnd: replanned.publishedEnd });
-    return;
-  }
-
-  await setPendingRun(device, replanned);
-
-  await Log.notify({
-    severity: 'info',
-    devices: [device],
-    message: `🍽️ Now that prices are published, the dishwasher starts at ${dayjs(replanned.start).format('HH:mm')} instead of ${dayjs(run.start).format('HH:mm')}, finishing by ${dayjs(replanned.finishBy).format('HH:mm')}.`
-  });
 }
