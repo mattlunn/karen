@@ -1,9 +1,53 @@
 import { Device } from '../../models';
-import ApiClient from './lib/client';
+import config from '../../config';
+import { DishwasherScheduledRun } from '../../models/capabilities';
+import dayjs from '../../dayjs';
+import logger from '../../logger';
+import { PriceSlot, SLOT_MINUTES } from '../../helpers/prices';
+import ApiClient, { ProgramOption } from './lib/client';
 import { getAccessToken } from './lib/auth';
-import { getScheduledRun, scheduleToFinishBy, cancelScheduledRun } from './dishwasher';
+import { planRun, StoredRun } from './plan';
+
+const START_IN_RELATIVE = 'BSH.Common.Option.StartInRelative';
+const REMAINING_PROGRAM_TIME = 'BSH.Common.Option.RemainingProgramTime';
+const DISHWASHER_OPTION_PREFIX = 'Dishcare.Dishwasher.Option.';
 
 const client = new ApiClient(getAccessToken);
+
+// A run is only scheduled until it starts; after that the appliance is just running it.
+function getPendingRun(device: Device): StoredRun | null {
+  const run = device.meta.scheduledRun as StoredRun | undefined;
+
+  return run !== undefined && dayjs(run.start).isAfter(new Date()) ? run : null;
+}
+
+async function setPendingRun(device: Device, run: StoredRun | undefined): Promise<void> {
+  device.meta.scheduledRun = run;
+
+  await device.save();
+}
+
+function toScheduledRun(run: StoredRun): DishwasherScheduledRun {
+  return {
+    start: new Date(run.start),
+    end: new Date(run.end),
+    finishBy: new Date(run.finishBy),
+  };
+}
+
+async function getForwardSlots(until: Date): Promise<PriceSlot[]> {
+  const [energyCostDevice] = await Device.findByCapability('ENERGY_COST');
+
+  if (energyCostDevice === undefined) {
+    throw new Error('There is no energy cost device to plan the dishwasher run against');
+  }
+
+  return energyCostDevice.getEnergyCostCapability().getForwardUnitRates(until);
+}
+
+function startInRelative(start: string, now: Date): ProgramOption {
+  return { key: START_IN_RELATIVE, value: Math.max(0, dayjs(start).diff(now, 'second')), unit: 'seconds' };
+}
 
 Device.registerProvider('homeconnect', {
   getCapabilities(device) {
@@ -12,24 +56,70 @@ Device.registerProvider('homeconnect', {
 
   provideDishwasherCapability() {
     return {
-      getScheduledRun,
-      scheduleToFinishBy: (device, finishBy) => scheduleToFinishBy(client, device, finishBy),
-      cancelScheduledRun: (device) => cancelScheduledRun(client, device),
+      getScheduledRun(device: Device) {
+        const run = getPendingRun(device);
+
+        return run === null ? null : toScheduledRun(run);
+      },
+
+      async scheduleToFinishBy(device: Device, finishBy: Date) {
+        if (getPendingRun(device) !== null) {
+          await client.stopActiveProgram(device.providerId);
+          await setPendingRun(device, undefined);
+        }
+
+        const program = await client.getSelectedProgram(device.providerId);
+        const remainingSeconds = program.options.find((option) => option.key === REMAINING_PROGRAM_TIME)?.value;
+
+        if (typeof remainingSeconds !== 'number') {
+          throw new Error('The dishwasher didn\'t report how long its selected program takes');
+        }
+
+        const now = new Date();
+        const durationMinutes = remainingSeconds / 60;
+        const slots = await getForwardSlots(dayjs(finishBy).add(durationMinutes + SLOT_MINUTES, 'minute').toDate());
+        const run = planRun(slots, durationMinutes, config.homeconnect.dishwasher_power_profile_kwh, finishBy, now);
+
+        await client.startProgram(device.providerId, {
+          key: program.key,
+          options: [
+            ...program.options.filter((option) => option.key.startsWith(DISHWASHER_OPTION_PREFIX)),
+            startInRelative(run.start, now),
+          ],
+        });
+
+        await setPendingRun(device, run);
+
+        logger.info(`Dishwasher: scheduled ${program.key} for ${run.start} - ${run.end}, to finish by ${run.finishBy}`);
+
+        return toScheduledRun(run);
+      },
+
+      async cancelScheduledRun(device: Device) {
+        if (getPendingRun(device) === null) {
+          return;
+        }
+
+        await client.stopActiveProgram(device.providerId);
+        await setPendingRun(device, undefined);
+      },
     };
   },
 
   async synchronize() {
-    const dishwashers = (await client.getAppliances()).filter((appliance) => appliance.type === 'Dishwasher');
+    for (const appliance of await client.getAppliances()) {
+      if (appliance.type !== 'Dishwasher') {
+        continue;
+      }
 
-    for (const dishwasher of dishwashers) {
-      let device = await Device.findByProviderId('homeconnect', dishwasher.haId);
+      let device = await Device.findByProviderId('homeconnect', appliance.haId);
 
       if (device === null) {
-        device = Device.build({ provider: 'homeconnect', providerId: dishwasher.haId, name: dishwasher.name });
+        device = Device.build({ provider: 'homeconnect', providerId: appliance.haId, name: appliance.name });
       }
 
       device.manufacturer = 'Home Connect';
-      device.model = dishwasher.type;
+      device.model = appliance.type;
 
       await device.save();
     }

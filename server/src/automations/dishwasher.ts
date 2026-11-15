@@ -23,10 +23,10 @@ export default function ({ buttonName, dishwasherName, finishTimes }: z.infer<ty
   DeviceCapabilityEvents.onButtonPressed(
     device => device.name === buttonName,
     createBackgroundTransaction('automations:dishwasher', async (event: BooleanEvent) => {
-      const time = event.instanceId === null ? undefined : finishTimes[event.instanceId];
+      const time = finishTimes[event.instanceId!];
 
       if (time === undefined) {
-        return;
+        throw new Error(`${buttonName} ${event.instanceId} has no finish time configured`);
       }
 
       let device: Device | null = null;
