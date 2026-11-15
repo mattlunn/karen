@@ -75,12 +75,6 @@
       "eventName": "compressor_modulation"
     },
     {
-      "name": "CompressorPower",
-      "isWriteable": false,
-      "type": "number",
-      "eventName": "compressor_power"
-    },
-    {
       "name": "SystemPressure",
       "isWriteable": false,
       "type": "number",

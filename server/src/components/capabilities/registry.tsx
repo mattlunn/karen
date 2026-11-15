@@ -620,8 +620,15 @@ export const registry: CapabilityUIRegistry = {
     ],
     getGraphSections: () => [
       { title: 'Power', graphs: [{ id: 'heatpump-power' }] },
-      { title: 'Compressor Power', graphs: [{ id: 'heatpump-compressor-power', yMin: 0 }] },
-      { title: 'Compressor Modulation', graphs: [{ id: 'heatpump-compressor-modulation', yMin: 0, yMax: 100 }] },
+      {
+        title: 'Compressor Modulation',
+        graphs: [{
+          id: 'heatpump-compressor-modulation',
+          yMin: 0,
+          yMax: 100,
+          referenceLines: [{ at: 33.5, label: 'Min. Speed', color: '#868e96' }],
+        }],
+      },
       { title: 'Cumulative Energy (kWh)', graphs: [{ id: 'heatpump-cumulative-energy', yMin: 0 }] },
       { title: 'Outside Temperature', graphs: [{ id: 'heatpump-outside-temp', yMin: -10 }] },
       { title: 'DHW Temperature', graphs: [{ id: 'heatpump-dhw-temp' }] },
