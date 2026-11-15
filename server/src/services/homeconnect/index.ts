@@ -3,16 +3,21 @@ import config from '../../config';
 import { DishwasherScheduledRun } from '../../models/capabilities';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
-import { PriceSlot, SLOT_MINUTES } from '../../helpers/prices';
+import { findCheapestWindow, startOfSlot, PriceSlot, SLOT_MINUTES } from '../../helpers/prices';
 import ApiClient, { ProgramOption } from './lib/client';
 import { getAccessToken } from './lib/auth';
-import { planRun, StoredRun } from './plan';
 
 const START_IN_RELATIVE = 'BSH.Common.Option.StartInRelative';
 const REMAINING_PROGRAM_TIME = 'BSH.Common.Option.RemainingProgramTime';
 const DISHWASHER_OPTION_PREFIX = 'Dishcare.Dishwasher.Option.';
 const OPERATION_STATE_RUN = 'BSH.Common.EnumType.OperationState.Run';
 const OPERATION_STATE_DELAYED_START = 'BSH.Common.EnumType.OperationState.DelayedStart';
+
+type StoredRun = {
+  start: string;
+  end: string;
+  finishBy: string;
+};
 
 const client = new ApiClient(getAccessToken);
 
@@ -92,9 +97,21 @@ Device.registerProvider('homeconnect', {
 
         const now = new Date();
         const durationMinutes = remainingSeconds / 60;
+        const powerProfileKwh = config.homeconnect.dishwasher_power_profile_kwh;
+        const windowMinutes = Math.ceil(durationMinutes / SLOT_MINUTES) * SLOT_MINUTES;
+        const currentSlot = startOfSlot(now);
         // A run finishing by the deadline can still end part-way through its last slot, which is priced whole.
         const slots = await getForwardSlots(dayjs(finishBy).add(SLOT_MINUTES, 'minute').toDate());
-        const run = planRun(slots, durationMinutes, config.homeconnect.dishwasher_power_profile_kwh, finishBy, now);
+        // Starting now is priced as the slot already under way, and is also the fallback when no later
+        // start can finish by the deadline.
+        const startNow = findCheapestWindow(slots, durationMinutes, currentSlot, dayjs(currentSlot).add(windowMinutes, 'minute').toDate(), powerProfileKwh);
+        const later = findCheapestWindow(slots, durationMinutes, now, dayjs(finishBy).subtract(durationMinutes, 'minute').add(windowMinutes, 'minute').toDate(), powerProfileKwh);
+        const start = later !== null && (startNow === null || later.averagePence < startNow.averagePence) ? later.start : now;
+        const run: StoredRun = {
+          start: start.toISOString(),
+          end: dayjs(start).add(durationMinutes, 'minute').toISOString(),
+          finishBy: finishBy.toISOString(),
+        };
 
         await client.startProgram(device.providerId, {
           key: program.key,
