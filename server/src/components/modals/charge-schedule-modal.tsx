@@ -62,7 +62,7 @@ export default function ChargeScheduleModal({ device, capability, closeModal }: 
 
       <Box my="xl">
         <Text size="sm" fw={500} mb="xs">Target Time</Text>
-        <DateTimeSelect value={targetTime} onChange={setTargetTime} minDate={new Date()} />
+        <DateTimeSelect value={targetTime} onChange={setTargetTime} minDate={dayjs()} />
       </Box>
 
       <Group justify="flex-end" mt="xl">

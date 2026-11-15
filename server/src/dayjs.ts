@@ -48,5 +48,15 @@ dayjs.tz = dayjsLib.tz;
 dayjs.unix = dayjsLib.unix;
 dayjs.utc = dayjsLib.utc;
 
+const WALL_CLOCK_FORMAT = 'YYYY-MM-DD HH:mm:ss';
+
+export function toLondonWallClock(date: Dayjs): string {
+  return date.tz('Europe/London').format(WALL_CLOCK_FORMAT);
+}
+
+export function fromLondonWallClock(wallClock: string): Dayjs {
+  return dayjsLib.tz(wallClock, 'Europe/London');
+}
+
 export default dayjs;
 export type { Dayjs, ManipulateType, OpUnitType, QUnitType };

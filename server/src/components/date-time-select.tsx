@@ -1,13 +1,13 @@
 import React from 'react';
 import { DatePicker } from '@mantine/dates';
 import { Group, NativeSelect, Stack, Text } from '@mantine/core';
-import dayjs, { Dayjs } from '../dayjs';
+import { Dayjs, fromLondonWallClock, toLondonWallClock } from '../dayjs';
 import { range } from '../helpers/iterable';
 
 interface DateTimeSelectProps {
   value: Dayjs;
   onChange: (value: Dayjs) => void;
-  minDate?: Date;
+  minDate?: Dayjs;
 }
 
 function pad(n: number): string {
@@ -17,16 +17,16 @@ function pad(n: number): string {
 export default function DateTimeSelect({ value, onChange, minDate }: DateTimeSelectProps) {
   const handleDateChange = (date: string | null) => {
     if (date) {
-      onChange(dayjs(date).hour(value.hour()).minute(value.minute()));
+      onChange(fromLondonWallClock(date).hour(value.hour()).minute(value.minute()));
     }
   };
 
   return (
     <Group gap="md" align="flex-start">
       <DatePicker
-        value={value.toDate()}
+        value={toLondonWallClock(value)}
         onChange={handleDateChange}
-        minDate={minDate}
+        minDate={minDate && toLondonWallClock(minDate)}
         size="md"
       />
       <Stack align="center" justify="center" pt="lg">
