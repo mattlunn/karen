@@ -8,7 +8,6 @@ import ApiClient, { ProgramOption } from './lib/client';
 import { getAccessToken } from './lib/auth';
 
 const START_IN_RELATIVE = 'BSH.Common.Option.StartInRelative';
-const REMAINING_PROGRAM_TIME = 'BSH.Common.Option.RemainingProgramTime';
 const DISHWASHER_OPTION_PREFIX = 'Dishcare.Dishwasher.Option.';
 const OPERATION_STATE_READY = 'BSH.Common.EnumType.OperationState.Ready';
 const OPERATION_STATE_DELAYED_START = 'BSH.Common.EnumType.OperationState.DelayedStart';
@@ -75,14 +74,8 @@ Device.registerProvider('homeconnect', {
         }
 
         const program = await client.getSelectedProgram(device.providerId);
-        const remainingSeconds = program.options.find((option) => option.key === REMAINING_PROGRAM_TIME)?.value;
-
-        if (typeof remainingSeconds !== 'number') {
-          throw new Error('The dishwasher didn\'t report how long its selected program takes');
-        }
-
         const now = new Date();
-        const durationMinutes = remainingSeconds / 60;
+        const durationMinutes = config.homeconnect.dishwasher_run_minutes;
         const powerProfileKwh = config.homeconnect.dishwasher_power_profile_kwh;
         const windowMinutes = Math.ceil(durationMinutes / SLOT_MINUTES) * SLOT_MINUTES;
         // A run finishing by the deadline can still end part-way through its last slot, which is priced whole.
