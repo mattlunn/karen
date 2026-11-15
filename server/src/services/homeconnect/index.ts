@@ -10,7 +10,7 @@ import { getAccessToken } from './lib/auth';
 const START_IN_RELATIVE = 'BSH.Common.Option.StartInRelative';
 const REMAINING_PROGRAM_TIME = 'BSH.Common.Option.RemainingProgramTime';
 const DISHWASHER_OPTION_PREFIX = 'Dishcare.Dishwasher.Option.';
-const OPERATION_STATE_RUN = 'BSH.Common.EnumType.OperationState.Run';
+const OPERATION_STATE_READY = 'BSH.Common.EnumType.OperationState.Ready';
 const OPERATION_STATE_DELAYED_START = 'BSH.Common.EnumType.OperationState.DelayedStart';
 
 type StoredRun = {
@@ -52,22 +52,6 @@ async function getForwardSlots(until: Date): Promise<PriceSlot[]> {
   return energyCostDevice.getEnergyCostCapability().getForwardUnitRates(until);
 }
 
-// Asks the appliance, not the stored run (which goes stale if the panel is used), because stopping
-// the active program mid-cycle would end a clean in progress.
-async function cancelDelayedStart(device: Device): Promise<void> {
-  const state = await client.getOperationState(device.providerId);
-
-  await setPendingRun(device, undefined);
-
-  if (state === OPERATION_STATE_RUN) {
-    throw new Error('The dishwasher is already running');
-  }
-
-  if (state === OPERATION_STATE_DELAYED_START) {
-    await client.stopActiveProgram(device.providerId);
-  }
-}
-
 function startInRelative(start: string, now: Date): ProgramOption {
   return { key: START_IN_RELATIVE, value: Math.max(0, dayjs(start).diff(now, 'second')), unit: 'seconds' };
 }
@@ -86,7 +70,9 @@ Device.registerProvider('homeconnect', {
       },
 
       async scheduleToFinishBy(device: Device, finishBy: Date) {
-        await cancelDelayedStart(device);
+        if (await client.getOperationState(device.providerId) !== OPERATION_STATE_READY) {
+          throw new Error('The dishwasher already has a program queued or running');
+        }
 
         const program = await client.getSelectedProgram(device.providerId);
         const remainingSeconds = program.options.find((option) => option.key === REMAINING_PROGRAM_TIME)?.value;
@@ -133,7 +119,13 @@ Device.registerProvider('homeconnect', {
           return;
         }
 
-        await cancelDelayedStart(device);
+        // The stored run goes stale if the panel is used, and stopping the active program mid-cycle
+        // would end a clean in progress.
+        if (await client.getOperationState(device.providerId) === OPERATION_STATE_DELAYED_START) {
+          await client.stopActiveProgram(device.providerId);
+        }
+
+        await setPendingRun(device, undefined);
       },
     };
   },
