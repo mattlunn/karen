@@ -54,6 +54,12 @@ export default class ApiClient {
     return data.homeappliances;
   }
 
+  async getOperationState(haId: string): Promise<string> {
+    const data = await this.#request(`/homeappliances/${haId}/status/BSH.Common.Status.OperationState`) as { value: string };
+
+    return data.value;
+  }
+
   async getSelectedProgram(haId: string): Promise<Program> {
     const data = await this.#request(`/homeappliances/${haId}/programs/selected`) as { key: string; options?: ProgramOption[] };
 
