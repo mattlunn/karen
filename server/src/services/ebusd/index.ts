@@ -19,6 +19,9 @@ const STATUSCODE_TO_MODE: Record<string, HeatPumpMode> = {
   'Frost protection': 'FROST_PROTECTION',
 };
 
+// The 10kW aroTHERM Plus is the 12kW unit, software-limited to this compressor speed.
+const MAX_COMPRESSOR_MODULATION = 82;
+
 Device.registerProvider('ebusd', {
   getCapabilities(device) {
     return ['HEAT_PUMP', 'ENERGY_MONITOR', 'CONNECTIVITY'];
@@ -72,8 +75,7 @@ nowAndSetCron(createBackgroundTransaction('ebusd:poll', async () => {
     updateState(() => client.getDesiredFlowTemperature(), (v) => heatPumpCapability.setDesiredFlowTemperatureState(roundTo1DecimalPlace(v))),
     updateState(() => client.getReturnTemperature(), (v) => heatPumpCapability.setReturnTemperatureState(roundTo1DecimalPlace(v))),
 
-    updateState(() => client.getCompressorPower(), (v) => heatPumpCapability.setCompressorPowerState(v)),
-    updateState(() => client.getCompressorModulation(), (v) => heatPumpCapability.setCompressorModulationState(v)),
+    updateState(() => client.getCompressorModulation(), (v) => heatPumpCapability.setCompressorModulationState(roundTo1DecimalPlace(v * 100 / MAX_COMPRESSOR_MODULATION))),
 
     updateState(() => client.getHotWaterCylinderTemperature(), (v) => heatPumpCapability.setDHWTemperatureState(v)),
     updateState(() => client.getSystemPressure(), (v) => heatPumpCapability.setSystemPressureState(v)),

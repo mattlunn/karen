@@ -92,20 +92,6 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     });
   }],
 
-  // Heat Pump - Compressor Power
-  ['heatpump-compressor-power', async (device, selector) => {
-    const heatPump = device.getHeatPumpCapability();
-
-    return {
-      lines: [
-        {
-          data: await mapNumericHistoryToResponse((hs) => heatPump.getCompressorPowerHistory(hs), selector),
-          label: 'Compressor Power (W)'
-        }
-      ]
-    };
-  }],
-
   // Heat Pump - Compressor Modulation
   ['heatpump-compressor-modulation', async (device, selector) => {
     const heatPump = device.getHeatPumpCapability();
