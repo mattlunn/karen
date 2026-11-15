@@ -1,7 +1,7 @@
 import express from 'express';
 import config from '../config';
 import { User } from '../models';
-import { markUserAsHome, markUserAsAway } from '../helpers/presence';
+import { markUserAsHome } from '../helpers/presence';
 
 const router = express.Router();
 
@@ -22,12 +22,6 @@ router.use(async (req, res, next) => {
 
 router.post('/enter', async (req, res) => {
   await markUserAsHome(res.locals.user, 'geolocation');
-
-  res.sendStatus(200);
-});
-
-router.post('/exit', async (req, res) => {
-  await markUserAsAway(res.locals.user);
 
   res.sendStatus(200);
 });
