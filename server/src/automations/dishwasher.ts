@@ -50,7 +50,7 @@ export default function ({ buttonName, dishwasherName, finishTimes }: z.infer<ty
         await Log.notify({
           severity: 'notice',
           devices: [device],
-          message: `🍽️ Dishwasher starts at ${dayjs(run.start).format('HH:mm')}, finishing by ${dayjs(run.finishBy).format('HH:mm')}.`
+          message: `🍽️ Dishwasher starts at ${dayjs(run.start).format('HH:mm')}, done at ${dayjs(run.end).format('HH:mm')}.`
         });
       } catch (err) {
         await Log.notify({

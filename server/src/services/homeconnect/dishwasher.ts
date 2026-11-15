@@ -3,7 +3,7 @@ import config from '../../config';
 import { DishwasherScheduledRun } from '../../models/capabilities';
 import dayjs from '../../dayjs';
 import logger from '../../logger';
-import { PriceSlot } from '../../helpers/prices';
+import { PriceSlot, SLOT_MINUTES } from '../../helpers/prices';
 import ApiClient, { ProgramOption } from './lib/client';
 import { planRun, StoredRun } from './plan';
 
@@ -66,7 +66,9 @@ export async function scheduleToFinishBy(client: ApiClient, device: Device, fini
   }
 
   const now = new Date();
-  const run = planRun(await getForwardSlots(finishBy), remainingSeconds / 60, config.homeconnect.dishwasher_power_profile_kwh, finishBy, now);
+  const durationMinutes = remainingSeconds / 60;
+  const slots = await getForwardSlots(dayjs(finishBy).add(durationMinutes + SLOT_MINUTES, 'minute').toDate());
+  const run = planRun(slots, durationMinutes, config.homeconnect.dishwasher_power_profile_kwh, finishBy, now);
 
   await client.startProgram(device.providerId, {
     key: program.key,

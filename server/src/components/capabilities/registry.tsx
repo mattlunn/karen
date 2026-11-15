@@ -758,7 +758,7 @@ export const registry: CapabilityUIRegistry = {
         value: cap.scheduledRun
           ? `${humanDate(dayjs(cap.scheduledRun.start))} at ${dayjs(cap.scheduledRun.start).format('HH:mm')}`
           : 'None',
-        footer: cap.scheduledRun ? `Finishes by ${dayjs(cap.scheduledRun.finishBy).format('HH:mm')}` : undefined,
+        footer: cap.scheduledRun ? `Done at ${dayjs(cap.scheduledRun.end).format('HH:mm')}` : undefined,
         iconColor: '#04A7F4',
         iconHighlighted: cap.scheduledRun !== null,
       }),
