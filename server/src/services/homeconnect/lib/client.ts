@@ -60,12 +60,6 @@ export default class ApiClient {
     return data.value;
   }
 
-  async getSelectedProgram(haId: string): Promise<Program> {
-    const data = await this.#request(`/homeappliances/${haId}/programs/selected`) as { key: string; options?: ProgramOption[] };
-
-    return { key: data.key, options: data.options ?? [] };
-  }
-
   async startProgram(haId: string, program: Program): Promise<void> {
     await this.#request(`/homeappliances/${haId}/programs/active`, {
       method: 'PUT',

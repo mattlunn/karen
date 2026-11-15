@@ -8,7 +8,7 @@ import ApiClient, { ProgramOption } from './lib/client';
 import { getAccessToken } from './lib/auth';
 
 const START_IN_RELATIVE = 'BSH.Common.Option.StartInRelative';
-const DISHWASHER_OPTION_PREFIX = 'Dishcare.Dishwasher.Option.';
+const ECO_50 = 'Dishcare.Dishwasher.Program.Eco50';
 const OPERATION_STATE_READY = 'BSH.Common.EnumType.OperationState.Ready';
 const OPERATION_STATE_DELAYED_START = 'BSH.Common.EnumType.OperationState.DelayedStart';
 
@@ -73,7 +73,6 @@ Device.registerProvider('homeconnect', {
           throw new Error('The dishwasher already has a program queued or running');
         }
 
-        const program = await client.getSelectedProgram(device.providerId);
         const now = new Date();
         const durationMinutes = config.homeconnect.dishwasher_run_minutes;
         const powerProfileKwh = config.homeconnect.dishwasher_power_profile_kwh;
@@ -89,17 +88,11 @@ Device.registerProvider('homeconnect', {
           finishBy: finishBy.toISOString(),
         };
 
-        await client.startProgram(device.providerId, {
-          key: program.key,
-          options: [
-            ...program.options.filter((option) => option.key.startsWith(DISHWASHER_OPTION_PREFIX)),
-            startInRelative(run.start, now),
-          ],
-        });
+        await client.startProgram(device.providerId, { key: ECO_50, options: [startInRelative(run.start, now)] });
 
         await setPendingRun(device, run);
 
-        logger.info(`Dishwasher: scheduled ${program.key} for ${run.start} - ${run.end}, to finish by ${run.finishBy}`);
+        logger.info(`Dishwasher: scheduled Eco 50 for ${run.start} - ${run.end}, to finish by ${run.finishBy}`);
 
         return toScheduledRun(run);
       },
