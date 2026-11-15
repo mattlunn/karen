@@ -85,14 +85,11 @@ Device.registerProvider('homeconnect', {
         const durationMinutes = remainingSeconds / 60;
         const powerProfileKwh = config.homeconnect.dishwasher_power_profile_kwh;
         const windowMinutes = Math.ceil(durationMinutes / SLOT_MINUTES) * SLOT_MINUTES;
-        const currentSlot = startOfSlot(now);
         // A run finishing by the deadline can still end part-way through its last slot, which is priced whole.
         const slots = await getForwardSlots(dayjs(finishBy).add(SLOT_MINUTES, 'minute').toDate());
-        // Starting now is priced as the slot already under way, and is also the fallback when no later
-        // start can finish by the deadline.
-        const startNow = findCheapestWindow(slots, durationMinutes, currentSlot, dayjs(currentSlot).add(windowMinutes, 'minute').toDate(), powerProfileKwh);
-        const later = findCheapestWindow(slots, durationMinutes, now, dayjs(finishBy).subtract(durationMinutes, 'minute').add(windowMinutes, 'minute').toDate(), powerProfileKwh);
-        const start = later !== null && (startNow === null || later.averagePence < startNow.averagePence) ? later.start : now;
+        const window = findCheapestWindow(slots, durationMinutes, startOfSlot(now), dayjs(finishBy).subtract(durationMinutes, 'minute').add(windowMinutes, 'minute').toDate(), powerProfileKwh);
+        // The slot already under way means starting now, which is also the fallback when nothing can finish in time.
+        const start = window === null || window.start < now ? now : window.start;
         const run: StoredRun = {
           start: start.toISOString(),
           end: dayjs(start).add(durationMinutes, 'minute').toISOString(),
