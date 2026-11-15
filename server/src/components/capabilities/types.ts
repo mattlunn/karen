@@ -128,7 +128,6 @@ export interface GraphConfig {
   yMax?: number;
   suggestedYMin?: number;
   zones?: { min: number; max: number; color: string }[];
-  referenceLines?: { at: number; label: string; color: string }[];
   timeUnit?: TimeUnit;
 }
 

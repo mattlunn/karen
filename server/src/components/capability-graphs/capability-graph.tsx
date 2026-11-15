@@ -189,12 +189,6 @@ export type CapabilityGraphProps = {
     color: string;
   }[]
 
-  referenceLines?: {
-    at: number;
-    label: string;
-    color: string;
-  }[]
-
   modes?: ModeSeries[]
 
   yAxis?: Record<string, {
@@ -497,26 +491,6 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
         ...(zone.max !== undefined ? { yMax: zone.max } : {}),
         backgroundColor: zone.color,
         borderWidth: 0
-      };
-    });
-  }
-
-  if (props.referenceLines) {
-    props.referenceLines.forEach((line, idx) => {
-      chartOptions.plugins.annotation.annotations[`referenceLine${idx}`] = {
-        type: 'line',
-        yMin: line.at,
-        yMax: line.at,
-        borderColor: line.color,
-        borderWidth: 2,
-        borderDash: [6, 6],
-        label: {
-          display: true,
-          content: line.label,
-          position: 'start',
-          backgroundColor: line.color,
-          font: { size: 10 }
-        }
       };
     });
   }

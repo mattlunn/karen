@@ -626,7 +626,7 @@ export const registry: CapabilityUIRegistry = {
           id: 'heatpump-compressor-modulation',
           yMin: 0,
           yMax: 100,
-          referenceLines: [{ at: 33.5, label: 'Min. Speed', color: '#868e96' }],
+          zones: [{ min: 0, max: 33.5, color: 'rgba(134, 142, 150, 0.15)' }],
         }],
       },
       { title: 'Cumulative Energy (kWh)', graphs: [{ id: 'heatpump-cumulative-energy', yMin: 0 }] },
