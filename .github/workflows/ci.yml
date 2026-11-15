@@ -27,6 +27,10 @@ jobs:
       - run: npm run codegen
       - run: npm run lint
       - run: npm run test
+      - name: Test browser code with the host outside London
+        run: npx jest components
+        env:
+          TZ: America/New_York
       - run: npm run build
         env:
           NODE_ENV: production
