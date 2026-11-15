@@ -10,6 +10,8 @@ describe('timeString', () => {
     'sunset',
     'sunset - 30m',
     'sunrise + 1h30m',
+    'now',
+    'now + 24h',
     '00:00 + 1d',
     '07:00-15m'
   ])('accepts %s', (value) => {

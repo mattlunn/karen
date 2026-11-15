@@ -16,7 +16,9 @@ function normalizeOffset(offset) {
 }
 
 function normalizeBase(base, date) {
-  if (base === 'sunrise' || base === 'sunset') {
+  if (base === 'now') {
+    return dayjs(date);
+  } else if (base === 'sunrise' || base === 'sunset') {
     return dayjs(getSunriseAndSunset(date)[base]);
   } else {
     const [hour, minute] = base.split(':');

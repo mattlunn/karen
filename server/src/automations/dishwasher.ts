@@ -6,23 +6,14 @@ import { normalizeTime } from '../helpers/time';
 import dayjs from '../dayjs';
 import { timeString } from './schema';
 
-const WITHIN_HOURS = /^\+(\d+)h$/;
-
 export const parameters = z.object({
   buttonName: z.string(),
   dishwasherName: z.string(),
-  // Keyed by the button's instance id, e.g. `button1`: the next occurrence of a time of day, or
-  // "+24h" to finish within that many hours of the press.
-  finishTimes: z.record(z.string(), z.union([timeString, z.string().regex(WITHIN_HOURS, 'must be a time of day, or "+<hours>h"')])),
+  // Keyed by the button's instance id, e.g. `button1`.
+  finishTimes: z.record(z.string(), timeString),
 });
 
 function finishByFor(finishTime: string, now: Date): Date {
-  const withinHours = finishTime.match(WITHIN_HOURS);
-
-  if (withinHours !== null) {
-    return dayjs(now).add(Number(withinHours[1]), 'hour').toDate();
-  }
-
   const today = normalizeTime(finishTime, now);
 
   return (today.isAfter(now) ? today : normalizeTime(finishTime, dayjs(now).add(1, 'day').toDate())).toDate();
