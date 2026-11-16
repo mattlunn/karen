@@ -219,7 +219,6 @@ export type HistoryLineApiResponse = {
   borderDash?: number[];
   period?: 'day' | 'month';
   filled?: boolean;
-  color?: string;
   // A computed catch-all (whole-house total minus everything individually
   // metered), drawn with a diagonal hatch so it reads as different in kind.
   role?: 'residual';

@@ -84,7 +84,7 @@ export async function powerHandler(req: Request, res: Response) {
   ]);
 
   res.json({
-    series: [...powerSeries, { data: unitRate, label: 'Unit rate (p/kWh)', yAxisID: 'yRate', filled: true, color: 'rgba(134, 142, 150, 0.15)' }]
+    series: [...powerSeries, { data: unitRate, label: 'Unit rate (p/kWh)', yAxisID: 'yRate', filled: true }]
   } satisfies EnergyPowerInsightsApiResponse);
 }
 
