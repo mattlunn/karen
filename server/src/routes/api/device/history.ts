@@ -74,9 +74,6 @@ function energyBars(energyMonitor: EnergyMonitorCapability, selector: TimeRangeS
     .then(data => [{ data, label: 'Energy (kWh)', yAxisID: 'yEnergy', period: 'day' as const }]);
 }
 
-const ACTUAL_RUN_COLOR = 'rgba(46, 204, 113, 0.35)';
-const PLANNED_RUN_COLOR = 'rgba(46, 204, 113, 0.15)';
-
 const FORECAST_HORIZON_DAYS = 7;
 
 function slotToEvent(slot: PriceSlot): NumericEventApiResponse {
@@ -139,10 +136,7 @@ async function priceSchedule(
   return {
     lines: [...deviceSeries.lines, { data: rateData, label: 'Unit rate (p/kWh)', yAxisID: rateAxisID }],
     modes: deviceSeries.modes,
-    markers: [
-      ...(until >= now ? [{ at: now.toISOString(), label: 'Now', color: '#fa5252' }] : []),
-      ...(forecastSlots.length > 0 ? [{ at: publishedUntil.toISOString(), label: 'Forecast', color: '#868e96' }] : []),
-    ],
+    markers: forecastSlots.length > 0 ? [{ at: publishedUntil.toISOString(), label: 'Forecast', color: '#868e96' }] : [],
   };
 }
 
@@ -176,7 +170,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
         },
         {
           data: blocksToModeData(dhwWindow ? [dhwWindow] : [], view),
-          details: [{ value: true as const, label: 'Hot Water (planned)', fillColor: PLANNED_RUN_COLOR }]
+          details: [{ value: true as const, label: 'Hot Water (planned)' }]
         }
       ]
     };
@@ -374,8 +368,8 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     return {
       lines: [{ data: stopAtNow(charge, view), label: 'Charge %' }],
       modes: [
-        { data: charging, details: [{ value: true as const, label: 'Charging', fillColor: ACTUAL_RUN_COLOR }] },
-        { data: blocksToModeData(ev.getPlannedChargeBlocks(), view), details: [{ value: true as const, label: 'Charging (planned)', fillColor: PLANNED_RUN_COLOR }] }
+        { data: charging, details: [{ value: true as const, label: 'Charging' }] },
+        { data: blocksToModeData(ev.getPlannedChargeBlocks(), view), details: [{ value: true as const, label: 'Charging (planned)' }] }
       ]
     };
   })],

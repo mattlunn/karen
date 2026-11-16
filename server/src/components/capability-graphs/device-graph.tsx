@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useDeviceHistory } from '../../hooks/queries/use-device-history';
 import { CapabilityGraph } from './capability-graph';
 import type { GraphConfig } from '../capabilities/types';
+import dayjs from '../../dayjs';
 
 type DeviceGraphProps = {
   deviceId: number;
@@ -37,13 +38,17 @@ export function DeviceGraph({ deviceId, graph, instanceId, since, until }: Devic
     ? graph.yAxis
     : { ...graph.yAxis, y: { ...graph.yAxis?.y, min: graph.yMin, max: graph.yMax, suggestedMin: graph.suggestedYMin } };
 
+  const markers = dayjs(until).isAfter(dayjs())
+    ? [{ at: dayjs().toISOString(), label: 'Now', color: '#fa5252' }, ...(data.markers ?? [])]
+    : data.markers;
+
   return (
     <CapabilityGraph
       lines={data.lines}
       modes={data.modes}
       bars={data.bars}
       zones={graph.zones}
-      markers={data.markers}
+      markers={markers}
       yAxis={mergedYAxis}
       timeUnit={graph.timeUnit}
     />
