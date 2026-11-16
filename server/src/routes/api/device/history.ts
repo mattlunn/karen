@@ -1,4 +1,4 @@
-import { Device } from '../../../models';
+import { Device, NumericEvent } from '../../../models';
 import { EnergyMonitorCapability } from '../../../models/capabilities';
 import { TimeRangeSelector } from '../../../models/capabilities/helpers';
 import { Request, Response, NextFunction } from 'express';
@@ -11,6 +11,8 @@ import {
 } from '../../../api/types';
 import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapStringHistoryToResponse, bucketByDay, daysInRange, dailyUnitRate } from '../history-helpers';
 import { PriceSlot } from '../../../helpers/prices';
+import { calculateWattHours } from '../../../helpers/energy';
+import { filterClampAndSortHistory } from '../../../helpers/history';
 
 // Types
 
@@ -103,6 +105,27 @@ function stopAtNow(data: HistoryDetailsApiResponse<NumericEventApiResponse>, vie
   };
 }
 
+const SLOT_MS = 30 * 60 * 1000;
+
+// kWh used in each half-hour price slot (power is in kW), up to the actual range's end.
+function energyPerSlot(power: NumericEvent[], actual: TimeRangeSelector, view: TimeRangeSelector): HistoryDetailsApiResponse<NumericEventApiResponse> {
+  const history: NumericEventApiResponse[] = [];
+
+  for (let start = actual.since.getTime(); start < actual.until.getTime(); start += SLOT_MS) {
+    const slotStart = new Date(start);
+    const slotEnd = new Date(Math.min(start + SLOT_MS, actual.until.getTime()));
+
+    history.push({
+      start: slotStart.toISOString(),
+      end: slotEnd.toISOString(),
+      lastReported: slotEnd.toISOString(),
+      value: calculateWattHours(filterClampAndSortHistory(power, slotStart, slotEnd, false)),
+    });
+  }
+
+  return { since: view.since.toISOString(), until: view.until.toISOString(), history };
+}
+
 // The unit rate as a line - published prices, then forecast once those run out -
 // alongside a device's own series, split at now into actual and planned.
 async function priceSchedule(
@@ -143,35 +166,43 @@ async function priceSchedule(
 // Registry
 
 const historyFetchers = new Map<string, HistoryFetcher>([
-  // Heat Pump - Power (Yield + Power with modes), with the unit rate and planned hot water window
-  ['heatpump-power', (device, selector) => priceSchedule(selector, 'yRate', async (actual, view) => {
+  // Heat Pump - Power (Yield + Power with modes)
+  ['heatpump-power', async (device, selector) => {
+    const heatPump = device.getHeatPumpCapability();
+
+    return awaitPromises({
+      lines: Promise.all([
+        mapNumericHistoryToResponse((hs) => heatPump.getCurrentYieldHistory(hs), selector)
+          .then(data => ({ data, label: 'Yield' })),
+        mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), selector)
+          .then(data => ({ data, label: 'Power' }))
+      ]),
+      modes: mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), selector).then(data => [{
+        data,
+        details: [
+          { value: 'HEATING', label: 'Heating' },
+          { value: 'DEICING', label: 'Deicing' },
+          { value: 'FROST_PROTECTION', label: 'Frost Protection' },
+          { value: 'DHW', label: 'Hot Water' }
+        ]
+      }])
+    });
+  }],
+
+  // Heat Pump - Energy per half-hour price slot, with the unit rate and actual/planned hot water windows
+  ['heatpump-usage-price', (device, selector) => priceSchedule(selector, 'yRate', async (actual, view) => {
     const heatPump = device.getHeatPumpCapability();
     const dhwWindow = heatPump.getPlannedDHWWindow();
-    const [yieldData, powerData, modeData] = await Promise.all([
-      mapNumericHistoryToResponse((hs) => heatPump.getCurrentYieldHistory(hs), actual),
-      mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), actual),
+    const [power, modeData] = await Promise.all([
+      heatPump.getCurrentPowerHistory(actual),
       mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), actual)
     ]);
 
     return {
-      lines: [
-        { data: stopAtNow(yieldData, view), label: 'Yield' },
-        { data: stopAtNow(powerData, view), label: 'Power' }
-      ],
+      lines: [{ data: energyPerSlot(power, actual, view), label: 'Energy (kWh)', filled: true }],
       modes: [
-        {
-          data: modeData,
-          details: [
-            { value: 'HEATING', label: 'Heating' },
-            { value: 'DEICING', label: 'Deicing' },
-            { value: 'FROST_PROTECTION', label: 'Frost Protection' },
-            { value: 'DHW', label: 'Hot Water' }
-          ]
-        },
-        {
-          data: blocksToModeData(dhwWindow ? [dhwWindow] : [], view),
-          details: [{ value: true as const, label: 'Hot Water (planned)' }]
-        }
+        { data: modeData, details: [{ value: 'DHW', label: 'Hot Water' }] },
+        { data: blocksToModeData(dhwWindow ? [dhwWindow] : [], view), details: [{ value: true as const, label: 'Hot Water (planned)' }] }
       ]
     };
   })],
