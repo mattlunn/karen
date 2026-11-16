@@ -442,13 +442,21 @@ export const registry: CapabilityUIRegistry = {
         },
       }),
     ],
-    getGraphSections: () => [
+    getGraphSections: (cap) => [
       {
         title: 'Charge',
         overridePreset: 'custom',
-        overrideStart: dayjs().subtract(1, 'week').toISOString(),
-        overrideEnd: dayjs().toISOString(),
-        graphs: [{ id: 'vehicle-charge', yMin: 0, yMax: 100 }],
+        overrideStart: dayjs().startOf('day').toISOString(),
+        overrideEnd: cap.chargeType === 'DEADLINE' && cap.chargeSchedule
+          ? cap.chargeSchedule.targetTime
+          : dayjs().endOf('day').toISOString(),
+        graphs: [{
+          id: 'vehicle-charge',
+          yAxis: {
+            y: { position: 'left', min: 0, max: 100 },
+            yRate: { position: 'right' },
+          },
+        }],
       },
       {
         title: 'Monthly Mileage & Efficiency',
@@ -619,7 +627,19 @@ export const registry: CapabilityUIRegistry = {
       }),
     ],
     getGraphSections: () => [
-      { title: 'Power', graphs: [{ id: 'heatpump-power' }] },
+      {
+        title: 'Power',
+        overridePreset: 'custom',
+        overrideStart: dayjs().startOf('day').toISOString(),
+        overrideEnd: dayjs().endOf('day').toISOString(),
+        graphs: [{
+          id: 'heatpump-power',
+          yAxis: {
+            y: { position: 'left' },
+            yRate: { position: 'right' },
+          },
+        }],
+      },
       {
         title: 'Compressor Modulation',
         graphs: [{

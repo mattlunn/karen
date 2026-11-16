@@ -172,7 +172,7 @@ export interface CapabilityUIConfig<T extends CapabilityType> {
     capability: ExtractCapability<T>,
     device: RestDeviceResponse
   ) => CapabilityMetric[];
-  getGraphSections?: () => GraphSectionConfig[];
+  getGraphSections?: (capability: ExtractCapability<T>) => GraphSectionConfig[];
 }
 
 /**

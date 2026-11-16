@@ -1,12 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Anchor, Box, Table, Title } from '@mantine/core';
 import { Link } from 'react-router';
 import type { EnergyPeriodTotalsApiResponse } from '../../api/types';
 import { formatValueOrUnknown as v } from '../../helpers/format';
-import { useEnergyDeviceSummaryInsights, useEnergyDeviceCostDailyInsights, useEnergyPriceScheduleInsights, useEnergyDeviceUnitRateDailyInsights, useEnergyDeviceEnergyDailyInsights, useEnergyPowerInsights } from '../../hooks/queries/use-energy-insights';
+import { useEnergyDeviceSummaryInsights, useEnergyDeviceCostDailyInsights, useEnergyDeviceUnitRateDailyInsights, useEnergyDeviceEnergyDailyInsights, useEnergyPowerInsights } from '../../hooks/queries/use-energy-insights';
 import { useDevices } from '../../hooks/queries/use-devices';
 import { DateRangeProvider, DateRangeSelector } from '../date-range';
-import { DateRange, DateRangePreset } from '../date-range/types';
 import { CapabilityGraph } from '../capability-graphs/capability-graph';
 import { GraphSection } from '../capability-graphs/graph-section';
 import { GraphChrome } from '../graph-chrome';
@@ -14,14 +13,10 @@ import { getDeviceGraphSection } from '../capabilities';
 import PageLoader from '../page-loader';
 import dayjs from '../../dayjs';
 
-// Keyed 'y' (CapabilityGraph's default yAxisID) rather than a bespoke id:
-// every graph below has only this one axis, so nothing needs to disambiguate
-// against a sibling, and lines/bars can omit yAxisID entirely. Left blank to
-// pick up CapabilityGraph's own position/suggestedMin defaults.
+// Keyed 'y' (CapabilityGraph's default yAxisID) rather than a bespoke id, so
+// lines/bars can omit yAxisID entirely. Left blank to pick up CapabilityGraph's
+// own position/suggestedMin defaults.
 const yAxisLeft = { y: {} };
-
-// Matches the schedule endpoint's own horizon, which clamps anything longer.
-const FORECAST_HORIZON_DAYS = 7;
 
 function GraphState({ isPending, isError, children }: { isPending: boolean; isError: boolean; children: React.ReactNode }) {
   if (isPending) {
@@ -108,7 +103,7 @@ function UsageGraphBody({ since, until }: { since: string; until: string }) {
       {data && (
         <CapabilityGraph
           lines={data.series}
-          yAxis={yAxisLeft}
+          yAxis={{ ...yAxisLeft, yRate: { position: 'right' } }}
         />
       )}
     </GraphState>
@@ -211,66 +206,6 @@ function UnitRateDailyGraphBody({ since, until }: { since: string; until: string
   );
 }
 
-function ScheduleGraph() {
-  return (
-    <GraphChrome
-      title="Price &amp; run windows"
-      localPreset="custom"
-      localRange={{ since: dayjs().startOf('day'), until: dayjs().add(FORECAST_HORIZON_DAYS, 'day') }}
-    >
-      {({ since, until, range, setRange, preset, isLinkedToPageRange }) => (
-        <ScheduleGraphBody
-          since={since}
-          until={until}
-          range={range}
-          setRange={setRange}
-          preset={preset}
-          isLinkedToPageRange={isLinkedToPageRange}
-        />
-      )}
-    </GraphChrome>
-  );
-}
-
-function ScheduleGraphBody({ since, until, range, setRange, preset, isLinkedToPageRange }: {
-  since: string;
-  until: string;
-  range: DateRange;
-  setRange: (range: DateRange) => void;
-  preset: DateRangePreset;
-  isLinkedToPageRange: boolean;
-}) {
-  const { data, isPending, isError } = useEnergyPriceScheduleInsights({ since, until });
-
-  // The server ends the view where the forecast runs out - reflect that in the
-  // Custom range's `until` so the selector matches what's shown. Only while
-  // unlinked, since the page range is not this graph's to move.
-  const dataUntil = data?.lines[0]?.data.until;
-
-  useEffect(() => {
-    if (!isLinkedToPageRange && preset === 'custom' && dataUntil && dataUntil !== range.until.toISOString()) {
-      setRange({ since: range.since, until: dayjs(dataUntil) });
-    }
-  }, [dataUntil, preset, isLinkedToPageRange, range.since, range.until, setRange]);
-
-  return (
-    <GraphState isPending={isPending} isError={isError}>
-      {data && (
-        <CapabilityGraph
-          lines={data.lines}
-          modes={data.modes}
-          yAxis={yAxisLeft}
-          timeUnit="hour"
-          markers={[
-            { at: dayjs().toISOString(), label: 'Now', color: '#fa5252' },
-            ...(data.forecastFrom ? [{ at: data.forecastFrom, label: 'Forecast', color: '#868e96' }] : []),
-          ]}
-        />
-      )}
-    </GraphState>
-  );
-}
-
 export default function EnergyInsights() {
   return (
     <>
@@ -284,7 +219,6 @@ export default function EnergyInsights() {
         </Box>
 
         <UsageGraph />
-        <ScheduleGraph />
         <MeterDailyGraph />
         <UsageCostGraph />
         <UnitRateDailyGraph />

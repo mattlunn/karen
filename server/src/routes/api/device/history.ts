@@ -10,6 +10,7 @@ import {
   NumericEventApiResponse
 } from '../../../api/types';
 import { mapBooleanHistoryToResponse, mapNumericHistoryToResponse, mapStringHistoryToResponse, bucketByDay, daysInRange, dailyUnitRate } from '../history-helpers';
+import { PriceSlot } from '../../../helpers/prices';
 
 // Types
 
@@ -39,10 +40,17 @@ export type HistoryBarResponse = {
   period: 'day' | 'month';
 };
 
+export type HistoryMarkerResponse = {
+  at: string;
+  label?: string;
+  color: string;
+};
+
 export type HistoryResponse = {
   lines: HistoryLineResponse[];
   modes?: HistoryModesResponse[];
   bars?: HistoryBarResponse[];
+  markers?: HistoryMarkerResponse[];
 };
 
 type HistoryFetcher = (device: Device, selector: TimeRangeSelector, instanceId: string | null) => Promise<HistoryResponse>;
@@ -66,31 +74,107 @@ function energyBars(energyMonitor: EnergyMonitorCapability, selector: TimeRangeS
     .then(data => [{ data, label: 'Energy (kWh)', yAxisID: 'yEnergy', period: 'day' as const }]);
 }
 
+const FORECAST_HORIZON_DAYS = 7;
+
+function slotToEvent(slot: PriceSlot): NumericEventApiResponse {
+  return {
+    start: slot.start.toISOString(),
+    end: slot.end.toISOString(),
+    lastReported: slot.start.toISOString(),
+    value: slot.pence,
+  };
+}
+
+function blocksToModeData(blocks: { start: string; end: string }[], selector: TimeRangeSelector): HistoryDetailsApiResponse<BooleanEventApiResponse> {
+  return {
+    since: selector.since.toISOString(),
+    until: selector.until.toISOString(),
+    history: blocks.map(b => ({ start: b.start, end: b.end, lastReported: b.end, value: true })),
+  };
+}
+
+// A graph's lines must share since/until, so this widens to the view without
+// letting the ongoing reading run on past now.
+function stopAtNow(data: HistoryDetailsApiResponse<NumericEventApiResponse>, view: TimeRangeSelector): HistoryDetailsApiResponse<NumericEventApiResponse> {
+  return {
+    since: data.since,
+    until: view.until.toISOString(),
+    history: data.history.map((event) => ({ ...event, end: event.end ?? data.until })),
+  };
+}
+
+// The unit rate as a line - published prices, then forecast once those run out -
+// alongside a device's own series, split at now into actual and planned.
+async function priceSchedule(
+  requested: TimeRangeSelector,
+  rateAxisID: string,
+  getDeviceSeries: (actual: TimeRangeSelector, view: TimeRangeSelector) => Promise<Required<Pick<HistoryResponse, 'lines' | 'modes'>>>
+): Promise<HistoryResponse> {
+  const now = new Date();
+  const until = new Date(Math.min(requested.until.getTime(), dayjs(now).add(FORECAST_HORIZON_DAYS, 'day').valueOf()));
+  const [costDevice] = await Device.findByCapability('ENERGY_COST');
+  const energyCost = costDevice.getEnergyCostCapability();
+  const latestRate = await energyCost.getUnitRateEvent();
+  const publishedUntil = latestRate
+    ? new Date(Math.max(now.getTime(), dayjs(latestRate.start).add(30, 'minute').valueOf()))
+    : now;
+
+  const forecastSlots = until > publishedUntil
+    ? (await energyCost.getForwardUnitRates(until)).filter((slot) => slot.isEstimated)
+    : [];
+
+  const rateSelector = { since: requested.since, until: new Date(Math.min(until.getTime(), publishedUntil.getTime())) };
+  const actualSelector = { since: requested.since, until: new Date(Math.min(until.getTime(), now.getTime())) };
+  const [rateData, deviceSeries] = await Promise.all([
+    mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), rateSelector),
+    getDeviceSeries(actualSelector, { since: requested.since, until })
+  ]);
+
+  rateData.history = [...rateData.history, ...forecastSlots.map(slotToEvent)];
+  rateData.until = until.toISOString();
+
+  return {
+    lines: [...deviceSeries.lines, { data: rateData, label: 'Unit rate (p/kWh)', yAxisID: rateAxisID }],
+    modes: deviceSeries.modes,
+    markers: forecastSlots.length > 0 ? [{ at: publishedUntil.toISOString(), label: 'Forecast', color: '#868e96' }] : [],
+  };
+}
+
 // Registry
 
 const historyFetchers = new Map<string, HistoryFetcher>([
-  // Heat Pump - Power (Yield + Power with modes)
-  ['heatpump-power', async (device, selector) => {
+  // Heat Pump - Power (Yield + Power with modes), with the unit rate and planned hot water window
+  ['heatpump-power', (device, selector) => priceSchedule(selector, 'yRate', async (actual, view) => {
     const heatPump = device.getHeatPumpCapability();
+    const dhwWindow = heatPump.getPlannedDHWWindow();
+    const [yieldData, powerData, modeData] = await Promise.all([
+      mapNumericHistoryToResponse((hs) => heatPump.getCurrentYieldHistory(hs), actual),
+      mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), actual),
+      mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), actual)
+    ]);
 
-    return awaitPromises({
-      lines: Promise.all([
-        mapNumericHistoryToResponse((hs) => heatPump.getCurrentYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'Yield' })),
-        mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), selector)
-          .then(data => ({ data, label: 'Power' }))
-      ]),
-      modes: mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), selector).then(data => [{
-        data,
-        details: [
-          { value: 'HEATING', label: 'Heating' },
-          { value: 'DEICING', label: 'Deicing' },
-          { value: 'FROST_PROTECTION', label: 'Frost Protection' },
-          { value: 'DHW', label: 'Hot Water' }
-        ]
-      }])
-    });
-  }],
+    return {
+      lines: [
+        { data: stopAtNow(yieldData, view), label: 'Yield' },
+        { data: stopAtNow(powerData, view), label: 'Power' }
+      ],
+      modes: [
+        {
+          data: modeData,
+          details: [
+            { value: 'HEATING', label: 'Heating' },
+            { value: 'DEICING', label: 'Deicing' },
+            { value: 'FROST_PROTECTION', label: 'Frost Protection' },
+            { value: 'DHW', label: 'Hot Water' }
+          ]
+        },
+        {
+          data: blocksToModeData(dhwWindow ? [dhwWindow] : [], view),
+          details: [{ value: true as const, label: 'Hot Water (planned)' }]
+        }
+      ]
+    };
+  })],
 
   // Heat Pump - Compressor Modulation
   ['heatpump-compressor-modulation', async (device, selector) => {
@@ -273,24 +357,22 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     });
   }],
 
-  // Electric Vehicle - Charge
-  ['vehicle-charge', async (device, selector) => {
+  // Electric Vehicle - Charge, with the unit rate and actual/planned charge windows
+  ['vehicle-charge', (device, selector) => priceSchedule(selector, 'yRate', async (actual, view) => {
     const ev = device.getElectricVehicleCapability();
+    const [charge, charging] = await Promise.all([
+      mapNumericHistoryToResponse((hs) => ev.getChargePercentageHistory(hs), actual),
+      mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), actual)
+    ]);
 
-    return awaitPromises({
-      lines: Promise.all([
-        mapNumericHistoryToResponse((hs) => ev.getChargePercentageHistory(hs), selector)
-          .then(data => ({ data, label: 'Charge %' }))
-      ]),
-      modes: mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), selector)
-        .then(data => [{
-          data,
-          details: [
-            { value: true as const, label: 'Charging', fillColor: 'rgba(46, 204, 113, 0.3)' }
-          ]
-        }])
-    });
-  }],
+    return {
+      lines: [{ data: stopAtNow(charge, view), label: 'Charge %' }],
+      modes: [
+        { data: charging, details: [{ value: true as const, label: 'Charging' }] },
+        { data: blocksToModeData(ev.getPlannedChargeBlocks(), view), details: [{ value: true as const, label: 'Charging (planned)' }] }
+      ]
+    };
+  })],
 
   // Alarm Sensor (input/dry-contact, e.g. fire alarm relay)
   ['alarm-sensor', async (device, selector) => {

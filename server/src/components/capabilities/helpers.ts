@@ -75,7 +75,10 @@ export function getDeviceGraphSections(device: RestDeviceResponse): GraphSection
     const config = registry[capability.type];
 
     if (config.getGraphSections) {
-      sections.push(...config.getGraphSections().map((section) => capability.instanceId === null ? section : {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const capabilitySections = (config.getGraphSections as any)(capability) as GraphSectionConfig[];
+
+      sections.push(...capabilitySections.map((section) => capability.instanceId === null ? section : {
         ...section,
         instanceId: capability.instanceId,
         title: capability.instanceName ? `${section.title} · ${capability.instanceName}` : section.title
