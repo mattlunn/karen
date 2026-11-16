@@ -442,20 +442,21 @@ export const registry: CapabilityUIRegistry = {
         },
       }),
     ],
-    getGraphSections: () => [
+    getGraphSections: (cap) => [
       {
         title: 'Charge',
         overridePreset: 'custom',
-        overrideStart: dayjs().subtract(1, 'week').toISOString(),
-        overrideEnd: dayjs().toISOString(),
-        graphs: [{ id: 'vehicle-charge', yMin: 0, yMax: 100 }],
-      },
-      {
-        title: 'Price & charge windows',
-        overridePreset: 'custom',
         overrideStart: dayjs().startOf('day').toISOString(),
-        overrideEnd: dayjs().add(7, 'day').toISOString(),
-        graphs: [{ id: 'vehicle-charge-schedule', timeUnit: 'hour' }],
+        overrideEnd: cap.chargeType === 'DEADLINE' && cap.chargeSchedule
+          ? cap.chargeSchedule.targetTime
+          : dayjs().endOf('day').toISOString(),
+        graphs: [{
+          id: 'vehicle-charge',
+          yAxis: {
+            y: { position: 'left', min: 0, max: 100 },
+            yRate: { position: 'right' },
+          },
+        }],
       },
       {
         title: 'Monthly Mileage & Efficiency',
