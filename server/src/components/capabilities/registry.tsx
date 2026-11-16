@@ -627,15 +627,16 @@ export const registry: CapabilityUIRegistry = {
       }),
     ],
     getGraphSections: () => [
+      { title: 'Power', graphs: [{ id: 'heatpump-power' }] },
       {
-        title: 'Power',
+        title: 'Usage vs price',
         overridePreset: 'custom',
         overrideStart: dayjs().startOf('day').toISOString(),
         overrideEnd: dayjs().endOf('day').toISOString(),
         graphs: [{
-          id: 'heatpump-power',
+          id: 'heatpump-usage-price',
           yAxis: {
-            y: { position: 'left' },
+            y: { position: 'left', min: 0 },
             yRate: { position: 'right' },
           },
         }],
