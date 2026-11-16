@@ -221,28 +221,6 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     };
   }],
 
-  // Heat Pump - Cumulative Energy (per-day running totals stored every 15 min)
-  ['heatpump-cumulative-energy', async (device, selector) => {
-    const heatPump = device.getHeatPumpCapability();
-
-    return {
-      lines: await Promise.all([
-        mapNumericHistoryToResponse((hs) => heatPump.getDayCumulativePowerHistory(hs), selector)
-          .then(data => ({ data, label: 'Total Power (kWh)' })),
-        mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCumulativePowerHistory(hs), selector)
-          .then(data => ({ data, label: 'Heating Power (kWh)' })),
-        mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCumulativePowerHistory(hs), selector)
-          .then(data => ({ data, label: 'DHW Power (kWh)' })),
-        mapNumericHistoryToResponse((hs) => heatPump.getDayCumulativeYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'Total Yield (kWh)' })),
-        mapNumericHistoryToResponse((hs) => heatPump.getDayHeatingCumulativeYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'Heating Yield (kWh)' })),
-        mapNumericHistoryToResponse((hs) => heatPump.getDayDHWCumulativeYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'DHW Yield (kWh)' })),
-      ])
-    };
-  }],
-
   // Heat Pump - Outside Temperature
   ['heatpump-outside-temp', async (device, selector) => {
     const heatPump = device.getHeatPumpCapability();
