@@ -219,6 +219,7 @@ export type HistoryLineApiResponse = {
   borderDash?: number[];
   period?: 'day' | 'month';
   filled?: boolean;
+  color?: string;
   // A computed catch-all (whole-house total minus everything individually
   // metered), drawn with a diagonal hatch so it reads as different in kind.
   role?: 'residual';
@@ -243,10 +244,17 @@ export type HistoryBarApiResponse = {
   role?: 'residual';
 };
 
+export type HistoryMarkerApiResponse = {
+  at: string;
+  label?: string;
+  color: string;
+};
+
 export type HistoryApiResponse = {
   lines: HistoryLineApiResponse[];
   modes?: HistoryModesApiResponse[];
   bars?: HistoryBarApiResponse[];
+  markers?: HistoryMarkerApiResponse[];
 };
 
 export type LogSeverity = 'info' | 'notice' | 'warning' | 'critical';
@@ -438,7 +446,8 @@ export interface HeatingInsightsApiResponse {
 }
 
 // /api/insights/energy/power endpoint - one non-stacked instantaneous-power
-// line per ENERGY_MONITOR device (the whole-house meter included as-is).
+// line per ENERGY_MONITOR device (the whole-house meter included as-is), plus
+// the unit rate as a filled line on its own 'yRate' axis.
 export type EnergyPowerInsightsApiResponse = {
   series: HistoryLineApiResponse[];
 };
@@ -480,17 +489,6 @@ export type EnergyDeviceSummaryApiResponse = {
     lastMonth: EnergyPeriodTotalsApiResponse;
   }[];
 };
-
-// /api/insights/energy/price-schedule endpoint - unit rate as a line with EV
-// and DHW run windows (actual and planned) shaded beneath it. Each band is
-// its own mode series so overlapping EV/DHW windows render honestly.
-export interface EnergyPriceScheduleApiResponse {
-  lines: HistoryLineApiResponse[];
-  modes: HistoryModesApiResponse[];
-  // Where the unit rate line stops being published prices and becomes
-  // forecast; null when the range ends before the published prices do.
-  forecastFrom: string | null;
-}
 
 // /api/insights/security endpoint
 export interface SecurityInsightsApiResponse {

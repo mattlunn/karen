@@ -88,6 +88,22 @@ const hatchedBarPlugin: Plugin<'bar', { datasetIndexes: number[] }> = {
   }
 };
 
+// Same timing as hatchedBar: re-applied after `colors` has overwritten it.
+const fixedColorPlugin: Plugin<'line', { colors: { datasetIndex: number; color: string }[] }> = {
+  id: 'fixedColor',
+  defaults: {
+    colors: []
+  },
+  afterLayout(chart, _args, options) {
+    for (const { datasetIndex, color } of options.colors) {
+      const dataset = chart.data.datasets[datasetIndex];
+
+      dataset.backgroundColor = color;
+      dataset.borderColor = color;
+    }
+  }
+};
+
 ChartJS.register(
   LinearScale,
   CategoryScale,
@@ -102,7 +118,8 @@ ChartJS.register(
   Colors,
   Filler,
   AnnotationPlugin,
-  hatchedBarPlugin
+  hatchedBarPlugin,
+  fixedColorPlugin
 );
 
 function mapNumericDataToDataset(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse | BooleanEventApiResponse | EnumEventApiResponse>) {
@@ -164,7 +181,8 @@ export type CapabilityGraphProps = {
     yAxisID?: string,
     borderDash?: number[],
     period?: 'day' | 'month',
-    filled?: boolean
+    filled?: boolean,
+    color?: string
   }[]
 
   bars?: {
@@ -256,6 +274,7 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
     ...(x.filled ? { fill: 'start', pointRadius: 0, borderWidth: 1, stepped: true } : {})
   }));
 
+  const fixedColors = props.lines.flatMap((line, datasetIndex) => line.color ? [{ datasetIndex, color: line.color }] : []);
   const timeUnit = props.timeUnit || inferTimeUnit(min, max);
   const tickStepSize = timeUnit === 'day' || timeUnit === 'month' ? 1 : timeUnit === 'hour' ? 2 : 15;
 
@@ -291,6 +310,10 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
       colors: {
         forceOverride: true
+      },
+
+      fixedColor: {
+        colors: fixedColors
       },
 
       legend: {

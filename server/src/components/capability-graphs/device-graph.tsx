@@ -43,6 +43,7 @@ export function DeviceGraph({ deviceId, graph, instanceId, since, until }: Devic
       modes={data.modes}
       bars={data.bars}
       zones={graph.zones}
+      markers={data.markers}
       yAxis={mergedYAxis}
       timeUnit={graph.timeUnit}
     />

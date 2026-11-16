@@ -8,18 +8,10 @@ import {
   EnergyPeriodTotalsApiResponse,
   EnergyDeviceUnitRateDailyApiResponse,
   EnergyPowerInsightsApiResponse,
-  EnergyPriceScheduleApiResponse,
-  HistoryDetailsApiResponse,
   HistoryLineApiResponse,
-  HistoryModesApiResponse,
-  BooleanEventApiResponse,
-  NumericEventApiResponse,
 } from '../../../api/types';
-import { PriceSlot } from '../../../helpers/prices';
 import {
   mapNumericHistoryToResponse,
-  mapBooleanHistoryToResponse,
-  mapStringHistoryToResponse,
   bucketByDay,
   daysInRange,
   daysToLineData,
@@ -67,115 +59,6 @@ function mergeSum(maps: Map<string, number>[]): Map<string, number> {
   return merged;
 }
 
-const EV_ACTUAL_COLOR = 'rgba(46, 204, 113, 0.35)';
-const EV_PLANNED_COLOR = 'rgba(46, 204, 113, 0.15)';
-const DHW_ACTUAL_COLOR = 'rgba(52, 152, 219, 0.35)';
-const DHW_PLANNED_COLOR = 'rgba(52, 152, 219, 0.15)';
-
-const FORECAST_HORIZON_DAYS = 7;
-
-function slotToEvent(slot: PriceSlot): NumericEventApiResponse {
-  return {
-    start: slot.start.toISOString(),
-    end: slot.end.toISOString(),
-    lastReported: slot.start.toISOString(),
-    value: slot.pence,
-  };
-}
-
-function blocksToModeData(
-  blocks: { start: string; end: string }[],
-  since: Date,
-  until: Date
-): HistoryDetailsApiResponse<BooleanEventApiResponse> {
-  return {
-    since: since.toISOString(),
-    until: until.toISOString(),
-    history: blocks.map(b => ({ start: b.start, end: b.end, lastReported: b.end, value: true })),
-  };
-}
-
-export async function priceScheduleHandler(req: Request, res: Response) {
-  const now = new Date();
-  const since = new Date(req.query.since as string);
-
-  const [costDevice] = await Device.findByCapability('ENERGY_COST');
-  const [evDevice] = await Device.findByCapability('ELECTRIC_VEHICLE');
-  const [heatPumpDevice] = await Device.findByCapability('HEAT_PUMP');
-
-  const energyCost = costDevice.getEnergyCostCapability();
-
-  const latestRate = await energyCost.getUnitRateEvent();
-  const publishedUntil = latestRate
-    ? new Date(Math.max(now.getTime(), latestRate.start.getTime() + 30 * 60 * 1000))
-    : now;
-
-  // Published prices run out ~31h ahead on Agile; past that the line continues
-  // as forecast. The view honours the range asked for, but never ends before
-  // the published prices do, nor past where the forecast reaches.
-  const requestedUntil = new Date(req.query.until as string);
-  const until = new Date(Math.min(
-    Math.max(requestedUntil.getTime() || 0, publishedUntil.getTime()),
-    dayjs(now).add(FORECAST_HORIZON_DAYS, 'day').valueOf()
-  ));
-
-  const forecastSlots = until > publishedUntil
-    ? (await energyCost.getForwardUnitRates(until)).filter((slot) => slot.isEstimated)
-    : [];
-
-  const rateSelector = { since, until: publishedUntil };
-  // Actual (what ran) is history up to now; planned bands cover now onwards.
-  const actualSelector = { since, until: now };
-
-  const rateData = await mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), rateSelector);
-
-  rateData.history = [...rateData.history, ...forecastSlots.map(slotToEvent)];
-  rateData.until = until.toISOString();
-
-  const lines: HistoryLineApiResponse[] = [{
-    data: rateData,
-    label: 'Unit rate (p/kWh)',
-  }];
-
-  const modes: HistoryModesApiResponse[] = [];
-
-  if (evDevice) {
-    const ev = evDevice.getElectricVehicleCapability();
-
-    modes.push({
-      data: await mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), actualSelector),
-      details: [{ value: true, label: 'EV charging', fillColor: EV_ACTUAL_COLOR }],
-    });
-
-    modes.push({
-      data: blocksToModeData(ev.getPlannedChargeBlocks(), since, until),
-      details: [{ value: true, label: 'EV charging (planned)', fillColor: EV_PLANNED_COLOR }],
-    });
-  }
-
-  if (heatPumpDevice) {
-    const heatPump = heatPumpDevice.getHeatPumpCapability();
-    const dhwWindow = heatPump.getPlannedDHWWindow();
-
-    // "actually heating water", not "circuit permitted" (which can sit on for days).
-    modes.push({
-      data: await mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), actualSelector),
-      details: [{ value: 'DHW', label: 'Hot water', fillColor: DHW_ACTUAL_COLOR }],
-    });
-
-    modes.push({
-      data: blocksToModeData(dhwWindow ? [dhwWindow] : [], since, until),
-      details: [{ value: true, label: 'Hot water (planned)', fillColor: DHW_PLANNED_COLOR }],
-    });
-  }
-
-  res.json({
-    lines,
-    modes,
-    forecastFrom: forecastSlots.length > 0 ? publishedUntil.toISOString() : null,
-  } satisfies EnergyPriceScheduleApiResponse);
-}
-
 function selectorFromQuery(req: Request): TimeRangeSelector {
   return {
     since: new Date(req.query.since as string),
@@ -186,14 +69,23 @@ function selectorFromQuery(req: Request): TimeRangeSelector {
 export async function powerHandler(req: Request, res: Response) {
   const selector = selectorFromQuery(req);
 
-  const devices = await Device.findByCapability('ENERGY_MONITOR');
+  const [devices, [costDevice]] = await Promise.all([
+    Device.findByCapability('ENERGY_MONITOR'),
+    Device.findByCapability('ENERGY_COST')
+  ]);
 
-  const series = await asyncMap(devices.flatMap(monitoredLoadsFor), async ({ label, energyMonitor }) => ({
-    data: await mapNumericHistoryToResponse((hs) => energyMonitor.getCurrentPowerHistory(hs), selector),
-    label
-  }));
+  const energyCost = costDevice.getEnergyCostCapability();
+  const [powerSeries, unitRate] = await Promise.all([
+    asyncMap(devices.flatMap(monitoredLoadsFor), async ({ label, energyMonitor }) => ({
+      data: await mapNumericHistoryToResponse((hs) => energyMonitor.getCurrentPowerHistory(hs), selector),
+      label
+    })),
+    mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), selector)
+  ]);
 
-  res.json({ series } satisfies EnergyPowerInsightsApiResponse);
+  res.json({
+    series: [...powerSeries, { data: unitRate, label: 'Unit rate (p/kWh)', yAxisID: 'yRate', filled: true, color: 'rgba(134, 142, 150, 0.15)' }]
+  } satisfies EnergyPowerInsightsApiResponse);
 }
 
 type Bucketed = { label: string; deviceId: number | null; byDay: Map<string, number> };

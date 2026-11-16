@@ -451,6 +451,13 @@ export const registry: CapabilityUIRegistry = {
         graphs: [{ id: 'vehicle-charge', yMin: 0, yMax: 100 }],
       },
       {
+        title: 'Price & charge windows',
+        overridePreset: 'custom',
+        overrideStart: dayjs().startOf('day').toISOString(),
+        overrideEnd: dayjs().add(7, 'day').toISOString(),
+        graphs: [{ id: 'vehicle-charge-schedule', timeUnit: 'hour' }],
+      },
+      {
         title: 'Monthly Mileage & Efficiency',
         overridePreset: 'custom',
         overrideStart: dayjs().subtract(1, 'year').startOf('month').toISOString(),
@@ -632,6 +639,13 @@ export const registry: CapabilityUIRegistry = {
       { title: 'Cumulative Energy (kWh)', graphs: [{ id: 'heatpump-cumulative-energy', yMin: 0 }] },
       { title: 'Outside Temperature', graphs: [{ id: 'heatpump-outside-temp', yMin: -10 }] },
       { title: 'DHW Temperature', graphs: [{ id: 'heatpump-dhw-temp' }] },
+      {
+        title: 'Price & hot water windows',
+        overridePreset: 'custom',
+        overrideStart: dayjs().startOf('day').toISOString(),
+        overrideEnd: dayjs().add(1, 'day').toISOString(),
+        graphs: [{ id: 'heatpump-dhw-schedule', timeUnit: 'hour' }],
+      },
       { title: 'Flow/ Return Temperatures', graphs: [{ id: 'heatpump-flow-temp' }] },
       {
         title: 'System Pressure',
