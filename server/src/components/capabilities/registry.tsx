@@ -627,7 +627,19 @@ export const registry: CapabilityUIRegistry = {
       }),
     ],
     getGraphSections: () => [
-      { title: 'Power', graphs: [{ id: 'heatpump-power' }] },
+      {
+        title: 'Power',
+        overridePreset: 'custom',
+        overrideStart: dayjs().startOf('day').toISOString(),
+        overrideEnd: dayjs().endOf('day').toISOString(),
+        graphs: [{
+          id: 'heatpump-power',
+          yAxis: {
+            y: { position: 'left' },
+            yRate: { position: 'right' },
+          },
+        }],
+      },
       {
         title: 'Compressor Modulation',
         graphs: [{
@@ -640,13 +652,6 @@ export const registry: CapabilityUIRegistry = {
       { title: 'Cumulative Energy (kWh)', graphs: [{ id: 'heatpump-cumulative-energy', yMin: 0 }] },
       { title: 'Outside Temperature', graphs: [{ id: 'heatpump-outside-temp', yMin: -10 }] },
       { title: 'DHW Temperature', graphs: [{ id: 'heatpump-dhw-temp' }] },
-      {
-        title: 'Price & hot water windows',
-        overridePreset: 'custom',
-        overrideStart: dayjs().startOf('day').toISOString(),
-        overrideEnd: dayjs().add(1, 'day').toISOString(),
-        graphs: [{ id: 'heatpump-dhw-schedule', timeUnit: 'hour' }],
-      },
       { title: 'Flow/ Return Temperatures', graphs: [{ id: 'heatpump-flow-temp' }] },
       {
         title: 'System Pressure',

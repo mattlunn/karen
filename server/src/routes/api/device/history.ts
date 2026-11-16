@@ -96,6 +96,16 @@ function blocksToModeData(blocks: { start: string; end: string }[], selector: Ti
   };
 }
 
+// A graph's lines must share since/until, so this widens to the view without
+// letting the ongoing reading run on past now.
+function stopAtNow(data: HistoryDetailsApiResponse<NumericEventApiResponse>, view: TimeRangeSelector): HistoryDetailsApiResponse<NumericEventApiResponse> {
+  return {
+    since: data.since,
+    until: view.until.toISOString(),
+    history: data.history.map((event) => ({ ...event, end: event.end ?? data.until })),
+  };
+}
+
 // The unit rate as a line - published prices, then forecast once those run out -
 // alongside a device's own series, split at now into actual and planned.
 async function priceSchedule(
@@ -139,28 +149,38 @@ async function priceSchedule(
 // Registry
 
 const historyFetchers = new Map<string, HistoryFetcher>([
-  // Heat Pump - Power (Yield + Power with modes)
-  ['heatpump-power', async (device, selector) => {
+  // Heat Pump - Power (Yield + Power with modes), with the unit rate and planned hot water window
+  ['heatpump-power', (device, selector) => priceSchedule(selector, 'yRate', async (actual, view) => {
     const heatPump = device.getHeatPumpCapability();
+    const dhwWindow = heatPump.getPlannedDHWWindow();
+    const [yieldData, powerData, modeData] = await Promise.all([
+      mapNumericHistoryToResponse((hs) => heatPump.getCurrentYieldHistory(hs), actual),
+      mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), actual),
+      mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), actual)
+    ]);
 
-    return awaitPromises({
-      lines: Promise.all([
-        mapNumericHistoryToResponse((hs) => heatPump.getCurrentYieldHistory(hs), selector)
-          .then(data => ({ data, label: 'Yield' })),
-        mapNumericHistoryToResponse((hs) => heatPump.getCurrentPowerHistory(hs), selector)
-          .then(data => ({ data, label: 'Power' }))
-      ]),
-      modes: mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), selector).then(data => [{
-        data,
-        details: [
-          { value: 'HEATING', label: 'Heating' },
-          { value: 'DEICING', label: 'Deicing' },
-          { value: 'FROST_PROTECTION', label: 'Frost Protection' },
-          { value: 'DHW', label: 'Hot Water' }
-        ]
-      }])
-    });
-  }],
+    return {
+      lines: [
+        { data: stopAtNow(yieldData, view), label: 'Yield' },
+        { data: stopAtNow(powerData, view), label: 'Power' }
+      ],
+      modes: [
+        {
+          data: modeData,
+          details: [
+            { value: 'HEATING', label: 'Heating' },
+            { value: 'DEICING', label: 'Deicing' },
+            { value: 'FROST_PROTECTION', label: 'Frost Protection' },
+            { value: 'DHW', label: 'Hot Water' }
+          ]
+        },
+        {
+          data: blocksToModeData(dhwWindow ? [dhwWindow] : [], view),
+          details: [{ value: true as const, label: 'Hot Water (planned)', fillColor: PLANNED_RUN_COLOR }]
+        }
+      ]
+    };
+  })],
 
   // Heat Pump - Compressor Modulation
   ['heatpump-compressor-modulation', async (device, selector) => {
@@ -225,26 +245,6 @@ const historyFetchers = new Map<string, HistoryFetcher>([
       ]
     };
   }],
-
-  // Heat Pump - Unit rate with actual and planned hot water windows
-  ['heatpump-dhw-schedule', (device, selector) => priceSchedule(selector, 'y', async (actual, view) => {
-    const heatPump = device.getHeatPumpCapability();
-    const dhwWindow = heatPump.getPlannedDHWWindow();
-
-    return {
-      lines: [],
-      modes: [
-        {
-          data: await mapStringHistoryToResponse((hs) => heatPump.getModeHistory(hs), actual),
-          details: [{ value: 'DHW', label: 'Hot water', fillColor: ACTUAL_RUN_COLOR }]
-        },
-        {
-          data: blocksToModeData(dhwWindow ? [dhwWindow] : [], view),
-          details: [{ value: true as const, label: 'Hot water (planned)', fillColor: PLANNED_RUN_COLOR }]
-        }
-      ]
-    };
-  })],
 
   // Heat Pump - Flow Temperature (Flow + Return)
   ['heatpump-flow-temp', async (device, selector) => {
@@ -371,12 +371,8 @@ const historyFetchers = new Map<string, HistoryFetcher>([
       mapBooleanHistoryToResponse((hs) => ev.getIsChargingHistory(hs), actual)
     ]);
 
-    // Ends the ongoing reading at now, rather than running it on across the forecast.
-    charge.history = charge.history.map((event) => ({ ...event, end: event.end ?? charge.until }));
-    charge.until = view.until.toISOString();
-
     return {
-      lines: [{ data: charge, label: 'Charge %' }],
+      lines: [{ data: stopAtNow(charge, view), label: 'Charge %' }],
       modes: [
         { data: charging, details: [{ value: true as const, label: 'Charging', fillColor: ACTUAL_RUN_COLOR }] },
         { data: blocksToModeData(ev.getPlannedChargeBlocks(), view), details: [{ value: true as const, label: 'Charging (planned)', fillColor: PLANNED_RUN_COLOR }] }
