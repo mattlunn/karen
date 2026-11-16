@@ -650,7 +650,6 @@ export const registry: CapabilityUIRegistry = {
           zones: [{ min: 0, max: 33.5, color: 'rgba(134, 142, 150, 0.15)' }],
         }],
       },
-      { title: 'Cumulative Energy (kWh)', graphs: [{ id: 'heatpump-cumulative-energy', yMin: 0 }] },
       { title: 'Outside Temperature', graphs: [{ id: 'heatpump-outside-temp', yMin: -10 }] },
       { title: 'DHW Temperature', graphs: [{ id: 'heatpump-dhw-temp' }] },
       { title: 'Flow/ Return Temperatures', graphs: [{ id: 'heatpump-flow-temp' }] },
