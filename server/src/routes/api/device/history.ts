@@ -39,7 +39,7 @@ export type HistoryBarResponse = {
   data: HistoryDetailsApiResponse<NumericEventApiResponse>;
   label: string;
   yAxisID?: string;
-  period?: 'day' | 'month';
+  period: 'day' | 'month';
 };
 
 export type HistoryMarkerResponse = {
@@ -131,7 +131,7 @@ function energyPerSlot(power: NumericEvent[], actual: TimeRangeSelector, view: T
 async function priceSchedule(
   requested: TimeRangeSelector,
   rateAxisID: string,
-  getDeviceSeries: (actual: TimeRangeSelector, view: TimeRangeSelector) => Promise<Required<Pick<HistoryResponse, 'lines' | 'modes'>> & Pick<HistoryResponse, 'bars'>>
+  getDeviceSeries: (actual: TimeRangeSelector, view: TimeRangeSelector) => Promise<Required<Pick<HistoryResponse, 'lines' | 'modes'>>>
 ): Promise<HistoryResponse> {
   const now = new Date();
   const until = new Date(Math.min(requested.until.getTime(), dayjs(now).add(FORECAST_HORIZON_DAYS, 'day').valueOf()));
@@ -159,7 +159,6 @@ async function priceSchedule(
   return {
     lines: [...deviceSeries.lines, { data: rateData, label: 'Unit rate (p/kWh)', yAxisID: rateAxisID }],
     modes: deviceSeries.modes,
-    bars: deviceSeries.bars,
     markers: forecastSlots.length > 0 ? [{ at: publishedUntil.toISOString(), label: 'Forecast', color: '#868e96' }] : [],
   };
 }
@@ -200,8 +199,7 @@ const historyFetchers = new Map<string, HistoryFetcher>([
     ]);
 
     return {
-      lines: [],
-      bars: [{ data: energyPerSlot(power, actual, view), label: 'Energy (kWh)' }],
+      lines: [{ data: energyPerSlot(power, actual, view), label: 'Energy (kWh)', filled: true }],
       modes: [
         { data: modeData, details: [{ value: 'DHW', label: 'Hot Water' }] },
         { data: blocksToModeData(dhwWindow ? [dhwWindow] : [], view), details: [{ value: true as const, label: 'Hot Water (planned)' }] }

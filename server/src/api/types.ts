@@ -239,8 +239,7 @@ export type HistoryBarApiResponse = {
   data: HistoryDetailsApiResponse<NumericEventApiResponse>;
   label: string;
   yAxisID?: string;
-  // Omitted for a bar per event, spanning its start to end.
-  period?: 'day' | 'month';
+  period: 'day' | 'month';
   role?: 'residual';
 };
 

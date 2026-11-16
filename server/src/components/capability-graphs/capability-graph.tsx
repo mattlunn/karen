@@ -148,17 +148,6 @@ function mapNumericDataToAggregateDataset(numericEventHistory: HistoryDetailsApi
   }, []);
 }
 
-// Chart.js centres a bar on its point and sizes it from the gap to its neighbours,
-// so plotting at each event's midpoint makes consecutive bars span their events.
-function mapEventsToSpanningBars(numericEventHistory: HistoryDetailsApiResponse<NumericEventApiResponse>) {
-  const sortedEvents = filterClampAndSortHistory(numericEventHistory.history, numericEventHistory.since, numericEventHistory.until, true);
-
-  return sortedEvents.map((event) => ({
-    x: dayjs(event.start).add(dayjs(event.end!).diff(event.start) / 2, 'millisecond').toISOString(),
-    y: event.value
-  }));
-}
-
 export type ModeSeries = {
   data: HistoryDetailsApiResponse<EnumEventApiResponse | BooleanEventApiResponse>,
   details: {
@@ -182,7 +171,7 @@ export type CapabilityGraphProps = {
     data: HistoryDetailsApiResponse<NumericEventApiResponse>,
     label: string,
     yAxisID?: string,
-    period?: 'day' | 'month',
+    period: 'day' | 'month',
     hatched?: boolean
   }[]
 
@@ -364,11 +353,10 @@ export function CapabilityGraph(props: CapabilityGraphProps) {
 
       datasets.push({
         type: 'bar',
-        data: bar.period ? mapNumericDataToAggregateDataset(bar.data, bar.period) : mapEventsToSpanningBars(bar.data),
+        data: mapNumericDataToAggregateDataset(bar.data, bar.period),
         label: bar.label,
         yAxisID: bar.yAxisID || 'y',
         borderWidth: 1,
-        ...(bar.period ? {} : { barPercentage: 1, categoryPercentage: 0.9 }),
         ...(props.stacked ? { stack: 'stack' } : {})
       });
     }
