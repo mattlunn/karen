@@ -122,17 +122,9 @@ async function storeIntervalMetrics(
   capability: HeatPumpCapability,
   { total, heating, dhw }: IntervalMetrics,
   dayStart: Date,
-  intervalStart: Date,
   intervalEnd: Date
 ): Promise<void> {
   await Promise.all([
-    // DayCumulative*: one event per 15-min window (stateTimestamp = window start, reportedAt = window end)
-    capability.setDayCumulativePowerState(total.power, intervalStart, intervalEnd),
-    capability.setDayCumulativeYieldState(total.yield, intervalStart, intervalEnd),
-    capability.setDayHeatingCumulativePowerState(heating.power, intervalStart, intervalEnd),
-    capability.setDayHeatingCumulativeYieldState(heating.yield, intervalStart, intervalEnd),
-    capability.setDayDHWCumulativePowerState(dhw.power, intervalStart, intervalEnd),
-    capability.setDayDHWCumulativeYieldState(dhw.yield, intervalStart, intervalEnd),
     // Day* summary: one event per day, updated in place every interval (stateTimestamp = dayStart, reportedAt = intervalEnd)
     capability.setDayCoPState(total.coP, dayStart, intervalEnd),
     capability.setDayPowerState(total.power, dayStart, intervalEnd),
@@ -165,10 +157,9 @@ export async function calculateDailyHeatPumpMetrics(
   ]);
 
   for (let ms = startMs; ms <= snappedDayEnd.getTime(); ms += INTERVAL_MS) {
-    const intervalStart = new Date(ms - INTERVAL_MS);
     const intervalEnd = new Date(ms);
     const metrics = computeIntervalMetrics(powerHistory, yieldHistory, modeHistory, dayStart, intervalEnd);
-    await storeIntervalMetrics(capability, metrics, dayStart, intervalStart, intervalEnd);
+    await storeIntervalMetrics(capability, metrics, dayStart, intervalEnd);
   }
 }
 
@@ -183,12 +174,6 @@ export async function storeRunningMetrics(device: Device, capability: HeatPumpCa
     capability.getDayDHWCoPEvent(),
     capability.getDayDHWPowerEvent(),
     capability.getDayDHWYieldEvent(),
-    capability.getDayCumulativePowerEvent(),
-    capability.getDayCumulativeYieldEvent(),
-    capability.getDayHeatingCumulativePowerEvent(),
-    capability.getDayHeatingCumulativeYieldEvent(),
-    capability.getDayDHWCumulativePowerEvent(),
-    capability.getDayDHWCumulativeYieldEvent(),
   ]);
 
   for (let i = 0; i < latestEvents.length - 1; i++) {
