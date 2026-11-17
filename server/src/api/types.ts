@@ -446,9 +446,11 @@ export interface HeatingInsightsApiResponse {
 
 // /api/insights/energy/power endpoint - one non-stacked instantaneous-power
 // line per ENERGY_MONITOR device (the whole-house meter included as-is), plus
-// the unit rate as a filled line on its own 'yRate' axis.
+// the unit rate as a filled line on its own 'yRate' axis, and the highest rate
+// across the whole days the window touches.
 export type EnergyPowerInsightsApiResponse = {
   series: HistoryLineApiResponse[];
+  wholeDaysMaxUnitRate: number | null;
 };
 
 // /api/insights/energy/device-cost-daily and /api/insights/energy/device-energy-daily

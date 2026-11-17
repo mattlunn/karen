@@ -103,7 +103,7 @@ function UsageGraphBody({ since, until }: { since: string; until: string }) {
       {data && (
         <CapabilityGraph
           lines={data.series}
-          yAxis={{ ...yAxisLeft, yRate: { position: 'right' } }}
+          yAxis={{ ...yAxisLeft, yRate: { position: 'right', suggestedMax: data.wholeDaysMaxUnitRate ?? undefined } }}
         />
       )}
     </GraphState>
