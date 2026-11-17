@@ -75,16 +75,21 @@ export async function powerHandler(req: Request, res: Response) {
   ]);
 
   const energyCost = costDevice.getEnergyCostCapability();
-  const [powerSeries, unitRate] = await Promise.all([
+  const [powerSeries, unitRate, wholeDaysUnitRates] = await Promise.all([
     asyncMap(devices.flatMap(monitoredLoadsFor), async ({ label, energyMonitor }) => ({
       data: await mapNumericHistoryToResponse((hs) => energyMonitor.getCurrentPowerHistory(hs), selector),
       label
     })),
-    mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), selector)
+    mapNumericHistoryToResponse((hs) => energyCost.getUnitRateHistory(hs), selector),
+    energyCost.getUnitRateHistory({
+      since: dayjs(selector.since).startOf('day').toDate(),
+      until: dayjs(selector.until).endOf('day').toDate()
+    })
   ]);
 
   res.json({
-    series: [...powerSeries, { data: unitRate, label: 'Unit rate (p/kWh)', yAxisID: 'yRate', filled: true }]
+    series: [...powerSeries, { data: unitRate, label: 'Unit rate (p/kWh)', yAxisID: 'yRate', filled: true }],
+    wholeDaysMaxUnitRate: wholeDaysUnitRates.length > 0 ? Math.max(...wholeDaysUnitRates.map((event) => event.value)) : null
   } satisfies EnergyPowerInsightsApiResponse);
 }
 
