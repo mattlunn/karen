@@ -9,7 +9,8 @@ const cleaner: SilencingWindow = {
   anchor_date: '2026-05-06',
   interval_weeks: 2,
   start: '08:00',
-  end: '12:00'
+  end: '12:00',
+  overrides: []
 };
 
 // The app runs in Europe/London, and windows are matched against wall-clock time, so build
@@ -43,10 +44,34 @@ describe('findActiveSilencingWindow', () => {
       anchor_date: '2026-05-07', // Thursday
       interval_weeks: 1,
       start: '13:00',
-      end: '15:00'
+      end: '15:00',
+      overrides: []
     };
 
     expect(findActiveSilencingWindow([cleaner, gardener], at('2026-05-07T14:00:00'))).toBe(gardener);
+  });
+
+  describe('with an occurrence moved to another day', () => {
+    const moved: SilencingWindow = {
+      ...cleaner,
+      overrides: [{ original_date: '2026-05-20', new_date: '2026-05-21' }]
+    };
+
+    it('misses the original day', () => {
+      expect(findActiveSilencingWindow([moved], at('2026-05-20T09:00:00'))).toBeUndefined();
+    });
+
+    it('matches the new day within the time window', () => {
+      expect(findActiveSilencingWindow([moved], at('2026-05-21T09:00:00'))).toBe(moved);
+    });
+
+    it('misses the new day outside the time window', () => {
+      expect(findActiveSilencingWindow([moved], at('2026-05-21T12:30:00'))).toBeUndefined();
+    });
+
+    it('leaves the other occurrences alone', () => {
+      expect(findActiveSilencingWindow([moved], at('2026-06-03T09:00:00'))).toBe(moved);
+    });
   });
 
   it('returns undefined when no windows are configured', () => {

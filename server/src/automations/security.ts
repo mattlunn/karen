@@ -17,7 +17,11 @@ const silencingWindow = z.object({
   anchor_date: z.iso.date(),          // e.g. "2026-06-17" (a Wednesday)
   interval_weeks: z.int().positive(), // e.g. 2 for every other week
   start: timeString,                  // e.g. "08:00" (also supports "sunrise"/"sunset")
-  end: timeString                     // e.g. "12:00"
+  end: timeString,                    // e.g. "12:00"
+  overrides: z.array(z.object({
+    original_date: z.iso.date(),
+    new_date: z.iso.date()
+  }))
 }) satisfies z.ZodType<SilencingWindow>;
 
 export const parameters = z.object({
