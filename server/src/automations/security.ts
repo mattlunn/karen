@@ -20,7 +20,7 @@ const silencingWindow = z.object({
   end: timeString,                    // e.g. "12:00"
   overrides: z.array(z.object({
     original_date: z.iso.date(),
-    new_date: z.iso.date()
+    new_date: z.iso.date().nullable() // null cancels the occurrence
   }))
 }) satisfies z.ZodType<SilencingWindow>;
 
