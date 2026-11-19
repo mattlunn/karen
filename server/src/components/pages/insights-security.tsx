@@ -672,14 +672,14 @@ export default function SecurityInsights() {
           <Grid.Col span={{ base: 24, md: 12, lg: 7 }}>
             <StatusCard />
           </Grid.Col>
+          <Grid.Col span={{ base: 24, md: 12, lg: 7 }}>
+            <SilencingWindowTile />
+          </Grid.Col>
           <Grid.Col span={{ base: 24, xs: 12, lg: 5 }}>
             <DoorsTile />
           </Grid.Col>
           <Grid.Col span={{ base: 24, xs: 12, lg: 5 }}>
             <WindowsAndDoorsTile />
-          </Grid.Col>
-          <Grid.Col span={{ base: 24, md: 12, lg: 7 }}>
-            <SilencingWindowTile />
           </Grid.Col>
         </Grid>
 
