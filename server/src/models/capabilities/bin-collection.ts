@@ -1,7 +1,7 @@
 import { BinCollectionBaseCapability } from './capabilities.gen';
 import config from '../../config';
 import dayjs from '../../dayjs';
-import { buildRruleString, isOccurrenceDay, getNextOccurrenceWithOverrides } from '../../helpers/recurrence';
+import { buildRruleString, isOccurrenceDay, getNextOccurrence } from '../../helpers/recurrence';
 
 interface BinItemConfig {
   id: string;
@@ -57,9 +57,26 @@ export class BinCollectionCapability extends BinCollectionBaseCapability {
 
   getNextCollectionDate(after: Date = new Date()): { date: Date; isOverride: boolean } {
     const bin = this.#getBinItem();
-    const next = getNextOccurrenceWithOverrides(bin.anchorDate, bin.intervalWeeks, this.#getRelevantOverrides(), dayjs(after));
+    const afterDay = dayjs(after);
+    const overrides = this.#getRelevantOverrides();
 
-    return { date: dayjs(next.date).toDate(), isOverride: next.date !== next.scheduledDate };
+    // Find the next regular occurrence that hasn't been overridden
+    const exdateSet = new Set(overrides.map(o => o.originalDate));
+    let nextRegular = getNextOccurrence(bin.anchorDate, bin.intervalWeeks, afterDay);
+
+    while (exdateSet.has(nextRegular.format('YYYY-MM-DD'))) {
+      nextRegular = nextRegular.add(bin.intervalWeeks * 7, 'day');
+    }
+
+    // Check if there's an override date that comes sooner
+    const soonestOverride = overrides
+      .map(o => dayjs(o.newDate))
+      .filter(d => d.isSameOrAfter(afterDay, 'day'))
+      .sort((a, b) => a.diff(b))[0];
+
+    return soonestOverride && soonestOverride.isBefore(nextRegular, 'day')
+      ? { date: soonestOverride.toDate(), isOverride: true }
+      : { date: nextRegular.toDate(), isOverride: false };
   }
 
   getOverrideForOriginalDate(date: Date): string | null {
