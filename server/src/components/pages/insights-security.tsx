@@ -16,6 +16,7 @@ import {
   Text,
   ThemeIcon,
   Title,
+  useMatches,
 } from '@mantine/core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
@@ -74,6 +75,7 @@ function KpiIcon({ icon, color }: { icon: IconDefinition; color?: string }) {
 function StatusCard() {
   const { data: security, isPending, isError } = useSecurity();
   const { mutate: updateAlarmMode, isPending: alarmMutating } = useAlarmMutation();
+  const isInKpiRow = useMatches({ base: false, lg: true });
 
   useTick(30000);
 
@@ -94,8 +96,8 @@ function StatusCard() {
 
   return (
     <Card withBorder padding="lg" h="100%">
-      <Group justify="space-between" wrap="wrap" gap="md" align="flex-start">
-        <Group gap="md" align="flex-start">
+      <Group justify="space-between" wrap={isInKpiRow ? 'nowrap' : 'wrap'} gap="md" align="flex-start">
+        <Group gap="md" align="flex-start" wrap="nowrap">
           <KpiIcon icon={faShieldHalved} color={MODE_COLORS[mode]} />
           <Stack gap={0} justify="center" className={styles.iconAlignedText}>
             <Badge color={MODE_COLORS[mode]} size="lg">{MODE_LABELS[mode]}</Badge>
@@ -118,6 +120,7 @@ function StatusCard() {
           value={mode}
           onChange={(value) => updateAlarmMode({ alarmMode: value as AlarmMode })}
           disabled={alarmMutating}
+          orientation={isInKpiRow ? 'vertical' : 'horizontal'}
           data={[
             { label: 'Home', value: 'OFF' },
             { label: 'Away', value: 'AWAY' },
