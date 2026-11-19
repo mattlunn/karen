@@ -306,40 +306,49 @@ function MotionHeatmapCard({ data }: { data: SecurityInsightsApiResponse['motion
       {rows.length === 0 ? (
         <Text c="dimmed">No motion recorded in this range.</Text>
       ) : (
-        <div className={styles.heatmapScroll}>
-          <table className={styles.heatmapTable}>
-            <thead>
-              <tr>
-                <th className={styles.heatmapCornerCell}></th>
-                {Array.from({ length: 24 }, (_, hour) => (
-                  <th key={hour} className={styles.heatmapHour}>{hour}</th>
-                ))}
-                <th className={`${styles.heatmapHour} ${styles.heatmapLastMotionHeader}`}>Last motion</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ deviceId, instanceId, label, countByHour, lastMotion }) => (
-                <tr key={`${deviceId}:${instanceId ?? ''}`} className={styles.heatmapRow}>
-                  <th className={styles.heatmapRowLabel}>
-                    <Anchor component={Link} to={`/device/${deviceId}`}>{label}</Anchor>
-                  </th>
-                  {countByHour.map((count, hour) => (
-                    <td
-                      key={hour}
-                      className={styles.heatmapCell}
-                      style={{ backgroundColor: count === 0 ? undefined : `rgba(4, 167, 244, ${0.15 + 0.85 * (count / maxCount)})` }}
-                      title={`${count} motion event${count === 1 ? '' : 's'}`}
-                    >
-                      {count > 0 ? count : ''}
-                    </td>
-                  ))}
-                  <td className={styles.heatmapLastMotionCell}>
-                    {lastMotion ? `${dayjs(lastMotion).format('HH:mm')} ${humanDate(dayjs(lastMotion))}` : '-'}
-                  </td>
-                </tr>
+        <div className={styles.heatmap}>
+          <div className={styles.heatmapLabels}>
+            <div className={styles.heatmapLabelsContent}>
+              <div className={styles.heatmapHeaderRow} />
+              {rows.map(({ deviceId, instanceId, label }) => (
+                <div key={`${deviceId}:${instanceId ?? ''}`} className={styles.heatmapLabel}>
+                  <Anchor component={Link} to={`/device/${deviceId}`}>{label}</Anchor>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </div>
+
+          <div className={styles.heatmapScroll}>
+            <table className={styles.heatmapTable}>
+              <thead>
+                <tr className={styles.heatmapHeaderRow}>
+                  {Array.from({ length: 24 }, (_, hour) => (
+                    <th key={hour} className={styles.heatmapHour}>{hour}</th>
+                  ))}
+                  <th className={`${styles.heatmapHour} ${styles.heatmapLastMotionHeader}`}>Last motion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(({ deviceId, instanceId, countByHour, lastMotion }) => (
+                  <tr key={`${deviceId}:${instanceId ?? ''}`} className={styles.heatmapRow}>
+                    {countByHour.map((count, hour) => (
+                      <td
+                        key={hour}
+                        className={styles.heatmapCell}
+                        style={{ backgroundColor: count === 0 ? undefined : `rgba(4, 167, 244, ${0.15 + 0.85 * (count / maxCount)})` }}
+                        title={`${count} motion event${count === 1 ? '' : 's'}`}
+                      >
+                        {count > 0 ? count : ''}
+                      </td>
+                    ))}
+                    <td className={styles.heatmapLastMotionCell}>
+                      {lastMotion ? `${dayjs(lastMotion).format('HH:mm')} ${humanDate(dayjs(lastMotion))}` : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </Card>

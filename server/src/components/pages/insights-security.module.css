@@ -1,11 +1,50 @@
+.heatmap {
+  --heatmap-header-height: 20px;
+  --heatmap-row-height: 24px;
+
+  display: flex;
+}
+
+.heatmapLabels {
+  flex: none;
+  max-width: 40vw;
+  overflow-x: auto;
+  border-right: 1px solid var(--mantine-color-default-border);
+}
+
+.heatmapLabelsContent {
+  width: max-content;
+  min-width: 100%;
+}
+
+.heatmapLabel {
+  height: var(--heatmap-row-height);
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 4px;
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.heatmapLabel:nth-child(odd) {
+  background-color: var(--mantine-color-default-hover);
+}
+
 .heatmapScroll {
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
 }
 
 .heatmapTable {
   border-collapse: collapse;
   width: 100%;
-  min-width: 760px;
+  min-width: 640px;
+}
+
+.heatmapHeaderRow {
+  height: var(--heatmap-header-height);
 }
 
 .heatmapHour {
@@ -13,38 +52,21 @@
   font-weight: normal;
   color: var(--mantine-color-dimmed);
   text-align: center;
-  padding: 2px 4px;
+  padding: 0 4px;
 }
 
-.heatmapCornerCell {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background-color: var(--mantine-color-body);
-  border-right: 1px solid var(--mantine-color-default-border);
-}
-
-.heatmapRowLabel {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background-color: var(--mantine-color-body);
-  text-align: left;
-  font-weight: 500;
-  white-space: nowrap;
-  padding: 2px 8px 2px 4px;
-  border-right: 1px solid var(--mantine-color-default-border);
+.heatmapRow {
+  height: var(--heatmap-row-height);
 }
 
 .heatmapCell {
   width: 26px;
-  height: 22px;
+  padding: 0;
   text-align: center;
   font-size: 0.65em;
   border: 1px solid var(--mantine-color-default-border);
 }
 
-.heatmapRow:nth-child(even) .heatmapRowLabel,
 .heatmapRow:nth-child(even) .heatmapCell,
 .heatmapRow:nth-child(even) .heatmapLastMotionCell {
   background-color: var(--mantine-color-default-hover);
@@ -56,8 +78,7 @@
 }
 
 .heatmapLastMotionCell {
-  height: 22px;
-  padding: 2px 8px;
+  padding: 0 8px;
   text-align: left;
   font-size: 0.7em;
   color: var(--mantine-color-dimmed);
