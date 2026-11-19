@@ -294,7 +294,7 @@ function SilencingWindowTile() {
 
 function MotionHeatmapCard({ data }: { data: SecurityInsightsApiResponse['motionByDeviceHour'] }) {
   const rows = useMemo(() => (
-    [...data].sort((a, b) => a.label.localeCompare(b.label))
+    [...data].sort((a, b) => a.deviceName.localeCompare(b.deviceName) || (a.zoneName ?? '').localeCompare(b.zoneName ?? ''))
   ), [data]);
 
   const maxCount = Math.max(1, ...rows.flatMap((row) => row.countByHour));
@@ -318,11 +318,12 @@ function MotionHeatmapCard({ data }: { data: SecurityInsightsApiResponse['motion
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ deviceId, instanceId, label, countByHour, lastMotion }) => (
+              {rows.map(({ deviceId, instanceId, deviceName, zoneName, countByHour, lastMotion }) => (
                 <tr key={`${deviceId}:${instanceId ?? ''}`} className={styles.heatmapRow}>
                   <th className={styles.heatmapRowLabel}>
                     <div className={styles.heatmapRowLabelScroll}>
-                      <Anchor component={Link} to={`/device/${deviceId}`}>{label}</Anchor>
+                      <Anchor component={Link} to={`/device/${deviceId}`}>{deviceName}</Anchor>
+                      {zoneName && <Text size="xs" c="dimmed">{zoneName}</Text>}
                     </div>
                   </th>
                   {countByHour.map((count, hour) => (
