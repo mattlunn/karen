@@ -75,7 +75,7 @@ function KpiIcon({ icon, color }: { icon: IconDefinition; color?: string }) {
 function StatusCard() {
   const { data: security, isPending, isError } = useSecurity();
   const { mutate: updateAlarmMode, isPending: alarmMutating } = useAlarmMutation();
-  const isInKpiRow = useMatches({ base: false, lg: true });
+  const isSidebarHidden = useMatches({ base: true, md: false });
 
   useTick(30000);
 
@@ -96,8 +96,8 @@ function StatusCard() {
 
   return (
     <Card withBorder padding="lg" h="100%">
-      <Group justify="space-between" wrap={isInKpiRow ? 'nowrap' : 'wrap'} gap="md" align="flex-start">
-        <Group gap="md" align="flex-start" wrap="nowrap">
+      <Group justify="space-between" wrap="wrap" gap="md" align="flex-start">
+        <Group gap="md" align="flex-start">
           <KpiIcon icon={faShieldHalved} color={MODE_COLORS[mode]} />
           <Stack gap={0} justify="center" className={styles.iconAlignedText}>
             <Badge color={MODE_COLORS[mode]} size="lg">{MODE_LABELS[mode]}</Badge>
@@ -116,17 +116,18 @@ function StatusCard() {
           </Stack>
         </Group>
 
-        <SegmentedControl
-          value={mode}
-          onChange={(value) => updateAlarmMode({ alarmMode: value as AlarmMode })}
-          disabled={alarmMutating}
-          orientation={isInKpiRow ? 'vertical' : 'horizontal'}
-          data={[
-            { label: 'Home', value: 'OFF' },
-            { label: 'Away', value: 'AWAY' },
-            { label: 'Night', value: 'NIGHT' },
-          ]}
-        />
+        {isSidebarHidden && (
+          <SegmentedControl
+            value={mode}
+            onChange={(value) => updateAlarmMode({ alarmMode: value as AlarmMode })}
+            disabled={alarmMutating}
+            data={[
+              { label: 'Home', value: 'OFF' },
+              { label: 'Away', value: 'AWAY' },
+              { label: 'Night', value: 'NIGHT' },
+            ]}
+          />
+        )}
       </Group>
 
       {isAlerting && (
