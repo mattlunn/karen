@@ -219,8 +219,7 @@ export default async function (req: Request, res: Response) {
     [motionByDeviceHourKey(device.id, instance.id), {
       deviceId: device.id,
       instanceId: instance.id,
-      deviceName: device.name,
-      zoneName: instance.name,
+      label: instance.name ? `${device.name} · ${instance.name}` : device.name,
       countByHour: new Array(24).fill(0),
       lastMotion: lastMotionEvent?.start.toISOString() ?? null
     }]

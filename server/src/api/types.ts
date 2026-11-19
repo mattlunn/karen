@@ -554,8 +554,7 @@ export interface SecurityInsightsApiResponse {
   motionByDeviceHour: Array<{
     deviceId: number;
     instanceId: string | null;
-    deviceName: string;
-    zoneName: string | null;
+    label: string;
     // Always 24 entries, one motion count per hour of day (0-23).
     countByHour: number[];
     // Independent of the selected range - the device's last motion detection full-stop.
