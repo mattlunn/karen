@@ -321,7 +321,9 @@ function MotionHeatmapCard({ data }: { data: SecurityInsightsApiResponse['motion
               {rows.map(({ deviceId, instanceId, label, countByHour, lastMotion }) => (
                 <tr key={`${deviceId}:${instanceId ?? ''}`} className={styles.heatmapRow}>
                   <th className={styles.heatmapRowLabel}>
-                    <Anchor component={Link} to={`/device/${deviceId}`}>{label}</Anchor>
+                    <div className={styles.heatmapRowLabelScroll}>
+                      <Anchor component={Link} to={`/device/${deviceId}`}>{label}</Anchor>
+                    </div>
                   </th>
                   {countByHour.map((count, hour) => (
                     <td
