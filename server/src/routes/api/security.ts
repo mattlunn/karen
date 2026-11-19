@@ -1,8 +1,10 @@
 import express from 'express';
 import { Arming } from '../../models';
 import { ArmingMode } from '../../models/arming';
-import { AlarmMode, AlarmStatusResponse, AlarmUpdateRequest, ApiErrorResponse } from '../../api/types';
+import { AlarmMode, AlarmStatusResponse, AlarmUpdateRequest, ApiErrorResponse, SilencingWindowsApiResponse } from '../../api/types';
 import { asyncMap } from '../../helpers/array';
+import { getUpcomingSilencingWindowOccurrences, SilencingWindow } from '../../helpers/silencing-window';
+import config from '../../config';
 
 const router = express.Router();
 
@@ -67,6 +69,22 @@ router.put<Record<string, never>, AlarmStatusResponse | ApiErrorResponse, AlarmU
   }
 
   res.json(await getAlarmStatus());
+});
+
+router.get<Record<string, never>, SilencingWindowsApiResponse>('/silencing-windows', (req, res) => {
+  const securityAutomation = config.automations.find((automation) => automation.name === 'security');
+  const windows = (securityAutomation?.parameters?.silencing_windows ?? []) as SilencingWindow[];
+
+  res.json({
+    upcoming: getUpcomingSilencingWindowOccurrences(windows, new Date()).map((occurrence) => ({
+      name: occurrence.window.name,
+      status: occurrence.status,
+      scheduledStart: occurrence.scheduledStart.toISOString(),
+      scheduledEnd: occurrence.scheduledEnd.toISOString(),
+      start: occurrence.start?.toISOString() ?? null,
+      end: occurrence.end?.toISOString() ?? null
+    }))
+  });
 });
 
 export default router;

@@ -399,6 +399,21 @@ export interface AlarmUpdateRequest {
   alarmMode: AlarmMode;
 }
 
+// /api/security/silencing-windows endpoint
+export interface SilencingWindowOccurrenceApiResponse {
+  name: string;
+  status: 'SCHEDULED' | 'RESCHEDULED' | 'CANCELLED';
+  scheduledStart: string;
+  scheduledEnd: string;
+  start: string | null;
+  end: string | null;
+}
+
+export interface SilencingWindowsApiResponse {
+  // In time order, through to the first occurrence that isn't cancelled.
+  upcoming: SilencingWindowOccurrenceApiResponse[];
+}
+
 // /api/heating endpoint
 export interface HeatingUpdateRequest {
   centralHeating?: CentralHeatingMode;

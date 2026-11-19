@@ -12,6 +12,7 @@ import {
   Group,
   Menu,
   SegmentedControl,
+  SimpleGrid,
   Stack,
   Text,
   ThemeIcon,
@@ -21,6 +22,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faBell,
+  faBellSlash,
   faDoorClosed,
   faDoorOpen,
   faPersonWalking,
@@ -32,6 +34,7 @@ import { useCameraDevices } from '../../hooks/queries/use-camera-devices';
 import { useSecurity } from '../../hooks/queries/use-security';
 import { useAlarmMutation } from '../../hooks/mutations/use-security-mutations';
 import { useSecurityInsights } from '../../hooks/queries/use-security-insights';
+import { useSilencingWindows } from '../../hooks/queries/use-silencing-windows';
 import { DateRangeProvider, DateRangeSelector, useDateRange } from '../date-range';
 import { forDeviceCapability } from '../../helpers/device';
 import { humanDate } from '../../helpers/date';
@@ -40,7 +43,7 @@ import PageLoader from '../page-loader';
 import Security from '../security';
 import Timeline from '../timeline/timeline';
 import type { TimelineItem } from '../timeline/timeline';
-import type { AlarmMode, SecurityInsightsApiResponse } from '../../api/types';
+import type { AlarmMode, SecurityInsightsApiResponse, SilencingWindowOccurrenceApiResponse } from '../../api/types';
 import styles from './insights-security.module.css';
 
 const MODE_LABELS: Record<AlarmMode, string> = { OFF: 'Home', NIGHT: 'Night', AWAY: 'Away' };
@@ -203,6 +206,86 @@ function WindowsAndDoorsTile() {
       healthyIcon={faDoorClosed}
       healthyLabel="All closed"
     />
+  );
+}
+
+function formatSlotDay(instant: string): string {
+  const day = dayjs(instant);
+
+  if (day.isSame(dayjs(), 'day')) {
+    return 'Today';
+  }
+
+  if (day.isSame(dayjs().add(1, 'day'), 'day')) {
+    return 'Tomorrow';
+  }
+
+  return day.format('ddd D MMM');
+}
+
+function formatSlot(start: string, end: string): string {
+  return `${formatSlotDay(start)}, ${dayjs(start).format('HH:mm')}–${dayjs(end).format('HH:mm')}`;
+}
+
+function SilencingWindowTile() {
+  const { data } = useSilencingWindows();
+
+  useTick(30000);
+
+  const [next, following]: (SilencingWindowOccurrenceApiResponse | undefined)[] = data?.upcoming ?? [];
+
+  if (!next) {
+    return (
+      <Card withBorder padding="md" h="100%" className={styles.kpiTile}>
+        <Group gap="sm" wrap="nowrap" align="flex-start">
+          <KpiIcon icon={faBellSlash} />
+          <Stack gap={0} justify="center" className={styles.iconAlignedText}>
+            <Text size="xs" c="dimmed">Next silencing window</Text>
+            <Text fw={600}>{data ? 'None scheduled' : '-'}</Text>
+          </Stack>
+        </Group>
+      </Card>
+    );
+  }
+
+  const isActive = next.start !== null && dayjs().isAfter(next.start) && dayjs().isBefore(next.end);
+
+  return (
+    <Card withBorder padding="md" h="100%" className={styles.kpiTile}>
+      <Group gap="sm" wrap="nowrap" align="flex-start">
+        <KpiIcon icon={faBellSlash} color={isActive ? 'blue' : undefined} />
+        <Stack gap={0} justify="center" className={styles.iconAlignedText}>
+          <Group gap={6} wrap="nowrap">
+            <Text size="xs" c="dimmed">Next silencing window</Text>
+            {isActive && <Badge size="xs" color="blue">Active</Badge>}
+            {next.status === 'RESCHEDULED' && <Badge size="xs" color="orange" variant="light">Moved</Badge>}
+            {next.status === 'CANCELLED' && <Badge size="xs" color="gray" variant="light">Cancelled</Badge>}
+          </Group>
+
+          {next.status === 'CANCELLED' ? (
+            <Text fw={600} td="line-through" c="dimmed">{formatSlot(next.scheduledStart, next.scheduledEnd)}</Text>
+          ) : isActive ? (
+            <Text fw={600}>Now, until {dayjs(next.end).format('HH:mm')}</Text>
+          ) : (
+            <Text fw={600}>{formatSlot(next.start!, next.end!)}</Text>
+          )}
+
+          <Text size="sm" c="dimmed">
+            {next.name}
+            {next.status === 'RESCHEDULED' && ` · moved from ${formatSlotDay(next.scheduledStart)}`}
+          </Text>
+
+          {next.status === 'CANCELLED' && following && (
+            <Text size="sm" mt={4}>
+              Then {formatSlot(following.start!, following.end!)}
+              {following.status === 'RESCHEDULED' && (
+                <Text span size="sm" c="dimmed"> (moved from {formatSlotDay(following.scheduledStart)})</Text>
+              )}
+            </Text>
+          )}
+        </Stack>
+      </Group>
+    </Card>
   );
 }
 
@@ -590,11 +673,14 @@ export default function SecurityInsights() {
           <Grid.Col span={{ base: 12, md: 6 }}>
             <StatusCard />
           </Grid.Col>
-          <Grid.Col span={{ base: 12, xs: 6, md: 3 }}>
-            <DoorsTile />
+          <Grid.Col span={{ base: 12, md: 3 }}>
+            <SimpleGrid cols={{ base: 1, xs: 2, md: 1 }} h="100%">
+              <DoorsTile />
+              <WindowsAndDoorsTile />
+            </SimpleGrid>
           </Grid.Col>
-          <Grid.Col span={{ base: 12, xs: 6, md: 3 }}>
-            <WindowsAndDoorsTile />
+          <Grid.Col span={{ base: 12, md: 3 }}>
+            <SilencingWindowTile />
           </Grid.Col>
         </Grid>
 
