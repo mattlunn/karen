@@ -12,7 +12,6 @@ import {
   Group,
   Menu,
   SegmentedControl,
-  SimpleGrid,
   Stack,
   Text,
   ThemeIcon,
@@ -669,17 +668,17 @@ export default function SecurityInsights() {
         {/* Status card + KPI strip always reflect "right now" - each tile sources its own live
             data (useSecurity / useDevices) independent of the timeline's date range selector
             below them, so switching the range never reloads/reflows anything above it. */}
-        <Grid mt="lg">
-          <Grid.Col span={{ base: 12, md: 6 }}>
+        <Grid mt="lg" columns={24}>
+          <Grid.Col span={{ base: 24, md: 12, lg: 7 }}>
             <StatusCard />
           </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 3 }}>
-            <SimpleGrid cols={{ base: 1, xs: 2, md: 1 }} h="100%">
-              <DoorsTile />
-              <WindowsAndDoorsTile />
-            </SimpleGrid>
+          <Grid.Col span={{ base: 24, xs: 12, lg: 5 }}>
+            <DoorsTile />
           </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 3 }}>
+          <Grid.Col span={{ base: 24, xs: 12, lg: 5 }}>
+            <WindowsAndDoorsTile />
+          </Grid.Col>
+          <Grid.Col span={{ base: 24, md: 12, lg: 7 }}>
             <SilencingWindowTile />
           </Grid.Col>
         </Grid>
