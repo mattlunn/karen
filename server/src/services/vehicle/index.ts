@@ -1,5 +1,5 @@
 import { Device, Log } from '../../models';
-import { ElectricVehicleCapability, ScheduleChargeRequest, ScheduledCharge, ChargeType } from '../../models/capabilities';
+import { ElectricVehicleCapability, ScheduleChargeRequest, ScheduledCharge, ChargeType, PlannedChargeBlock } from '../../models/capabilities';
 import config from '../../config';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
@@ -9,7 +9,7 @@ import type { BridgeCommandResponse, BridgeVehicle } from './types';
 import { ensureHistoricalMonthly, storeMonthlyAggregates } from './mileage';
 import { buildClimateOptions, PreconditioningMode } from './preconditioning';
 import { pickNextChargeSchedule, buildChargingFailureNotification } from './schedule';
-import { planCharge, isDeadlineEngaged, deadlineEngagesAt, isWithinSlots, ChargePlan } from './price-plan';
+import { planCharge, isDeadlineEngaged, deadlineEngagesAt, findActiveSlot, ChargePlan } from './price-plan';
 import { groupIntoBlocks, PriceSlot } from '../../helpers/prices';
 import dayjs, { Dayjs } from '../../dayjs';
 import logger from '../../logger';
@@ -21,19 +21,28 @@ import logger from '../../logger';
 interface StoredChargePlan {
   end: string;
   publishedEnd: string;
-  slots: { start: string; end: string; isEstimated: boolean }[];
-  target: number;
+  slots: { start: string; end: string; isEstimated: boolean; type?: ChargeType; targetPercentage?: number }[];
   deadline: string | null;
 }
 
 function getPlan(device: Device): ChargePlan | null {
   const stored = device.meta.chargePlan as StoredChargePlan | undefined;
 
-  return stored === undefined ? null : {
+  // A slot without its own type and target can't be applied, so the plan is rebuilt.
+  if (stored === undefined || stored.slots.some(s => s.type === undefined || s.targetPercentage === undefined)) {
+    return null;
+  }
+
+  return {
     end: new Date(stored.end),
     publishedEnd: new Date(stored.publishedEnd),
-    slots: stored.slots.map(s => ({ start: new Date(s.start), end: new Date(s.end), isEstimated: s.isEstimated })),
-    target: stored.target,
+    slots: stored.slots.map(s => ({
+      start: new Date(s.start),
+      end: new Date(s.end),
+      isEstimated: s.isEstimated,
+      type: s.type!,
+      targetPercentage: s.targetPercentage!,
+    })),
     deadline: stored.deadline === null ? null : new Date(stored.deadline),
   };
 }
@@ -221,36 +230,21 @@ Device.registerProvider('vehicle', {
         await device.save();
       },
 
-      getPlannedChargeBlocks(device: Device): { start: string; end: string }[] {
+      getPlannedChargeBlocks(device: Device): PlannedChargeBlock[] {
         const plan = getPlan(device);
 
         if (plan === null) {
           return [];
         }
 
+        const types: ChargeType[] = ['BAU', 'DEADLINE', 'PLUNGE'];
+
         // Coalesced purely for display - the plan itself is half-hour slots.
-        return groupIntoBlocks(plan.slots, 0).map(b => ({
+        return types.flatMap(type => groupIntoBlocks(plan.slots.filter(s => s.type === type), 0).map(b => ({
           start: b.start.toISOString(),
           end: b.end.toISOString(),
-        }));
-      },
-
-      getChargeType(device: Device): ChargeType | null {
-        const plan = getPlan(device);
-
-        if (plan === null) {
-          return null;
-        }
-
-        if (plan.deadline !== null) {
-          return 'DEADLINE';
-        }
-
-        if (plan.target > config.vehicle.default_charge_limit) {
-          return 'PLUNGE';
-        }
-
-        return 'BAU';
+          type,
+        })));
       },
     };
   },
@@ -344,7 +338,7 @@ function isReadOnly(): boolean {
 
 // The scheduler owns start/stop; the car's own limit is pinned at 100 (see
 // synchronize), so a start command always takes effect and this is just:
-// charge while inside a planned slot and below target, otherwise stop. Re-issued
+// charge while inside a planned slot and below its target, otherwise stop. Re-issued
 // each tick until the car reports it stuck.
 async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, chargePercentage: number) {
   const ev = device.getElectricVehicleCapability();
@@ -352,17 +346,18 @@ async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, ch
     device.getConnectivityCapability().getIsConnected(),
     ev.getIsCharging(),
   ]);
-  const desired = plan !== null && isWithinSlots(plan.slots, now.toDate()) && chargePercentage < plan.target;
+  const activeSlot = plan === null ? undefined : findActiveSlot(plan.slots, now.toDate());
+  const desired = activeSlot !== undefined && chargePercentage < activeSlot.targetPercentage;
 
   if (isReadOnly()) {
     logger.info(`Price-aware charging: [readonly] would set isCharging=${desired}`);
     return;
   }
 
-  // Only a deadline plan alerts: a charge that's merely opportunistic failing to
+  // Only a deadline slot alerts: a charge that's merely opportunistic failing to
   // start isn't worth waking anybody for. Ahead of the command, so a command that
   // throws can't skip it.
-  const isFailingDeadlineCharge = plan !== null && plan.deadline !== null && desired && !(isCarReachable && isCharging);
+  const isFailingDeadlineCharge = plan !== null && activeSlot?.type === 'DEADLINE' && desired && !(isCarReachable && isCharging);
 
   if (isFailingDeadlineCharge) {
     deadlineNotChargingSince ??= now;
@@ -373,7 +368,7 @@ async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, ch
       await Log.notify({
         severity: 'warning',
         devices: [device],
-        message: buildChargingFailureNotification(plan.target, dayjs(plan.deadline), isCarReachable),
+        message: buildChargingFailureNotification(activeSlot.targetPercentage, dayjs(plan.deadline), isCarReachable),
       });
     }
   } else {
@@ -405,14 +400,19 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
   device.meta.chargePlan = {
     end: plan.end.toISOString(),
     publishedEnd: plan.publishedEnd.toISOString(),
-    slots: plan.slots.map(s => ({ start: s.start.toISOString(), end: s.end.toISOString(), isEstimated: s.isEstimated })),
-    target: plan.target,
+    slots: plan.slots.map(s => ({
+      start: s.start.toISOString(),
+      end: s.end.toISOString(),
+      isEstimated: s.isEstimated,
+      type: s.type,
+      targetPercentage: s.targetPercentage,
+    })),
     deadline: plan.deadline === null ? null : plan.deadline.toISOString(),
   } satisfies StoredChargePlan;
 
   await device.save();
 
-  logger.info(`Price-aware charging: planned ${plan.slots.length} slot(s) to ${plan.target}%${plan.deadline === null ? '' : ` for ${plan.deadline.toISOString()}`}`);
+  logger.info(`Price-aware charging: planned ${plan.slots.length} slot(s)${plan.deadline === null ? '' : ` for ${plan.deadline.toISOString()}`}`);
 
   return plan;
 }

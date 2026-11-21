@@ -378,7 +378,18 @@ const historyFetchers = new Map<string, HistoryFetcher>([
       lines: [{ data: stopAtNow(charge, view), label: 'Charge %' }],
       modes: [
         { data: charging, details: [{ value: true as const, label: 'Charging' }] },
-        { data: blocksToModeData(ev.getPlannedChargeBlocks(), view), details: [{ value: true as const, label: 'Charging (planned)' }] }
+        {
+          data: {
+            since: view.since.toISOString(),
+            until: view.until.toISOString(),
+            history: ev.getPlannedChargeBlocks().map(b => ({ start: b.start, end: b.end, lastReported: b.end, value: b.type })),
+          },
+          details: [
+            { value: 'BAU', label: 'Planned (BAU)', fillColor: 'rgba(46, 204, 113, 0.3)' },
+            { value: 'DEADLINE', label: 'Planned (Deadline)', fillColor: 'rgba(52, 152, 219, 0.3)' },
+            { value: 'PLUNGE', label: 'Planned (Plunge)', fillColor: 'rgba(155, 89, 182, 0.3)' },
+          ]
+        }
       ]
     };
   })],
