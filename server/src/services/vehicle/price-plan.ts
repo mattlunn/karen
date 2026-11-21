@@ -1,7 +1,7 @@
 import dayjs from '../../dayjs';
 import { isWithinWindow } from '../../helpers/date';
 import { PriceSlot } from '../../helpers/prices';
-import { ChargeType } from '../../models/capabilities';
+import type { ChargeType } from '../../models/capabilities';
 
 export interface PlanSlot {
   start: Date;

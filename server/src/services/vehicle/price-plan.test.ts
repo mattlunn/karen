@@ -1,5 +1,5 @@
 import { PriceSlot } from '../../helpers/prices';
-import { ChargeType } from '../../models/capabilities';
+import type { ChargeType } from '../../models/capabilities';
 import { planCharge, isDeadlineEngaged, deadlineEngagesAt, findActiveSlot, PlanOptions, PlanSlot } from './price-plan';
 
 const T0 = new Date('2026-01-01T00:00:00Z');
