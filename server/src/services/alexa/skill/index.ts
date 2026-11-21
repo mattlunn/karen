@@ -96,16 +96,6 @@ async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
 
 // Car climate intents — preheat, precool, or stop the car's climate control
 
-function speak(text: string) {
-  return {
-    outputSpeech: {
-      type: 'PlainText',
-      text
-    },
-    shouldEndSession: true
-  };
-}
-
 async function changeCarClimate(change: (ev: ElectricVehicleCapability) => Promise<void>, confirmation: string, failure: string) {
   const [device] = await Device.findByCapability('ELECTRIC_VEHICLE');
 
@@ -124,7 +114,13 @@ async function changeCarClimate(change: (ev: ElectricVehicleCapability) => Promi
     });
   });
 
-  return speak(confirmation);
+  return {
+    outputSpeech: {
+      type: 'PlainText',
+      text: confirmation
+    },
+    shouldEndSession: true
+  };
 }
 
 function PreheatCar() {
