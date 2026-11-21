@@ -1,7 +1,8 @@
 import dayjs from '../../../dayjs';
 import { parse, end } from 'iso8601-duration';
 import logger from '../../../logger';
-import { Stay } from '../../../models';
+import { Device, Log, Stay } from '../../../models';
+import { ElectricVehicleCapability } from '../../../models/capabilities';
 import { messages } from '../index';
 import { AlexaIntent } from './types';
 
@@ -93,6 +94,51 @@ async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
   };
 }
 
+async function changeCarClimate(change: (ev: ElectricVehicleCapability) => Promise<void>, confirmation: string, failure: string) {
+  const [device] = await Device.findByCapability('ELECTRIC_VEHICLE');
+
+  if (!device) {
+    throw new Error('No electric vehicle device found');
+  }
+
+  // Not awaited: the car takes ~35s to act, and Alexa gives up on a response after 8s.
+  change(device.getElectricVehicleCapability()).catch((error) => {
+    logger.error(error);
+
+    return Log.notify({
+      severity: 'warning',
+      devices: [device],
+      message: failure,
+    });
+  });
+
+  return {
+    outputSpeech: {
+      type: 'PlainText',
+      text: confirmation
+    },
+    shouldEndSession: true
+  };
+}
+
+function PreheatCar() {
+  return changeCarClimate((ev) => ev.setIsPreheating(true), 'Karen is warming up the car', 'Alexa couldn\'t start preheating the car');
+}
+
+function PrecoolCar() {
+  return changeCarClimate((ev) => ev.setIsPrecooling(true), 'Karen is cooling down the car', 'Alexa couldn\'t start precooling the car');
+}
+
+function StopCarClimate() {
+  return changeCarClimate(async (ev) => {
+    if (await ev.getIsPrecooling()) {
+      await ev.setIsPrecooling(false);
+    } else {
+      await ev.setIsPreheating(false);
+    }
+  }, 'Karen is turning off the car\'s climate control', 'Alexa couldn\'t stop the car\'s climate control');
+}
+
 async function endSession() {
   return { shouldEndSession: true };
 }
@@ -116,5 +162,8 @@ export const intentHandlers: Record<string, (intent: AlexaIntent) => Promise<unk
   'AMAZON.StopIntent': endSession,
   'AMAZON.NavigateHomeIntent': endSession,
   'AMAZON.HelpIntent': endSession,
-  'AMAZON.FallbackIntent': Fallback
+  'AMAZON.FallbackIntent': Fallback,
+  PreheatCar,
+  PrecoolCar,
+  StopCarClimate
 };
