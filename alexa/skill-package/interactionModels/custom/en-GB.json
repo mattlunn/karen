@@ -88,6 +88,58 @@
             "whats the {device}",
             "what's the {device}"
           ]
+        },
+        {
+          "name": "PreheatCar",
+          "samples": [
+            "preheat the car",
+            "pre heat the car",
+            "pre heating the car",
+            "start preheating the car",
+            "start pre heating the car",
+            "start heating the car",
+            "heat the car",
+            "heat up the car",
+            "warm the car",
+            "warm up the car",
+            "warm the car up",
+            "turn on the car heating",
+            "turn the car heating on",
+            "defrost the car",
+            "get the car warm"
+          ]
+        },
+        {
+          "name": "PrecoolCar",
+          "samples": [
+            "precool the car",
+            "pre cool the car",
+            "pre cooling the car",
+            "start precooling the car",
+            "start pre cooling the car",
+            "start cooling the car",
+            "cool the car",
+            "cool down the car",
+            "cool the car down",
+            "turn on the car air conditioning",
+            "turn on the air con in the car",
+            "start the air conditioning in the car"
+          ]
+        },
+        {
+          "name": "StopCarClimate",
+          "samples": [
+            "stop heating the car",
+            "stop preheating the car",
+            "stop pre heating the car",
+            "stop cooling the car",
+            "stop precooling the car",
+            "stop pre cooling the car",
+            "turn off the car heating",
+            "turn off the car air conditioning",
+            "turn off the car climate control",
+            "stop the car climate control"
+          ]
         }
       ]
     }
