@@ -81,7 +81,12 @@
             "what is the message for {device}",
             "the message for {device}",
             "for the message for {device}",
-            "message for {device}"
+            "message for {device}",
+            "whats the message for the {device}",
+            "what's the message for the {device}",
+            "whats the message for {device}",
+            "whats the {device}",
+            "what's the {device}"
           ]
         }
       ]

@@ -22,6 +22,14 @@ describe('WhatsTheMessage', () => {
     expect(messages.has('Downstairs Alexa')).toBe(false);
   });
 
+  it('matches a device named at the end of a longer phrase', async () => {
+    messages.set('Downstairs Alexa', { getMessageToSend: () => 'Welcome home' });
+
+    const response = await whatsTheMessage('mesage for the downstairs Alexa');
+
+    expect(response).toMatchObject({ outputSpeech: { ssml: '<speak>Welcome home</speak>' } });
+  });
+
   it('ends the session silently when the device has no message', async () => {
     messages.set('Kitchen Alexa', { getMessageToSend: () => 'Welcome home' });
 

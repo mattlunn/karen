@@ -70,7 +70,8 @@ interface WhatsTheMessageIntent {
 }
 
 async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
-  const deviceName = [...messages.keys()].find((name) => name.toLowerCase() === device.value?.toLowerCase());
+  // The routines' text is "whats the mesage for the <device>", which Alexa only matches as "whats the {device}".
+  const deviceName = [...messages.keys()].find((name) => device.value?.toLowerCase().endsWith(name.toLowerCase()));
   const message = messages.get(deviceName)?.getMessageToSend();
 
   if (!message) {
