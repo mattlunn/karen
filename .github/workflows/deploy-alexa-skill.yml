@@ -49,7 +49,7 @@ jobs:
           ASK_VENDOR_ID: ${{ secrets.ASK_VENDOR_ID }}
 
       - name: Deploy skill package
-        run: alexa/deploy.sh
+        run: node alexa/deploy.mjs
         env:
           ALEXA_SKILL_ID: ${{ secrets.ALEXA_SKILL_ID }}
           SKILL_NAME: ${{ inputs.skill-name }}

@@ -53,7 +53,7 @@ Deploys should be automated upon push to master, because of the webhook in the G
 
 ### Alexa skill
 
-The skill's manifest and interaction model live in `alexa/skill-package/`; never edit them in the Alexa developer console, as the next deploy overwrites it. `skill.json`'s `${...}` placeholders are filled per environment by `alexa/deploy.sh`.
+The skill's manifest and interaction model live in `alexa/skill-package/`; never edit them in the Alexa developer console, as the next deploy overwrites it. `skill.json`'s `${...}` placeholders are filled per environment by `alexa/deploy.mjs`.
 
 - **Production** deploys on push to master, after the application deploy is verified.
 - **Development** deploys from the "Deploy Alexa Skill (Development)" workflow, run manually against any branch.
