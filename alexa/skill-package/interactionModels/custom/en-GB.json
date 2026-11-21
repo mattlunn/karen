@@ -1,0 +1,90 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "karen",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
+          "name": "GoingOut",
+          "slots": [
+            {
+              "name": "duration",
+              "type": "AMAZON.DURATION"
+            },
+            {
+              "name": "dateBack",
+              "type": "AMAZON.DATE"
+            },
+            {
+              "name": "timeBack",
+              "type": "AMAZON.TIME"
+            }
+          ],
+          "samples": [
+            "I'm going out",
+            "I'm leaving",
+            "we're going out",
+            "we're leaving",
+            "that I'm going out",
+            "that I'm leaving",
+            "I'm going out for {duration}",
+            "we're going out for {duration}",
+            "I'm leaving for {duration}",
+            "I'll be back in {duration}",
+            "we'll be back in {duration}",
+            "I'm going out and I'll be back in {duration}",
+            "I'll be back at {timeBack}",
+            "we'll be back at {timeBack}",
+            "I'm going out until {timeBack}",
+            "I'm going out and I'll be back at {timeBack}",
+            "I'll be back on {dateBack} at {timeBack}",
+            "we'll be back on {dateBack} at {timeBack}",
+            "I'll be back at {timeBack} on {dateBack}",
+            "I'll be home in {duration}",
+            "I'll be home at {timeBack}",
+            "we'll be home at {timeBack}",
+            "I'll be back {dateBack} at {timeBack}",
+            "I'll be home {dateBack} at {timeBack}",
+            "I'll be back at {timeBack} {dateBack}",
+            "I'll be home at {timeBack} {dateBack}"
+          ]
+        },
+        {
+          "name": "WhatsTheMessage",
+          "slots": [
+            {
+              "name": "device",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "what's the message for {device}",
+            "what is the message for {device}",
+            "the message for {device}",
+            "for the message for {device}",
+            "message for {device}"
+          ]
+        }
+      ]
+    }
+  }
+}

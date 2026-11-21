@@ -50,3 +50,12 @@ Deploys should be automated upon push to master, because of the webhook in the G
 2. `cd ~/docker/george`
 3. `docker compose pull karen`
 4. `docker compose up --detach karen`
+
+### Alexa skill
+
+The skill's manifest and interaction model live in `alexa/skill-package/`; never edit them in the Alexa developer console, as the next deploy overwrites it. `skill.json`'s `${...}` placeholders are filled per environment by `alexa/deploy.mjs`.
+
+- **Production** deploys on push to master, after the application deploy is verified.
+- **Development** deploys from the "Deploy Alexa Skill (Development)" workflow, run manually against any branch.
+
+Both use `ASK_REFRESH_TOKEN_*`, `ASK_VENDOR_ID_*`, `ALEXA_SKILL_ID_*`, `ALEXA_CUSTOM_ENDPOINT_URI_*` and `ALEXA_SMART_HOME_LAMBDA_ARN_*` repository secrets (`_DEVELOPMENT` / `_PRODUCTION`). The refresh token is the one `ask configure` stores in `~/.ask/cli_config` for that environment's developer account.

@@ -1,0 +1,16 @@
+name: Deploy Alexa Skill (Development)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy-alexa-skill.yml
+    with:
+      skill-name: Karen - Dev
+    secrets:
+      ASK_REFRESH_TOKEN: ${{ secrets.ASK_REFRESH_TOKEN_DEVELOPMENT }}
+      ASK_VENDOR_ID: ${{ secrets.ASK_VENDOR_ID_DEVELOPMENT }}
+      ALEXA_SKILL_ID: ${{ secrets.ALEXA_SKILL_ID_DEVELOPMENT }}
+      ALEXA_CUSTOM_ENDPOINT_URI: ${{ secrets.ALEXA_CUSTOM_ENDPOINT_URI_DEVELOPMENT }}
+      ALEXA_SMART_HOME_LAMBDA_ARN: ${{ secrets.ALEXA_SMART_HOME_LAMBDA_ARN_DEVELOPMENT }}
