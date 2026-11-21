@@ -305,7 +305,6 @@ export async function getCapabilityData(device: Device, capability: string, inst
         isPrecooling: mapBooleanState(ev.getIsPrecoolingEvent(), device),
         odometer: mapNumericState(ev.getOdometerEvent(), device),
         chargeSchedule: ev.getNextChargeSchedule(),
-        chargeType: ev.getChargeType(),
       });
     }
 

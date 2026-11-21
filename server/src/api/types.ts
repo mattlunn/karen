@@ -95,7 +95,6 @@ export type CapabilityApiResponseBase = {
   isPrecooling: BooleanStateApiResponse;
   odometer: NumericStateApiResponse;
   chargeSchedule: { targetPercentage: number; targetTime: string; startsAt: string } | null;
-  chargeType: 'BAU' | 'DEADLINE' | 'PLUNGE' | null;
 } | {
   type: 'ALARM_SENSOR';
   isTriggered: BooleanStateApiResponse;

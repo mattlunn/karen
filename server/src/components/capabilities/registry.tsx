@@ -396,16 +396,6 @@ export const registry: CapabilityUIRegistry = {
         iconHighlighted: (e) => e.value,
       }),
       createCapability(null, {
-        icon: faGauge,
-        title: 'Charge Type',
-        value: cap.chargeType === null
-          ? 'None'
-          : { BAU: 'BAU', DEADLINE: 'Deadline', PLUNGE: 'Plunge' }[cap.chargeType],
-        footer: cap.chargeSchedule && cap.chargeType !== null && cap.chargeType !== 'DEADLINE'
-          ? `deadline from ${dayjs(cap.chargeSchedule.startsAt).format('HH:mm')} ${humanDate(dayjs(cap.chargeSchedule.startsAt))}`
-          : undefined,
-      }),
-      createCapability(null, {
         icon: faCalendarCheck,
         title: 'Schedule',
         value: cap.chargeSchedule
@@ -447,7 +437,7 @@ export const registry: CapabilityUIRegistry = {
         title: 'Charge',
         overridePreset: 'custom',
         overrideStart: dayjs().startOf('day').toISOString(),
-        overrideEnd: cap.chargeType === 'DEADLINE' && cap.chargeSchedule
+        overrideEnd: cap.chargeSchedule && dayjs().isAfter(cap.chargeSchedule.startsAt)
           ? cap.chargeSchedule.targetTime
           : dayjs().endOf('day').toISOString(),
         graphs: [{

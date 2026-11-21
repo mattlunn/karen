@@ -49,20 +49,24 @@ export interface ScheduleChargeRequest {
 }
 
 export interface ScheduledCharge extends ScheduleChargeRequest {
-  // When opportunistic charging will hand over to this deadline: charge_deadline_engage_days before targetTime.
+  // When the deadline starts being planned for: charge_deadline_engage_days before targetTime.
   startsAt: string;
 }
 
-// Which pass of the charge planner the committed plan's slots came from: an
-// engaged recurring deadline, a negative-price top-up, or the opportunistic
-// fill toward default_charge_limit.
+// Which pass of the charge planner booked a slot: the opportunistic fill toward
+// default_charge_limit, an engaged deadline's top-up, or a negative-price top-up.
 export type ChargeType = 'BAU' | 'DEADLINE' | 'PLUNGE';
+
+export interface PlannedChargeBlock {
+  start: string;
+  end: string;
+  type: ChargeType;
+}
 
 export interface ProviderElectricVehicleCapability extends ProviderElectricVehicleCapabilityBase {
   getNextChargeSchedule(device: Device): ScheduledCharge | null;
   setManualChargeSchedule(device: Device, schedule: ScheduleChargeRequest | null): Promise<void>;
-  getPlannedChargeBlocks(device: Device): { start: string; end: string }[];
-  getChargeType(device: Device): ChargeType | null;
+  getPlannedChargeBlocks(device: Device): PlannedChargeBlock[];
 }
 
 export interface ProviderMotionSensorSensitivityCapability extends ProviderMotionSensorSensitivityCapabilityBase {
