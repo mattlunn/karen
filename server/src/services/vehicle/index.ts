@@ -21,27 +21,22 @@ import logger from '../../logger';
 interface StoredChargePlan {
   end: string;
   publishedEnd: string;
-  slots: { start: string; end: string; isEstimated: boolean; type?: ChargeType; targetPercentage?: number }[];
+  slots: { start: string; end: string; isEstimated: boolean; type: ChargeType; targetPercentage: number }[];
   deadline: string | null;
 }
 
 function getPlan(device: Device): ChargePlan | null {
   const stored = device.meta.chargePlan as StoredChargePlan | undefined;
 
-  // A slot without its own type and target can't be applied, so the plan is rebuilt.
-  if (stored === undefined || stored.slots.some(s => s.type === undefined || s.targetPercentage === undefined)) {
-    return null;
-  }
-
-  return {
+  return stored === undefined ? null : {
     end: new Date(stored.end),
     publishedEnd: new Date(stored.publishedEnd),
     slots: stored.slots.map(s => ({
       start: new Date(s.start),
       end: new Date(s.end),
       isEstimated: s.isEstimated,
-      type: s.type!,
-      targetPercentage: s.targetPercentage!,
+      type: s.type,
+      targetPercentage: s.targetPercentage,
     })),
     deadline: stored.deadline === null ? null : new Date(stored.deadline),
   };
