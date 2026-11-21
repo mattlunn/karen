@@ -65,30 +65,16 @@ async function GoingOut(intent: GoingOutIntent) {
 
 // WhatsTheMessage intent — retrieves and returns the queued TTS message
 
-interface SlotResolutionValue {
-  value: { name: string; id?: string };
-}
-
-interface SlotResolution {
-  values?: SlotResolutionValue[];
-}
-
-interface DeviceSlot {
-  resolutions: {
-    resolutionsPerAuthority: SlotResolution[];
-  };
-}
-
 interface WhatsTheMessageIntent {
-  slots: { device: DeviceSlot };
+  slots: { device: { value?: string } };
 }
 
 async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
-  const deviceName = device.resolutions.resolutionsPerAuthority[0]?.values?.[0]?.value.name;
+  const deviceName = [...messages.keys()].find((name) => name.toLowerCase() === device.value?.toLowerCase());
   const message = messages.get(deviceName)?.getMessageToSend();
 
   if (!message) {
-    logger.error(`"${deviceName}" asked for messages, but there was none.`);
+    logger.error(`"${device.value}" asked for messages, but there was none.`);
 
     // Alexa rejects a response with no `response` key as malformed, so end the session silently
     // rather than returning nothing.

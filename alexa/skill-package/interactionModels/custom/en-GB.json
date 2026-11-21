@@ -73,7 +73,7 @@
           "slots": [
             {
               "name": "device",
-              "type": "ALEXA_DEVICE"
+              "type": "AMAZON.SearchQuery"
             }
           ],
           "samples": [
@@ -82,28 +82,6 @@
             "the message for {device}",
             "for the message for {device}",
             "message for {device}"
-          ]
-        }
-      ],
-      "types": [
-        {
-          "name": "ALEXA_DEVICE",
-          "values": [
-            {
-              "name": {
-                "value": "Downstairs Alexa"
-              }
-            },
-            {
-              "name": {
-                "value": "Upstairs Alexa"
-              }
-            },
-            {
-              "name": {
-                "value": "Kitchen Alexa"
-              }
-            }
           ]
         }
       ]
