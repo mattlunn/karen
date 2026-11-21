@@ -125,7 +125,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     uses: ./.github/workflows/deploy-alexa-skill.yml
     with:
-      skill-name: Tell Karen you're leaving
+      skill-name: Karen - Prod
     secrets:
       ASK_REFRESH_TOKEN: ${{ secrets.ASK_REFRESH_TOKEN_PRODUCTION }}
       ASK_VENDOR_ID: ${{ secrets.ASK_VENDOR_ID_PRODUCTION }}
