@@ -21,7 +21,7 @@ import logger from '../../logger';
 interface StoredChargePlan {
   end: string;
   publishedEnd: string;
-  slots: { start: string; end: string; isEstimated: boolean; type: ChargeType; targetPercentage: number }[];
+  slots: { start: string; end: string; isEstimated: boolean; type: ChargeType }[];
   deadline: string | null;
 }
 
@@ -36,7 +36,6 @@ function getPlan(device: Device): ChargePlan | null {
       end: new Date(s.end),
       isEstimated: s.isEstimated,
       type: s.type,
-      targetPercentage: s.targetPercentage,
     })),
     deadline: stored.deadline === null ? null : new Date(stored.deadline),
   };
@@ -325,6 +324,24 @@ function getSchedule(device: Device): { targetPercentage: number; targetTime: Da
   };
 }
 
+function targetPercentageFor(device: Device, type: ChargeType): number {
+  switch (type) {
+    case 'BAU':
+      return config.vehicle.default_charge_limit;
+    case 'PLUNGE':
+      return config.vehicle.charge_plunge_limit;
+    case 'DEADLINE': {
+      const schedule = getSchedule(device);
+
+      if (schedule === null) {
+        throw new Error('Deadline slot planned without a charge schedule');
+      }
+
+      return schedule.targetPercentage;
+    }
+  }
+}
+
 // charge_plan_mode=readonly: a non-prod instance against the shared physical car
 // still plans and populates the UI / insights, it just doesn't command the car.
 function isReadOnly(): boolean {
@@ -342,7 +359,8 @@ async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, ch
     ev.getIsCharging(),
   ]);
   const activeSlot = plan === null ? undefined : findActiveSlot(plan.slots, now.toDate());
-  const desired = activeSlot !== undefined && chargePercentage < activeSlot.targetPercentage;
+  const activeTarget = activeSlot === undefined ? null : targetPercentageFor(device, activeSlot.type);
+  const desired = activeTarget !== null && chargePercentage < activeTarget;
 
   if (isReadOnly()) {
     logger.info(`Price-aware charging: [readonly] would set isCharging=${desired}`);
@@ -363,7 +381,7 @@ async function applyPlan(device: Device, now: Dayjs, plan: ChargePlan | null, ch
       await Log.notify({
         severity: 'warning',
         devices: [device],
-        message: buildChargingFailureNotification(activeSlot.targetPercentage, dayjs(plan.deadline), isCarReachable),
+        message: buildChargingFailureNotification(targetPercentageFor(device, 'DEADLINE'), dayjs(plan.deadline), isCarReachable),
       });
     }
   } else {
@@ -400,7 +418,6 @@ async function createPlan(device: Device, slots: PriceSlot[], now: Dayjs, charge
       end: s.end.toISOString(),
       isEstimated: s.isEstimated,
       type: s.type,
-      targetPercentage: s.targetPercentage,
     })),
     deadline: plan.deadline === null ? null : plan.deadline.toISOString(),
   } satisfies StoredChargePlan;

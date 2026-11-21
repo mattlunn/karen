@@ -8,7 +8,6 @@ export interface PlanSlot {
   end: Date;
   isEstimated: boolean;
   type: ChargeType;
-  targetPercentage: number;
 }
 
 export interface ChargeDeadline {
@@ -115,11 +114,11 @@ export function planCharge(options: PlanOptions): ChargePlan {
   const publishedEnd = slots.findLast(s => !s.isEstimated)?.end ?? now;
 
   const slotHours = dayjs(pool[0].end).diff(pool[0].start, 'hour', true);
-  const picked = new Map<PriceSlot, Pick<PlanSlot, 'type' | 'targetPercentage'>>();
+  const picked = new Map<PriceSlot, ChargeType>();
 
-  function take(candidates: PriceSlot[], count: number, type: ChargeType, targetPercentage: number): void {
+  function take(candidates: PriceSlot[], count: number, type: ChargeType): void {
     for (const slot of candidates.filter(s => !picked.has(s)).slice(0, Math.max(0, count))) {
-      picked.set(slot, { type, targetPercentage });
+      picked.set(slot, type);
     }
   }
 
@@ -134,7 +133,7 @@ export function planCharge(options: PlanOptions): ChargePlan {
 
   take(
     published.filter(s => s.pence === cheapestPublished && isBeforeDeadline(s)),
-    slotsToCharge(defaultLimit), 'BAU', defaultLimit,
+    slotsToCharge(defaultLimit), 'BAU',
   );
 
   if (schedule !== null && deadline !== null) {
@@ -143,18 +142,18 @@ export function planCharge(options: PlanOptions): ChargePlan {
     if (chargeHours > 0) {
       const quota = Math.ceil((chargeHours + startBufferHours) / slotHours);
 
-      take(pool.filter(isBeforeDeadline), quota - picked.size, 'DEADLINE', schedule.targetPercentage);
+      take(pool.filter(isBeforeDeadline), quota - picked.size, 'DEADLINE');
     }
   }
 
-  take(pool.filter(s => s.pence < 0), slotsToCharge(plungeLimit) - picked.size, 'PLUNGE', plungeLimit);
+  take(pool.filter(s => s.pence < 0), slotsToCharge(plungeLimit) - picked.size, 'PLUNGE');
 
   return {
     end,
     publishedEnd,
     slots: [...picked]
       .sort(([a], [b]) => a.start.getTime() - b.start.getTime())
-      .map(([s, pass]) => ({ start: s.start, end: s.end, isEstimated: s.isEstimated, ...pass })),
+      .map(([s, type]) => ({ start: s.start, end: s.end, isEstimated: s.isEstimated, type })),
     deadline,
   };
 }
