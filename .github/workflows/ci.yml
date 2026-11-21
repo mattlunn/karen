@@ -118,3 +118,17 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME_PRODUCTION }}
       NEW_RELIC_API_KEY: ${{ secrets.NEW_RELIC_API_KEY }}
+
+  deploy-alexa-skill-production:
+    name: Deploy Alexa Skill (Production)
+    needs: deploy-application
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    uses: ./.github/workflows/deploy-alexa-skill.yml
+    with:
+      skill-name: Tell Karen you're leaving
+    secrets:
+      ASK_REFRESH_TOKEN: ${{ secrets.ASK_REFRESH_TOKEN_PRODUCTION }}
+      ASK_VENDOR_ID: ${{ secrets.ASK_VENDOR_ID_PRODUCTION }}
+      ALEXA_SKILL_ID: ${{ secrets.ALEXA_SKILL_ID_PRODUCTION }}
+      ALEXA_CUSTOM_ENDPOINT_URI: ${{ secrets.ALEXA_CUSTOM_ENDPOINT_URI_PRODUCTION }}
+      ALEXA_SMART_HOME_LAMBDA_ARN: ${{ secrets.ALEXA_SMART_HOME_LAMBDA_ARN_PRODUCTION }}

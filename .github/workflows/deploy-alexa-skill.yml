@@ -1,0 +1,57 @@
+name: Deploy Alexa Skill
+
+on:
+  workflow_call:
+    inputs:
+      skill-name:
+        type: string
+        required: true
+    secrets:
+      ASK_REFRESH_TOKEN:
+        required: true
+      ASK_VENDOR_ID:
+        required: true
+      ALEXA_SKILL_ID:
+        required: true
+      ALEXA_CUSTOM_ENDPOINT_URI:
+        required: true
+      ALEXA_SMART_HOME_LAMBDA_ARN:
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy Alexa Skill
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install ASK CLI
+        run: npm install -g ask-cli@2.30.7
+
+      # ASK CLI only reads credentials from the environment when AWS keys are also set.
+      - name: Configure ASK CLI
+        run: |
+          mkdir -p ~/.ask
+          jq -n --arg token "$ASK_REFRESH_TOKEN" --arg vendor "$ASK_VENDOR_ID" '{
+            profiles: { default: {
+              token: { access_token: "", refresh_token: $token, token_type: "bearer", expires_in: 0, expires_at: "1970-01-01T00:00:00.000Z" },
+              vendor_id: $vendor
+            } }
+          }' > ~/.ask/cli_config
+        env:
+          ASK_REFRESH_TOKEN: ${{ secrets.ASK_REFRESH_TOKEN }}
+          ASK_VENDOR_ID: ${{ secrets.ASK_VENDOR_ID }}
+
+      - name: Deploy skill package
+        run: alexa/deploy.sh
+        env:
+          ALEXA_SKILL_ID: ${{ secrets.ALEXA_SKILL_ID }}
+          SKILL_NAME: ${{ inputs.skill-name }}
+          CUSTOM_ENDPOINT_URI: ${{ secrets.ALEXA_CUSTOM_ENDPOINT_URI }}
+          SMART_HOME_LAMBDA_ARN: ${{ secrets.ALEXA_SMART_HOME_LAMBDA_ARN }}

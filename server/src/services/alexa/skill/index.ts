@@ -106,9 +106,28 @@ async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
   };
 }
 
+async function endSession() {
+  return { shouldEndSession: true };
+}
+
+async function Fallback() {
+  return {
+    outputSpeech: {
+      type: 'PlainText',
+      text: 'Karen didn\'t understand that'
+    },
+    shouldEndSession: true
+  };
+}
+
 // Dispatch
 
 export const intentHandlers: Record<string, (intent: AlexaIntent) => Promise<unknown>> = {
   GoingOut: GoingOut as unknown as (intent: AlexaIntent) => Promise<unknown>,
-  WhatsTheMessage: WhatsTheMessage as unknown as (intent: AlexaIntent) => Promise<unknown>
+  WhatsTheMessage: WhatsTheMessage as unknown as (intent: AlexaIntent) => Promise<unknown>,
+  'AMAZON.CancelIntent': endSession,
+  'AMAZON.StopIntent': endSession,
+  'AMAZON.NavigateHomeIntent': endSession,
+  'AMAZON.HelpIntent': endSession,
+  'AMAZON.FallbackIntent': Fallback
 };

@@ -1,0 +1,41 @@
+{
+  "manifest": {
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "sslCertificateType": "Trusted",
+          "uri": "${CUSTOM_ENDPOINT_URI}"
+        },
+        "interfaces": [],
+        "locales": {}
+      },
+      "smartHome": {
+        "endpoint": {
+          "uri": "${SMART_HOME_LAMBDA_ARN}"
+        },
+        "protocolVersion": "3",
+        "regions": {
+          "EU": {
+            "endpoint": {
+              "uri": "${SMART_HOME_LAMBDA_ARN}"
+            }
+          }
+        }
+      }
+    },
+    "manifestVersion": "1.0",
+    "permissions": [
+      {
+        "name": "alexa::async_event:write"
+      }
+    ],
+    "publishingInformation": {
+      "isAvailableWorldwide": true,
+      "locales": {
+        "en-GB": {
+          "name": "${SKILL_NAME}"
+        }
+      }
+    }
+  }
+}
