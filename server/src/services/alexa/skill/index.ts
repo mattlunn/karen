@@ -94,8 +94,6 @@ async function WhatsTheMessage({ slots: { device } }: WhatsTheMessageIntent) {
   };
 }
 
-// Car climate intents — preheat, precool, or stop the car's climate control
-
 async function changeCarClimate(change: (ev: ElectricVehicleCapability) => Promise<void>, confirmation: string, failure: string) {
   const [device] = await Device.findByCapability('ELECTRIC_VEHICLE');
 
