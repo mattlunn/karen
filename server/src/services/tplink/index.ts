@@ -62,31 +62,19 @@ Device.registerProvider('tplink', {
   },
 
   async synchronize() {
-    const discoveryDuration = Math.max(5, config.tplink.discovery_duration_seconds) * 1000;
-    const newDevices: (Bulb | Plug)[] = [];
+    const devices = await Device.findByProvider('tplink');
 
-    client.startDiscovery({
-      discoveryTimeout: discoveryDuration
-    }).on('device-new', device => {
-      logger.info(`Discovered TPLink device: ${device.alias} (${device.host})`);
+    for (const device of devices) {
+      const tpLinkDevice = await getTpLinkDeviceFromDevice(device);
 
-      newDevices.push(device);
-    });
-    await sleep(discoveryDuration);
-
-    for (const newDevice of newDevices) {
-      let device = await Device.findByProviderId('tplink', newDevice.host);
-
-      if (device === null) {
-        device = Device.build({
-          provider: 'tplink',
-          providerId: newDevice.host
-        });
+      if (tpLinkDevice === null) {
+        logger.info(`TPLink device ${device.id} (${device.providerId}) is unreachable; not synchronizing it`);
+        continue;
       }
 
       device.manufacturer = 'TP-Link';
-      device.model = newDevice.model || 'Unknown';
-      device.name = newDevice.alias;
+      device.model = tpLinkDevice.model;
+      device.name = tpLinkDevice.alias;
 
       await device.save();
     }

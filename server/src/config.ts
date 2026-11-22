@@ -92,7 +92,6 @@ export interface AppConfig {
   };
   tplink: {
     sync_cron: string;
-    discovery_duration_seconds: number;
     connect_timeout_milliseconds: number;
   };
   tuya: {
