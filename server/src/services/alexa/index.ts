@@ -1,7 +1,7 @@
 import config from '../../config';
 import { Device } from '../../models';
 import { DeviceCapabilityEvents } from '../../models/capabilities';
-import { sendSimpleEventSource, syncDiscovery } from './smarthome';
+import { sendDoorbellPress, sendSimpleEventSource, syncDiscovery } from './smarthome';
 import logger from '../../logger';
 import nowAndSetCron from '../../helpers/now-and-set-cron';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
@@ -123,6 +123,10 @@ DeviceCapabilityEvents.onButtonPressed(async (event) => {
   const device = await event.getDevice();
   await sendSimpleEventSource(device.id);
 });
+
+DeviceCapabilityEvents.onDoorbellRing(createBackgroundTransaction('alexa:doorbell-press', async (event) => {
+  await sendDoorbellPress(event.deviceId);
+}));
 
 nowAndSetCron(
   createBackgroundTransaction('alexa:discovery-sync', syncDiscovery),

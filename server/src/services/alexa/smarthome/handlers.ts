@@ -123,6 +123,15 @@ async function createSwitchResponseProperties(device: Device, sampleTime: Date):
   }];
 }
 
+async function createDoorbellResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
+  return [{
+    namespace: 'Alexa.EndpointHealth',
+    name: 'connectivity',
+    value: { value: await getConnectivityValue(device) },
+    timeOfSample: sampleTime.toISOString()
+  }];
+}
+
 async function createTelevisionResponseProperties(device: Device, sampleTime: Date): Promise<AlexaEndpointPropertyDraft[]> {
   const sw = device.getSwitchCapability();
   const tv = device.getTelevisionCapability();
@@ -249,6 +258,8 @@ export async function handleReportState(request: AlexaReportStateRequest) {
     return stateReport(request, then, await createThermostatResponseProperties(device, then));
   } else if (capabilities.includes('SWITCH')) {
     return stateReport(request, then, await createSwitchResponseProperties(device, then));
+  } else if (capabilities.includes('DOORBELL')) {
+    return stateReport(request, then, await createDoorbellResponseProperties(device, then));
   } else {
     throw new Error(`Unable to report state for "${device.name}" (${endpointId}), with capabilities: ${capabilities.join(', ') || 'none'}`);
   }

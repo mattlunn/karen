@@ -130,6 +130,7 @@ export interface AlexaDiscoveryCapability {
   capabilityResources?: Record<string, unknown>;
   configuration?: Record<string, unknown>;
   inputs?: { name: string }[];
+  proactivelyReported?: boolean;
   properties?: {
     supported: { name: string }[];
     configuration?: Record<string, unknown>;

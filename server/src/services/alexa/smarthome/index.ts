@@ -67,6 +67,19 @@ export async function sendSimpleEventSource(deviceId: number | string): Promise<
   }));
 }
 
+export async function sendDoorbellPress(deviceId: number): Promise<void> {
+  await makeEventsRequest('Alexa.DoorbellEventSource', 'DoorbellPress', '3', undefined, (bearer) => ({
+    endpoint: {
+      scope: { type: 'BearerToken', token: bearer },
+      endpointId: String(deviceId)
+    },
+    payload: {
+      cause: { type: 'PHYSICAL_INTERACTION' },
+      timestamp: new Date().toISOString()
+    }
+  }));
+}
+
 export async function syncDiscovery(): Promise<void> {
   const allDevices = await Device.findAll({ paranoid: false });
   const activeEndpoints = buildDiscoveryEndpoints(allDevices.filter(d => !d.isSoftDeleted()));
