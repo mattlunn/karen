@@ -192,7 +192,7 @@ export async function onConnectivityChanged() {
 
 Device.registerProvider('synology', {
   getCapabilities(device) {
-    if (device.model === 'Video Doorbell PoE') {
+    if (device.model.includes('Doorbell')) {
       return ['CAMERA', 'CONNECTIVITY', 'MOTION_SENSOR', 'DOORBELL'];
     }
 
