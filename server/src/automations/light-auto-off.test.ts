@@ -1,7 +1,12 @@
 const mockHandlers: ((event: unknown) => Promise<void>)[] = [];
+const mockNotify = jest.fn();
 
 jest.mock('../helpers/newrelic', () => ({
   createBackgroundTransaction: (_name: string, cb: (...args: unknown[]) => Promise<unknown>) => cb
+}));
+
+jest.mock('../models', () => ({
+  Log: { notify: (options: unknown) => mockNotify(options) }
 }));
 
 jest.mock('../models/capabilities', () => ({
@@ -14,7 +19,7 @@ import lightAutoOff from './light-auto-off';
 
 function createLight() {
   const setIsOn = jest.fn().mockResolvedValue(undefined);
-  const light = { getLightCapability: () => ({ setIsOn }) };
+  const light = { name: 'Porch', getLightCapability: () => ({ setIsOn }) };
 
   return { light, setIsOn };
 }
@@ -27,6 +32,7 @@ describe('light-auto-off', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockHandlers.length = 0;
+    mockNotify.mockReset();
     lightAutoOff({ lights: [{ lightName: 'Light', offDelayMinutes: 10 }] });
   });
 
@@ -43,6 +49,11 @@ describe('light-auto-off', () => {
 
     await jest.advanceTimersByTimeAsync(1);
     expect(setIsOn).toHaveBeenCalledWith(false);
+    expect(mockNotify).toHaveBeenCalledWith({
+      severity: 'info',
+      devices: [light],
+      message: 'Turning off Porch, as it has been left on for 10 minutes'
+    });
   });
 
   it('does nothing if the light is turned off before the delay', async () => {
@@ -54,6 +65,7 @@ describe('light-auto-off', () => {
     await jest.advanceTimersByTimeAsync(60 * 60 * 1000);
 
     expect(setIsOn).not.toHaveBeenCalled();
+    expect(mockNotify).not.toHaveBeenCalled();
   });
 
   it('restarts the delay when the light is turned back on', async () => {

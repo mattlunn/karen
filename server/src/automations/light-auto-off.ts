@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import dayjs from '../dayjs';
-import type { BooleanEvent } from '../models';
+import { Log, type BooleanEvent } from '../models';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 
@@ -25,6 +25,12 @@ export default function ({ lights }: z.infer<typeof parameters>) {
 
           offTimeout = setTimeout(createBackgroundTransaction('automations:light-auto-off:turn-off', async () => {
             await light.getLightCapability().setIsOn(false);
+
+            await Log.notify({
+              severity: 'info',
+              devices: [light],
+              message: `Turning off ${light.name}, as it has been left on for ${offDelayMinutes} minutes`
+            });
           }), dayjs.duration(offDelayMinutes, 'minute').asMilliseconds());
         }
       })
