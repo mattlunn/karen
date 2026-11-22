@@ -69,15 +69,21 @@ export class UnifiClient {
   }
 
   async getAllUsers(): Promise<UnifiUser[]> {
-    return this.#withRetry(() =>
-      this.#apiRequest<UnifiUser[]>('GET', `/proxy/network/api/s/${this.site}/stat/alluser?type=all&within=8760`),
-    );
+    return this.#withRetry(() => this.#getList<UnifiUser>(`/proxy/network/api/s/${this.site}/stat/alluser?type=all&within=8760`));
   }
 
   async getClientDevices(): Promise<UnifiDevice[]> {
-    return this.#withRetry(() =>
-      this.#apiRequest<UnifiDevice[]>('GET', `/proxy/network/api/s/${this.site}/stat/sta/`),
-    );
+    return this.#withRetry(() => this.#getList<UnifiDevice>(`/proxy/network/api/s/${this.site}/stat/sta/`));
+  }
+
+  async #getList<T>(path: string): Promise<T[]> {
+    const json = await this.#apiRequest<{ meta?: { rc: string; msg?: string }; data?: T[] }>('GET', path);
+
+    if (json.meta?.rc !== 'ok' || !Array.isArray(json.data)) {
+      throw new Error(`UniFi GET ${path} returned an unexpected body: ${JSON.stringify(json).slice(0, 200)}`);
+    }
+
+    return json.data;
   }
 
   async #withRetry<T>(fn: () => Promise<T>): Promise<T> {
@@ -114,11 +120,11 @@ export class UnifiClient {
       throw Object.assign(new Error('Unauthorized'), { response: { status: 401 } });
     }
 
-    const json = await res.json() as { meta?: { rc: string; msg?: string }; data?: T };
-    if (json.meta?.rc === 'error') {
-      throw new Error(json.meta.msg ?? 'UniFi API error');
+    if (!res.ok) {
+      throw new Error(`UniFi ${method} ${path} returned HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
     }
-    return (json.data ?? []) as T;
+
+    return await res.json() as T;
   }
 
   #buildCookieHeader(): string {
