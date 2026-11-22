@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import dayjs from '../dayjs';
-import { BooleanEvent } from '../models';
+import type { BooleanEvent } from '../models';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 
