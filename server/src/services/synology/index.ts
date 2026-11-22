@@ -118,8 +118,9 @@ export async function onMotionDetected(cameraId: string, startOfDetectedMotion: 
 export async function onDoorbellRing(cameraId: string) {
   const now = new Date();
   const device = await Device.findByProviderIdOrError('synology', cameraId);
+  const event = await device.getDoorbellCapability().setRingState(true, now);
   const image: Buffer = await makeSynologyRequest('SYNO.SurveillanceStation.Camera', 'GetSnapshot', {
-    id: 6
+    id: cameraId
   }, false);
 
   await Log.notify({
@@ -130,8 +131,6 @@ export async function onDoorbellRing(cameraId: string) {
     image,
     sound: 'doorbell'
   });
-
-  const event = await device.getDoorbellCapability().setRingState(true, now);
 
   await s3.store(event!.id.toString(), image, 'image/jpeg');
 }
@@ -193,7 +192,11 @@ export async function onConnectivityChanged() {
 
 Device.registerProvider('synology', {
   getCapabilities(device) {
-    return ['CAMERA', 'CONNECTIVITY', 'MOTION_SENSOR', 'DOORBELL'];
+    if (device.model === 'Video Doorbell PoE') {
+      return ['CAMERA', 'CONNECTIVITY', 'MOTION_SENSOR', 'DOORBELL'];
+    }
+
+    return ['CAMERA', 'CONNECTIVITY', 'MOTION_SENSOR'];
   },
 
   async synchronize() {

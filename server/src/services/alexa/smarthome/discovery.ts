@@ -266,6 +266,33 @@ export function buildDiscoveryEndpoints(devices: Device[]): AlexaDiscoveryEndpoi
           version: '3'
         }]
       });
+    } else if (capabilities.includes('DOORBELL')) {
+      endpoints.push({
+        friendlyName: device.name,
+        endpointId: String(device.id),
+        displayCategories: ['DOORBELL'],
+        manufacturerName: device.manufacturer,
+        description: `Doorbell: ${device.name}`,
+        capabilities: [{
+          type: 'AlexaInterface',
+          interface: 'Alexa.DoorbellEventSource',
+          version: '3',
+          proactivelyReported: true
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa.EndpointHealth',
+          version: '3',
+          properties: {
+            supported: [{ name: 'connectivity' }],
+            proactivelyReported: false,
+            retrievable: true
+          }
+        }, {
+          type: 'AlexaInterface',
+          interface: 'Alexa',
+          version: '3'
+        }]
+      });
     } else if (capabilities.includes('BUTTON')) {
       const instanceId = `${device.id}-1`;
       endpoints.push({
