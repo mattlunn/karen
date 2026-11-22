@@ -82,6 +82,6 @@ export async function makeEventsRequest(
   });
 
   if (!response.ok) {
-    throw new Error(`Got a ${response.status} back from Alexa Events API (${namespace}/${name})`);
+    throw new Error(`Got a ${response.status} back from Alexa Events API (${namespace}/${name}): ${await response.text()}`);
   }
 }
