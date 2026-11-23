@@ -13,7 +13,7 @@ const ALBUM_CACHE_MINUTES = 10;
 
 const router = express.Router();
 const eventStreams = new Set<express.Response>();
-let albumCache: { fetchedAt: Dayjs; photos: KioskPhoto[] } | null = null;
+let albumCache: { fetchedAt: Dayjs; photosById: Promise<Map<string, KioskPhoto>> } | null = null;
 
 export function toKioskPhoto(asset: ImmichAsset, albumName: string, hiddenPeople: readonly string[]): KioskPhoto {
   const firstNames = (asset.people ?? [])
@@ -32,11 +32,7 @@ export function toKioskPhoto(asset: ImmichAsset, albumName: string, hiddenPeople
   };
 }
 
-async function getAlbumPhotos(): Promise<KioskPhoto[]> {
-  if (albumCache !== null && dayjs().diff(albumCache.fetchedAt, 'minute') < ALBUM_CACHE_MINUTES) {
-    return albumCache.photos;
-  }
-
+async function loadAlbumPhotos(): Promise<Map<string, KioskPhoto>> {
   // Smallest first, so a photo that's in several albums is labelled with the most specific one.
   const albums = (await getAlbums())
     .filter((album) => !config.kiosk.immich_excluded_album_ids.includes(album.id))
@@ -53,11 +49,24 @@ async function getAlbumPhotos(): Promise<KioskPhoto[]> {
     }
   });
 
-  const photos = [...photosById.values()];
+  return photosById;
+}
 
-  albumCache = { fetchedAt: dayjs(), photos };
+// Caching the promise means requests that arrive mid-load share it, rather than each reloading every album.
+function getAlbumPhotos(): Promise<Map<string, KioskPhoto>> {
+  if (albumCache === null || dayjs().diff(albumCache.fetchedAt, 'minute') >= ALBUM_CACHE_MINUTES) {
+    const photosById = loadAlbumPhotos();
 
-  return photos;
+    albumCache = { fetchedAt: dayjs(), photosById };
+
+    photosById.catch(() => {
+      if (albumCache?.photosById === photosById) {
+        albumCache = null;
+      }
+    });
+  }
+
+  return albumCache.photosById;
 }
 
 function send(stream: express.Response, message: KioskEvent) {
@@ -104,13 +113,11 @@ router.use((req, res, next) => {
 
 router.get<Record<string, never>, KioskPhotosApiResponse>('/photos', async (req, res) => {
   res.set('Cache-Control', 'no-cache');
-  res.json({ photos: await getAlbumPhotos() });
+  res.json({ photos: [...(await getAlbumPhotos()).values()] });
 });
 
 router.get('/photos/:id.jpg', async (req, res) => {
-  const photos = await getAlbumPhotos();
-
-  if (!photos.some((photo) => photo.id === req.params.id)) {
+  if (!(await getAlbumPhotos()).has(req.params.id)) {
     res.sendStatus(404);
 
     return;
