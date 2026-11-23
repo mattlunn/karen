@@ -39,17 +39,19 @@ async function loadAlbumPhotos(): Promise<KioskPhoto[]> {
     .sort((a, b) => a.assetCount - b.assetCount);
 
   const albumAssets = await Promise.all(albums.map((album) => getAlbumImages(album.id)));
-  const byId = new Map<string, KioskPhoto>();
+  const seenIds = new Set<string>();
+  const photos: KioskPhoto[] = [];
 
   albums.forEach((album, i) => {
     for (const asset of albumAssets[i]) {
-      if (!byId.has(asset.id)) {
-        byId.set(asset.id, toKioskPhoto(asset, album.albumName, config.kiosk.hidden_people));
+      if (!seenIds.has(asset.id)) {
+        seenIds.add(asset.id);
+        photos.push(toKioskPhoto(asset, album.albumName, config.kiosk.hidden_people));
       }
     }
   });
 
-  return [...byId.values()];
+  return photos;
 }
 
 // Caching the promise means requests that arrive mid-load share it, rather than each reloading every album.
