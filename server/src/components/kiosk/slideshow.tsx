@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from '../../dayjs';
-import { formatTimeAgo } from '../../helpers/time-ago';
 import type { KioskPhoto, KioskPhotosApiResponse } from '../../api/types';
 import { fetchKiosk, kioskUrl } from './api';
 import styles from './kiosk.module.css';
@@ -61,7 +60,7 @@ function Slide({ slide, now }: { slide: LoadedSlide; now: Dayjs }) {
   const people = formatPeople(photo.people);
   const date = takenAt.format('dddd D MMMM YYYY');
   const headline = people ?? date;
-  const footer = photo.description ?? formatTimeAgo(takenAt, now);
+  const footer = photo.description ?? takenAt.from(now);
 
   if (slide.isPortrait) {
     return (
