@@ -212,6 +212,7 @@ export interface AppConfig {
   kiosk: {
     secret: string;
     immich_excluded_album_ids: string[];
+    album_cache_minutes: number;
     hidden_people: string[];
     wake_light_name: string;
   };

@@ -9,8 +9,6 @@ import { createBackgroundTransaction } from '../helpers/newrelic';
 import { BUILD_VERSION } from '../helpers/build-version';
 import type { KioskEvent, KioskPhoto, KioskRandomPhotoApiResponse } from '../api/types';
 
-const ALBUM_CACHE_MINUTES = 10;
-
 const router = express.Router();
 const eventStreams = new Set<express.Response>();
 let albumCache: { fetchedAt: Dayjs; photos: Promise<KioskPhoto[]> } | null = null;
@@ -56,7 +54,7 @@ async function loadAlbumPhotos(): Promise<KioskPhoto[]> {
 
 // Caching the promise means requests that arrive mid-load share it, rather than each reloading every album.
 function getAlbumPhotos(): Promise<KioskPhoto[]> {
-  if (albumCache === null || dayjs().diff(albumCache.fetchedAt, 'minute') >= ALBUM_CACHE_MINUTES) {
+  if (albumCache === null || dayjs().diff(albumCache.fetchedAt, 'minute') >= config.kiosk.album_cache_minutes) {
     const photos = loadAlbumPhotos();
 
     albumCache = { fetchedAt: dayjs(), photos };
