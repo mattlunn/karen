@@ -7,13 +7,18 @@ import s3 from '../services/s3';
 import { getAlbums, getAlbumImages, getPreview, type ImmichAsset } from '../services/immich';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { BUILD_VERSION } from '../helpers/build-version';
-import type { KioskEvent, KioskPhoto, KioskPhotosApiResponse } from '../api/types';
+import type { KioskEvent, KioskPhoto } from '../api/types';
 
 const ALBUM_CACHE_MINUTES = 10;
 
 const router = express.Router();
 const eventStreams = new Set<express.Response>();
-let albumCache: { fetchedAt: Dayjs; photosById: Promise<Map<string, KioskPhoto>> } | null = null;
+interface AlbumPhotos {
+  byId: Map<string, KioskPhoto>;
+  list: KioskPhoto[];
+}
+
+let albumCache: { fetchedAt: Dayjs; photos: Promise<AlbumPhotos> } | null = null;
 
 export function toKioskPhoto(asset: ImmichAsset, albumName: string, hiddenPeople: readonly string[]): KioskPhoto {
   const firstNames = (asset.people ?? [])
@@ -32,41 +37,41 @@ export function toKioskPhoto(asset: ImmichAsset, albumName: string, hiddenPeople
   };
 }
 
-async function loadAlbumPhotos(): Promise<Map<string, KioskPhoto>> {
+async function loadAlbumPhotos(): Promise<AlbumPhotos> {
   // Smallest first, so a photo that's in several albums is labelled with the most specific one.
   const albums = (await getAlbums())
     .filter((album) => !config.kiosk.immich_excluded_album_ids.includes(album.id))
     .sort((a, b) => a.assetCount - b.assetCount);
 
   const albumAssets = await Promise.all(albums.map((album) => getAlbumImages(album.id)));
-  const photosById = new Map<string, KioskPhoto>();
+  const byId = new Map<string, KioskPhoto>();
 
   albums.forEach((album, i) => {
     for (const asset of albumAssets[i]) {
-      if (!photosById.has(asset.id)) {
-        photosById.set(asset.id, toKioskPhoto(asset, album.albumName, config.kiosk.hidden_people));
+      if (!byId.has(asset.id)) {
+        byId.set(asset.id, toKioskPhoto(asset, album.albumName, config.kiosk.hidden_people));
       }
     }
   });
 
-  return photosById;
+  return { byId, list: [...byId.values()] };
 }
 
 // Caching the promise means requests that arrive mid-load share it, rather than each reloading every album.
-function getAlbumPhotos(): Promise<Map<string, KioskPhoto>> {
+function getAlbumPhotos(): Promise<AlbumPhotos> {
   if (albumCache === null || dayjs().diff(albumCache.fetchedAt, 'minute') >= ALBUM_CACHE_MINUTES) {
-    const photosById = loadAlbumPhotos();
+    const photos = loadAlbumPhotos();
 
-    albumCache = { fetchedAt: dayjs(), photosById };
+    albumCache = { fetchedAt: dayjs(), photos };
 
-    photosById.catch(() => {
-      if (albumCache?.photosById === photosById) {
+    photos.catch(() => {
+      if (albumCache?.photos === photos) {
         albumCache = null;
       }
     });
   }
 
-  return albumCache.photosById;
+  return albumCache.photos;
 }
 
 function send(stream: express.Response, message: KioskEvent) {
@@ -111,13 +116,21 @@ router.use((req, res, next) => {
   next();
 });
 
-router.get<Record<string, never>, KioskPhotosApiResponse>('/photos', async (req, res) => {
-  res.set('Cache-Control', 'no-cache');
-  res.json({ photos: [...(await getAlbumPhotos()).values()] });
+router.get<Record<string, never>, KioskPhoto>('/photos/random', async (req, res) => {
+  const { list } = await getAlbumPhotos();
+
+  if (list.length === 0) {
+    res.sendStatus(404);
+
+    return;
+  }
+
+  res.set('Cache-Control', 'no-store');
+  res.json(list[Math.floor(Math.random() * list.length)]);
 });
 
 router.get('/photos/:id.jpg', async (req, res) => {
-  if (!(await getAlbumPhotos()).has(req.params.id)) {
+  if (!(await getAlbumPhotos()).byId.has(req.params.id)) {
     res.sendStatus(404);
 
     return;

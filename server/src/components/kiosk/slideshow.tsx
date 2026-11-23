@@ -1,30 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from '../../dayjs';
-import type { KioskPhoto, KioskPhotosApiResponse } from '../../api/types';
+import type { KioskPhoto } from '../../api/types';
 import { fetchKiosk, kioskUrl } from './api';
 import styles from './kiosk.module.css';
 
 const DEFAULT_SLIDE_SECONDS = 15;
-const PHOTO_LIST_REFRESH_MINUTES = 60;
+const RETRY_SECONDS = 5;
 
 interface LoadedSlide {
   key: number;
   photo: KioskPhoto;
   src: string;
   isPortrait: boolean;
-}
-
-function shuffle<T>(items: readonly T[]): T[] {
-  const shuffled = [...items];
-
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-
-  return shuffled;
 }
 
 function getSlideSeconds(): number {
@@ -101,30 +88,30 @@ function Slide({ slide, now }: { slide: LoadedSlide; now: Dayjs }) {
 }
 
 export default function Slideshow({ now }: { now: Dayjs }) {
-  const { data } = useQuery({
-    queryKey: ['kiosk-photos'],
-    queryFn: () => fetchKiosk<KioskPhotosApiResponse>('/photos'),
-    refetchInterval: PHOTO_LIST_REFRESH_MINUTES * 60 * 1000
-  });
-
   const [slides, setSlides] = useState<LoadedSlide[]>([]);
   const nextKey = useRef(0);
 
   useEffect(() => {
-    if (data === undefined || data.photos.length === 0) {
-      return;
-    }
-
-    let queue: KioskPhoto[] = [];
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
-    const showNext = () => {
-      if (queue.length === 0) {
-        queue = shuffle(data.photos);
+    const showNext = async () => {
+      let photo: KioskPhoto;
+
+      try {
+        photo = await fetchKiosk<KioskPhoto>('/photos/random');
+      } catch {
+        if (!cancelled) {
+          timer = setTimeout(showNext, RETRY_SECONDS * 1000);
+        }
+
+        return;
       }
 
-      const photo = queue.shift()!;
+      if (cancelled) {
+        return;
+      }
+
       const image = new Image();
 
       image.onload = () => {
@@ -140,7 +127,7 @@ export default function Slideshow({ now }: { now: Dayjs }) {
 
       image.onerror = () => {
         if (!cancelled) {
-          timer = setTimeout(showNext, 1000);
+          timer = setTimeout(showNext, RETRY_SECONDS * 1000);
         }
       };
 
@@ -153,7 +140,7 @@ export default function Slideshow({ now }: { now: Dayjs }) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [data]);
+  }, []);
 
   return (
     <>
