@@ -73,17 +73,16 @@ function send(stream: express.Response, message: KioskEvent) {
   stream.write(`data: ${JSON.stringify(message)}\n\n`);
 }
 
-async function isAnyWakeLightOn(): Promise<boolean> {
-  const devices = await Promise.all(config.kiosk.wake_light_names.map((name) => Device.findByNameOrError(name)));
-  const states = await Promise.all(devices.map((device) => device.getLightCapability().getIsOn()));
+async function isWakeLightOn(): Promise<boolean> {
+  const device = await Device.findByNameOrError(config.kiosk.wake_light_name);
 
-  return states.includes(true);
+  return await device.getLightCapability().getIsOn();
 }
 
-const isWakeLight = (device: Device) => config.kiosk.wake_light_names.includes(device.name);
+const isWakeLight = (device: Device) => device.name === config.kiosk.wake_light_name;
 
 const broadcastScreenState = createBackgroundTransaction('kiosk:screen-state', async () => {
-  const isOn = await isAnyWakeLightOn();
+  const isOn = await isWakeLightOn();
 
   for (const stream of eventStreams) {
     send(stream, { type: 'screen', isOn });
@@ -164,7 +163,7 @@ router.get('/events', async (req, res) => {
 
   eventStreams.add(res);
   send(res, { type: 'connected', buildVersion: BUILD_VERSION });
-  send(res, { type: 'screen', isOn: await isAnyWakeLightOn() });
+  send(res, { type: 'screen', isOn: await isWakeLightOn() });
 });
 
 export default router;

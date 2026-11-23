@@ -213,7 +213,7 @@ export interface AppConfig {
     secret: string;
     immich_excluded_album_ids: string[];
     hidden_people: string[];
-    wake_light_names: string[];
+    wake_light_name: string;
   };
   bins: {
     overrides: {
