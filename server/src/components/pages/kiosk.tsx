@@ -19,6 +19,10 @@ declare global {
   }
 }
 
+function followsLights(): boolean {
+  return new URLSearchParams(window.location.search).get('followLights') === '1';
+}
+
 function KioskScreen() {
   const [now, setNow] = useState(() => dayjs());
   const [ring, setRing] = useState<{ eventId: number; at: string } | null>(null);
@@ -63,7 +67,7 @@ function KioskScreen() {
     if (event.type === 'doorbell_ring') {
       playChime();
       setRing({ eventId: event.eventId, at: event.at });
-    } else if (event.type === 'screen') {
+    } else if (event.type === 'screen' && followsLights()) {
       setIsScreenWanted(event.isOn);
     }
   }, []);
