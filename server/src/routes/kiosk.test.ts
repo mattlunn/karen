@@ -1,7 +1,7 @@
 jest.mock('../config', () => ({}));
 jest.mock('../models', () => ({}));
 jest.mock('../models/capabilities', () => ({
-  DeviceCapabilityEvents: { onLightIsOnChanged: jest.fn(), onSwitchIsOnChanged: jest.fn(), onDoorbellRing: jest.fn() }
+  DeviceCapabilityEvents: { onLightIsOnChanged: jest.fn(), onDoorbellRing: jest.fn() }
 }));
 jest.mock('../services/s3', () => ({}));
 jest.mock('../services/immich', () => ({}));

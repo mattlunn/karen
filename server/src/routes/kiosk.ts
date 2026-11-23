@@ -80,9 +80,7 @@ function send(stream: express.Response, message: KioskEvent) {
 
 async function isAnyWakeLightOn(): Promise<boolean> {
   const devices = await Promise.all(config.kiosk.wake_light_names.map((name) => Device.findByNameOrError(name)));
-  const states = await Promise.all(devices.map((device) => device.getCapabilities().includes('LIGHT')
-    ? device.getLightCapability().getIsOn()
-    : device.getSwitchCapability().getIsOn()));
+  const states = await Promise.all(devices.map((device) => device.getLightCapability().getIsOn()));
 
   return states.includes(true);
 }
@@ -98,7 +96,6 @@ const broadcastScreenState = createBackgroundTransaction('kiosk:screen-state', a
 });
 
 DeviceCapabilityEvents.onLightIsOnChanged(isWakeLight, broadcastScreenState);
-DeviceCapabilityEvents.onSwitchIsOnChanged(isWakeLight, broadcastScreenState);
 
 DeviceCapabilityEvents.onDoorbellRing((event) => {
   for (const stream of eventStreams) {
