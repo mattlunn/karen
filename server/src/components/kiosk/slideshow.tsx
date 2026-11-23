@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import dayjs, { type Dayjs } from '../../dayjs';
-import type { KioskPhoto } from '../../api/types';
-import { fetchKiosk, kioskUrl } from './api';
+import type { KioskPhoto, KioskRandomPhotoApiResponse } from '../../api/types';
+import { fetchKiosk } from './api';
 import styles from './kiosk.module.css';
 
 const DEFAULT_SLIDE_SECONDS = 15;
@@ -96,10 +96,10 @@ export default function Slideshow({ now }: { now: Dayjs }) {
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const showNext = async () => {
-      let photo: KioskPhoto;
+      let next: KioskRandomPhotoApiResponse;
 
       try {
-        photo = await fetchKiosk<KioskPhoto>('/photos/random');
+        next = await fetchKiosk<KioskRandomPhotoApiResponse>('/photos/random');
       } catch {
         if (!cancelled) {
           timer = setTimeout(showNext, RETRY_SECONDS * 1000);
@@ -119,7 +119,7 @@ export default function Slideshow({ now }: { now: Dayjs }) {
           return;
         }
 
-        const slide = { key: nextKey.current++, photo, src: image.src, isPortrait: image.naturalHeight > image.naturalWidth };
+        const slide = { key: nextKey.current++, photo: next.photo, src: next.imageDataUrl, isPortrait: image.naturalHeight > image.naturalWidth };
 
         setSlides((previous) => [...previous.slice(-1), slide]);
         timer = setTimeout(showNext, getSlideSeconds() * 1000);
@@ -131,7 +131,7 @@ export default function Slideshow({ now }: { now: Dayjs }) {
         }
       };
 
-      image.src = kioskUrl(`/photos/${photo.id}.jpg`);
+      image.src = next.imageDataUrl;
     };
 
     showNext();

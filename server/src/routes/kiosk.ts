@@ -7,18 +7,13 @@ import s3 from '../services/s3';
 import { getAlbums, getAlbumImages, getPreview, type ImmichAsset } from '../services/immich';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { BUILD_VERSION } from '../helpers/build-version';
-import type { KioskEvent, KioskPhoto } from '../api/types';
+import type { KioskEvent, KioskPhoto, KioskRandomPhotoApiResponse } from '../api/types';
 
 const ALBUM_CACHE_MINUTES = 10;
 
 const router = express.Router();
 const eventStreams = new Set<express.Response>();
-interface AlbumPhotos {
-  byId: Map<string, KioskPhoto>;
-  list: KioskPhoto[];
-}
-
-let albumCache: { fetchedAt: Dayjs; photos: Promise<AlbumPhotos> } | null = null;
+let albumCache: { fetchedAt: Dayjs; photos: Promise<KioskPhoto[]> } | null = null;
 
 export function toKioskPhoto(asset: ImmichAsset, albumName: string, hiddenPeople: readonly string[]): KioskPhoto {
   const firstNames = (asset.people ?? [])
@@ -37,7 +32,7 @@ export function toKioskPhoto(asset: ImmichAsset, albumName: string, hiddenPeople
   };
 }
 
-async function loadAlbumPhotos(): Promise<AlbumPhotos> {
+async function loadAlbumPhotos(): Promise<KioskPhoto[]> {
   // Smallest first, so a photo that's in several albums is labelled with the most specific one.
   const albums = (await getAlbums())
     .filter((album) => !config.kiosk.immich_excluded_album_ids.includes(album.id))
@@ -54,11 +49,11 @@ async function loadAlbumPhotos(): Promise<AlbumPhotos> {
     }
   });
 
-  return { byId, list: [...byId.values()] };
+  return [...byId.values()];
 }
 
 // Caching the promise means requests that arrive mid-load share it, rather than each reloading every album.
-function getAlbumPhotos(): Promise<AlbumPhotos> {
+function getAlbumPhotos(): Promise<KioskPhoto[]> {
   if (albumCache === null || dayjs().diff(albumCache.fetchedAt, 'minute') >= ALBUM_CACHE_MINUTES) {
     const photos = loadAlbumPhotos();
 
@@ -113,30 +108,20 @@ router.use((req, res, next) => {
   next();
 });
 
-router.get<Record<string, never>, KioskPhoto>('/photos/random', async (req, res) => {
-  const { list } = await getAlbumPhotos();
+router.get<Record<string, never>, KioskRandomPhotoApiResponse>('/photos/random', async (req, res) => {
+  const photos = await getAlbumPhotos();
 
-  if (list.length === 0) {
+  if (photos.length === 0) {
     res.sendStatus(404);
 
     return;
   }
+
+  const photo = photos[Math.floor(Math.random() * photos.length)];
+  const { contentType, body } = await getPreview(photo.id);
 
   res.set('Cache-Control', 'no-store');
-  res.json(list[Math.floor(Math.random() * list.length)]);
-});
-
-router.get('/photos/:id.jpg', async (req, res) => {
-  if (!(await getAlbumPhotos()).byId.has(req.params.id)) {
-    res.sendStatus(404);
-
-    return;
-  }
-
-  const { contentType, body } = await getPreview(req.params.id);
-
-  res.set('Cache-Control', 'private, max-age=86400');
-  res.type(contentType).send(body);
+  res.json({ photo, imageDataUrl: `data:${contentType};base64,${body.toString('base64')}` });
 });
 
 router.get('/rings/:eventId.jpg', async (req, res) => {

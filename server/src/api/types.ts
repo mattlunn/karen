@@ -583,6 +583,11 @@ export interface KioskPhoto {
   albumName: string;
 }
 
+export interface KioskRandomPhotoApiResponse {
+  photo: KioskPhoto;
+  imageDataUrl: string;
+}
+
 export type KioskEvent =
   | { type: 'connected'; buildVersion: string }
   | { type: 'doorbell_ring'; eventId: number; at: string }
