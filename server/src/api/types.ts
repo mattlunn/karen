@@ -574,3 +574,20 @@ export interface DeviceUpdateEvent {
 }
 
 export type SSEEvent = DeviceUpdateEvent | { type: 'connected' };
+export interface KioskPhoto {
+  id: string;
+  takenAtLocal: string;
+  people: string[];
+  city: string | null;
+  description: string | null;
+  albumName: string;
+}
+
+export interface KioskPhotosApiResponse {
+  photos: KioskPhoto[];
+}
+
+export type KioskEvent =
+  | { type: 'connected' }
+  | { type: 'doorbell_ring'; eventId: number; at: string }
+  | { type: 'screen'; isOn: boolean };

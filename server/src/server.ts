@@ -12,6 +12,7 @@ import homeConnectRoutes from './routes/homeconnect';
 import tadoRoutes from './routes/tado';
 import versionRoutes from './routes/version';
 import einkRoutes from './routes/eink';
+import kioskRoutes from './routes/kiosk';
 import auth from './middleware/auth';
 import buildVersion from './middleware/build-version';
 import setCron from './helpers/set-cron';
@@ -66,6 +67,7 @@ app.use('/homeconnect', homeConnectRoutes);
 app.use('/tado', tadoRoutes);
 app.use('/version', versionRoutes);
 app.use('/eink', einkRoutes);
+app.use('/kiosk/api', kioskRoutes);
 app.use('/', express.static(__dirname + '/static'));
 
 app.use((req, res) => {

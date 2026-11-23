@@ -16,6 +16,7 @@ import Home from './components/pages/home';
 import Devices from './components/pages/devices';
 import Device from './components/pages/device';
 import Login from './components/pages/login';
+import Kiosk from './components/pages/kiosk';
 import HeatingInsights from './components/pages/insights-heating';
 import EnergyInsights from './components/pages/insights-energy';
 import InsightsBins from './components/pages/insights-bins';
@@ -51,8 +52,9 @@ const theme = createTheme({
 
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
+  { path: '/kiosk', element: <Kiosk /> },
   {
-    element: <AppLayout />,
+    element: <RealtimeProvider><AppLayout /></RealtimeProvider>,
     children: [
       { path: '/', element: <Home /> },
       { path: '/insights/heating', element: <HeatingInsights /> },
@@ -72,11 +74,9 @@ window.onload = () => {
     <QueryClientProvider client={queryClient}>
       <MantineProvider theme={theme}>
         <BuildVersionProvider>
-          <RealtimeProvider>
-            <ErrorBoundary>
-              <RouterProvider router={router} />
-            </ErrorBoundary>
-          </RealtimeProvider>
+          <ErrorBoundary>
+            <RouterProvider router={router} />
+          </ErrorBoundary>
         </BuildVersionProvider>
       </MantineProvider>
       {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
