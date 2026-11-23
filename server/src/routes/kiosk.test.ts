@@ -1,4 +1,13 @@
-import { toKioskPhoto } from './kiosk-photo';
+jest.mock('../config', () => ({}));
+jest.mock('../models', () => ({}));
+jest.mock('../models/capabilities', () => ({
+  DeviceCapabilityEvents: { onLightIsOnChanged: jest.fn(), onSwitchIsOnChanged: jest.fn(), onDoorbellRing: jest.fn() }
+}));
+jest.mock('../services/s3', () => ({}));
+jest.mock('../services/immich', () => ({}));
+jest.mock('../helpers/newrelic', () => ({ createBackgroundTransaction: (_name: string, cb: unknown) => cb }));
+
+import { toKioskPhoto } from './kiosk';
 
 describe('toKioskPhoto', () => {
   it('keeps the local wall-clock time, dropping the misleading Z suffix', () => {

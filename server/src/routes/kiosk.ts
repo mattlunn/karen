@@ -4,9 +4,8 @@ import dayjs, { Dayjs } from '../dayjs';
 import { Device, Event } from '../models';
 import { DeviceCapabilityEvents } from '../models/capabilities';
 import s3 from '../services/s3';
-import { getAlbums, getAlbumImages, getPreview } from '../services/immich';
+import { getAlbums, getAlbumImages, getPreview, type ImmichAsset } from '../services/immich';
 import { createBackgroundTransaction } from '../helpers/newrelic';
-import { toKioskPhoto } from './kiosk-photo';
 import { BUILD_VERSION } from '../helpers/build-version';
 import type { KioskEvent, KioskPhoto, KioskPhotosApiResponse } from '../api/types';
 
@@ -15,6 +14,23 @@ const ALBUM_CACHE_MINUTES = 10;
 const router = express.Router();
 const eventStreams = new Set<express.Response>();
 let albumCache: { fetchedAt: Dayjs; photos: KioskPhoto[] } | null = null;
+
+export function toKioskPhoto(asset: ImmichAsset, albumName: string, hiddenPeople: readonly string[]): KioskPhoto {
+  const firstNames = (asset.people ?? [])
+    .filter((person) => person.name !== '' && !hiddenPeople.includes(person.name))
+    .map((person) => person.name.split(' ')[0])
+    .sort();
+
+  return {
+    id: asset.id,
+    // Immich encodes the wall-clock time where the photo was taken with a misleading Z suffix.
+    takenAtLocal: asset.localDateTime.replace(/(\.\d+)?Z$/, ''),
+    people: [...new Set(firstNames)],
+    city: asset.exifInfo?.city ?? null,
+    description: asset.exifInfo?.description || null,
+    albumName
+  };
+}
 
 async function getAlbumPhotos(): Promise<KioskPhoto[]> {
   if (albumCache !== null && dayjs().diff(albumCache.fetchedAt, 'minute') < ALBUM_CACHE_MINUTES) {
