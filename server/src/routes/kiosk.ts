@@ -7,6 +7,7 @@ import s3 from '../services/s3';
 import { getAlbums, getAlbumImages, getPreview } from '../services/immich';
 import { createBackgroundTransaction } from '../helpers/newrelic';
 import { toKioskPhoto } from './kiosk-photo';
+import { BUILD_VERSION } from '../helpers/build-version';
 import type { KioskEvent, KioskPhoto, KioskPhotosApiResponse } from '../api/types';
 
 const ALBUM_CACHE_MINUTES = 10;
@@ -144,7 +145,7 @@ router.get('/events', async (req, res) => {
   });
 
   eventStreams.add(res);
-  send(res, { type: 'connected' });
+  send(res, { type: 'connected', buildVersion: BUILD_VERSION });
   send(res, { type: 'screen', isOn: await isAnyWakeLightOn() });
 });
 

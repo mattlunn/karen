@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import dayjs from '../../dayjs';
 import Slideshow from '../kiosk/slideshow';
 import DoorbellOverlay from '../kiosk/doorbell-overlay';
@@ -28,6 +28,7 @@ function KioskScreen() {
   const [ring, setRing] = useState<{ eventId: number; at: string } | null>(null);
   const [isScreenWanted, setIsScreenWanted] = useState(true);
   const isScreenOn = isScreenWanted || ring !== null;
+  const buildVersion = useRef<string | null>(null);
 
   useEffect(() => {
     const link = document.createElement('link');
@@ -64,7 +65,14 @@ function KioskScreen() {
   }, [isScreenOn]);
 
   const handleEvent = useCallback((event: KioskEvent) => {
-    if (event.type === 'doorbell_ring') {
+    if (event.type === 'connected') {
+      // The tablet keeps this page open for weeks, so pick up a deploy when the stream reconnects to it.
+      if (buildVersion.current !== null && buildVersion.current !== event.buildVersion) {
+        window.location.reload();
+      }
+
+      buildVersion.current = event.buildVersion;
+    } else if (event.type === 'doorbell_ring') {
       playChime();
       setRing({ eventId: event.eventId, at: event.at });
     } else if (event.type === 'screen' && followsLights()) {

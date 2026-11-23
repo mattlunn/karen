@@ -1,7 +1,6 @@
 import 'newrelic';
 
 import logger from './logger';
-import dayjs from './dayjs';
 import express from 'express';
 import alexaRoutes from './routes/alexa';
 import apiRoutes from './routes/api';
@@ -78,8 +77,7 @@ app.use((req, res) => {
   }
 
   res.sendFile('index.html', {
-    root: __dirname + '/static',
-    maxAge: dayjs.duration(1, 'year').asMilliseconds()
+    root: __dirname + '/static'
   });
 });
 

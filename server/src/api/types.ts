@@ -588,6 +588,6 @@ export interface KioskPhotosApiResponse {
 }
 
 export type KioskEvent =
-  | { type: 'connected' }
+  | { type: 'connected'; buildVersion: string }
   | { type: 'doorbell_ring'; eventId: number; at: string }
   | { type: 'screen'; isOn: boolean };
