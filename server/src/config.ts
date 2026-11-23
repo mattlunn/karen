@@ -205,6 +205,17 @@ export interface AppConfig {
       };
     };
   };
+  immich: {
+    url: string;
+    api_key: string;
+  };
+  kiosk: {
+    secret: string;
+    immich_excluded_album_ids: string[];
+    album_cache_minutes: number;
+    hidden_people: string[];
+    wake_light_name: string;
+  };
   bins: {
     overrides: {
       originalDate: string;

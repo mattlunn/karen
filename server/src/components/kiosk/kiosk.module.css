@@ -1,0 +1,267 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: 'Outfit', 'Roboto', system-ui, sans-serif;
+  container-type: size;
+  user-select: none;
+  cursor: none;
+}
+
+.message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 3cqh;
+  color: #9aa1ae;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  animation: fadeIn 1.8s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 34%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 22%);
+}
+
+.caption {
+  position: absolute;
+  left: 3cqw;
+  bottom: 2.8cqw;
+  display: grid;
+  gap: 0.35cqw;
+  max-width: 70cqw;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);
+}
+
+.captionAlbum {
+  font-size: 1.2cqw;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.captionHeadline {
+  font-size: 3.1cqw;
+  font-weight: 300;
+}
+
+.captionDetail {
+  font-size: 1.55cqw;
+  font-weight: 400;
+  opacity: 0.88;
+}
+
+.captionFooter {
+  position: absolute;
+  right: 3cqw;
+  bottom: 2.8cqw;
+  font-size: 1.3cqw;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.8;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.6);
+}
+
+.panelLayout {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 45% 1fr;
+}
+
+.panelPhoto {
+  position: relative;
+  overflow: hidden;
+}
+
+.panelPhoto .cover {
+  object-position: center 30%;
+}
+
+.panelSide {
+  position: relative;
+  overflow: hidden;
+}
+
+.panelBlur {
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+  object-fit: cover;
+  filter: blur(40px) brightness(0.32) saturate(1.2);
+}
+
+.panelBody {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 4cqw 4.2cqw 3.4cqw;
+}
+
+.panelAlbum {
+  font-size: 1.35cqw;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.panelInfo {
+  align-self: end;
+  display: grid;
+  gap: 0.9cqw;
+  padding-bottom: 2.6cqw;
+}
+
+.panelHeadline {
+  font-size: 3.6cqw;
+  font-weight: 300;
+  line-height: 1.05;
+}
+
+.panelDetail {
+  font-size: 1.8cqw;
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+.panelPlace {
+  display: flex;
+  align-items: center;
+  gap: 0.7cqw;
+  font-size: 1.6cqw;
+  font-weight: 300;
+  opacity: 0.8;
+}
+
+.panelPlace svg {
+  width: 1.5cqw;
+  height: 1.5cqw;
+  flex: none;
+}
+
+.panelFooter {
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  padding-top: 1.4cqw;
+  font-size: 1.2cqw;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: #0b0d11;
+  color: inherit;
+  font: inherit;
+  cursor: none;
+  animation: fadeIn 0.25s ease both;
+}
+
+.snapshot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 0.6s ease;
+}
+
+.snapshotPending {
+  filter: blur(16px) brightness(0.45);
+}
+
+.ringNote {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 2cqw;
+  color: #e9ecf2;
+}
+
+.ringBar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2cqw;
+  padding: 1.5cqw 2.4cqw;
+  background: #f2b233;
+  color: #1a1408;
+}
+
+.ringTitle {
+  font-size: 2.6cqw;
+  font-weight: 600;
+}
+
+.ringTime {
+  font-size: 1.8cqw;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0.6cqw;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.countdownBar {
+  display: block;
+  height: 100%;
+  background: #f2b233;
+  transform-origin: left;
+  animation-name: countdown;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide,
+  .ring {
+    animation: none;
+  }
+}
