@@ -5,12 +5,16 @@ import { Event, BooleanEvent, Recording, Stay, Device, Log, Op } from '../../mod
 import s3 from '../s3';
 import makeSynologyRequest from './instance';
 import { v4 as uuidv4 } from 'uuid';
+import sharp from 'sharp';
 import sleep from '../../helpers/sleep';
 import { enqueueWorkItem } from '../../queue';
 import { createBackgroundTransaction } from '../../helpers/newrelic';
 import setCron from '../../helpers/set-cron';
 
 export { makeSynologyRequest };
+
+// Phones download a notification's image before showing it, so a smaller attachment arrives sooner.
+const NOTIFICATION_SNAPSHOT_WIDTH = 1280;
 
 // Surveillance Station camera status: 1 = Normal/Connected. Anything else (Disconnected, Disabled,
 // Migrating, etc.) means the camera isn't actively reachable.
@@ -123,12 +127,17 @@ export async function onDoorbellRing(cameraId: string) {
     id: cameraId
   }, false);
 
+  const notificationImage = await sharp(image)
+    .resize({ width: NOTIFICATION_SNAPSHOT_WIDTH, withoutEnlargement: true })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+
   await Log.notify({
     severity: 'notice',
     audience: 'all',
     devices: [device],
     message: 'Someone is at the door',
-    image,
+    image: notificationImage,
     sound: 'doorbell'
   });
 
