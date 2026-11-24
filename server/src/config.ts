@@ -213,6 +213,7 @@ export interface AppConfig {
     secret: string;
     immich_excluded_album_ids: string[];
     album_cache_minutes: number;
+    photos_without_people_percent: number;
     hidden_people: string[];
     wake_light_name: string;
   };

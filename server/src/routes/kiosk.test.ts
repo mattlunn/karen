@@ -7,7 +7,7 @@ jest.mock('../services/s3', () => ({}));
 jest.mock('../services/immich', () => ({}));
 jest.mock('../helpers/newrelic', () => ({ createBackgroundTransaction: (_name: string, cb: unknown) => cb }));
 
-import { hasNamedPerson, toKioskPhoto } from './kiosk';
+import { hasNamedPerson, pickRandomPhoto, toKioskPhoto } from './kiosk';
 
 describe('toKioskPhoto', () => {
   it('keeps the local wall-clock time, dropping the misleading Z suffix', () => {
@@ -62,5 +62,28 @@ describe('hasNamedPerson', () => {
   it('is false for unnamed faces, or no people at all', () => {
     expect(hasNamedPerson({ id: 'a', localDateTime: '2026-04-04T08:52:10.000Z', people: [{ name: '' }] })).toBe(false);
     expect(hasNamedPerson({ id: 'a', localDateTime: '2026-04-04T08:52:10.000Z' })).toBe(false);
+  });
+});
+
+describe('pickRandomPhoto', () => {
+  const photo = (id: string) => ({ id, takenAtLocal: '2026-04-04T08:52:10', people: [], city: null, description: null, albumName: 'Holiday' });
+  const pools = { withPeople: [photo('person-1'), photo('person-2')], withoutPeople: [photo('scenery-1'), photo('scenery-2')] };
+  const sequence = (...values: number[]) => () => values.shift()!;
+
+  it('picks from the photos without people when the first roll is under the percentage', () => {
+    expect(pickRandomPhoto(pools, 20, sequence(0.19, 0.6))?.id).toBe('scenery-2');
+  });
+
+  it('picks from the photos with people otherwise', () => {
+    expect(pickRandomPhoto(pools, 20, sequence(0.2, 0))?.id).toBe('person-1');
+  });
+
+  it('falls back to whichever pool has photos', () => {
+    expect(pickRandomPhoto({ withPeople: [], withoutPeople: [photo('scenery-1')] }, 0, Math.random)?.id).toBe('scenery-1');
+    expect(pickRandomPhoto({ withPeople: [photo('person-1')], withoutPeople: [] }, 100, Math.random)?.id).toBe('person-1');
+  });
+
+  it('returns null when there are no photos at all', () => {
+    expect(pickRandomPhoto({ withPeople: [], withoutPeople: [] }, 20)).toBeNull();
   });
 });
