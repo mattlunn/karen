@@ -30,6 +30,10 @@ export function toKioskPhoto(asset: ImmichAsset, albumName: string, hiddenPeople
   };
 }
 
+export function hasNamedPerson(asset: ImmichAsset): boolean {
+  return (asset.people ?? []).some((person) => person.name !== '');
+}
+
 async function loadAlbumPhotos(): Promise<KioskPhoto[]> {
   // Smallest first, so a photo that's in several albums is labelled with the most specific one.
   const albums = (await getAlbums())
@@ -42,7 +46,7 @@ async function loadAlbumPhotos(): Promise<KioskPhoto[]> {
 
   albums.forEach((album, i) => {
     for (const asset of albumAssets[i]) {
-      if (!seenIds.has(asset.id)) {
+      if (!seenIds.has(asset.id) && hasNamedPerson(asset)) {
         seenIds.add(asset.id);
         photos.push(toKioskPhoto(asset, album.albumName, config.kiosk.hidden_people));
       }

@@ -7,7 +7,7 @@ jest.mock('../services/s3', () => ({}));
 jest.mock('../services/immich', () => ({}));
 jest.mock('../helpers/newrelic', () => ({ createBackgroundTransaction: (_name: string, cb: unknown) => cb }));
 
-import { toKioskPhoto } from './kiosk';
+import { hasNamedPerson, toKioskPhoto } from './kiosk';
 
 describe('toKioskPhoto', () => {
   it('keeps the local wall-clock time, dropping the misleading Z suffix', () => {
@@ -51,5 +51,16 @@ describe('toKioskPhoto', () => {
     const photo = toKioskPhoto({ id: 'a', localDateTime: '2026-04-04T08:52:10.000Z', exifInfo: null }, 'Holiday', []);
 
     expect(photo).toEqual({ id: 'a', takenAtLocal: '2026-04-04T08:52:10', people: [], city: null, description: null, albumName: 'Holiday' });
+  });
+});
+
+describe('hasNamedPerson', () => {
+  it('is true when anyone in the photo has a name', () => {
+    expect(hasNamedPerson({ id: 'a', localDateTime: '2026-04-04T08:52:10.000Z', people: [{ name: '' }, { name: 'Alex Smith' }] })).toBe(true);
+  });
+
+  it('is false for unnamed faces, or no people at all', () => {
+    expect(hasNamedPerson({ id: 'a', localDateTime: '2026-04-04T08:52:10.000Z', people: [{ name: '' }] })).toBe(false);
+    expect(hasNamedPerson({ id: 'a', localDateTime: '2026-04-04T08:52:10.000Z' })).toBe(false);
   });
 });
