@@ -2,6 +2,7 @@ import Push from 'pushover-notifications';
 import config from '../../config';
 import logger from '../../logger';
 import bus, { LOG_CREATED } from '../../bus';
+import dayjs from '../../dayjs';
 
 const push = new Push({
   token: config.pushover.application_token,
@@ -49,6 +50,8 @@ bus.on(LOG_CREATED, async ({ log, image, sound }) => {
 
     logger.info(`Sending a notification to ${tokens.length} recipient(s)`);
 
+    const sentAt = dayjs();
+
     push.send({
       ...SEVERITY_OPTIONS[log.severity],
       message,
@@ -58,6 +61,8 @@ bus.on(LOG_CREATED, async ({ log, image, sound }) => {
     }, (err) => {
       if (err) {
         logger.error(err);
+      } else {
+        logger.info(`Pushover accepted "${log.message}" in ${dayjs().diff(sentAt)}ms, with a ${image?.length ?? 0} byte image`);
       }
     });
   } catch (e) {
