@@ -11,7 +11,12 @@ import type { KioskEvent, KioskPhoto, KioskRandomPhotoApiResponse } from '../api
 
 const router = express.Router();
 const eventStreams = new Set<express.Response>();
-let albumCache: { fetchedAt: Dayjs; photos: Promise<KioskPhoto[]> } | null = null;
+interface PhotoPools {
+  withPeople: KioskPhoto[];
+  withoutPeople: KioskPhoto[];
+}
+
+let albumCache: { fetchedAt: Dayjs; photos: Promise<PhotoPools> } | null = null;
 
 export function toKioskPhoto(asset: ImmichAsset, albumName: string, hiddenPeople: readonly string[]): KioskPhoto {
   const firstNames = (asset.people ?? [])
@@ -30,7 +35,19 @@ export function toKioskPhoto(asset: ImmichAsset, albumName: string, hiddenPeople
   };
 }
 
-async function loadAlbumPhotos(): Promise<KioskPhoto[]> {
+export function hasNamedPerson(asset: ImmichAsset): boolean {
+  return (asset.people ?? []).some((person) => person.name !== '');
+}
+
+export function pickRandomPhoto({ withPeople, withoutPeople }: PhotoPools, photosWithoutPeoplePercent: number, random = Math.random): KioskPhoto | null {
+  const pool = withPeople.length === 0 || (withoutPeople.length > 0 && random() * 100 < photosWithoutPeoplePercent)
+    ? withoutPeople
+    : withPeople;
+
+  return pool.length === 0 ? null : pool[Math.floor(random() * pool.length)];
+}
+
+async function loadAlbumPhotos(): Promise<PhotoPools> {
   // Smallest first, so a photo that's in several albums is labelled with the most specific one.
   const albums = (await getAlbums())
     .filter((album) => !config.kiosk.immich_excluded_album_ids.includes(album.id))
@@ -38,22 +55,31 @@ async function loadAlbumPhotos(): Promise<KioskPhoto[]> {
 
   const albumAssets = await Promise.all(albums.map((album) => getAlbumImages(album.id)));
   const seenIds = new Set<string>();
-  const photos: KioskPhoto[] = [];
+  const pools: PhotoPools = { withPeople: [], withoutPeople: [] };
 
   albums.forEach((album, i) => {
     for (const asset of albumAssets[i]) {
-      if (!seenIds.has(asset.id)) {
-        seenIds.add(asset.id);
-        photos.push(toKioskPhoto(asset, album.albumName, config.kiosk.hidden_people));
+      if (seenIds.has(asset.id)) {
+        continue;
+      }
+
+      const photo = toKioskPhoto(asset, album.albumName, config.kiosk.hidden_people);
+
+      seenIds.add(asset.id);
+
+      if (hasNamedPerson(asset)) {
+        pools.withPeople.push(photo);
+      } else {
+        pools.withoutPeople.push(photo);
       }
     }
   });
 
-  return photos;
+  return pools;
 }
 
 // Caching the promise means requests that arrive mid-load share it, rather than each reloading every album.
-function getAlbumPhotos(): Promise<KioskPhoto[]> {
+function getAlbumPhotos(): Promise<PhotoPools> {
   if (albumCache === null || dayjs().diff(albumCache.fetchedAt, 'minute') >= config.kiosk.album_cache_minutes) {
     const photos = loadAlbumPhotos();
 
@@ -108,15 +134,14 @@ router.use((req, res, next) => {
 });
 
 router.get<Record<string, never>, KioskRandomPhotoApiResponse>('/photos/random', async (req, res) => {
-  const photos = await getAlbumPhotos();
+  const photo = pickRandomPhoto(await getAlbumPhotos(), config.kiosk.photos_without_people_percent);
 
-  if (photos.length === 0) {
+  if (photo === null) {
     res.sendStatus(404);
 
     return;
   }
 
-  const photo = photos[Math.floor(Math.random() * photos.length)];
   const { contentType, body } = await getPreview(photo.id);
 
   res.set('Cache-Control', 'no-store');
