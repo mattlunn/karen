@@ -59,9 +59,18 @@ async function loadAlbumPhotos(): Promise<PhotoPools> {
 
   albums.forEach((album, i) => {
     for (const asset of albumAssets[i]) {
-      if (!seenIds.has(asset.id)) {
-        seenIds.add(asset.id);
-        (hasNamedPerson(asset) ? pools.withPeople : pools.withoutPeople).push(toKioskPhoto(asset, album.albumName, config.kiosk.hidden_people));
+      if (seenIds.has(asset.id)) {
+        continue;
+      }
+
+      const photo = toKioskPhoto(asset, album.albumName, config.kiosk.hidden_people);
+
+      seenIds.add(asset.id);
+
+      if (hasNamedPerson(asset)) {
+        pools.withPeople.push(photo);
+      } else {
+        pools.withoutPeople.push(photo);
       }
     }
   });
