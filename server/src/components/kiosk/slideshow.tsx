@@ -90,20 +90,30 @@ function Slide({ slide, now }: { slide: LoadedSlide; now: Dayjs }) {
 export default function Slideshow({ now }: { now: Dayjs }) {
   const [slides, setSlides] = useState<LoadedSlide[]>([]);
   const nextKey = useRef(0);
+  const skipToNext = useRef(() => {});
 
   useEffect(() => {
     let cancelled = false;
+    let isLoading = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
+    const scheduleNext = (seconds: number) => {
+      isLoading = false;
+
+      if (!cancelled) {
+        timer = setTimeout(showNext, seconds * 1000);
+      }
+    };
+
     const showNext = async () => {
+      isLoading = true;
+
       let next: KioskRandomPhotoApiResponse;
 
       try {
         next = await fetchKiosk<KioskRandomPhotoApiResponse>('/photos/random');
       } catch {
-        if (!cancelled) {
-          timer = setTimeout(showNext, RETRY_SECONDS * 1000);
-        }
+        scheduleNext(RETRY_SECONDS);
 
         return;
       }
@@ -122,16 +132,19 @@ export default function Slideshow({ now }: { now: Dayjs }) {
         const slide = { key: nextKey.current++, photo: next.photo, src: next.imageDataUrl, isPortrait: image.naturalHeight > image.naturalWidth };
 
         setSlides((previous) => [...previous.slice(-1), slide]);
-        timer = setTimeout(showNext, getSlideSeconds() * 1000);
+        scheduleNext(getSlideSeconds());
       };
 
-      image.onerror = () => {
-        if (!cancelled) {
-          timer = setTimeout(showNext, RETRY_SECONDS * 1000);
-        }
-      };
+      image.onerror = () => scheduleNext(RETRY_SECONDS);
 
       image.src = next.imageDataUrl;
+    };
+
+    skipToNext.current = () => {
+      if (!isLoading) {
+        clearTimeout(timer);
+        showNext();
+      }
     };
 
     showNext();
@@ -145,6 +158,7 @@ export default function Slideshow({ now }: { now: Dayjs }) {
   return (
     <>
       {slides.map((slide) => <Slide key={slide.key} slide={slide} now={now} />)}
+      <button type="button" className={styles.skipArea} aria-label="Next photo" onClick={() => skipToNext.current()} />
     </>
   );
 }
